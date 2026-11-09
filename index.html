@@ -1,0 +1,4196 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>WhatsIndo</title>
+  <script>
+    window.WHATSINDO_EXTERNAL_DATA = {
+      vocab: [], acro: [], singkatan: [], listening: [], debate: [], slang: [], trans: [],
+      error: [], prep: [], confuse: [], conj: [], contextJa: [],
+      sinonim: [], idiom: [], proverb: [], stories: []
+    };
+    window.loadAllData = function() {
+      if (typeof window.__reloadWhatsIndo === "function") {
+        window.__reloadWhatsIndo();
+      }
+    };
+  </script>
+  <style>
+    :root {
+      --wa-header-green: #075e54;
+      --wa-teal: #008069;
+      --wa-accent: #25d366;
+      --wa-bg-chat: #ece5dd;
+      --wa-bubble-in: #ffffff;
+      --wa-bubble-out: #dcf8c6;
+      --wa-check-blue: #34b7f1;
+      --wa-text: #111b21;
+      --wa-muted: #667781;
+      --wa-border: #e9edef;
+      --wa-pill-bg: #f0f2f5;
+      --wa-pill-active: #d9fdd3;
+      --wa-pill-active-text: #008069;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+      background-color: #d1d7db;
+      color: var(--wa-text);
+      font-weight: 400;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    #wi-status-tray, #wi-story-overlay { display: none !important; }
+
+    /* ==================== アプリ全体レイアウト ==================== */
+    .wa-app {
+      display: flex;
+      width: 100%;
+      height: 100vh;
+      max-width: 1440px;
+      margin: 0 auto;
+      background: #ffffff;
+      box-shadow: 0 2px 18px rgba(0,0,0,0.12);
+      position: relative;
+    }
+
+    /* ==================== 左ペイン：WhatsApp Chats一覧 ==================== */
+    .wa-sidebar {
+      width: 385px;
+      min-width: 315px;
+      height: 100%;
+      background: #ffffff;
+      border-right: 1px solid #d1d7db;
+      display: flex;
+      flex-direction: column;
+      z-index: 20;
+      flex-shrink: 0;
+    }
+
+    .sidebar-top {
+      padding: 12px 14px 8px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      background: #ffffff;
+    }
+    .brand-title {
+      font-size: 1.42rem;
+      font-weight: 700;
+      color: var(--wa-teal);
+      letter-spacing: -0.01em;
+      cursor: pointer;
+      user-select: none;
+    }
+    .sidebar-actions {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .top-action-btn {
+      background: #f0f2f5;
+      border: 1px solid transparent;
+      color: #3b4a54;
+      font-size: 0.74rem;
+      font-weight: 600;
+      padding: 5px 9px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background 0.12s;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+    }
+    .top-action-btn:hover { background: #e2e8f0; }
+    .top-action-btn.wrong-btn {
+      background: #fff1f2;
+      color: #be123c;
+      border-color: #fecdd3;
+    }
+    .top-action-btn.wrong-btn.active {
+      background: #e11d48;
+      color: #ffffff;
+    }
+    .top-action-btn.star-btn {
+      background: #fffbeb;
+      color: #b45309;
+      border-color: #fde68a;
+    }
+    .top-action-btn.star-btn.active {
+      background: #d97706;
+      color: #ffffff;
+    }
+    .count-pill {
+      background: rgba(0,0,0,0.09);
+      color: inherit;
+      font-size: 0.68rem;
+      padding: 0px 5px;
+      border-radius: 999px;
+      font-weight: 600;
+    }
+
+    /* 辞書検索バー ＆ A〜Z辞書ボタン */
+    .search-box-wrap {
+      padding: 4px 14px 10px 14px;
+      position: relative;
+    }
+    .wa-search-bar {
+      background: #f0f2f5;
+      border-radius: 9px;
+      padding: 5px 10px 5px 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .wa-dict-open-btn {
+      background: var(--wa-teal);
+      color: #ffffff;
+      border: none;
+      border-radius: 7px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 5px 10px;
+      cursor: pointer;
+      user-select: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+      transition: background 0.12s;
+    }
+    .wa-dict-open-btn:hover {
+      background: var(--wa-header-green);
+    }
+    .wa-search-input {
+      flex: 1;
+      border: none;
+      background: transparent;
+      font-size: 0.86rem;
+      color: var(--wa-text);
+      outline: none;
+      min-width: 0;
+    }
+    .wa-search-clear {
+      border: none;
+      background: #cbd5e1;
+      color: #334155;
+      width: 19px;
+      height: 19px;
+      border-radius: 50%;
+      font-size: 0.7rem;
+      cursor: pointer;
+      display: none;
+      flex-shrink: 0;
+    }
+    .dict-dropdown {
+      position: absolute;
+      top: 46px;
+      left: 14px;
+      right: 14px;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 11px;
+      max-height: 410px;
+      overflow-y: auto;
+      z-index: 100;
+      box-shadow: 0 10px 28px rgba(0,0,0,0.16);
+      display: none;
+      padding: 6px;
+    }
+    .dict-item {
+      padding: 9px 10px;
+      border-bottom: 1px solid #f1f5f9;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: background 0.12s;
+    }
+    .dict-item:hover { background: #f0fdf4; }
+    .dict-item:last-child { border-bottom: none; }
+    .dict-star-btn {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 3px 8px;
+      cursor: pointer;
+      font-size: 0.78rem;
+      color: #475569;
+      flex-shrink: 0;
+    }
+    .dict-star-btn.starred {
+      background: #fef3c7;
+      border-color: #f59e0b;
+      color: #b45309;
+      font-weight: 600;
+    }
+
+    /* カテゴリピル */
+    .wa-filter-pills {
+      display: flex;
+      gap: 6px;
+      padding: 0 14px 10px 14px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      border-bottom: 1px solid var(--wa-border);
+    }
+    .wa-filter-pills::-webkit-scrollbar { display: none; }
+    .wa-pill {
+      border: none;
+      background: var(--wa-pill-bg);
+      color: var(--wa-muted);
+      font-size: 0.76rem;
+      font-weight: 600;
+      padding: 5px 11px;
+      border-radius: 999px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.12s;
+    }
+    .wa-pill.active {
+      background: var(--wa-pill-active);
+      color: var(--wa-pill-active-text);
+    }
+
+    /* トークルーム一覧 */
+    .wa-chat-list {
+      flex: 1;
+      overflow-y: auto;
+      background: #ffffff;
+    }
+    .wa-chat-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 15px;
+      cursor: pointer;
+      border-bottom: 1px solid #f5f6f7;
+      transition: background 0.12s;
+      user-select: none;
+    }
+    .wa-chat-item:hover { background: #f8fafc; }
+    .wa-chat-item.active { background: #f0f2f5; }
+    .wa-kanji-avatar {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.05rem;
+      font-weight: 700;
+      flex-shrink: 0;
+      border: 1px solid rgba(0,0,0,0.04);
+    }
+    .wa-item-body {
+      flex: 1;
+      min-width: 0;
+    }
+    .wa-item-row1 {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 2px;
+    }
+    .wa-item-title {
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--wa-text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .wa-item-time {
+      font-size: 0.69rem;
+      color: var(--wa-muted);
+      flex-shrink: 0;
+    }
+    .wa-item-row2 {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.79rem;
+      color: var(--wa-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .wa-blue-checks {
+      color: var(--wa-check-blue);
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: -2.5px;
+      margin-right: 3px;
+      flex-shrink: 0;
+    }
+
+    /* ==================== 右ペイン：トーク画面 ==================== */
+    .wa-main-chat {
+      flex: 1;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      background-color: var(--wa-bg-chat);
+      background-image: radial-gradient(rgba(0,0,0,0.03) 1px, transparent 0);
+      background-size: 18px 18px;
+      position: relative;
+      min-width: 0;
+    }
+
+    .chat-header-bar {
+      background: var(--wa-header-green);
+      color: #ffffff;
+      height: 56px;
+      padding: 0 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.16);
+      z-index: 10;
+      flex-shrink: 0;
+    }
+    .chat-hdr-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+    .back-arrow-btn {
+      background: none;
+      border: none;
+      color: #ffffff;
+      font-size: 1.3rem;
+      cursor: pointer;
+      padding: 4px 6px;
+      display: none;
+    }
+    .chat-hdr-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #ffffff;
+      color: var(--wa-header-green);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.94rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .chat-hdr-info { min-width: 0; }
+    .chat-hdr-name {
+      font-size: 0.94rem;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .chat-hdr-sub {
+      font-size: 0.72rem;
+      color: #d1fae5;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .chat-hdr-icons {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .hdr-chip-btn {
+      background: rgba(255,255,255,0.14);
+      border: 1px solid rgba(255,255,255,0.22);
+      color: #ffffff;
+      font-size: 0.74rem;
+      font-weight: 600;
+      padding: 4px 9px;
+      border-radius: 999px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .hdr-chip-btn:hover { background: rgba(255,255,255,0.24); }
+    .hdr-chip-btn.starred {
+      background: #d97706;
+      border-color: #fbbf24;
+    }
+    .hdr-chip-btn.off-state {
+      background: rgba(0,0,0,0.25);
+      color: #cbd5e1;
+    }
+
+    /* 120秒ラッシュ専用ステータスバー */
+    .rush-hud-bar {
+      background: #111b21;
+      color: #ffffff;
+      padding: 8px 16px;
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border-bottom: 2px solid #00a884;
+      flex-shrink: 0;
+      z-index: 9;
+    }
+    .rush-hud-bar.show { display: flex; }
+    .rush-timer-box {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      font-variant-numeric: tabular-nums;
+    }
+    .rush-time-num {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: #25d366;
+    }
+    .rush-time-num.danger { color: #f87171; }
+    .rush-delta-pop {
+      font-size: 0.85rem;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 999px;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .rush-delta-pop.plus { background: #16a34a; color: #fff; opacity: 1; }
+    .rush-delta-pop.minus { background: #dc2626; color: #fff; opacity: 1; }
+    .rush-stats-right {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 0.84rem;
+    }
+    .rush-combo-pill {
+      background: #f59e0b;
+      color: #111b21;
+      font-weight: 700;
+      padding: 2px 9px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+    }
+
+    /* サブフィルターバー */
+    .chat-subfilter-bar {
+      background: rgba(255,255,255,0.95);
+      border-bottom: 1px solid #d1d7db;
+      padding: 6px 14px;
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+    .chat-subfilter-bar.show { display: flex; }
+    .sub-filter-group {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .sub-filter-pill {
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: #334155;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 4px 11px;
+      border-radius: 999px;
+      cursor: pointer;
+    }
+    .sub-filter-pill.active {
+      background: var(--wa-teal);
+      color: #ffffff;
+      border-color: var(--wa-teal);
+    }
+
+    /* ==================== チャットタイムライン ==================== */
+    .chat-messages-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .wa-date-badge {
+      align-self: center;
+      background: #e1f3fb;
+      color: #54656f;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 3px 11px;
+      border-radius: 7px;
+      box-shadow: 0 1px 1px rgba(0,0,0,0.06);
+      margin: 4px 0;
+      user-select: none;
+    }
+    .wa-q-divider {
+      align-self: center;
+      background: rgba(255,255,255,0.75);
+      color: #667781;
+      font-size: 0.7rem;
+      padding: 2px 10px;
+      border-radius: 999px;
+      margin: 6px 0 2px 0;
+      user-select: none;
+    }
+
+    /* 相手側の白い吹き出し */
+    .msg-row-in {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      max-width: 88%;
+    }
+    .wa-bubble-left {
+      background: var(--wa-bubble-in);
+      border-radius: 0 9px 9px 9px;
+      padding: 9px 13px 6px 13px;
+      position: relative;
+      box-shadow: 0 1px 1.5px rgba(0,0,0,0.11);
+      color: var(--wa-text);
+      min-width: 160px;
+    }
+    .wa-bubble-left::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: -7px;
+      width: 0;
+      height: 0;
+      border-top: 0px solid transparent;
+      border-right: 7px solid var(--wa-bubble-in);
+      border-bottom: 9px solid transparent;
+    }
+
+    /* 自分側の薄緑の吹き出し */
+    .msg-row-out {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      align-self: flex-end;
+      max-width: 86%;
+    }
+    .wa-bubble-right {
+      background: var(--wa-bubble-out);
+      border-radius: 9px 0 9px 9px;
+      padding: 7px 12px 5px 12px;
+      position: relative;
+      box-shadow: 0 1px 1.5px rgba(0,0,0,0.11);
+      color: var(--wa-text);
+      min-width: 100px;
+    }
+    .wa-bubble-right::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      right: -7px;
+      width: 0;
+      height: 0;
+      border-top: 0px solid transparent;
+      border-left: 7px solid var(--wa-bubble-out);
+      border-bottom: 9px solid transparent;
+    }
+
+    /* 入力中（mengetik...）バブル */
+    .typing-indicator-bubble {
+      background: #ffffff;
+      border-radius: 0 10px 10px 10px;
+      padding: 10px 14px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      box-shadow: 0 1px 1px rgba(0,0,0,0.11);
+      width: fit-content;
+    }
+    .typing-dot {
+      width: 6px;
+      height: 6px;
+      background: #8696a0;
+      border-radius: 50%;
+      animation: waTypingBounce 1.2s infinite ease-in-out;
+    }
+    .typing-dot:nth-child(2) { animation-delay: 0.18s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.36s; }
+    @keyframes waTypingBounce {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.45; }
+      30% { transform: translateY(-4px); opacity: 1; }
+    }
+
+    .msg-sender-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 4px;
+    }
+    .msg-sender-name {
+      font-size: 0.76rem;
+      font-weight: 600;
+      color: var(--wa-teal);
+    }
+    .msg-action-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .inline-audio-chip {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: #065f46;
+      font-size: 0.71rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 999px;
+      cursor: pointer;
+    }
+    .inline-audio-chip:hover { background: #dcfce7; }
+    .msg-star-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+      color: #94a3b8;
+      padding: 0 2px;
+    }
+    .msg-star-btn.starred { color: #d97706; }
+
+    .msg-main-text {
+      font-size: 0.96rem;
+      font-weight: 400;
+      line-height: 1.58;
+      color: #111b21;
+      word-break: break-word;
+    }
+    .msg-word-head {
+      font-size: 1.22rem;
+      font-weight: 600;
+      color: #075e54;
+      letter-spacing: 0.01em;
+    }
+    .msg-sub-box {
+      margin-top: 6px;
+      background: #f8fafc;
+      border-left: 3px solid var(--wa-teal);
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 0.84rem;
+      font-weight: 400;
+      color: #334155;
+      line-height: 1.55;
+    }
+
+    /* ==================== 2段階開閉式（アコーディオン）解説カードのスタイル ==================== */
+    .exp-compact-summary {
+      background: #f4fbf7;
+      border: 1px solid #bbf7d0;
+      border-radius: 8px;
+      padding: 9px 12px;
+      margin-top: 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .exp-summary-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .exp-summary-ans {
+      font-size: 0.93rem;
+      font-weight: 600;
+      color: #064e3b;
+    }
+    .exp-summary-sent {
+      font-size: 0.86rem;
+      color: #1e293b;
+      line-height: 1.55;
+      border-top: 1px dashed rgba(16, 185, 129, 0.25);
+      padding-top: 5px;
+      white-space: pre-line;
+    }
+    .exp-summary-brief {
+      font-size: 0.82rem;
+      color: #475569;
+      background: rgba(255,255,255,0.75);
+      padding: 4px 8px;
+      border-radius: 5px;
+      border-left: 2.5px solid #f59e0b;
+    }
+
+    .exp-accordion-btn {
+      margin-top: 7px;
+      width: 100%;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      color: #0f766e;
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 6px 11px;
+      border-radius: 7px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .exp-accordion-btn:hover {
+      background: #f0fdf4;
+      border-color: var(--wa-teal);
+    }
+    .exp-accordion-arrow {
+      font-size: 0.75rem;
+      transition: transform 0.2s ease;
+    }
+    .exp-accordion-btn.open .exp-accordion-arrow {
+      transform: rotate(180deg);
+    }
+    .exp-accordion-body {
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 7px;
+      padding-top: 4px;
+    }
+    .exp-accordion-body.open {
+      display: flex;
+    }
+
+    .exp-sec-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 9px 12px;
+    }
+    .exp-sec-card.green {
+      background: #f4fbf7;
+      border-color: #bbf7d0;
+    }
+    .exp-sec-card.amber {
+      background: #fffdf5;
+      border-color: #fde68a;
+    }
+    .exp-sec-label {
+      font-size: 0.73rem;
+      font-weight: 600;
+      color: #0f766e;
+      margin-bottom: 4px;
+      padding-bottom: 3px;
+      border-bottom: 1px dashed rgba(15,118,110,0.18);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .exp-sec-card.amber .exp-sec-label {
+      color: #92400e;
+      border-bottom-color: rgba(146,64,14,0.18);
+    }
+    .exp-sec-content {
+      font-size: 0.87rem;
+      font-weight: 400;
+      color: #1e293b;
+      line-height: 1.68;
+      white-space: pre-line;
+    }
+    .exp-kv-grid {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 3px 10px;
+      font-size: 0.87rem;
+      line-height: 1.6;
+    }
+    .exp-kv-key {
+      color: #475569;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .exp-kv-val {
+      color: #0f172a;
+      font-weight: 400;
+    }
+    .exp-family-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 3px;
+    }
+    .exp-fam-chip {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-size: 0.79rem;
+      color: #1e293b;
+      cursor: pointer;
+    }
+    .exp-fam-chip:hover {
+      border-color: var(--wa-teal);
+      background: #f0fdf4;
+    }
+
+    .hint-reveal-btn {
+      margin-top: 5px;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      color: #475569;
+      font-size: 0.74rem;
+      padding: 3px 9px;
+      border-radius: 5px;
+      cursor: pointer;
+      display: inline-block;
+    }
+    .msg-meta {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 4px;
+      font-size: 0.68rem;
+      color: var(--wa-muted);
+      margin-top: 3px;
+      user-select: none;
+    }
+    .u-highlight {
+      color: #b91c1c;
+      text-decoration: underline;
+      text-decoration-thickness: 2px;
+      text-underline-offset: 3px;
+      background: #fef2f2;
+      padding: 0 3px;
+      border-radius: 3px;
+      font-weight: 600;
+    }
+    .err-seg {
+      background: #eff6ff;
+      color: #1d4ed8;
+      padding: 1px 4px;
+      border-radius: 3px;
+      font-weight: 600;
+      border-bottom: 1.5px dashed #3b82f6;
+    }
+
+    /* リスニング専用オーディオコントロール */
+    .listen-ctrl-box {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 8px;
+      padding: 8px 10px;
+      margin-bottom: 7px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .listen-btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      align-items: center;
+    }
+    .listen-play-btn {
+      background: var(--wa-teal);
+      color: #ffffff;
+      border: none;
+      padding: 5px 11px;
+      border-radius: 6px;
+      font-size: 0.76rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .listen-play-btn.secondary {
+      background: #ffffff;
+      color: var(--wa-header-green);
+      border: 1px solid #86efac;
+    }
+    .listen-play-btn:hover { opacity: 0.9; }
+    .listen-hidden-notice {
+      font-size: 0.81rem;
+      color: #64748b;
+      background: #f8fafc;
+      border: 1px dashed #cbd5e1;
+      padding: 7px 10px;
+      border-radius: 6px;
+    }
+
+    .autonext-bar-wrap {
+      margin-top: 6px;
+      background: #e2e8f0;
+      height: 4px;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .autonext-bar-fill {
+      height: 100%;
+      width: 100%;
+      background: var(--wa-teal);
+    }
+
+    /* ==================== 下部選択肢＆Type a messageドック ==================== */
+    .chat-bottom-dock {
+      background: rgba(239, 234, 226, 0.96);
+      border-top: 1px solid rgba(0,0,0,0.08);
+      padding: 9px 14px;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+    .wa-choices-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    @media (max-width: 640px) {
+      .wa-choices-grid { grid-template-columns: 1fr; gap: 6px; }
+    }
+    .wa-choice-card {
+      background: #ffffff;
+      border: 1px solid #d1d7db;
+      border-radius: 10px;
+      padding: 9px 12px;
+      text-align: left;
+      font-size: 0.89rem;
+      font-weight: 400;
+      line-height: 1.5;
+      color: var(--wa-text);
+      cursor: pointer;
+      transition: background 0.1s, border-color 0.1s;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 1px 1.5px rgba(0,0,0,0.04);
+    }
+    .wa-choice-card:hover:not(:disabled) {
+      border-color: var(--wa-teal);
+      background: #f8fdf9;
+    }
+    .wa-choice-num {
+      min-width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #e6f4ea;
+      color: var(--wa-teal);
+      font-size: 0.76rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .wa-choice-card.correct {
+      background: #dcfce7 !important;
+      border-color: #16a34a !important;
+      color: #064e3b !important;
+      font-weight: 600;
+    }
+    .wa-choice-card.correct .wa-choice-num {
+      background: #16a34a;
+      color: #ffffff;
+    }
+    .wa-choice-card.wrong {
+      background: #fee2e2 !important;
+      border-color: #dc2626 !important;
+      color: #7f1d1d !important;
+    }
+    .wa-choice-card.wrong .wa-choice-num {
+      background: #dc2626;
+      color: #ffffff;
+    }
+
+    .wa-input-bar-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .wa-input-pill {
+      flex: 1;
+      background: #ffffff;
+      border-radius: 999px;
+      height: 42px;
+      padding: 0 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    }
+    .wa-input-field {
+      flex: 1;
+      border: none;
+      outline: none;
+      font-size: 0.9rem;
+      color: var(--wa-text);
+      background: transparent;
+    }
+    .wa-input-btn {
+      background: none;
+      border: none;
+      color: #667781;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 4px 6px;
+      border-radius: 6px;
+      white-space: nowrap;
+    }
+    .wa-input-btn:hover { background: #f0f2f5; color: var(--wa-teal); }
+    .wa-round-send-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: #00897b;
+      color: #ffffff;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+      flex-shrink: 0;
+    }
+
+    @media (max-width: 820px) {
+      .wa-sidebar {
+        width: 100%;
+        position: absolute;
+        inset: 0;
+        transition: transform 0.22s ease;
+      }
+      .wa-app.mobile-chat-open .wa-sidebar {
+        transform: translateX(-100%);
+      }
+      .back-arrow-btn { display: inline-flex; }
+      .chat-messages-area { padding: 12px; }
+    }
+
+    /* ==================== モーダル（A〜Z辞書ブラウザ ＆ 単語詳細 ＆ 設定） ==================== */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.58);
+      z-index: 500;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 14px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-box {
+      background: #ffffff;
+      width: 100%;
+      max-width: 560px;
+      max-height: 90vh;
+      overflow-y: auto;
+      border-radius: 14px;
+      padding: 18px 20px;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.22);
+    }
+    .modal-box.wide-dict-box {
+      max-width: 820px;
+      height: 88vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      padding: 16px 18px;
+    }
+
+    /* A〜Z 辞書ブラウザ専用スタイル */
+    .az-bar-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      padding: 8px 0;
+      border-bottom: 1px solid #e2e8f0;
+      flex-shrink: 0;
+    }
+    .az-letter-btn {
+      min-width: 28px;
+      height: 28px;
+      padding: 0 6px;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      color: #334155;
+      border-radius: 6px;
+      font-size: 0.76rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.1s;
+    }
+    .az-letter-btn:hover {
+      border-color: var(--wa-teal);
+      background: #f0fdf4;
+    }
+    .az-letter-btn.active {
+      background: var(--wa-teal);
+      color: #ffffff;
+      border-color: var(--wa-teal);
+    }
+    .az-letter-btn.empty-letter {
+      opacity: 0.38;
+    }
+    .az-list-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 2px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .az-word-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 9px;
+      padding: 9px 12px;
+      background: #ffffff;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      cursor: pointer;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .az-word-card:hover {
+      background: #f0fdf4;
+      border-color: #86efac;
+    }
+    .az-pos-badge {
+      font-size: 0.68rem;
+      font-weight: 600;
+      padding: 1px 7px;
+      border-radius: 999px;
+      background: #e6f4ea;
+      color: #008069;
+    }
+
+    .setting-group {
+      border-bottom: 1px solid #f1f5f9;
+      padding: 11px 0;
+    }
+    .setting-group:last-child { border-bottom: none; }
+    .setting-title {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #0f172a;
+      margin-bottom: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .setting-desc {
+      font-size: 0.76rem;
+      color: #64748b;
+      margin-bottom: 7px;
+    }
+    .setting-seg-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .setting-seg-btn {
+      flex: 1;
+      min-width: 85px;
+      padding: 6px 9px;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      color: #334155;
+      border-radius: 7px;
+      font-size: 0.76rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+    }
+    .setting-seg-btn.active {
+      background: var(--wa-teal);
+      color: #ffffff;
+      border-color: var(--wa-teal);
+    }
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .slider-row input[type="range"] {
+      flex: 1;
+      accent-color: var(--wa-teal);
+      cursor: pointer;
+    }
+    .kbd-tag {
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-family: monospace;
+      font-size: 0.75rem;
+      color: #0f172a;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="wa-app mobile-chat-open" id="wa-app">
+    <!-- ==================== 左ペイン：WhatsApp Chats一覧 ==================== -->
+    <aside class="wa-sidebar">
+      <div class="sidebar-top">
+        <div class="brand-title" id="brand-title">WhatsIndo</div>
+        <div class="sidebar-actions">
+          <button type="button" class="top-action-btn wrong-btn" id="btn-wrong-top">
+            <span>間違えた問題</span>
+            <span class="count-pill" id="badge-wrong-count">0</span>
+          </button>
+          <button type="button" class="top-action-btn star-btn" id="btn-star-top">
+            <span>スター</span>
+            <span class="count-pill" id="badge-star-count">0</span>
+          </button>
+          <button type="button" class="top-action-btn" id="btn-sound-top">音:ON</button>
+          <button type="button" class="top-action-btn" id="btn-settings-top">設定</button>
+        </div>
+      </div>
+
+      <!-- 辞書検索バー（「📖 辞書 A-Z」ボタンを押すとA〜Z順で全単語が見られる！） -->
+      <div class="search-box-wrap">
+        <div class="wa-search-bar">
+          <button type="button" class="wa-dict-open-btn" id="btn-open-az-dict" title="クリックするとA〜Z順で全単語・略語一覧を開きます">📖 辞書 A-Z</button>
+          <input type="text" class="wa-search-input" id="dict-input" placeholder="単語・意味・語幹で検索..." />
+          <button type="button" class="wa-search-clear" id="dict-clear">✕</button>
+        </div>
+        <div class="dict-dropdown" id="dict-dropdown"></div>
+      </div>
+
+      <!-- カテゴリフィルターピル -->
+      <div class="wa-filter-pills" id="cat-pills">
+        <button type="button" class="wa-pill active" data-cat="all">すべて</button>
+        <button type="button" class="wa-pill" data-cat="special">実戦・ゲーム (2)</button>
+        <button type="button" class="wa-pill" data-cat="vocab">単語・略語 (7)</button>
+        <button type="button" class="wa-pill" data-cat="grammar">文法・聴解 (6)</button>
+        <button type="button" class="wa-pill" data-cat="expr">表現・会話 (4)</button>
+        <button type="button" class="wa-pill" data-cat="review">復習 (2)</button>
+      </div>
+
+      <!-- モード一覧 -->
+      <div class="wa-chat-list" id="wa-chat-list"></div>
+    </aside>
+
+    <!-- ==================== 右ペイン：トーク画面 ==================== -->
+    <main class="wa-main-chat">
+      <header class="chat-header-bar">
+        <div class="chat-hdr-left">
+          <button type="button" class="back-arrow-btn" id="btn-back-list" title="一覧へ戻る">←</button>
+          <div class="chat-hdr-avatar" id="hdr-avatar">動</div>
+          <div class="chat-hdr-info">
+            <div class="chat-hdr-name" id="hdr-name">動詞 (Verba)</div>
+            <div class="chat-hdr-sub" id="hdr-sub">オンライン</div>
+          </div>
+        </div>
+        <div class="chat-hdr-icons">
+          <button type="button" class="hdr-chip-btn" id="btn-hint-toggle" title="ヒント表示切替 (Hキー)">ヒント:ON</button>
+          <button type="button" class="hdr-chip-btn" id="btn-star-hdr" title="スター復習に追加/解除 (Sキー)">☆ スター</button>
+          <button type="button" class="hdr-chip-btn" id="btn-tts-hdr" title="音声再生 (Rキー)">🔊 音声</button>
+        </div>
+      </header>
+
+      <!-- 120秒ラッシュ専用HUDバー -->
+      <div class="rush-hud-bar" id="rush-hud-bar">
+        <div class="rush-timer-box">
+          <span style="font-size:0.78rem;color:#cbd5e1;">残り時間</span>
+          <span class="rush-time-num" id="rush-time-num">120.0s</span>
+          <span class="rush-delta-pop" id="rush-delta-pop">+2.0s</span>
+        </div>
+        <div class="rush-stats-right">
+          <span>Score: <strong id="rush-score-num" style="color:#38bdf8;">0</strong></span>
+          <span class="rush-combo-pill" id="rush-combo-pill">0 Combo</span>
+          <button type="button" id="btn-rush-stop" style="background:#334155;color:#fff;border:none;padding:3px 9px;border-radius:6px;font-size:0.74rem;cursor:pointer;">終了して結果へ</button>
+        </div>
+      </div>
+
+      <!-- サブフィルターバー -->
+      <div class="chat-subfilter-bar" id="chat-subfilter-bar"></div>
+
+      <!-- チャット吹き出しエリア -->
+      <div class="chat-messages-area" id="chat-messages-area"></div>
+
+      <!-- 下部回答ドック -->
+      <div class="chat-bottom-dock">
+        <div class="wa-choices-grid" id="wa-choices-grid"></div>
+
+        <div class="wa-input-bar-row">
+          <div class="wa-input-pill">
+            <button type="button" class="wa-input-btn" id="btn-tts-bottom" title="音声再生 (Rキー)">🔊 音声</button>
+            <input type="text" class="wa-input-field" id="wa-input-field" placeholder="メッセージを入力 (または1〜4を選択 / Enter・→キーで次へ)..." autocomplete="off" />
+            <button type="button" class="wa-input-btn" id="btn-star-bottom" title="スター登録 (Sキー)">☆</button>
+            <button type="button" class="wa-input-btn" id="btn-skip-bottom" title="次の問題を送る (Enter / →)">次へ</button>
+          </div>
+          <button type="button" class="wa-round-send-btn" id="btn-send-main" title="送信 / 次の問題へ (Enter / →)">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+          </button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- ==================== A〜Z 辞書ブラウザモーダル（Kamus Lengkap A-Z） ==================== -->
+  <div class="modal-overlay" id="az-dict-modal">
+    <div class="modal-box wide-dict-box">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding-bottom:8px;border-bottom:1px solid #e2e8f0;flex-shrink:0;">
+        <div>
+          <h3 style="color:var(--wa-header-green);font-size:1.08rem;font-weight:700;">📖 Kamus Lengkap A–Z（A〜Z 順・全語彙インデックス辞書）</h3>
+          <div style="font-size:0.76rem;color:#64748b;" id="az-dict-count-label">全 0 語収録（単語をタップすると詳細解説・例文・派生語が開きます）</div>
+        </div>
+        <button type="button" class="top-action-btn" id="btn-close-az-dict">✕ 閉じる</button>
+      </div>
+
+      <!-- 並び順（見出し語A-Z / 語幹A-Z）＆ 品詞フィルター ＆ 検索欄 -->
+      <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:space-between;padding:8px 0 4px 0;flex-shrink:0;">
+        <div style="display:flex;gap:4px;flex-wrap:wrap;" id="az-pos-pills">
+          <button type="button" class="sub-filter-pill active" data-azpos="all">すべて</button>
+          <button type="button" class="sub-filter-pill" data-azpos="v">動詞</button>
+          <button type="button" class="sub-filter-pill" data-azpos="a">形容詞</button>
+          <button type="button" class="sub-filter-pill" data-azpos="n">名詞</button>
+          <button type="button" class="sub-filter-pill" data-azpos="other">副詞・接続詞他</button>
+          <button type="button" class="sub-filter-pill" data-azpos="singkatan">略語</button>
+          <button type="button" class="sub-filter-pill" data-azpos="starred">★スター済</button>
+        </div>
+        <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;">
+          <button type="button" class="sub-filter-pill active" id="btn-az-sort-word" title="派生語を含む見出し語のA〜Z順">見出し語 A–Z</button>
+          <button type="button" class="sub-filter-pill" id="btn-az-sort-root" title="KBBI辞書と同じ語幹（Kata Dasar）のA〜Z順">語幹 A–Z</button>
+          <input type="text" id="az-filter-input" placeholder="辞書内を絞り込み..." style="border:1px solid #cbd5e1;border-radius:7px;padding:4px 9px;font-size:0.8rem;outline:none;width:150px;" />
+        </div>
+      </div>
+
+      <!-- A〜Z インデックスボタンバー -->
+      <div class="az-bar-wrap" id="az-letter-bar"></div>
+
+      <!-- 単語リスト表示エリア -->
+      <div class="az-list-container" id="az-list-container"></div>
+    </div>
+  </div>
+
+  <!-- ==================== 辞書単語・詳細解説モーダル ==================== -->
+  <div class="modal-overlay" id="dict-detail-modal">
+    <div class="modal-box" id="dict-detail-box"></div>
+  </div>
+
+  <!-- ==================== 設定モーダル ==================== -->
+  <div class="modal-overlay" id="settings-modal">
+    <div class="modal-box">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <h3 style="color:var(--wa-header-green);font-size:1.02rem;font-weight:600;">設定</h3>
+        <button type="button" class="top-action-btn" id="btn-close-settings">閉じる</button>
+      </div>
+
+      <div class="setting-group">
+        <div class="setting-title">
+          <span>次の問題への自動遷移</span>
+          <span id="label-autonext-delay" style="color:var(--wa-teal);">1.8秒</span>
+        </div>
+        <div class="setting-desc">回答後に自動で次の問題が送られてくるまでの時間を調整します（「▼ 詳しい解説を見る」を押すと自動遷移は一時停止します）。</div>
+        <div class="setting-seg-row" id="seg-autonext-mode" style="margin-bottom:8px;">
+          <button type="button" class="setting-seg-btn" data-an="off">OFF (手動)</button>
+          <button type="button" class="setting-seg-btn active" data-an="correct">正解時のみ自動</button>
+          <button type="button" class="setting-seg-btn" data-an="always">常に自動遷移</button>
+        </div>
+        <div class="slider-row">
+          <span style="font-size:0.74rem;color:#64748b;">0.8秒</span>
+          <input type="range" id="slider-autonext-delay" min="0.8" max="5.0" step="0.2" value="1.8" />
+          <span style="font-size:0.74rem;color:#64748b;">5.0秒</span>
+        </div>
+      </div>
+
+      <div class="setting-group">
+        <div class="setting-title">
+          <span>効果音の音量（送信ポップ音・正解・不正解）</span>
+          <span id="label-sound-vol" style="color:var(--wa-teal);">60%</span>
+        </div>
+        <div class="slider-row">
+          <span style="font-size:0.74rem;color:#64748b;">0%</span>
+          <input type="range" id="slider-sound-vol" min="0" max="100" step="5" value="60" />
+          <span style="font-size:0.74rem;color:#64748b;">100%</span>
+        </div>
+      </div>
+
+      <div class="setting-group">
+        <div class="setting-title"><span>ヒント表示（語幹・例文・和訳ヒント）</span></div>
+        <div class="setting-seg-row" id="seg-hint-mode">
+          <button type="button" class="setting-seg-btn active" data-hm="on">ヒント有り (ON)</button>
+          <button type="button" class="setting-seg-btn" data-hm="off">ヒント無し (OFF)</button>
+        </div>
+      </div>
+
+      <div class="setting-group">
+        <div class="setting-title"><span>出題時の「入力中...」演出 ＆ 自動音声再生</span></div>
+        <div class="setting-seg-row" style="margin-bottom:6px;" id="seg-typing-anim">
+          <button type="button" class="setting-seg-btn active" data-ta="on">入力中演出: ON</button>
+          <button type="button" class="setting-seg-btn" data-ta="off">入力中演出: OFF (即時)</button>
+        </div>
+        <div class="setting-seg-row" id="seg-autotts-mode">
+          <button type="button" class="setting-seg-btn" data-tts="off">自動音声: OFF</button>
+          <button type="button" class="setting-seg-btn active" data-tts="on">自動音声: ON (Google女性音声優先)</button>
+        </div>
+      </div>
+
+      <div class="setting-group">
+        <div class="setting-title"><span>キーボード操作</span></div>
+        <div style="font-size:0.78rem;color:#334155;line-height:1.75;">
+          ・<span class="kbd-tag">Enter</span> または <span class="kbd-tag">→ (右矢印)</span> ：次の問題へ進む（※Spaceキーでは飛びません）<br>
+          ・<span class="kbd-tag">1</span> 〜 <span class="kbd-tag">4</span> ：選択肢1〜4を回答 ／ <span class="kbd-tag">S</span> ：スター登録 ／ <span class="kbd-tag">H</span> ：ヒント切替 ／ <span class="kbd-tag">R</span> ：音声再生
+        </div>
+      </div>
+
+      <div class="setting-group" style="display:flex;gap:6px;flex-wrap:wrap;padding-top:12px;">
+        <button type="button" id="btn-clear-chat-history" style="background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;padding:7px 11px;border-radius:7px;font-size:0.75rem;font-weight:600;cursor:pointer;">現在のトーク履歴をクリア</button>
+        <button type="button" id="btn-clear-wrongs" style="background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;padding:7px 11px;border-radius:7px;font-size:0.75rem;font-weight:600;cursor:pointer;">間違えた問題を空にする</button>
+        <button type="button" id="btn-clear-stars" style="background:#fef3c7;color:#b45309;border:1px solid #fde68a;padding:7px 11px;border-radius:7px;font-size:0.75rem;font-weight:600;cursor:pointer;">スターを空にする</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 外部データファイル data.js の読み込み -->
+  <script src="data.js"></script>
+
+  <script>
+  (function() {
+    const ext = window.WHATSINDO_EXTERNAL_DATA;
+
+    // -----------------------------------------------------------------
+    // 1. 内蔵略語データ（data.js の d.acro と完全自動統合）
+    // -----------------------------------------------------------------
+    const BUILTIN_SINGKATAN = [
+      { w: "UMKM", r: "Usaha Mikro, Kecil, dan Menengah", alts: ["usaha mikro kecil menengah"], m: "零細・中小企業", ex: "Pemerintah memberikan kredit bunga rendah bagi pelaku UMKM.", tr: "政府は零細・中小企業の事業者向けに低利融資を提供している。" },
+      { w: "BUMN", r: "Badan Usaha Milik Negara", alts: [], m: "国営企業", ex: "Kementerian BUMN mendorong efisiensi di seluruh perusahaan negara.", tr: "国営企業省はすべての国営企業における効率化を推進している。" },
+      { w: "APBN", r: "Anggaran Pendapatan dan Belanja Negara", alts: ["anggaran pendapatan belanja negara"], m: "国家歳入歳出予算", ex: "DPR telah mengesahkan Rancangan APBN untuk tahun depan.", tr: "国会は来年度の国家予算案を可決した。" },
+      { w: "KPK", r: "Komisi Pemberantasan Korupsi", alts: [], m: "汚職撲滅委員会", ex: "KPK berhasil menangkap oknum pejabat yang menerima suap.", tr: "汚職撲滅委員会は賄賂を受け取った悪質な高官を逮捕した。" },
+      { w: "BMKG", r: "Badan Meteorologi, Klimatologi, dan Geofisika", alts: ["badan meteorologi klimatologi geofisika"], m: "気象・気候・地球物理庁", ex: "BMKG mengeluarkan peringatan dini cuaca ekstrem dan gelombang tinggi.", tr: "BMKGは異常気象と高波の早期警報を発令した。" },
+      { w: "BNPB", r: "Badan Nasional Penanggulangan Bencana", alts: [], m: "国家災害対策庁", ex: "BNPB segera mengirimkan tenda darurat ke lokasi gempa.", tr: "国家災害対策庁は直ちに地震の被災地へ緊急用テントを送った。" },
+      { w: "SIM", r: "Surat Izin Mengemudi", alts: [], m: "運転免許証", ex: "Setiap pengendara wajib membawa SIM dan STNK yang masih berlaku.", tr: "すべての運転者は有効な運転免許証と車検証を携帯する義務がある。" },
+      { w: "STNK", r: "Surat Tanda Nomor Kendaraan", alts: [], m: "車両番号登録証（車検証）", ex: "Pajak STNK harus diperpanjang setiap tahun di kantor Samsat.", tr: "車検証の税金は毎年サムサット事務所で更新しなければならない。" },
+      { w: "KTP", r: "Kartu Tanda Penduduk", alts: [], m: "住民登録証（身分証明書）", ex: "Warga berusia tujuh belas tahun wajib memiliki KTP.", tr: "17歳になった市民は住民登録証（KTP）を持つ義務がある。" },
+      { w: "BPJS", r: "Badan Penyelenggara Jaminan Sosial", alts: [], m: "社会保障実施機関", ex: "Biaya operasi pasien tersebut ditanggung sepenuhnya oleh BPJS Kesehatan.", tr: "その患者の手術費用はBPJS医療保険によって全額カバーされた。" },
+      { w: "BPOM", r: "Badan Pengawas Obat dan Makanan", alts: [], m: "医薬品食品監督庁", ex: "Pastikan kosmetik yang Anda beli sudah memiliki izin edar dari BPOM.", tr: "購入する化粧品がBPOMの流通許可を得ているか必ず確認してください。" },
+      { w: "OJK", r: "Otoritas Jasa Keuangan", alts: [], m: "金融サービス庁", ex: "OJK menutup ratusan aplikasi pinjaman daring ilegal.", tr: "金融サービス庁は数百の違法オンライン融資アプリを閉鎖した。" },
+      { w: "BPS", r: "Badan Pusat Statistik", alts: [], m: "中央統計局", ex: "BPS mencatat penurunan angka kemiskinan pada semester ini.", tr: "中央統計局は今期における貧困率の低下を記録した。" },
+      { w: "HAM", r: "Hak Asasi Manusia", alts: [], m: "基本的人権", ex: "Setiap warga negara berhak mendapatkan perlindungan HAM.", tr: "すべての国民は基本的人権の保護を受ける権利がある。" },
+      { w: "SDM", r: "Sumber Daya Manusia", alts: [], m: "人的資源（人材）", ex: "Peningkatan kualitas SDM menjadi kunci kemajuan ekonomi.", tr: "人的資源（人材）の質の向上が経済発展の鍵となる。" },
+      { w: "PHK", r: "Pemutusan Hubungan Kerja", alts: [], m: "解雇、雇用契約の解除", ex: "Perusahaan berusaha menghindari terjadinya PHK terhadap karyawan.", tr: "企業は従業員に対する解雇の発生を避けようと努めている。" },
+      { w: "THR", r: "Tunjangan Hari Raya", alts: [], m: "祝祭日手当（ボーナス）", ex: "Perusahaan wajib membayarkan THR paling lambat tujuh hari sebelum Lebaran.", tr: "企業は遅くともレバランの7日前までに祝祭日手当を支給する義務がある。" },
+      { w: "Puskesmas", r: "Pusat Kesehatan Masyarakat", alts: [], m: "地域保健センター", ex: "Warga dapat melakukan pemeriksaan kesehatan dasar secara gratis di Puskesmas.", tr: "住民は地域保健センターで基礎健康診断を無料で受けられる。" },
+      { w: "Sembako", r: "Sembilan Bahan Pokok", alts: [], m: "9大生活必需品", ex: "Pemerintah menggelar pasar murah untuk menstabilkan harga sembako.", tr: "政府は生活必需品の価格を安定させるため廉売市を開催した。" },
+      { w: "Tilang", r: "Bukti Pelanggaran", alts: [], m: "交通反則切符、違反取り締まり", ex: "Sistem tilang elektronik kini diterapkan melalui kamera pengawas di jalan raya.", tr: "現在、道路の監視カメラを通じた電子反則切符システムが導入されている。" },
+      { w: "Sidak", r: "Inspeksi Mendadak", alts: [], m: "抜き打ち視察、抜き打ち検査", ex: "Menteri melakukan sidak ke gudang beras untuk memeriksa ketersediaan stok.", tr: "大臣は在庫状況を確認するため、米倉庫へ抜き打ち視察を行った。" },
+      { w: "Pungli", r: "Pungutan Liar", alts: [], m: "不法徴収、不当な金銭要求", ex: "Layanan perizinan daring terbukti efektif memberantas praktik pungli.", tr: "オンライン許認可サービスは不法徴収行為を撲滅するのに効果的だと証明された。" },
+      { w: "Ruko", r: "Rumah Toko", alts: [], m: "店舗兼住宅", ex: "Bank tersebut membuka kantor kas baru di deretan ruko dekat pasar.", tr: "その銀行は市場近くの店舗兼住宅の並びに新しい出張所を開設した。" },
+      { w: "Rusun", r: "Rumah Susun", alts: [], m: "集合住宅、公営団地", ex: "Warga yang tinggal di bantaran sungai direlokasi ke rumah susun yang nyaman.", tr: "河川敷に住んでいた住民は快適な集合住宅へと移転した。" },
+      { w: "Daring", r: "Dalam Jaringan", alts: [], m: "オンライン", ex: "Pendaftaran peserta seminar dapat dilakukan secara daring melalui situs web.", tr: "セミナー参加者の登録はウェブサイトを通じてオンラインで行うことができる。" },
+      { w: "Luring", r: "Luar Jaringan", alts: [], m: "オフライン、対面式", ex: "Setelah dua tahun diadakan secara daring, tahun ini festival digelar secara luring.", tr: "2年間オンラインで開催された後、今年のフェスティバルは対面で開催された。" }
+    ];
+
+    // -----------------------------------------------------------------
+    // 2. データベース構築・重複排除・選択肢ネタバレ除去・[A]〜[D]順序整列
+    // -----------------------------------------------------------------
+    let DB = {
+      v: [], a: [], n: [], other: [], singkatan: [],
+      sinonim: [], confuse: [],
+      listening: [], contextJa: [], conj: [], error: [], prep: [], trans: [],
+      slang: [], debate: [], idiom: [], proverb: []
+    };
+
+    const cyrMap = { 'а':'a','е':'e','о':'o','р':'p','с':'c','у':'y','х':'x','А':'A','Е':'E','О':'O','Р':'P','С':'C','У':'Y','Х':'X' };
+    function cleanStr(str) {
+      if (typeof str !== 'string') return str;
+      return str
+        .replace(/\[cite:\s*[\d,\s]+\]/gi, '')
+        .replace(/[аеорсухАЕОРСУХ]/g, ch => cyrMap[ch] || ch)
+        .replace(/[\u0400-\u04FF\u0600-\u06FF\uAC00-\uD7AF]/g, '')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+    }
+    function stripCJK(str) {
+      if (typeof str !== 'string') return str;
+      return cleanStr(str)
+        .replace(/ステージ/g, '🎪')
+        .replace(/冷蔵庫/g, '🧊')
+        .replace(/商场/g, '🏬')
+        .replace(/[\u3040-\u30FF\u4E00-\u9FFF\u3400-\u4DBF]/g, '')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+    }
+
+    function cleanChoiceMeaning(mStr) {
+      if (typeof mStr !== 'string') return '';
+      let s = cleanStr(mStr);
+      s = s.replace(/（[^）]*[a-zA-Z＝=⇔※：:][^）]*）/g, '');
+      s = s.replace(/\([^)]*[a-zA-Z＝=⇔※：:][^)]*\)/g, '');
+      s = s.replace(/\s*[※＝=⇔].*$/g, '');
+      s = s.replace(/（\s*）/g, '').replace(/\(\s*\)/g, '').replace(/\s{2,}/g, ' ').replace(/[、，,\s]+$/g, '').trim();
+      return s || cleanStr(mStr);
+    }
+
+    function cleanPureExplanation(str) {
+      if (typeof str !== 'string') return '';
+      return cleanStr(str)
+        .replace(/【[^】]*(最頻出|超重要|必須|鉄板|黄金|長さ法則|対策|引っかけ|ポイント|急所|ルール|判別|使い分け|整理|ペア|兄弟|段階|セット|家族|ファミリー)[^】]*】\s*/g, '')
+        .replace(/検定の超引っかけ語！\s*/g, '')
+        .replace(/KBBI\s*([（(][^）)]*[）)])?\s*(公式定義|前書き|大臣序文|凡例)?(にも|に)?(そのまま)?(収録|登場|記載)?(の重要表現|の超重要表現|の重要ことわざ|の超重要ことわざ)?\s*[：:・]?\s*/gi, '')
+        .replace(/写真のリスニング[^。！\n]*[。！]?\s*/g, '')
+        .replace(/検定(A・B級|B・A級|B級|C級|A級|長文|読解|リスニング|上位級)?(でも|で|の)?(100%|最も|超|非常に)?(狙われる|頻出|必須|重要|定番)[^。！\n]*[。！]?\s*/g, '')
+        .replace(/ニュース(記事|報道|見出し)?(でも|で|の)?(毎日|100%|超|最も)?(使われる|登場する|頻出)[^。！\n]*[。！]?\s*/g, '')
+        .replace(/この問題では\*\*正解（選択肢1）が一番短く\*\*、[^\n]*\n?/g, '')
+        .replace(/選択肢2・3・4の方が正解（選択肢1）と同じかさらに長い語数で書かれています。\s*/g, '')
+        .replace(/(全|4つの)選択肢(すべて)?が約\d+語(に|で)(均一化|揃え)されています。\s*/g, '')
+        .replace(/正解の選択肢1（\d+語）よりも、[^\n]*\n?/g, '')
+        .replace(/(ダミー選択肢|ダミー1〜3|他の選択肢)の方が長(く書かれてい|文です)ますが、[^\n]*\n?/g, '')
+        .replace(/(ここでも)?\*\*一番短い選択肢1が正解\*\*です！\s*/g, '')
+        .replace(/一番短い選択肢1が正解です！\s*/g, '')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+    }
+
+    function getFirstLineSummary(expStr) {
+      if (!expStr) return "";
+      const lines = expStr.split(/\n+/).map(l => l.trim()).filter(Boolean);
+      if (!lines.length) return "";
+      const first = lines[0];
+      return first.length > 82 ? first.slice(0, 82) + "…" : first;
+    }
+
+    function analyzeMorphology(w, r) {
+      if (!w || !r) return "";
+      const wl = w.toLowerCase();
+      const rl = r.toLowerCase();
+      if (wl === rl) return `基本語（語幹そのまま：${r}）`;
+      if (wl.startsWith("mempertanggungjawabkan")) return `memper- + ${r} + -kan（複合語の他動詞化：説明責任を果たす）`;
+      if (wl.startsWith("memper") && wl.endsWith("kan")) return `memper- + ${r} + -kan（使役・強調の他動詞：「〜を…させる・〜として扱う」）`;
+      if (wl.startsWith("memper") && wl.endsWith("i")) return `memper- + ${r} + -i（対象への働きかけ・改修・更新の他動詞）`;
+      if (wl.startsWith("memper")) return `memper- + ${r}（形容詞から派生し「より〜にする・さらに〜を広げる」他動詞）`;
+      if (/^(me|mem|men|meng|meny|menge)/.test(wl) && wl.endsWith("kan")) return `meN- + ${r} + -kan（能動他動詞：対象を移動・変化・発生させる／人のために〜してあげる）`;
+      if (/^(me|mem|men|meng|meny|menge)/.test(wl) && wl.endsWith("i")) return `meN- + ${r} + -i（能動他動詞：場所・対象への働きかけ・付与・反復動作）`;
+      if (/^(me|mem|men|meng|meny|menge)/.test(wl)) return `meN- + ${r}（能動動詞：語幹の頭文字に応じて鼻音化）`;
+      if (wl.startsWith("ber") && wl.endsWith("an")) return `ber- + ${r} + -an（相互動作「互いに〜し合う」または複数・継続状態の自動詞）`;
+      if (wl.startsWith("ber")) return `ber- + ${r}（状態・所有・着用・自発行為を表す自動詞）`;
+      if (wl.startsWith("ter")) return `ter- + ${r}（完了状態・非意図的受動「思わず〜される」・可能「〜できる」・最上級）`;
+      if (wl.startsWith("di") && wl.endsWith("kan")) return `di- + ${r} + -kan（3人称受動態：他動詞 meN- -kan に対応）`;
+      if (wl.startsWith("di") && wl.endsWith("i")) return `di- + ${r} + -i（3人称受動態：他動詞 meN- -i に対応）`;
+      if (wl.startsWith("ke") && wl.endsWith("an")) return `ke- + ${r} + -an（抽象名詞「〜性・〜状態」、または受動的被害「〜に見舞われる」）`;
+      if (/^(pe|pem|pen|peng|peny|penge)/.test(wl) && wl.endsWith("an")) return `peN- + ${r} + -an（他動詞 meN- に対応する「〜する行為・プロセス・方法」の名詞）`;
+      if (wl.startsWith("per") && wl.endsWith("an")) return `per- + ${r} + -an（自動詞 ber- に対応する「〜の状態・結果・場所・事業」の名詞）`;
+      if (wl.endsWith("an")) return `${r} + -an（行為の結果・対象物・具体物の名詞化）`;
+      return `語幹「${r}」からの派生形`;
+    }
+
+    function getRootFamilyList(rootWord, excludeWord) {
+      if (!rootWord) return [];
+      const rl = rootWord.toLowerCase();
+      const exl = (excludeWord || "").toLowerCase();
+      const allV = [...DB.v, ...DB.a, ...DB.n, ...DB.other];
+      return allV.filter(x => x.r && x.r.toLowerCase() === rl && x.w.toLowerCase() !== exl).slice(0, 8);
+    }
+
+    // ★ 誤文訂正（errorモード）や [A]〜[D] 選択肢は絶対にシャッフルせず、必ず [A] ➔ [B] ➔ [C] ➔ [D] の順番に並べる関数！
+    function orderChoices(choices, effMode) {
+      if (!Array.isArray(choices)) return [];
+      const isBracketABCD = effMode === "error" || choices.some(c => /^\[[A-D]\]/i.test((c || "").trim()));
+      if (isBracketABCD) {
+        return [...choices].sort((a, b) => (a || "").trim().localeCompare((b || "").trim()));
+      }
+      return shuffle(choices);
+    }
+
+    function buildDatabase() {
+      const old1 = document.getElementById("wi-status-tray"); if (old1) old1.remove();
+      const old2 = document.getElementById("wi-story-overlay"); if (old2) old2.remove();
+
+      DB = {
+        v: [], a: [], n: [], other: [], singkatan: [],
+        sinonim: [], confuse: [],
+        listening: [], contextJa: [], conj: [], error: [], prep: [], trans: [],
+        slang: [], debate: [], idiom: [], proverb: []
+      };
+
+      const vMap = new Map();
+      (ext.vocab || []).forEach(it => {
+        if (!it || !it.w || it.isDup) return;
+        const w = stripCJK(it.w);
+        const p = it.p || 'other';
+        const fullM = cleanStr(it.m || '');
+        const cleanM = cleanChoiceMeaning(fullM);
+        vMap.set(`${p}::${w.toLowerCase()}`, {
+          p, w,
+          r: stripCJK(it.r || w),
+          m: cleanM,
+          fullM: fullM,
+          ex: stripCJK(it.ex || ''),
+          tr: cleanStr(it.tr || ''),
+          note: cleanPureExplanation(it.note || '')
+        });
+      });
+      vMap.forEach(v => {
+        if (v.p === "abbr" || v.p === "singkatan") DB.singkatan.push(v);
+        else if (DB[v.p]) DB[v.p].push(v);
+        else DB.other.push(v);
+      });
+
+      const abbrMap = new Map();
+      [...BUILTIN_SINGKATAN, ...(ext.singkatan || []), ...(ext.abbr || [])].forEach(it => {
+        if (!it || !it.w) return;
+        const w = stripCJK(it.w);
+        const fullM = cleanStr(it.m || '');
+        abbrMap.set(w.toLowerCase(), {
+          p: "singkatan",
+          w,
+          r: stripCJK(it.r || it.full || w),
+          alts: Array.isArray(it.alts) ? it.alts.map(a => stripCJK(a)) : [],
+          m: cleanChoiceMeaning(fullM),
+          fullM,
+          ex: stripCJK(it.ex || ''),
+          tr: cleanStr(it.tr || ''),
+          note: cleanPureExplanation(it.note || '')
+        });
+      });
+      (ext.acro || []).forEach(it => {
+        if (!it || !it.acro) return;
+        const w = stripCJK(it.acro);
+        const full = stripCJK(it.full || '');
+        const tr = cleanStr(it.tr || '');
+        const existing = abbrMap.get(w.toLowerCase());
+        abbrMap.set(w.toLowerCase(), {
+          p: "singkatan",
+          w,
+          r: full ? full.replace(/\b\w/g, c => c.toUpperCase()) : (existing ? existing.r : w),
+          alts: Array.isArray(it.alts) ? it.alts.map(a => stripCJK(a)) : (existing ? existing.alts : []),
+          m: cleanChoiceMeaning(tr || (existing ? existing.m : '')),
+          fullM: tr || (existing ? existing.fullM : ''),
+          ex: existing ? existing.ex : '',
+          tr: existing ? existing.tr : '',
+          note: cleanPureExplanation(it.exp || (existing ? existing.note : ''))
+        });
+      });
+      DB.singkatan = Array.from(abbrMap.values());
+
+      const seen = new Set();
+      function addU(arr, k, obj) {
+        if (!k || seen.has(k)) return;
+        seen.add(k);
+        arr.push(obj);
+      }
+
+      (ext.sinonim || []).forEach(it => {
+        if (!it || !it.target) return;
+        addU(DB.sinonim, `sin::${it.type}::${it.target}`, {
+          ...it,
+          target: cleanStr(it.target),
+          a: stripCJK(it.a),
+          choices: (it.choices || []).map(c => stripCJK(c)),
+          ex: stripCJK(it.ex || ''),
+          exp: cleanPureExplanation(it.exp || '')
+        });
+      });
+
+      (ext.confuse || []).forEach(it => {
+        if (!it || !it.s) return;
+        addU(DB.confuse, `conf::${it.s}`, {
+          ...it,
+          q: cleanStr(it.q || ''),
+          s: stripCJK(it.s),
+          a: stripCJK(it.a),
+          choices: (it.choices || []).map(c => stripCJK(c)),
+          exp: cleanPureExplanation(it.exp || '')
+        });
+      });
+
+      (ext.listening || []).forEach(it => {
+        if (!it || !it.passage) return;
+        addU(DB.listening, `lis::${it.passage}::${it.question}`, {
+          ...it,
+          passage: stripCJK(it.passage),
+          question: stripCJK(it.question),
+          choices: (it.choices || []).map(c => stripCJK(c)),
+          trPassage: cleanStr(it.trPassage || ''),
+          trQuestion: cleanStr(it.trQuestion || ''),
+          exp: cleanPureExplanation(it.exp || '')
+        });
+      });
+
+      (ext.contextJa || []).forEach(it => {
+        if (!it || !it.s) return;
+        addU(DB.contextJa, `ctx::${it.s}`, {
+          ...it,
+          s: stripCJK(it.s),
+          target: stripCJK(it.target || ''),
+          ans: cleanChoiceMeaning(it.ans || ''),
+          choices: (it.choices || []).map(c => cleanChoiceMeaning(c)),
+          tr: cleanStr(it.tr || ''),
+          exp: cleanPureExplanation(it.exp || '')
+        });
+      });
+
+      (ext.conj || []).forEach(it => {
+        if (!it || !it.s || (it.isTrick === false && !it.a)) return;
+        addU(DB.conj, `conj::${it.s}`, {
+          ...it,
+          s: stripCJK(it.s),
+          r: stripCJK(it.r || ''),
+          a: stripCJK(it.a || ''),
+          tr: cleanStr(it.tr || ''),
+          exp: cleanPureExplanation(it.exp || '')
+        });
+      });
+
+      (ext.error || []).forEach(it => {
+        if (!it || !it.s) return;
+        const sortedChoices = orderChoices((it.choices || []).map(c => cleanStr(c)), "error");
+        addU(DB.error, `err::${it.s}`, {
+          ...it,
+          s: cleanStr(it.s),
+          a: cleanStr(it.a),
+          choices: sortedChoices,
+          tr: cleanStr(it.tr || ''),
+          exp: cleanPureExplanation(it.exp || '')
+        });
+      });
+
+      (ext.prep || []).forEach(it => {
+        if (!it || !it.s) return;
+        addU(DB.prep, `prep::${it.s}`, {
+          ...it,
+          target: cleanStr(it.target || ''),
+          s: stripCJK(it.s),
+          a: stripCJK(it.a),
+          choices: (it.choices || []).map(c => stripCJK(c)),
+          tr: cleanStr(it.tr || ''),
+          exp: cleanPureExplanation(it.exp || '')
+        });
+      });
+
+      (ext.trans || []).forEach(it => {
+        if (!it || !it.q) return;
+        addU(DB.trans, `tr::${it.q}`, {
+          ...it,
+          q: cleanStr(it.q),
+          choices: (it.choices || []).map(c => it.dir === 'ja2id' ? stripCJK(c) : cleanStr(c)),
+          exp: cleanPureExplanation(it.exp || '')
+        });
+      });
+
+      (ext.slang || []).forEach(it => {
+        if (!it || !it.msg || /whatsindo/i.test(it.msg)) return;
+        addU(DB.slang, `slang::${it.sender}::${it.msg.slice(0,50)}`, {
+          ...it,
+          msg: stripCJK(it.msg),
+          choices: (it.choices || []).map(c => stripCJK(c)),
+          tr: cleanStr(it.tr || ''),
+          exp: cleanPureExplanation(it.exp || '')
+        });
+      });
+
+      (ext.debate || []).forEach(it => {
+        if (!it || !it.prompt) return;
+        addU(DB.debate, `deb::${it.topic}::${it.prompt}`, {
+          ...it,
+          agenda: stripCJK(it.agenda || ''),
+          prompt: stripCJK(it.prompt || ''),
+          messages: (it.messages || []).map(m => ({ ...m, text: stripCJK(m.text || '') })),
+          choices: (it.choices || []).map(c => stripCJK(c)),
+          trThread: cleanStr(it.trThread || ''),
+          exp: cleanPureExplanation(it.exp || '')
+        });
+      });
+
+      (ext.idiom || []).forEach(it => {
+        if (!it || !it.s) return;
+        addU(DB.idiom, `id::${it.s}`, {
+          ...it,
+          q: cleanStr(it.q || ''),
+          s: stripCJK(it.s),
+          a: stripCJK(it.a),
+          choices: (it.choices || []).map(c => stripCJK(c)),
+          exp: cleanPureExplanation(it.exp || '')
+        });
+      });
+
+      (ext.proverb || []).forEach(it => {
+        if (!it || !it.pb) return;
+        addU(DB.proverb, `pb::${it.pb}`, {
+          ...it,
+          pb: stripCJK(it.pb),
+          lit: cleanStr(it.lit || ''),
+          a: cleanStr(it.a),
+          choices: (it.choices || []).map(c => cleanStr(c)),
+          exp: cleanPureExplanation(it.exp || '')
+        });
+      });
+    }
+
+    // -----------------------------------------------------------------
+    // 3. チャットルーム定義 ＆ 状態管理
+    // -----------------------------------------------------------------
+    const CHAT_ROOMS = [
+      { id: "exam", cat: "special", name: "総合模試 (全分野ランダム)", ava: "模", bg: "#d9fdd3", fg: "#008069", desc: "単語・文法・聴解・会話から総合出題" },
+      { id: "rush", cat: "special", name: "120秒ラッシュ (+2s / -2s)", ava: "速", bg: "#ffedd5", fg: "#ea580c", desc: "連続コンボでハイスコアを狙うタイムアタック" },
+      { id: "v", cat: "vocab", name: "動詞 (Verba)", ava: "動", bg: "#dcfce7", fg: "#15803d", desc: "meN- / ber- / 受動態・重要動詞" },
+      { id: "a", cat: "vocab", name: "形容詞 (Adjektiva)", ava: "形", bg: "#e0f2fe", fg: "#0369a1", desc: "状態・性質・感情の重要形容詞" },
+      { id: "n", cat: "vocab", name: "名詞 (Nomina)", ava: "名", bg: "#e0e7ff", fg: "#4338ca", desc: "ニュース・社会・生活の必須名詞" },
+      { id: "other", cat: "vocab", name: "副詞・接続詞他", ava: "他", bg: "#ccfbf1", fg: "#0f766e", desc: "論理つなぎ言葉・時間・程度副詞" },
+      { id: "singkatan", cat: "vocab", name: "略語・アクロニム", ava: "略", bg: "#fef3c7", fg: "#b45309", desc: "BUMN / UMKM / APBN / Tilang 等" },
+      { id: "sinonim", cat: "vocab", name: "類義語・対義語", ava: "類", bg: "#f3e8ff", fg: "#7e22ce", desc: "Sinonim & Antonim ペア特訓" },
+      { id: "confuse", cat: "vocab", name: "紛らわしい語の使い分け", ava: "判", bg: "#fce7f3", fg: "#be185d", desc: "-i vs -kan / peN-an vs per-an" },
+      { id: "listening", cat: "grammar", name: "リスニング (Menyimak)", ava: "聴", bg: "#cffafe", fg: "#0e7490", desc: "スクリプト非表示・選択肢個別再生対応" },
+      { id: "contextJa", cat: "grammar", name: "文脈下線・和訳", ava: "訳", bg: "#ffedd5", fg: "#c2410c", desc: "文脈下線のみ ／ 単語和訳のみ" },
+      { id: "conj", cat: "grammar", name: "語幹活用ドリル", ava: "活", bg: "#ecfccb", fg: "#4d7c0f", desc: "接辞・鼻音化・1人称/2人称受動" },
+      { id: "error", cat: "grammar", name: "誤文訂正 (Tata Bahasa)", ava: "誤", bg: "#fee2e2", fg: "#b91c1c", desc: "[A]〜[D] の文法エラー特定" },
+      { id: "prep", cat: "grammar", name: "前置詞・コロケーション", ava: "前", bg: "#ede9fe", fg: "#6d28d9", desc: "pada / terhadap / atas / dengan" },
+      { id: "trans", cat: "grammar", name: "長文適訳 4択", ava: "文", bg: "#e2e8f0", fg: "#334155", desc: "日➔尼 ＆ 尼➔日 精密翻訳" },
+      { id: "slang", cat: "expr", name: "スラング日常会話", ava: "話", bg: "#d1fae5", fg: "#047857", desc: "友達とのリアルWhatsApp返信" },
+      { id: "debate", cat: "expr", name: "ゼミ討論グループ", ava: "討", bg: "#dbeafe", fg: "#1d4ed8", desc: "全インドネシア語ディスカッション" },
+      { id: "idiom", cat: "expr", name: "慣用句 (Ungkapan)", ava: "慣", bg: "#fef9c3", fg: "#a16207", desc: "ニュース・小説頻出の比喩表現" },
+      { id: "proverb", cat: "expr", name: "ことわざ (Peribahasa)", ava: "諺", bg: "#f5f5f4", fg: "#57534e", desc: "検定頻出のインドネシアことわざ" },
+      { id: "wrong", cat: "review", name: "間違えた問題", ava: "復", bg: "#ffe4e6", fg: "#e11d48", desc: "ミスした問題を解き直して克服" },
+      { id: "starred", cat: "review", name: "スター復習", ava: "星", bg: "#fef3c7", fg: "#d97706", desc: "スター登録した単語・問題を特訓" }
+    ];
+
+    // ★ ヒント完全廃止対象の4モード（リスニング / 文脈下線・和訳 / 長文適訳 / ゼミ討論グループ）
+    const NO_HINT_MODES = new Set(["listening", "contextJa", "trans", "debate"]);
+
+    // 保存済みの復習・スター問題オブジェクトに対しても最新のヒントルールを100%適用する正規化関数
+    function normalizeSavedQuestionRules(q) {
+      if (!q || typeof q !== "object") return q;
+      const eff = q.effectiveMode || "";
+      const qid = q.id || "";
+      if (NO_HINT_MODES.has(eff) || /^(lis|ctx|tr|deb)::/i.test(qid)) {
+        q.hintHtml = "";
+      } else if (["prep", "confuse", "idiom"].includes(eff) || /^(prep|confuse|idiom|id)::/i.test(qid)) {
+        if (!q.hintHtml && q.subHtml) q.hintHtml = q.subHtml;
+        q.subHtml = "";
+      }
+      return q;
+    }
+
+    const savedPrefs = JSON.parse(localStorage.getItem("wi_prefs_v8") || "{}");
+
+    let state = {
+      sessionId: 1,
+      catFilter: "all",
+      mode: "v",
+      vocabSub: savedPrefs.vocabSub || "id2ja_choice",
+      abbrSub: savedPrefs.abbrSub || "to_ja",
+      contextSub: "context_only",
+      conjSub: "choice",
+      listenLv: 0,
+      listenShowScript: false,
+      listenShowChoices: false,
+      transSub: "all",
+      soundOn: savedPrefs.soundOn !== undefined ? savedPrefs.soundOn : true,
+      soundVolume: savedPrefs.soundVolume !== undefined ? savedPrefs.soundVolume : 60,
+      autoNextMode: savedPrefs.autoNextMode || "correct",
+      autoNextDelay: savedPrefs.autoNextDelay || 1.8,
+      showHint: savedPrefs.showHint !== undefined ? savedPrefs.showHint : true,
+      typingAnim: savedPrefs.typingAnim !== undefined ? savedPrefs.typingAnim : true,
+      autoTts: savedPrefs.autoTts !== undefined ? savedPrefs.autoTts : false,
+      decks: {},
+      currentQ: null,
+      answered: false,
+      qCounter: 0,
+      autoNextTimer: null,
+      typingAnimTimer: null,
+      wrongItems: (JSON.parse(localStorage.getItem("wi_wrongs_v2") || "[]") || []).map(normalizeSavedQuestionRules),
+      starItems: (JSON.parse(localStorage.getItem("wi_stars_v2") || "[]") || []).map(normalizeSavedQuestionRules),
+      rushActive: false,
+      rushTimeLeft: 120.0,
+      rushInterval: null,
+      rushScore: 0,
+      rushCombo: 0,
+      rushMaxCombo: 0,
+      rushCorrect: 0,
+      rushTotal: 0,
+      rushHistory: [],
+      rushHighScore: parseInt(localStorage.getItem("wi_rush_high") || "0", 10),
+      // A〜Z辞書ブラウザの状態
+      azLetter: "ALL",
+      azPos: "all",
+      azSortBy: "word", // "word" (見出し語A-Z) | "root" (語幹A-Z)
+      azQuery: "",
+      openedDetailFromAZ: false
+    };
+
+    // 現在のモードまたは現在出題中の問題（総合模試・120秒ラッシュ・復習含む）がヒント廃止対象かを判定
+    function isHintDisabledNow() {
+      if (NO_HINT_MODES.has(state.mode)) return true;
+      if (state.currentQ) {
+        const eff = state.currentQ.effectiveMode || "";
+        const qid = state.currentQ.id || "";
+        if (NO_HINT_MODES.has(eff) || /^(lis|ctx|tr|deb)::/i.test(qid)) return true;
+      }
+      return false;
+    }
+
+    function savePrefs() {
+      localStorage.setItem("wi_prefs_v8", JSON.stringify({
+        vocabSub: state.vocabSub,
+        abbrSub: state.abbrSub,
+        soundOn: state.soundOn,
+        soundVolume: state.soundVolume,
+        autoNextMode: state.autoNextMode,
+        autoNextDelay: state.autoNextDelay,
+        showHint: state.showHint,
+        typingAnim: state.typingAnim,
+        autoTts: state.autoTts
+      }));
+    }
+
+    function hardStopSpeech() {
+      try {
+        if (window.speechSynthesis) {
+          window.speechSynthesis.pause();
+          window.speechSynthesis.cancel();
+          setTimeout(() => {
+            if (window.speechSynthesis) window.speechSynthesis.cancel();
+          }, 15);
+        }
+      } catch (e) {}
+    }
+
+    function stopAllAudioAndTimers() {
+      state.sessionId++;
+      hardStopSpeech();
+      if (state.autoNextTimer) {
+        clearTimeout(state.autoNextTimer);
+        state.autoNextTimer = null;
+      }
+      if (state.typingAnimTimer) {
+        clearTimeout(state.typingAnimTimer);
+        state.typingAnimTimer = null;
+      }
+      const bar = document.getElementById("active-autonext-bar");
+      if (bar) bar.remove();
+    }
+
+    function stopRushTimer() {
+      state.rushActive = false;
+      if (state.rushInterval) {
+        clearInterval(state.rushInterval);
+        state.rushInterval = null;
+      }
+      document.getElementById("rush-hud-bar").classList.remove("show");
+    }
+
+    // -----------------------------------------------------------------
+    // 4. Google Bahasa Indonesia 女性音声 ＆ 送信ポップ音
+    // -----------------------------------------------------------------
+    let preferredIndoVoice = null;
+    function pickBestIndonesianVoice() {
+      if (!window.speechSynthesis) return null;
+      const voices = window.speechSynthesis.getVoices() || [];
+      const idVoices = voices.filter(v => /^id([-_]|$)/i.test(v.lang) || /indones/i.test(v.name));
+      if (!idVoices.length) return null;
+      const googleVoice = idVoices.find(v => /Google\s*Bahasa\s*Indonesia/i.test(v.name) || /Google/i.test(v.name));
+      if (googleVoice) return googleVoice;
+      const femaleVoice = idVoices.find(v => /Gadis|Damayanti|Female|Wanita|Perempuan/i.test(v.name));
+      if (femaleVoice) return femaleVoice;
+      return idVoices[0];
+    }
+    if (window.speechSynthesis) {
+      window.speechSynthesis.onvoiceschanged = () => {
+        preferredIndoVoice = pickBestIndonesianVoice();
+      };
+      preferredIndoVoice = pickBestIndonesianVoice();
+    }
+
+    let activeUtterance = null;
+    function speakIndo(txt, expectedSessionId) {
+      if (!txt || !window.speechSynthesis) return;
+      if (expectedSessionId !== undefined && expectedSessionId !== state.sessionId) return;
+      window.speechSynthesis.cancel();
+      const clean = txt
+        .replace(/<[^>]+>/g, '')
+        .replace(/\[[A-D]\]/g, '')
+        .replace(/___+/g, ' titik-titik ');
+      const u = new SpeechSynthesisUtterance(clean);
+      u.lang = "id-ID";
+      u.rate = 1.0;
+      if (!preferredIndoVoice) preferredIndoVoice = pickBestIndonesianVoice();
+      if (preferredIndoVoice) u.voice = preferredIndoVoice;
+      activeUtterance = u;
+      window.speechSynthesis.speak(u);
+    }
+
+    let audioCtx = null;
+    function getAudioCtx() {
+      if (!audioCtx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (AC) audioCtx = new AC();
+      }
+      if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+      return audioCtx;
+    }
+
+    function playSoundEffect(type, comboCount) {
+      if (!state.soundOn || state.soundVolume <= 0) return;
+      try {
+        const ctx = getAudioCtx();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        const vol = (state.soundVolume / 100) * 0.16;
+
+        if (type === "send") {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(340, now);
+          osc.frequency.exponentialRampToValueAtTime(640, now + 0.045);
+          gain.gain.setValueAtTime(vol * 0.75, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.055);
+          osc.connect(gain); gain.connect(ctx.destination);
+          osc.start(now); osc.stop(now + 0.06);
+        } else if (type === "receive") {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(500, now);
+          osc.frequency.exponentialRampToValueAtTime(410, now + 0.05);
+          gain.gain.setValueAtTime(vol * 0.4, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+          osc.connect(gain); gain.connect(ctx.destination);
+          osc.start(now); osc.stop(now + 0.065);
+        } else if (type === "correct") {
+          const boost = Math.min((comboCount || 0) * 22, 220);
+          [659.25 + boost, 880 + boost].forEach((freq, idx) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = "triangle";
+            const t = now + 0.055 + idx * 0.075;
+            osc.frequency.setValueAtTime(freq, t);
+            gain.gain.setValueAtTime(vol, t);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.start(t); osc.stop(t + 0.21);
+          });
+        } else if (type === "wrong") {
+          [250, 200].forEach((freq, idx) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = "sine";
+            const t = now + 0.055 + idx * 0.085;
+            osc.frequency.setValueAtTime(freq, t);
+            gain.gain.setValueAtTime(vol * 0.85, t);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + 0.17);
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.start(t); osc.stop(t + 0.18);
+          });
+        } else if (type === "finish") {
+          [523.25, 659.25, 783.99, 1046.5].forEach((freq, idx) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = "triangle";
+            const t = now + idx * 0.09;
+            osc.frequency.setValueAtTime(freq, t);
+            gain.gain.setValueAtTime(vol, t);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.start(t); osc.stop(t + 0.29);
+          });
+        }
+      } catch (e) {}
+    }
+
+    // -----------------------------------------------------------------
+    // 5. 復習リスト管理
+    // -----------------------------------------------------------------
+    function updateCountsFast() {
+      document.getElementById("badge-wrong-count").textContent = state.wrongItems.length;
+      document.getElementById("badge-star-count").textContent = state.starItems.length;
+      const wDesc = document.getElementById("room-desc-wrong");
+      if (wDesc) wDesc.textContent = `未クリアの復習問題：${state.wrongItems.length} 問`;
+      const sDesc = document.getElementById("room-desc-starred");
+      if (sDesc) sDesc.textContent = `スター登録済：${state.starItems.length} 件`;
+    }
+
+    function saveWrongs() {
+      localStorage.setItem("wi_wrongs_v2", JSON.stringify(state.wrongItems));
+      updateCountsFast();
+    }
+    function addWrongItem(qObj) {
+      if (!qObj || !qObj.id) return;
+      if (!state.wrongItems.some(x => x.id === qObj.id)) {
+        state.wrongItems.push(serializeQ(qObj));
+        saveWrongs();
+      }
+    }
+    function removeWrongItem(id) {
+      const b = state.wrongItems.length;
+      state.wrongItems = state.wrongItems.filter(x => x.id !== id);
+      if (state.wrongItems.length !== b) saveWrongs();
+    }
+
+    function saveStars() {
+      localStorage.setItem("wi_stars_v2", JSON.stringify(state.starItems));
+      updateCountsFast();
+      syncStarUI();
+    }
+    function isStarred(id) {
+      return state.starItems.some(x => x.id === id);
+    }
+    function toggleStarItem(qObj) {
+      if (!qObj || !qObj.id) return;
+      if (isStarred(qObj.id)) {
+        state.starItems = state.starItems.filter(x => x.id !== qObj.id);
+      } else {
+        state.starItems.push(serializeQ(qObj));
+      }
+      saveStars();
+    }
+    function serializeQ(qObj) {
+      return normalizeSavedQuestionRules({
+        id: qObj.id,
+        effectiveMode: qObj.effectiveMode || "",
+        sender: qObj.sender,
+        mainHtml: qObj.mainHtml,
+        hintHtml: qObj.hintHtml || "",
+        subHtml: qObj.subHtml || "",
+        ttsWord: qObj.ttsWord || "",
+        ttsSentence: qObj.ttsSentence || "",
+        ttsText: qObj.ttsText || "",
+        correctText: qObj.correctText,
+        acceptedAnswers: qObj.acceptedAnswers || [qObj.correctText],
+        choices: qObj.choices || [],
+        summaryHead: qObj.summaryHead || "",
+        summarySent: qObj.summarySent || "",
+        summaryBrief: qObj.summaryBrief || "",
+        detailSectionsHtml: qObj.detailSectionsHtml || "",
+        isTyping: !!qObj.isTyping
+      });
+    }
+
+    function syncStarUI() {
+      const hdrBtn = document.getElementById("btn-star-hdr");
+      const botBtn = document.getElementById("btn-star-bottom");
+      const starred = state.currentQ && isStarred(state.currentQ.id);
+      if (hdrBtn) {
+        hdrBtn.textContent = starred ? "★ スター済" : "☆ スター";
+        hdrBtn.classList.toggle("starred", !!starred);
+      }
+      if (botBtn) {
+        botBtn.textContent = starred ? "★" : "☆";
+        botBtn.style.color = starred ? "#d97706" : "#667781";
+      }
+    }
+
+    function syncHintUI() {
+      const hBtn = document.getElementById("btn-hint-toggle");
+      const disabledNow = isHintDisabledNow();
+      if (hBtn) {
+        if (disabledNow) {
+          hBtn.style.display = "none";
+        } else {
+          hBtn.style.display = "";
+          hBtn.textContent = state.showHint ? "ヒント:ON" : "ヒント:OFF";
+          hBtn.classList.toggle("off-state", !state.showHint);
+        }
+      }
+      document.querySelectorAll(".dynamic-hint-box").forEach(el => {
+        el.style.display = (!disabledNow && state.showHint) ? "block" : "none";
+      });
+      document.querySelectorAll(".dynamic-hint-reveal").forEach(el => {
+        el.style.display = (!disabledNow && !state.showHint) ? "inline-block" : "none";
+      });
+    }
+
+    function nowTimeStr() {
+      const d = new Date();
+      let h = d.getHours();
+      const m = String(d.getMinutes()).padStart(2, "0");
+      const ampm = h >= 12 ? "p.m." : "a.m.";
+      h = h % 12 || 12;
+      return `${h}:${m} ${ampm}`;
+    }
+
+    function shuffle(arr) {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    // -----------------------------------------------------------------
+    // 6. 左サイドバー描画 ＆ チャットルーム切り替え
+    // -----------------------------------------------------------------
+    function renderSidebarList() {
+      const listEl = document.getElementById("wa-chat-list");
+      if (!listEl) return;
+      listEl.innerHTML = "";
+
+      const rooms = CHAT_ROOMS.filter(r => {
+        if (state.catFilter === "all") return true;
+        return r.cat === state.catFilter;
+      });
+
+      rooms.forEach(r => {
+        const item = document.createElement("div");
+        item.className = "wa-chat-item" + (state.mode === r.id ? " active" : "");
+        let subDesc = r.desc;
+        if (r.id === "wrong") subDesc = `未クリアの復習問題：${state.wrongItems.length} 問`;
+        if (r.id === "starred") subDesc = `スター登録済：${state.starItems.length} 件`;
+
+        item.innerHTML = `
+          <div class="wa-kanji-avatar" style="background:${r.bg};color:${r.fg};">${r.ava}</div>
+          <div class="wa-item-body">
+            <div class="wa-item-row1">
+              <span class="wa-item-title">${r.name}</span>
+              <span class="wa-item-time">Today</span>
+            </div>
+            <div class="wa-item-row2">
+              <span class="wa-blue-checks">✓✓</span>
+              <span ${r.id === 'wrong' ? 'id="room-desc-wrong"' : r.id === 'starred' ? 'id="room-desc-starred"' : ''}>${subDesc}</span>
+            </div>
+          </div>
+        `;
+        item.addEventListener("click", () => {
+          selectMode(r.id);
+          document.getElementById("wa-app").classList.add("mobile-chat-open");
+        });
+        listEl.appendChild(item);
+      });
+    }
+
+    function selectMode(modeId) {
+      stopAllAudioAndTimers();
+      stopRushTimer();
+
+      state.mode = modeId;
+      state.currentQ = null;
+      state.qCounter = 0;
+      const room = CHAT_ROOMS.find(r => r.id === modeId) || CHAT_ROOMS[0];
+      const hdrAva = document.getElementById("hdr-avatar");
+      hdrAva.textContent = room.ava;
+      hdrAva.style.background = room.bg;
+      hdrAva.style.color = room.fg;
+      document.getElementById("hdr-name").textContent = room.name;
+      document.getElementById("hdr-sub").textContent = "オンライン";
+
+      document.getElementById("btn-wrong-top").classList.toggle("active", state.mode === "wrong");
+      document.getElementById("btn-star-top").classList.toggle("active", state.mode === "starred");
+
+      const area = document.getElementById("chat-messages-area");
+      area.innerHTML = `<div class="wa-date-badge">TODAY — ${room.name}</div>`;
+
+      renderSidebarList();
+      renderSubFilterBar();
+      syncHintUI();
+
+      if (modeId === "rush") {
+        showRushStartScreen();
+      } else {
+        loadNextQuestion();
+      }
+    }
+
+    function renderSubFilterBar() {
+      const bar = document.getElementById("chat-subfilter-bar");
+      bar.innerHTML = "";
+      bar.classList.remove("show");
+
+      if (["v", "a", "n", "other"].includes(state.mode)) {
+        bar.classList.add("show");
+        bar.innerHTML = `
+          <div class="sub-filter-group">
+            <button type="button" class="sub-filter-pill ${state.vocabSub === 'id2ja_choice' ? 'active' : ''}" data-vs="id2ja_choice">尼➔日 (4択)</button>
+            <button type="button" class="sub-filter-pill ${state.vocabSub === 'ja2id_choice' ? 'active' : ''}" data-vs="ja2id_choice">日➔尼 (4択)</button>
+            <button type="button" class="sub-filter-pill ${state.vocabSub === 'ja2id_typing' ? 'active' : ''}" data-vs="ja2id_typing">日➔尼 (タイピング入力)</button>
+          </div>
+        `;
+        bar.querySelectorAll("[data-vs]").forEach(b => {
+          b.addEventListener("click", () => {
+            state.vocabSub = b.getAttribute("data-vs");
+            savePrefs();
+            renderSubFilterBar();
+            loadNextQuestion();
+          });
+        });
+      } else if (state.mode === "singkatan") {
+        bar.classList.add("show");
+        bar.innerHTML = `
+          <div class="sub-filter-group">
+            <button type="button" class="sub-filter-pill ${state.abbrSub === 'to_ja' ? 'active' : ''}" data-ab="to_ja">略語➔日本語意味 (4択)</button>
+            <button type="button" class="sub-filter-pill ${state.abbrSub === 'to_full' ? 'active' : ''}" data-ab="to_full">略語➔正式名称 (4択)</button>
+            <button type="button" class="sub-filter-pill ${state.abbrSub === 'typing_full' ? 'active' : ''}" data-ab="typing_full">正式名称タイピング</button>
+          </div>
+        `;
+        bar.querySelectorAll("[data-ab]").forEach(b => {
+          b.addEventListener("click", () => {
+            state.abbrSub = b.getAttribute("data-ab");
+            savePrefs();
+            renderSubFilterBar();
+            loadNextQuestion();
+          });
+        });
+      } else if (state.mode === "contextJa") {
+        bar.classList.add("show");
+        bar.innerHTML = `
+          <div class="sub-filter-group">
+            <button type="button" class="sub-filter-pill ${state.contextSub === 'context_only' ? 'active' : ''}" data-ctx="context_only">文脈下線のみ</button>
+            <button type="button" class="sub-filter-pill ${state.contextSub === 'vocab_only' ? 'active' : ''}" data-ctx="vocab_only">単語和訳のみ</button>
+          </div>
+        `;
+        bar.querySelectorAll("[data-ctx]").forEach(b => {
+          b.addEventListener("click", () => {
+            state.contextSub = b.getAttribute("data-ctx");
+            renderSubFilterBar();
+            loadNextQuestion();
+          });
+        });
+      } else if (state.mode === "listening") {
+        bar.classList.add("show");
+        bar.innerHTML = `
+          <div class="sub-filter-group">
+            <button type="button" class="sub-filter-pill ${state.listenLv === 0 ? 'active' : ''}" data-lv="0">全Lv</button>
+            <button type="button" class="sub-filter-pill ${state.listenLv === 1 ? 'active' : ''}" data-lv="1">Lv.1</button>
+            <button type="button" class="sub-filter-pill ${state.listenLv === 2 ? 'active' : ''}" data-lv="2">Lv.2</button>
+            <button type="button" class="sub-filter-pill ${state.listenLv === 3 ? 'active' : ''}" data-lv="3">Lv.3</button>
+          </div>
+          <div class="sub-filter-group">
+            <button type="button" class="sub-filter-pill ${state.listenShowScript ? 'active' : ''}" id="btn-toggle-script">スクリプト: ${state.listenShowScript ? '表示' : '非表示'}</button>
+            <button type="button" class="sub-filter-pill ${state.listenShowChoices ? 'active' : ''}" id="btn-toggle-lchoices">選択肢文字: ${state.listenShowChoices ? '表示' : '非表示'}</button>
+          </div>
+        `;
+        bar.querySelectorAll("[data-lv]").forEach(b => {
+          b.addEventListener("click", () => {
+            state.listenLv = parseInt(b.getAttribute("data-lv"), 10);
+            state.decks["listening"] = null;
+            renderSubFilterBar();
+            loadNextQuestion();
+          });
+        });
+        document.getElementById("btn-toggle-script").addEventListener("click", () => {
+          state.listenShowScript = !state.listenShowScript;
+          renderSubFilterBar();
+          applyListeningVisibility();
+        });
+        document.getElementById("btn-toggle-lchoices").addEventListener("click", () => {
+          state.listenShowChoices = !state.listenShowChoices;
+          renderSubFilterBar();
+          applyListeningVisibility();
+        });
+      } else if (state.mode === "conj") {
+        bar.classList.add("show");
+        bar.innerHTML = `
+          <div class="sub-filter-group">
+            <button type="button" class="sub-filter-pill ${state.conjSub === 'choice' ? 'active' : ''}" data-cj="choice">4択カード</button>
+            <button type="button" class="sub-filter-pill ${state.conjSub === 'typing' ? 'active' : ''}" data-cj="typing">タイピング入力</button>
+          </div>
+        `;
+        bar.querySelectorAll("[data-cj]").forEach(b => {
+          b.addEventListener("click", () => {
+            state.conjSub = b.getAttribute("data-cj");
+            renderSubFilterBar();
+            loadNextQuestion();
+          });
+        });
+      } else if (state.mode === "trans") {
+        bar.classList.add("show");
+        bar.innerHTML = `
+          <div class="sub-filter-group">
+            <button type="button" class="sub-filter-pill ${state.transSub === 'all' ? 'active' : ''}" data-tr="all">すべて</button>
+            <button type="button" class="sub-filter-pill ${state.transSub === 'ja2id' ? 'active' : ''}" data-tr="ja2id">日➔尼</button>
+            <button type="button" class="sub-filter-pill ${state.transSub === 'id2ja' ? 'active' : ''}" data-tr="id2ja">尼➔日</button>
+          </div>
+        `;
+        bar.querySelectorAll("[data-tr]").forEach(b => {
+          b.addEventListener("click", () => {
+            state.transSub = b.getAttribute("data-tr");
+            state.decks["trans"] = null;
+            renderSubFilterBar();
+            loadNextQuestion();
+          });
+        });
+      }
+    }
+
+    function applyListeningVisibility(forceRevealAll) {
+      if (!state.currentQ || state.currentQ.effectiveMode !== "listening") return;
+      const showScr = forceRevealAll || state.listenShowScript;
+      const showCh = forceRevealAll || state.listenShowChoices;
+
+      const scrText = document.getElementById("active-listen-script");
+      const scrNotice = document.getElementById("active-listen-notice");
+      if (scrText) scrText.style.display = showScr ? "block" : "none";
+      if (scrNotice) scrNotice.style.display = showScr ? "none" : "block";
+
+      const cards = document.querySelectorAll("#wa-choices-grid .wa-choice-card");
+      cards.forEach((card, idx) => {
+        const span = card.querySelector(".choice-label-text");
+        if (!span) return;
+        const rawTxt = state.currentQ.choices[idx] || "";
+        span.textContent = showCh ? rawTxt : `選択肢 ${idx + 1} を選ぶ（上の「選択肢${idx + 1}」ボタンで音声試聴）`;
+      });
+    }
+
+    // -----------------------------------------------------------------
+    // 7. ⚡ 120秒ラッシュ（Time Attack）
+    // -----------------------------------------------------------------
+    function showRushStartScreen() {
+      const area = document.getElementById("chat-messages-area");
+      const grid = document.getElementById("wa-choices-grid");
+      grid.innerHTML = "";
+      state.currentQ = null;
+      syncHintUI();
+
+      const startCard = document.createElement("div");
+      startCard.className = "msg-row-in";
+      startCard.style.maxWidth = "92%";
+      startCard.innerHTML = `
+        <div class="wa-bubble-left" style="border-left:4px solid #ea580c;">
+          <div class="msg-sender-name" style="color:#ea580c;">120秒タイムアタック・ラッシュ</div>
+          <div class="msg-main-text" style="margin-bottom:8px;">
+            制限時間 <strong>120秒</strong> で全分野の4択問題に連続挑戦するスピードモードです。<br>
+            ・正解すると残り時間 <strong style="color:#16a34a;">+2.0秒</strong> ＆ コンボ倍率スコア加算<br>
+            ・不正解だと残り時間 <strong style="color:#dc2626;">-2.0秒</strong><br>
+            ・現在のハイスコア：<strong>${state.rushHighScore} pt</strong>
+          </div>
+          <button type="button" id="btn-start-rush-now" style="background:#ea580c;color:#fff;border:none;padding:9px 20px;border-radius:999px;font-weight:700;font-size:0.9rem;cursor:pointer;">スタート (Enter / → キーでも開始)</button>
+          <div class="msg-meta"><span>${nowTimeStr()}</span></div>
+        </div>
+      `;
+      area.appendChild(startCard);
+      document.getElementById("btn-start-rush-now").addEventListener("click", startRushSession);
+    }
+
+    function startRushSession() {
+      stopAllAudioAndTimers();
+      state.rushActive = true;
+      state.rushTimeLeft = 120.0;
+      state.rushScore = 0;
+      state.rushCombo = 0;
+      state.rushMaxCombo = 0;
+      state.rushCorrect = 0;
+      state.rushTotal = 0;
+      state.rushHistory = [];
+      state.qCounter = 0;
+
+      const area = document.getElementById("chat-messages-area");
+      area.innerHTML = `<div class="wa-date-badge">120秒ラッシュ START!</div>`;
+
+      const hud = document.getElementById("rush-hud-bar");
+      hud.classList.add("show");
+      updateRushHUD(0);
+
+      state.rushInterval = setInterval(() => {
+        if (!state.rushActive) return;
+        state.rushTimeLeft = Math.max(0, state.rushTimeLeft - 0.1);
+        const timeEl = document.getElementById("rush-time-num");
+        if (timeEl) {
+          timeEl.textContent = `${state.rushTimeLeft.toFixed(1)}s`;
+          timeEl.classList.toggle("danger", state.rushTimeLeft <= 15);
+        }
+        if (state.rushTimeLeft <= 0) {
+          finishRushSession();
+        }
+      }, 100);
+
+      loadNextQuestion();
+    }
+
+    function updateRushHUD(deltaSec) {
+      const timeEl = document.getElementById("rush-time-num");
+      const scoreEl = document.getElementById("rush-score-num");
+      const comboEl = document.getElementById("rush-combo-pill");
+      const deltaEl = document.getElementById("rush-delta-pop");
+
+      if (timeEl) timeEl.textContent = `${state.rushTimeLeft.toFixed(1)}s`;
+      if (scoreEl) scoreEl.textContent = state.rushScore;
+      if (comboEl) comboEl.textContent = `${state.rushCombo} Combo`;
+
+      if (deltaSec !== 0 && deltaEl) {
+        deltaEl.textContent = deltaSec > 0 ? `+${deltaSec.toFixed(1)}s` : `${deltaSec.toFixed(1)}s`;
+        deltaEl.className = "rush-delta-pop " + (deltaSec > 0 ? "plus" : "minus");
+        setTimeout(() => { deltaEl.className = "rush-delta-pop"; }, 550);
+      }
+    }
+
+    function finishRushSession() {
+      stopAllAudioAndTimers();
+      stopRushTimer();
+      playSoundEffect("finish");
+
+      const isNewHigh = state.rushScore > state.rushHighScore;
+      if (isNewHigh) {
+        state.rushHighScore = state.rushScore;
+        localStorage.setItem("wi_rush_high", String(state.rushHighScore));
+      }
+
+      const acc = state.rushTotal ? Math.round((state.rushCorrect / state.rushTotal) * 100) : 0;
+      const area = document.getElementById("chat-messages-area");
+      const grid = document.getElementById("wa-choices-grid");
+      grid.innerHTML = "";
+      state.currentQ = null;
+      syncHintUI();
+
+      const reviewRowsHtml = state.rushHistory.map((item, idx) => `
+        <div style="border-bottom:1px solid #e2e8f0;padding:8px 4px;display:flex;flex-direction:column;gap:4px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
+            <span style="font-size:0.8rem;font-weight:600;color:${item.isOk ? '#15803d' : '#b91c1c'};">
+              ${idx + 1}. ${item.isOk ? '⭕ 正解' : '❌ 不正解'} [${item.q.sender}]
+            </span>
+            <div style="display:flex;gap:5px;">
+              ${item.q.ttsWord ? `<button type="button" class="inline-audio-chip rush-rev-tts" data-txt="${encodeURIComponent(item.q.ttsWord)}">🔊 発音</button>` : ""}
+              <button type="button" class="inline-audio-chip rush-rev-star" data-idx="${idx}">${isStarred(item.q.id) ? '★ スター済' : '☆ スター'}</button>
+            </div>
+          </div>
+          <div style="font-size:0.9rem;color:#111b21;">${item.q.mainHtml}</div>
+          <div style="font-size:0.82rem;color:#065f46;"><strong>正解：</strong>${item.q.correctText} ${!item.isOk ? `<span style="color:#b91c1c;">（あなたの回答：${item.userAns}）</span>` : ""}</div>
+        </div>
+      `).join("");
+
+      const resRow = document.createElement("div");
+      resRow.className = "msg-row-in";
+      resRow.style.maxWidth = "95%";
+      resRow.innerHTML = `
+        <div class="wa-bubble-left" style="border-left:4px solid #008069;width:100%;">
+          <div class="msg-sender-name" style="color:#008069;font-size:0.92rem;">120秒ラッシュ 結果レポート ${isNewHigh ? '（ハイスコア更新！）' : ''}</div>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px;">
+            <div class="exp-sec-card green" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;text-align:center;">
+              <div><div style="font-size:0.74rem;color:#065f46;">最終スコア</div><div style="font-size:1.35rem;font-weight:700;color:#047857;">${state.rushScore} pt</div></div>
+              <div><div style="font-size:0.74rem;color:#065f46;">ハイスコア</div><div style="font-size:1.35rem;font-weight:700;color:#0f766e;">${state.rushHighScore} pt</div></div>
+              <div><div style="font-size:0.74rem;color:#065f46;">正解数 / 回答数</div><div style="font-size:1.05rem;font-weight:600;">${state.rushCorrect} / ${state.rushTotal} 問 (${acc}%)</div></div>
+              <div><div style="font-size:0.74rem;color:#065f46;">最大コンボ</div><div style="font-size:1.05rem;font-weight:600;color:#b45309;">${state.rushMaxCombo} Combo</div></div>
+            </div>
+            ${state.rushHistory.length ? `
+              <div class="exp-sec-card">
+                <div class="exp-sec-label"><span>今回解いた問題の復習 (${state.rushHistory.length}問)</span></div>
+                <div style="max-height:280px;overflow-y:auto;">${reviewRowsHtml}</div>
+              </div>
+            ` : ""}
+            <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:4px;">
+              <button type="button" id="btn-retry-rush" style="background:#ea580c;color:#fff;border:none;padding:8px 18px;border-radius:999px;font-weight:600;font-size:0.86rem;cursor:pointer;">もう一度挑戦する (Enter / →)</button>
+            </div>
+          </div>
+          <div class="msg-meta"><span>${nowTimeStr()}</span></div>
+        </div>
+      `;
+      area.appendChild(resRow);
+
+      resRow.querySelectorAll(".rush-rev-tts").forEach(btn => {
+        btn.addEventListener("click", () => speakIndo(decodeURIComponent(btn.getAttribute("data-txt"))));
+      });
+      resRow.querySelectorAll(".rush-rev-star").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const hIdx = parseInt(btn.getAttribute("data-idx"), 10);
+          const qItem = state.rushHistory[hIdx] && state.rushHistory[hIdx].q;
+          if (qItem) {
+            toggleStarItem(qItem);
+            btn.textContent = isStarred(qItem.id) ? "★ スター済" : "☆ スター";
+          }
+        });
+      });
+      document.getElementById("btn-retry-rush").addEventListener("click", startRushSession);
+      area.scrollTop = area.scrollHeight;
+    }
+
+    // -----------------------------------------------------------------
+    // 8. 問題抽選＆2段階開閉式（アコーディオン）解説データの生成
+    // -----------------------------------------------------------------
+    function getPool(mode) {
+      if (mode === "wrong") return state.wrongItems;
+      if (mode === "starred") return state.starItems;
+      if (["v", "a", "n", "other", "singkatan"].includes(mode)) return DB[mode] || [];
+      if (mode === "contextJa") {
+        if (state.contextSub === "context_only") return DB.contextJa || [];
+        return [...DB.v, ...DB.a, ...DB.n, ...DB.other];
+      }
+      if (mode === "listening") {
+        const all = DB.listening || [];
+        return state.listenLv === 0 ? all : all.filter(x => x.level === state.listenLv);
+      }
+      if (mode === "trans") {
+        const all = DB.trans || [];
+        return state.transSub === "all" ? all : all.filter(x => x.dir === state.transSub);
+      }
+      return DB[mode] || [];
+    }
+
+    function drawQuestion(mode) {
+      if (mode === "wrong") {
+        if (!state.wrongItems.length) return null;
+        return { raw: state.wrongItems[Math.floor(Math.random() * state.wrongItems.length)], effectiveMode: "wrong" };
+      }
+      if (mode === "starred") {
+        if (!state.starItems.length) return null;
+        return { raw: state.starItems[Math.floor(Math.random() * state.starItems.length)], effectiveMode: "starred" };
+      }
+      if (mode === "exam" || mode === "rush") {
+        const examModes = mode === "rush"
+          ? ["v", "a", "n", "other", "singkatan", "sinonim", "confuse", "contextJa", "conj", "prep", "error", "idiom", "proverb"]
+          : ["v", "a", "n", "other", "singkatan", "sinonim", "confuse", "listening", "contextJa", "conj", "error", "prep", "trans", "slang", "debate", "idiom", "proverb"];
+        const avail = examModes.filter(m => getPool(m).length > 0);
+        if (!avail.length) return null;
+        const pickedMode = avail[Math.floor(Math.random() * avail.length)];
+        const subDraw = drawQuestion(pickedMode);
+        return subDraw ? { raw: subDraw.raw, effectiveMode: pickedMode } : null;
+      }
+
+      const key = `${mode}_${state.contextSub}_${state.listenLv}_${state.transSub}`;
+      const pool = getPool(mode);
+      if (!pool.length) return null;
+      if (!state.decks[key] || state.decks[key].length === 0) {
+        state.decks[key] = shuffle(pool);
+      }
+      return { raw: state.decks[key].pop(), effectiveMode: mode };
+    }
+
+    function buildDetailSectionsHtml(sections) {
+      return sections.filter(s => s && (s.content || s.rawHtml)).map(sec => `
+        <div class="exp-sec-card ${sec.theme || ''}">
+          <div class="exp-sec-label">
+            <span>${sec.title}</span>
+            ${sec.tts ? `<button type="button" class="inline-audio-chip exp-tts-trigger" data-tts="${encodeURIComponent(sec.tts)}">🔊 ${sec.ttsLabel || '発音を聞く'}</button>` : ""}
+          </div>
+          ${sec.rawHtml ? sec.rawHtml : `<div class="exp-sec-content">${sec.content}</div>`}
+        </div>
+      `).join("");
+    }
+
+    function loadNextQuestion() {
+      stopAllAudioAndTimers();
+      state.answered = false;
+      const mySession = state.sessionId;
+
+      if (state.mode === "rush" && !state.rushActive) {
+        showRushStartScreen();
+        return;
+      }
+
+      const area = document.getElementById("chat-messages-area");
+      const grid = document.getElementById("wa-choices-grid");
+      const inp = document.getElementById("wa-input-field");
+      grid.innerHTML = "";
+      inp.value = "";
+      inp.disabled = false;
+
+      const drawn = drawQuestion(state.mode);
+      if (!drawn || !drawn.raw) {
+        const emptyMsg = state.mode === "wrong"
+          ? "現在、間違えた問題はありません。"
+          : state.mode === "starred"
+          ? "現在、スター登録された単語・問題はありません。問題や辞書検索の「☆」を押すとここに追加されます。"
+          : "データがありません。";
+        const row = document.createElement("div");
+        row.className = "msg-row-in";
+        row.innerHTML = `
+          <div class="wa-bubble-left">
+            <div class="msg-main-text">${emptyMsg}</div>
+            <div class="msg-meta"><span>${nowTimeStr()}</span></div>
+          </div>
+        `;
+        area.appendChild(row);
+        area.scrollTop = area.scrollHeight;
+        state.currentQ = null;
+        syncStarUI();
+        syncHintUI();
+        return;
+      }
+
+      const hdrSub = document.getElementById("hdr-sub");
+      let typingRow = null;
+      const delayMs = (state.typingAnim && state.mode !== "rush") ? 300 : 0;
+
+      if (delayMs > 0) {
+        if (hdrSub) hdrSub.textContent = "mengetik...";
+        typingRow = document.createElement("div");
+        typingRow.className = "msg-row-in";
+        typingRow.innerHTML = `
+          <div class="typing-indicator-bubble">
+            <span class="typing-dot"></span>
+            <span class="typing-dot"></span>
+            <span class="typing-dot"></span>
+          </div>
+        `;
+        area.appendChild(typingRow);
+        area.scrollTop = area.scrollHeight;
+      }
+
+      state.typingAnimTimer = setTimeout(() => {
+        if (mySession !== state.sessionId) return;
+        if (typingRow) typingRow.remove();
+        if (hdrSub) hdrSub.textContent = "オンライン";
+        renderQuestionBubble(drawn.raw, drawn.effectiveMode, mySession);
+      }, delayMs);
+    }
+
+    function renderQuestionBubble(raw, effMode, mySession) {
+      if (mySession !== state.sessionId) return;
+      const area = document.getElementById("chat-messages-area");
+      const grid = document.getElementById("wa-choices-grid");
+      const inp = document.getElementById("wa-input-field");
+
+      state.qCounter++;
+      if (state.qCounter > 1) {
+        const div = document.createElement("div");
+        div.className = "wa-q-divider";
+        div.textContent = `Q.${state.qCounter}`;
+        area.appendChild(div);
+      }
+
+      ["active-listen-script","active-listen-notice","btn-listen-passage","btn-listen-question"].forEach(oldId => {
+        const el = document.getElementById(oldId);
+        if (el) el.removeAttribute("id");
+      });
+
+      let qObj = null;
+
+      // 復習モードでも誤文訂正の [A]〜[D] は必ず A, B, C, D 順に並べ、最新ヒントルールを適用！
+      if (effMode === "wrong" || effMode === "starred") {
+        qObj = normalizeSavedQuestionRules({
+          ...raw,
+          effectiveMode: raw.effectiveMode || effMode,
+          choices: orderChoices(raw.choices || [], raw.effectiveMode || effMode)
+        });
+      }
+      // ① 略語モード (singkatan)
+      else if (effMode === "singkatan") {
+        const pool = DB.singkatan;
+        const sub = (state.mode === "rush" || state.mode === "exam") ? "to_ja" : state.abbrSub;
+        const kvHtml = `
+          <div class="exp-kv-grid">
+            <div class="exp-kv-key">略語：</div><div class="exp-kv-val"><strong>${raw.w}</strong></div>
+            <div class="exp-kv-key">正式名称：</div><div class="exp-kv-val">${raw.r}</div>
+            <div class="exp-kv-key">意味：</div><div class="exp-kv-val">${raw.fullM || raw.m}</div>
+          </div>
+        `;
+        const detailHtml = buildDetailSectionsHtml([
+          { title: "略語・正式名称・意味の完全整理", rawHtml: kvHtml, theme: "green", tts: `${raw.w}. ${raw.r}`, ttsLabel: "略語と正式名称を発音" },
+          raw.ex ? { title: "ニュース・実用例文と和訳", content: `${raw.ex}\n${raw.tr || ''}`, tts: raw.ex, ttsLabel: "例文を発音" } : null,
+          raw.note ? { title: "背景・詳しい解説", content: raw.note, theme: "amber" } : null
+        ]);
+
+        if (sub === "to_ja") {
+          const others = shuffle(pool.filter(x => x.m !== raw.m)).slice(0, 3).map(x => x.m);
+          qObj = {
+            id: `abbr_ja::${raw.w}`, effectiveMode: effMode,
+            sender: "略語・アクロニム (Singkatan & Akronim)",
+            mainHtml: `<span class="msg-word-head">${raw.w}</span>`,
+            hintHtml: `正式名称: <strong>${raw.r}</strong>` + (raw.ex ? `<br>例文: ${raw.ex}` : ""),
+            subHtml: "",
+            ttsWord: raw.w,
+            ttsSentence: raw.ex || raw.r,
+            ttsText: raw.w,
+            correctText: raw.m,
+            acceptedAnswers: [raw.m],
+            choices: shuffle([raw.m, ...others]),
+            summaryHead: `${raw.w} ＝ ${raw.fullM || raw.m}`,
+            summarySent: raw.ex ? `${raw.ex}\n${raw.tr || ''}` : `正式名称：${raw.r}`,
+            summaryBrief: getFirstLineSummary(raw.note),
+            detailSectionsHtml: detailHtml,
+            isTyping: false
+          };
+        } else {
+          const others = shuffle(pool.filter(x => x.r.toLowerCase() !== raw.r.toLowerCase())).slice(0, 3).map(x => x.r);
+          const isTyp = sub === "typing_full";
+          qObj = {
+            id: `abbr_full::${raw.w}`, effectiveMode: effMode,
+            sender: "略語の正式名称 (Kepanjangan)",
+            mainHtml: `<span class="msg-word-head">${raw.w}</span> <span style="font-size:0.88rem;color:#475569;">（${raw.m}）</span>`,
+            hintHtml: raw.ex ? `例文: ${raw.ex}` : `頭文字: ${raw.r.split(" ").map(s => s[0]).join(" - ")}`,
+            subHtml: isTyp ? "この略語の正式名称（インドネシア語）を入力してEnterで送信してください" : "この略語の正式名称を選んでください",
+            ttsWord: raw.w,
+            ttsSentence: raw.r,
+            ttsText: raw.w,
+            correctText: raw.r,
+            acceptedAnswers: [raw.r, ...(raw.alts || [])],
+            choices: shuffle([raw.r, ...others]),
+            summaryHead: `${raw.w} ＝ ${raw.r}（${raw.m}）`,
+            summarySent: raw.ex ? `${raw.ex}\n${raw.tr || ''}` : "",
+            summaryBrief: getFirstLineSummary(raw.note),
+            detailSectionsHtml: detailHtml,
+            isTyping: isTyp
+          };
+        }
+      }
+      // ② 単語4品詞 (v, a, n, other) または 文脈下線・和訳モードの「単語和訳のみ」
+      else if (["v", "a", "n", "other"].includes(effMode) || (effMode === "contextJa" && state.contextSub === "vocab_only")) {
+        const allV = [...DB.v, ...DB.a, ...DB.n, ...DB.other];
+        const posPool = DB[raw.p] && DB[raw.p].length >= 4 ? DB[raw.p] : allV;
+        const subMode = (state.mode === "contextJa" || state.mode === "rush" || state.mode === "exam") ? "id2ja_choice" : state.vocabSub;
+        const posName = raw.p === "v" ? "動詞 (Verba)" : raw.p === "a" ? "形容詞 (Adjektiva)" : raw.p === "n" ? "名詞 (Nomina)" : "副詞・接続詞他";
+        const morphText = analyzeMorphology(raw.w, raw.r);
+        const famList = getRootFamilyList(raw.r, raw.w);
+        const isNoHintCtx = (effMode === "contextJa" || state.mode === "contextJa");
+
+        const kvHtml = `
+          <div class="exp-kv-grid">
+            <div class="exp-kv-key">見出し語：</div><div class="exp-kv-val"><strong style="color:#075e54;font-size:0.96rem;">${raw.w}</strong></div>
+            <div class="exp-kv-key">語幹 (Kata Dasar)：</div><div class="exp-kv-val"><strong>${raw.r || raw.w}</strong></div>
+            <div class="exp-kv-key">語構成・接辞：</div><div class="exp-kv-val">${morphText}</div>
+            <div class="exp-kv-key">完全な意味・用法：</div><div class="exp-kv-val">${raw.fullM || raw.m}</div>
+          </div>
+        `;
+        const famHtml = famList.length ? `
+          <div class="exp-family-chips">
+            ${famList.map(f => `<span class="exp-fam-chip" data-fword="${encodeURIComponent(f.w)}"><strong>${f.w}</strong>：${f.m}</span>`).join("")}
+          </div>
+        ` : "";
+
+        const detailHtml = buildDetailSectionsHtml([
+          { title: `語幹構造・接辞の仕組みと完全な意味 [${posName}]`, rawHtml: kvHtml, theme: "green", tts: raw.w, ttsLabel: "単語を発音" },
+          raw.ex ? { title: "実用例文と日本語訳", content: `${raw.ex}\n${raw.tr || ''}`, tts: raw.ex, ttsLabel: "例文を発音" } : null,
+          raw.note ? { title: "語義・コロケーション・文法詳細解説", content: raw.note, theme: "amber" } : null,
+          famList.length ? { title: `同じ語幹「${raw.r}」の派生語・関連語ファミリー（タップで詳細表示）`, rawHtml: famHtml } : null
+        ]);
+
+        const wordAlts = raw.w.split("/").map(s => s.trim()).filter(Boolean);
+
+        if (subMode === "id2ja_choice") {
+          const others = shuffle(posPool.filter(x => x.m !== raw.m)).slice(0, 3).map(x => x.m);
+          qObj = {
+            id: isNoHintCtx ? `ctx::voc::${raw.w}` : `voc::${raw.w}`,
+            effectiveMode: effMode,
+            sender: posName,
+            mainHtml: `<span class="msg-word-head">${raw.w}</span>`,
+            hintHtml: isNoHintCtx ? "" : (`語幹: <strong>${raw.r || raw.w}</strong>` + (raw.ex ? `<br>例文: ${raw.ex}` : "")),
+            subHtml: "",
+            ttsWord: raw.w,
+            ttsSentence: raw.ex || "",
+            ttsText: raw.w,
+            correctText: raw.m,
+            acceptedAnswers: [raw.m],
+            choices: shuffle([raw.m, ...others]),
+            summaryHead: `${raw.w} [語幹: ${raw.r || raw.w}] ＝ ${raw.fullM || raw.m}`,
+            summarySent: raw.ex ? `${raw.ex}\n${raw.tr || ''}` : "",
+            summaryBrief: getFirstLineSummary(raw.note),
+            detailSectionsHtml: detailHtml,
+            isTyping: false
+          };
+        } else {
+          const others = shuffle(posPool.filter(x => x.w.toLowerCase() !== raw.w.toLowerCase())).slice(0, 3).map(x => x.w);
+          const isTyp = subMode === "ja2id_typing";
+          qObj = {
+            id: `voc_ja2id::${raw.w}`, effectiveMode: effMode,
+            sender: `${posName} — 日➔尼`,
+            mainHtml: `<span class="msg-word-head">${raw.m}</span>`,
+            hintHtml: isNoHintCtx ? "" : (`語幹: <strong>${raw.r || raw.w}</strong>（頭文字: ${raw.w[0]}...）` + (raw.tr ? `<br>例文和訳: ${raw.tr}` : "")),
+            subHtml: isTyp ? "該当するインドネシア語の単語を下部バーに入力してEnterで送信してください" : "",
+            ttsWord: raw.w,
+            ttsSentence: raw.ex || "",
+            ttsText: raw.w,
+            correctText: raw.w,
+            acceptedAnswers: [raw.w, ...wordAlts],
+            choices: shuffle([raw.w, ...others]),
+            summaryHead: `${raw.w} [語幹: ${raw.r || raw.w}] ＝ ${raw.fullM || raw.m}`,
+            summarySent: raw.ex ? `${raw.ex}\n${raw.tr || ''}` : "",
+            summaryBrief: getFirstLineSummary(raw.note),
+            detailSectionsHtml: detailHtml,
+            isTyping: isTyp
+          };
+        }
+      }
+      // ③ 文脈下線・和訳 (contextJa) — ★ヒント廃止！
+      else if (effMode === "contextJa") {
+        const htmlS = (raw.s || "").replace(/<([^>]+)>/g, `<span class="u-highlight">$1</span>`);
+        const plainS = (raw.s || "").replace(/<([^>]+)>/g, "$1");
+        const detailHtml = buildDetailSectionsHtml([
+          { title: "問題文と全文和訳", content: `${plainS}\n\n【全文和訳】\n${raw.tr || ''}`, theme: "green", tts: plainS, ttsLabel: "全文を発音" },
+          raw.exp ? { title: "多義語の広がり・文脈判断の詳しい解説", content: raw.exp, theme: "amber" } : null
+        ]);
+        qObj = {
+          id: `ctx::${raw.s}`, effectiveMode: effMode,
+          sender: `文脈下線和訳 [${raw.pos || "重要語"}]`,
+          mainHtml: htmlS,
+          hintHtml: "",
+          subHtml: `下線部「<strong>${raw.target}</strong>」の文脈上の意味は？`,
+          ttsWord: raw.target,
+          ttsSentence: plainS,
+          ttsText: plainS,
+          correctText: raw.ans,
+          acceptedAnswers: [raw.ans],
+          choices: shuffle(raw.choices || []),
+          summaryHead: `${raw.target} ＝ ${raw.ans}`,
+          summarySent: `${plainS}\n${raw.tr || ''}`,
+          summaryBrief: getFirstLineSummary(raw.exp),
+          detailSectionsHtml: detailHtml,
+          isTyping: false
+        };
+      }
+      // ④ リスニング (listening) — ★ヒント廃止！
+      else if (effMode === "listening") {
+        const shuffledChoices = shuffle(raw.choices || []);
+        const detailHtml = buildDetailSectionsHtml([
+          { title: "放送スクリプト全文と和訳", content: `${raw.passage}\n\n【スクリプト和訳】\n${raw.trPassage || ''}`, theme: "green", tts: raw.passage, ttsLabel: "本文を発音" },
+          { title: "設問と全選択肢の確認", content: `質問：${raw.question}\n（${raw.trQuestion || ''}）\n正解：${raw.choices[raw.ans || 0]}`, tts: raw.question, ttsLabel: "質問を発音" },
+          raw.exp ? { title: "聞き取り・言い換え表現の詳しい解説", content: raw.exp, theme: "amber" } : null
+        ]);
+        qObj = {
+          id: `lis::${raw.question}`, effectiveMode: effMode,
+          sender: `Menyimak (Lv.${raw.level || 1}：${raw.topic || ""})`,
+          mainHtml: `
+            <div class="listen-ctrl-box">
+              <div class="listen-btn-row">
+                <button type="button" class="listen-play-btn" id="btn-listen-passage">▶ 本文を最初から再生</button>
+                <button type="button" class="listen-play-btn" id="btn-listen-question">▶ 質問を再生</button>
+              </div>
+              <div class="listen-btn-row">
+                <span style="font-size:0.74rem;color:#064e3b;font-weight:600;">選択肢を聞く:</span>
+                <button type="button" class="listen-play-btn secondary" data-lch="0">🔊 選択肢1</button>
+                <button type="button" class="listen-play-btn secondary" data-lch="1">🔊 選択肢2</button>
+                <button type="button" class="listen-play-btn secondary" data-lch="2">🔊 選択肢3</button>
+                <button type="button" class="listen-play-btn secondary" data-lch="3">🔊 選択肢4</button>
+              </div>
+            </div>
+            <div id="active-listen-notice" class="listen-hidden-notice" style="display:${state.listenShowScript ? 'none' : 'block'};">
+              放送スクリプトは非表示です（上部の「スクリプト: 表示」でいつでも開けます）
+            </div>
+            <div id="active-listen-script" style="display:${state.listenShowScript ? 'block' : 'none'};margin-top:4px;">
+              <div>${raw.passage}</div>
+              <div class="msg-sub-box"><strong>Pertanyaan:</strong> ${raw.question}</div>
+            </div>
+          `,
+          hintHtml: "",
+          subHtml: "",
+          ttsWord: raw.question,
+          ttsSentence: raw.passage,
+          ttsText: `${raw.passage} ... Pertanyaan: ${raw.question}`,
+          rawPassage: raw.passage,
+          rawQuestion: raw.question,
+          correctText: raw.choices[raw.ans || 0],
+          acceptedAnswers: [raw.choices[raw.ans || 0]],
+          choices: shuffledChoices,
+          summaryHead: `正解：${raw.choices[raw.ans || 0]}`,
+          summarySent: `質問：${raw.question}\n（${raw.trQuestion || ''}）`,
+          summaryBrief: getFirstLineSummary(raw.exp),
+          detailSectionsHtml: detailHtml,
+          isTyping: false
+        };
+      }
+      // ⑤ 語幹活用 (conj)
+      else if (effMode === "conj") {
+        const htmlS = (raw.s || "").replace(/<([^>]+)>/g, `<span class="u-highlight">($1)</span>`);
+        const fullS = (raw.s || "").replace(/<([^>]+)>/g, raw.a);
+        const r = raw.r;
+        const cands = Array.from(new Set([
+          `me${r}`, `mem${r}`, `men${r}`, `meng${r}`, `meny${r}`,
+          `di${r}`, `di${r}kan`, `di${r}i`, `ber${r}`, `ter${r}`,
+          `pe${r}an`, `per${r}an`, `ke${r}an`, `${r}an`, `${r}`
+        ])).filter(x => x.toLowerCase() !== raw.a.toLowerCase());
+        const famList = getRootFamilyList(raw.r, raw.a);
+        const famHtml = famList.length ? `<div class="exp-family-chips">${famList.map(f => `<span class="exp-fam-chip" data-fword="${encodeURIComponent(f.w)}"><strong>${f.w}</strong>：${f.m}</span>`).join("")}</div>` : "";
+
+        const detailHtml = buildDetailSectionsHtml([
+          { title: "語幹構造の分解と接辞ルール", content: `語幹：${raw.r} ➔ 正解の活用形：${raw.a}\n形態構造：${analyzeMorphology(raw.a, raw.r)}`, theme: "green", tts: raw.a, ttsLabel: "活用語を発音" },
+          raw.exp ? { title: "文法的根拠・構文の詳しい解説", content: raw.exp, theme: "amber" } : null,
+          famList.length ? { title: `同じ語幹「${raw.r}」の関連語ファミリー（タップで詳細表示）`, rawHtml: famHtml } : null
+        ]);
+
+        const conjAlts = [raw.a];
+        if (raw.a === "mensosialisasikan") conjAlts.push("menyosialisasikan");
+        if (raw.a === "menyosialisasikan") conjAlts.push("mensosialisasikan");
+
+        qObj = {
+          id: `conj::${raw.s}`, effectiveMode: effMode,
+          sender: `語幹活用ドリル [語幹: ${raw.r}]`,
+          mainHtml: htmlS,
+          hintHtml: `意図された和訳: ${raw.tr || ""}`,
+          subHtml: `語幹 <strong>${raw.r}</strong> を文脈に合う形に活用させよう`,
+          ttsWord: raw.a,
+          ttsSentence: fullS,
+          ttsText: fullS,
+          correctText: raw.a,
+          acceptedAnswers: conjAlts,
+          choices: shuffle([raw.a, ...shuffle(cands).slice(0, 3)]),
+          summaryHead: `語幹 ${raw.r} ➔ 正解：${raw.a}`,
+          summarySent: `${fullS}\n${raw.tr || ''}`,
+          summaryBrief: getFirstLineSummary(raw.exp),
+          detailSectionsHtml: detailHtml,
+          isTyping: (state.mode === "conj" && state.conjSub === "typing")
+        };
+      }
+      // ⑥ 誤文訂正 (error) — ★選択肢を必ず [A], [B], [C], [D] の順番に整列！
+      else if (effMode === "error") {
+        const plainS = (raw.s || "").replace(/<[^>]+>/g, "").replace(/\[[A-D]\]\s*/g, "");
+        const orderedChoices = orderChoices(raw.choices || [], "error");
+        const detailHtml = buildDetailSectionsHtml([
+          { title: "問題文の構造と全文和訳", content: `${plainS}\n\n【和訳】\n${raw.tr || ''}`, theme: "green", tts: plainS, ttsLabel: "文章を発音" },
+          raw.exp ? { title: "なぜ誤りなのか・正しい標準文法（Bahasa Baku）の徹底解説", content: raw.exp, theme: "amber" } : null
+        ]);
+        qObj = {
+          id: `err::${raw.s}`, effectiveMode: "error",
+          sender: `誤文訂正 (Tata Bahasa)`,
+          mainHtml: raw.s,
+          hintHtml: `和訳ヒント: ${raw.tr || ""}`,
+          subHtml: `文法的に誤っている箇所 [A]〜[D] を1つ選ぶ`,
+          ttsWord: "",
+          ttsSentence: plainS,
+          ttsText: plainS,
+          correctText: raw.a,
+          acceptedAnswers: [raw.a],
+          choices: orderedChoices,
+          summaryHead: `誤り箇所：${raw.a}`,
+          summarySent: `【和訳】 ${raw.tr || ''}`,
+          summaryBrief: getFirstLineSummary(raw.exp),
+          detailSectionsHtml: detailHtml,
+          isTyping: false
+        };
+      }
+      // ⑦ 前置詞 (prep)・紛らわしい語の使い分け (confuse)・慣用句 (idiom)
+      // ★ subHtml を空("")にし、日本語訳はヒントONのときだけ表示！
+      else if (["prep", "confuse", "idiom"].includes(effMode)) {
+        const fullS = (raw.s || "").replace(/___+/g, raw.a);
+        const pairLabel = effMode === "confuse" && raw.pair
+          ? `【比較対象：${raw.pair.replace(/\s*\/\s*/g, ' と ')} の使い分け】`
+          : effMode === "prep" && raw.target
+          ? `【コロケーション：${raw.target.replace('___', raw.a)}】`
+          : "";
+        const detailHtml = buildDetailSectionsHtml([
+          { title: "完成文と和訳", content: `${fullS}\n${raw.tr || raw.q || ''}`, theme: "green", tts: fullS, ttsLabel: "完成文を発音" },
+          raw.exp ? { title: "使い分け・全選択肢の徹底比較解説", content: raw.exp, theme: "amber" } : null
+        ]);
+        qObj = {
+          id: `${effMode}::${raw.s}`, effectiveMode: effMode,
+          sender: effMode === "prep" ? `前置詞・コロケーション` : effMode === "confuse" ? `紛らわしい語の使い分け [比較: ${raw.pair || ''}]` : `慣用句 (Ungkapan)`,
+          mainHtml: raw.s,
+          hintHtml: `${raw.q || raw.tr || raw.target || ""}`,
+          subHtml: "",
+          ttsWord: raw.a,
+          ttsSentence: fullS,
+          ttsText: fullS,
+          correctText: raw.a,
+          acceptedAnswers: [raw.a],
+          choices: shuffle(raw.choices || []),
+          summaryHead: `正解：${raw.a} ${pairLabel}`,
+          summarySent: `${fullS}\n${raw.tr || raw.q || ''}`,
+          summaryBrief: getFirstLineSummary(raw.exp),
+          detailSectionsHtml: detailHtml,
+          isTyping: false
+        };
+      }
+      // ⑧ 類義語・対義語
+      else if (effMode === "sinonim") {
+        const detailHtml = buildDetailSectionsHtml([
+          raw.ex ? { title: "実用例文", content: raw.ex, theme: "green", tts: raw.ex, ttsLabel: "例文を発音" } : null,
+          raw.exp ? { title: "類義語・対義語ペアとダミー選択肢の徹底解説", content: raw.exp, theme: "amber" } : null
+        ]);
+        qObj = {
+          id: `sin::${raw.target}`, effectiveMode: effMode,
+          sender: `${raw.type || "類義語・対義語"}`,
+          mainHtml: raw.target,
+          hintHtml: raw.ex ? `用例ヒント: ${raw.ex}` : "",
+          subHtml: "",
+          ttsWord: raw.a,
+          ttsSentence: raw.ex || raw.a,
+          ttsText: raw.ex || raw.a,
+          correctText: raw.a,
+          acceptedAnswers: [raw.a],
+          choices: shuffle(raw.choices || []),
+          summaryHead: `${raw.target} ➔ 正解：${raw.a}`,
+          summarySent: raw.ex || "",
+          summaryBrief: getFirstLineSummary(raw.exp),
+          detailSectionsHtml: detailHtml,
+          isTyping: false
+        };
+      }
+      // ⑨ ことわざ
+      else if (effMode === "proverb") {
+        const detailHtml = buildDetailSectionsHtml([
+          raw.exp ? { title: "ことわざの背景・構成単語の詳しい解説", content: raw.exp, theme: "amber" } : null
+        ]);
+        qObj = {
+          id: `pb::${raw.pb}`, effectiveMode: effMode,
+          sender: `ことわざ (Peribahasa)`,
+          mainHtml: raw.pb,
+          hintHtml: raw.lit || "",
+          subHtml: "",
+          ttsWord: "",
+          ttsSentence: raw.pb,
+          ttsText: raw.pb,
+          correctText: raw.a,
+          acceptedAnswers: [raw.a],
+          choices: shuffle(raw.choices || []),
+          summaryHead: `${raw.pb}`,
+          summarySent: `${raw.lit ? raw.lit + '\n' : ''}【意味】 ${raw.a}`,
+          summaryBrief: getFirstLineSummary(raw.exp),
+          detailSectionsHtml: detailHtml,
+          isTyping: false
+        };
+      }
+      // ⑩ 長文適訳 (trans) — ★ヒント廃止！
+      else if (effMode === "trans") {
+        const ansTxt = raw.choices[raw.ans || 0];
+        const indoTxt = raw.dir === "id2ja" ? raw.q : ansTxt;
+        const detailHtml = buildDetailSectionsHtml([
+          raw.exp ? { title: "構文・重要語彙・コロケーションの徹底解説", content: raw.exp, theme: "amber" } : null
+        ]);
+        qObj = {
+          id: `tr::${raw.q}`, effectiveMode: effMode,
+          sender: `長文適訳 (${raw.topic || ""})`,
+          mainHtml: raw.q,
+          hintHtml: "",
+          subHtml: "",
+          ttsWord: "",
+          ttsSentence: indoTxt,
+          ttsText: indoTxt,
+          correctText: ansTxt,
+          acceptedAnswers: [ansTxt],
+          choices: shuffle(raw.choices || []),
+          summaryHead: `【正解の訳文】`,
+          summarySent: `${indoTxt}\n\n${raw.dir === 'id2ja' ? ansTxt : raw.q}`,
+          summaryBrief: getFirstLineSummary(raw.exp),
+          detailSectionsHtml: detailHtml,
+          isTyping: false
+        };
+      }
+      // ⑪ スラング日常会話
+      else if (effMode === "slang") {
+        const ansTxt = raw.choices[raw.ans || 0];
+        const detailHtml = buildDetailSectionsHtml([
+          { title: "スラング・口語表現・略語の徹底解説", content: `${raw.exp || ''}`, theme: "amber", tts: ansTxt, ttsLabel: "返信文を発音" }
+        ]);
+        qObj = {
+          id: `slang::${raw.msg.slice(0,40)}`, effectiveMode: effMode,
+          sender: `${raw.sender || "Teman"}`,
+          mainHtml: raw.msg,
+          hintHtml: raw.tr ? `和訳ヒント: ${raw.tr}` : "",
+          subHtml: "",
+          ttsWord: "",
+          ttsSentence: raw.msg,
+          ttsText: raw.msg,
+          correctText: ansTxt,
+          acceptedAnswers: [ansTxt],
+          choices: shuffle(raw.choices || []),
+          summaryHead: `【相手メッセージの和訳】`,
+          summarySent: `${raw.tr || ''}`,
+          summaryBrief: getFirstLineSummary(raw.exp),
+          detailSectionsHtml: detailHtml,
+          isTyping: false
+        };
+      }
+      // ⑫ ゼミ討論グループ (debate) — ★ヒント廃止！
+      else if (effMode === "debate") {
+        const ansTxt = raw.choices[raw.ans || 0];
+        const allSpeech = (raw.messages || []).map(m => m.text).join(" ") + " " + raw.prompt;
+        const detailHtml = buildDetailSectionsHtml([
+          { title: "討論スレッドと設問の全文和訳", content: raw.trThread || "", theme: "green", tts: ansTxt, ttsLabel: "正解の主張を発音" },
+          raw.exp ? { title: "論理展開・重要語彙の詳しい解説", content: raw.exp, theme: "amber" } : null
+        ]);
+        qObj = {
+          id: `deb::${raw.prompt}`, effectiveMode: effMode,
+          sender: `${raw.topic || "Diskusi"}`,
+          mainHtml: raw.prompt,
+          hintHtml: "",
+          subHtml: "",
+          ttsWord: "",
+          ttsSentence: allSpeech,
+          ttsText: allSpeech,
+          correctText: ansTxt,
+          acceptedAnswers: [ansTxt],
+          choices: shuffle(raw.choices || []),
+          summaryHead: `【正解の主張】`,
+          summarySent: `${ansTxt}`,
+          summaryBrief: getFirstLineSummary(raw.exp),
+          detailSectionsHtml: detailHtml,
+          isTyping: false
+        };
+
+        if (raw.agenda) {
+          const ag = document.createElement("div");
+          ag.className = "wa-date-badge";
+          ag.style.background = "#fef3c7";
+          ag.style.color = "#92400e";
+          ag.textContent = raw.agenda;
+          area.appendChild(ag);
+        }
+        (raw.messages || []).forEach(m => {
+          const mRow = document.createElement("div");
+          mRow.className = "msg-row-in";
+          mRow.innerHTML = `
+            <div class="wa-bubble-left">
+              <div class="msg-sender-row">
+                <span class="msg-sender-name">${m.speaker} (${m.role || ""})</span>
+                <button type="button" class="inline-audio-chip deb-msg-tts">🔊 発音</button>
+              </div>
+              <div class="msg-main-text">${m.text}</div>
+              <div class="msg-meta"><span>${nowTimeStr()}</span></div>
+            </div>
+          `;
+          mRow.querySelector(".deb-msg-tts").addEventListener("click", () => speakIndo(m.text, mySession));
+          area.appendChild(mRow);
+        });
+      }
+
+      state.currentQ = qObj;
+      const hintDisabledForThisQ = isHintDisabledNow();
+      if (hintDisabledForThisQ) {
+        qObj.hintHtml = "";
+      }
+
+      if (state.mode !== "rush") playSoundEffect("receive");
+
+      const starred = isStarred(qObj.id);
+      const qRow = document.createElement("div");
+      qRow.className = "msg-row-in";
+      qRow.innerHTML = `
+        <div class="wa-bubble-left">
+          <div class="msg-sender-row">
+            <span class="msg-sender-name">${qObj.sender}</span>
+            <div class="msg-action-group">
+              ${qObj.ttsWord && !qObj.isTyping ? `<button type="button" class="inline-audio-chip btn-q-word-tts" title="単語の発音を聞く">🔊 単語</button>` : ""}
+              ${qObj.ttsSentence && !qObj.isTyping && effMode !== "listening" ? `<button type="button" class="inline-audio-chip btn-q-sent-tts" title="例文・文章全体の発音を聞く">🔊 文章</button>` : ""}
+              <button type="button" class="msg-star-btn ${starred ? 'starred' : ''}" title="スター登録/解除 (Sキー)">${starred ? '★' : '☆'}</button>
+            </div>
+          </div>
+          <div class="msg-main-text">${qObj.mainHtml}</div>
+          ${qObj.subHtml ? `<div class="msg-sub-box">${qObj.subHtml}</div>` : ""}
+          ${(!hintDisabledForThisQ && qObj.hintHtml) ? `
+            <div class="msg-sub-box dynamic-hint-box" style="background:#fffbeb;border-left-color:#f59e0b;color:#92400e;display:${state.showHint ? 'block' : 'none'};">
+              ${qObj.hintHtml}
+            </div>
+            <button type="button" class="hint-reveal-btn dynamic-hint-reveal" style="display:${state.showHint ? 'none' : 'inline-block'};">ヒントを見る</button>
+          ` : ""}
+          <div class="msg-meta"><span>${nowTimeStr()}</span></div>
+        </div>
+      `;
+      area.appendChild(qRow);
+
+      const wTtsBtn = qRow.querySelector(".btn-q-word-tts");
+      if (wTtsBtn) wTtsBtn.addEventListener("click", () => speakIndo(qObj.ttsWord, mySession));
+      const sTtsBtn = qRow.querySelector(".btn-q-sent-tts");
+      if (sTtsBtn) sTtsBtn.addEventListener("click", () => speakIndo(qObj.ttsSentence, mySession));
+
+      const starBtnInBubble = qRow.querySelector(".msg-star-btn");
+      if (starBtnInBubble) {
+        starBtnInBubble.addEventListener("click", () => {
+          toggleStarItem(qObj);
+          const stNow = isStarred(qObj.id);
+          starBtnInBubble.textContent = stNow ? "★" : "☆";
+          starBtnInBubble.classList.toggle("starred", stNow);
+        });
+      }
+      const revBtn = qRow.querySelector(".dynamic-hint-reveal");
+      if (revBtn) {
+        revBtn.addEventListener("click", () => {
+          const hb = qRow.querySelector(".dynamic-hint-box");
+          if (hb) hb.style.display = "block";
+          revBtn.style.display = "none";
+        });
+      }
+
+      if (effMode === "listening") {
+        const pBtn = document.getElementById("btn-listen-passage");
+        const qBtn = document.getElementById("btn-listen-question");
+        if (pBtn) pBtn.addEventListener("click", () => speakIndo(qObj.rawPassage, mySession));
+        if (qBtn) qBtn.addEventListener("click", () => speakIndo(qObj.rawQuestion, mySession));
+        qRow.querySelectorAll("[data-lch]").forEach(btn => {
+          btn.addEventListener("click", () => {
+            const cIdx = parseInt(btn.getAttribute("data-lch"), 10);
+            speakIndo(qObj.choices[cIdx] || "", mySession);
+          });
+        });
+      }
+
+      syncStarUI();
+      syncHintUI();
+
+      if (effMode === "listening") {
+        speakIndo(qObj.rawPassage, mySession);
+      } else if (state.autoTts && qObj.ttsText && !qObj.isTyping && state.mode !== "rush") {
+        speakIndo(qObj.ttsText, mySession);
+      }
+
+      if (qObj.isTyping) {
+        inp.placeholder = "ここにインドネシア語を入力して Enter で送信 (スペースも入力可)...";
+        inp.focus();
+      } else {
+        inp.placeholder = "メッセージを入力 (または1〜4を選択 / Enter・→キーで次へ)...";
+        qObj.choices.forEach((chTxt, idx) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "wa-choice-card";
+          const displayLabel = (effMode === "listening" && !state.listenShowChoices)
+            ? `選択肢 ${idx + 1} を選ぶ（上の「選択肢${idx + 1}」ボタンで音声試聴）`
+            : chTxt;
+          btn.innerHTML = `
+            <span class="wa-choice-num">${idx + 1}</span>
+            <span class="choice-label-text">${displayLabel}</span>
+          `;
+          btn.addEventListener("click", () => submitAnswer(chTxt, btn));
+          grid.appendChild(btn);
+        });
+      }
+
+      area.scrollTop = area.scrollHeight;
+    }
+
+    // -----------------------------------------------------------------
+    // 9. 回答送信 ＆ 2段階開閉式（▼詳しい解説を見る）解説吹き出し表示
+    // -----------------------------------------------------------------
+    function submitAnswer(selectedText, clickedBtn) {
+      if (state.answered || !state.currentQ) return;
+      state.answered = true;
+      stopAllAudioAndTimers();
+      const mySession = state.sessionId;
+
+      const q = state.currentQ;
+      const normSelected = selectedText.trim().toLowerCase().replace(/\s+/g, " ");
+      const validList = (q.acceptedAnswers && q.acceptedAnswers.length ? q.acceptedAnswers : [q.correctText])
+        .map(a => (a || "").trim().toLowerCase().replace(/\s+/g, " "));
+      const isOk = validList.includes(normSelected);
+
+      playSoundEffect("send", 0);
+
+      if (state.mode === "rush" && state.rushActive) {
+        state.rushTotal++;
+        if (isOk) {
+          state.rushCorrect++;
+          state.rushCombo++;
+          if (state.rushCombo > state.rushMaxCombo) state.rushMaxCombo = state.rushCombo;
+          const comboBonus = Math.min(state.rushCombo * 20, 200);
+          state.rushScore += 100 + comboBonus;
+          state.rushTimeLeft += 2.0;
+          playSoundEffect("correct", state.rushCombo);
+          updateRushHUD(2.0);
+        } else {
+          state.rushCombo = 0;
+          state.rushTimeLeft = Math.max(0, state.rushTimeLeft - 2.0);
+          playSoundEffect("wrong", 0);
+          updateRushHUD(-2.0);
+          addWrongItem(q);
+        }
+        state.rushHistory.push({ q, userAns: selectedText, isOk });
+
+        const grid = document.getElementById("wa-choices-grid");
+        Array.from(grid.children).forEach((b, idx) => {
+          b.disabled = true;
+          const rawChoice = (q.choices[idx] || "").trim().toLowerCase().replace(/\s+/g, " ");
+          if (validList.includes(rawChoice)) b.classList.add("correct");
+        });
+        if (clickedBtn && !isOk) clickedBtn.classList.add("wrong");
+
+        if (state.rushTimeLeft <= 0) {
+          finishRushSession();
+        } else {
+          state.autoNextTimer = setTimeout(() => {
+            if (state.rushActive && mySession === state.sessionId) loadNextQuestion();
+          }, isOk ? 240 : 480);
+        }
+        return;
+      }
+
+      playSoundEffect(isOk ? "correct" : "wrong", 0);
+
+      if (q.effectiveMode === "listening") {
+        applyListeningVisibility(true);
+      }
+
+      if (!isOk) {
+        addWrongItem(q);
+      } else if (state.mode === "wrong") {
+        removeWrongItem(q.id);
+      }
+
+      const grid = document.getElementById("wa-choices-grid");
+      Array.from(grid.children).forEach((b, idx) => {
+        b.disabled = true;
+        const rawChoice = (q.choices[idx] || "").trim().toLowerCase().replace(/\s+/g, " ");
+        if (validList.includes(rawChoice)) {
+          b.classList.add("correct");
+        }
+      });
+      if (clickedBtn && !isOk) {
+        clickedBtn.classList.add("wrong");
+      }
+
+      const area = document.getElementById("chat-messages-area");
+
+      const outRow = document.createElement("div");
+      outRow.className = "msg-row-out";
+      outRow.innerHTML = `
+        <div class="wa-bubble-right">
+          <div class="msg-main-text">${selectedText}</div>
+          <div class="msg-meta">
+            <span>${nowTimeStr()}</span>
+            <span class="wa-blue-checks">✓✓</span>
+          </div>
+        </div>
+      `;
+      area.appendChild(outRow);
+
+      const shouldAutoNext =
+        (state.autoNextMode === "always") ||
+        (state.autoNextMode === "correct" && isOk);
+      const delayMs = Math.round((state.autoNextDelay || 1.8) * 1000);
+
+      const expRow = document.createElement("div");
+      expRow.className = "msg-row-in";
+      expRow.style.maxWidth = "92%";
+      const hasDetail = !!(q.detailSectionsHtml && q.detailSectionsHtml.trim());
+
+      expRow.innerHTML = `
+        <div class="wa-bubble-left" style="border-left: 3.5px solid ${isOk ? '#16a34a' : '#dc2626'};width:100%;">
+          <div class="msg-sender-row">
+            <span class="msg-sender-name" style="color:${isOk ? '#15803d' : '#dc2626'};font-size:0.9rem;">
+              ${isOk ? "⭕ 正解" : `❌ 不正解（正解：${q.correctText}）`}
+            </span>
+            <button type="button" class="exp-star-btn" style="background:#fffbeb;border:1px solid #fde68a;color:#b45309;font-size:0.72rem;font-weight:600;padding:2px 8px;border-radius:999px;cursor:pointer;">
+              ${isStarred(q.id) ? "★ スター済" : "☆ スター登録"}
+            </button>
+          </div>
+
+          <!-- 初期表示：すっきり見やすい要点サマリー -->
+          <div class="exp-compact-summary">
+            <div class="exp-summary-head">
+              <span class="exp-summary-ans">${q.summaryHead || `正解：${q.correctText}`}</span>
+              <div style="display:flex;gap:5px;">
+                ${q.ttsWord ? `<button type="button" class="inline-audio-chip exp-sum-word-tts">🔊 語の発音</button>` : ""}
+                ${q.ttsSentence ? `<button type="button" class="inline-audio-chip exp-sum-sent-tts">🔊 文の発音</button>` : ""}
+              </div>
+            </div>
+            ${q.summarySent ? `<div class="exp-summary-sent">${q.summarySent}</div>` : ""}
+            ${q.summaryBrief ? `<div class="exp-summary-brief">💡 ${q.summaryBrief}</div>` : ""}
+          </div>
+
+          <!-- 矢印マークで開閉できる詳細解説・派生語ドロワー -->
+          ${hasDetail ? `
+            <button type="button" class="exp-accordion-btn">
+              <span>📖 詳しい解説・語幹構造・派生語を見る</span>
+              <span class="exp-accordion-arrow">▼</span>
+            </button>
+            <div class="exp-accordion-body">
+              ${q.detailSectionsHtml}
+            </div>
+          ` : ""}
+
+          ${shouldAutoNext ? `
+            <div class="autonext-bar-wrap" id="active-autonext-bar" title="タップすると自動遷移を停止します">
+              <div class="autonext-bar-fill" style="transition: width ${delayMs}ms linear; width: 100%;"></div>
+            </div>
+          ` : ""}
+
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;gap:8px;">
+            <span class="autonext-status-txt" style="font-size:0.71rem;color:#64748b;">
+              ${shouldAutoNext ? `${state.autoNextDelay}秒後に次へ（詳細を開くと自動停止 / Enter・→で即次へ）` : `Enterキー または →（右矢印キー）で次の問題へ`}
+            </span>
+            <button type="button" class="wa-next-inline-btn" style="background:var(--wa-teal);color:#fff;border:none;padding:6px 14px;border-radius:999px;font-weight:600;font-size:0.8rem;cursor:pointer;flex-shrink:0;">次の問題へ</button>
+          </div>
+          <div class="msg-meta"><span>${nowTimeStr()}</span></div>
+        </div>
+      `;
+      area.appendChild(expRow);
+
+      const sumWordBtn = expRow.querySelector(".exp-sum-word-tts");
+      if (sumWordBtn) sumWordBtn.addEventListener("click", (e) => { e.stopPropagation(); speakIndo(q.ttsWord, mySession); });
+      const sumSentBtn = expRow.querySelector(".exp-sum-sent-tts");
+      if (sumSentBtn) sumSentBtn.addEventListener("click", (e) => { e.stopPropagation(); speakIndo(q.ttsSentence, mySession); });
+
+      const accBtn = expRow.querySelector(".exp-accordion-btn");
+      const accBody = expRow.querySelector(".exp-accordion-body");
+      if (accBtn && accBody) {
+        accBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const isOpen = accBody.classList.toggle("open");
+          accBtn.classList.toggle("open", isOpen);
+          accBtn.querySelector("span:first-child").textContent = isOpen
+            ? "📖 詳しい解説・語幹構造・派生語を閉じる"
+            : "📖 詳しい解説・語幹構造・派生語を見る";
+          if (state.autoNextTimer) {
+            stopAllAudioAndTimers();
+            const st = expRow.querySelector(".autonext-status-txt");
+            if (st) st.textContent = "自動遷移を停止しました（Enter / → で次へ）";
+          }
+          if (isOpen) {
+            setTimeout(() => { area.scrollTop = area.scrollHeight; }, 40);
+          }
+        });
+      }
+
+      expRow.querySelectorAll(".exp-tts-trigger").forEach(btn => {
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          speakIndo(decodeURIComponent(btn.getAttribute("data-tts")), mySession);
+        });
+      });
+      expRow.querySelectorAll("[data-fword]").forEach(chip => {
+        chip.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const fw = decodeURIComponent(chip.getAttribute("data-fword"));
+          const allV = [...DB.v, ...DB.a, ...DB.n, ...DB.other, ...DB.singkatan];
+          const targetV = allV.find(x => x.w.toLowerCase() === fw.toLowerCase());
+          if (targetV) {
+            state.openedDetailFromAZ = false;
+            openDictDetailModal(targetV);
+          }
+        });
+      });
+
+      const expStar = expRow.querySelector(".exp-star-btn");
+      if (expStar) {
+        expStar.addEventListener("click", (e) => {
+          e.stopPropagation();
+          toggleStarItem(q);
+          expStar.textContent = isStarred(q.id) ? "★ スター済" : "☆ スター登録";
+        });
+      }
+
+      if (shouldAutoNext) {
+        expRow.addEventListener("click", (e) => {
+          if (e.target.closest(".wa-next-inline-btn")) return;
+          if (state.autoNextTimer) {
+            stopAllAudioAndTimers();
+            const st = expRow.querySelector(".autonext-status-txt");
+            if (st) st.textContent = "自動遷移を停止しました（Enter / → で次へ）";
+          }
+        });
+      }
+
+      expRow.querySelector(".wa-next-inline-btn").addEventListener("click", () => {
+        stopAllAudioAndTimers();
+        loadNextQuestion();
+      });
+
+      if (shouldAutoNext) {
+        requestAnimationFrame(() => {
+          const fill = document.querySelector("#active-autonext-bar .autonext-bar-fill");
+          if (fill) fill.style.width = "0%";
+        });
+        state.autoNextTimer = setTimeout(() => {
+          if (mySession !== state.sessionId) return;
+          state.autoNextTimer = null;
+          loadNextQuestion();
+        }, delayMs);
+      }
+
+      area.scrollTop = area.scrollHeight;
+    }
+
+    // -----------------------------------------------------------------
+    // 10. 📖 A〜Z 辞書ブラウザ（Kamus Lengkap A–Z）＆ 単語詳細モーダル
+    // -----------------------------------------------------------------
+    function openAZDictModal() {
+      if (state.autoNextTimer) {
+        clearTimeout(state.autoNextTimer);
+        state.autoNextTimer = null;
+      }
+      document.getElementById("dict-dropdown").style.display = "none";
+      const modal = document.getElementById("az-dict-modal");
+      modal.classList.add("open");
+      renderAZDictBrowser();
+    }
+
+    function renderAZDictBrowser() {
+      const allV = [...DB.v, ...DB.a, ...DB.n, ...DB.other, ...DB.singkatan];
+      const posFiltered = allV.filter(v => {
+        if (state.azPos === "all") return true;
+        if (state.azPos === "starred") return isStarred(`voc::${v.w}`) || isStarred(`abbr_ja::${v.w}`);
+        return v.p === state.azPos;
+      });
+
+      const q = (state.azQuery || "").trim().toLowerCase();
+      const queryFiltered = q
+        ? posFiltered.filter(v =>
+            v.w.toLowerCase().includes(q) ||
+            (v.r && v.r.toLowerCase().includes(q)) ||
+            (v.fullM || v.m).toLowerCase().includes(q) ||
+            (v.ex && v.ex.toLowerCase().includes(q))
+          )
+        : posFiltered;
+
+      // アルファベット別の件数集計（見出し語順 or 語幹順に応じて先頭文字を判定）
+      const letterCounts = {};
+      const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+      LETTERS.forEach(L => { letterCounts[L] = 0; });
+
+      queryFiltered.forEach(v => {
+        const keyStr = state.azSortBy === "root" ? (v.r || v.w) : v.w;
+        const firstCh = (keyStr.replace(/^[^a-zA-Z]+/, "")[0] || "").toUpperCase();
+        if (letterCounts[firstCh] !== undefined) letterCounts[firstCh]++;
+      });
+
+      // A〜Zボタンバー描画
+      const barEl = document.getElementById("az-letter-bar");
+      barEl.innerHTML = "";
+
+      const allBtn = document.createElement("button");
+      allBtn.type = "button";
+      allBtn.className = "az-letter-btn" + (state.azLetter === "ALL" ? " active" : "");
+      allBtn.textContent = `ALL (${queryFiltered.length})`;
+      allBtn.addEventListener("click", () => {
+        state.azLetter = "ALL";
+        renderAZDictBrowser();
+      });
+      barEl.appendChild(allBtn);
+
+      LETTERS.forEach(L => {
+        const cnt = letterCounts[L] || 0;
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "az-letter-btn" + (state.azLetter === L ? " active" : "") + (cnt === 0 ? " empty-letter" : "");
+        b.textContent = L;
+        b.title = `${L}：${cnt}語`;
+        b.addEventListener("click", () => {
+          state.azLetter = L;
+          renderAZDictBrowser();
+        });
+        barEl.appendChild(b);
+      });
+
+      // 選択中のアルファベットでフィルタリングし、A〜Z順にソート
+      const finalItems = queryFiltered.filter(v => {
+        if (state.azLetter === "ALL") return true;
+        const keyStr = state.azSortBy === "root" ? (v.r || v.w) : v.w;
+        const firstCh = (keyStr.replace(/^[^a-zA-Z]+/, "")[0] || "").toUpperCase();
+        return firstCh === state.azLetter;
+      }).sort((a, b) => {
+        const ka = (state.azSortBy === "root" ? `${a.r || a.w}::${a.w}` : a.w).toLowerCase();
+        const kb = (state.azSortBy === "root" ? `${b.r || b.w}::${b.w}` : b.w).toLowerCase();
+        return ka.localeCompare(kb);
+      });
+
+      document.getElementById("az-dict-count-label").textContent =
+        `全 ${allV.length} 語収録 ／ 現在の表示：${finalItems.length} 語（${state.azSortBy === 'root' ? '語幹 A–Z順' : '見出し語 A–Z順'}）`;
+
+      const listEl = document.getElementById("az-list-container");
+      listEl.innerHTML = "";
+
+      if (!finalItems.length) {
+        listEl.innerHTML = `<div style="padding:24px;text-align:center;color:#64748b;font-size:0.9rem;">該当する単語がありません。別のアルファベットまたは品詞を選んでください。</div>`;
+        return;
+      }
+
+      finalItems.forEach(item => {
+        const vocId = `voc::${item.w}`;
+        const starred = isStarred(vocId);
+        const posLabel = item.p === "v" ? "動詞" : item.p === "a" ? "形容詞" : item.p === "n" ? "名詞" : item.p === "singkatan" ? "略語" : "副詞・他";
+        const card = document.createElement("div");
+        card.className = "az-word-card";
+        card.innerHTML = `
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <strong style="font-size:1.02rem;color:var(--wa-header-green);">${item.w}</strong>
+              <span style="font-size:0.75rem;color:#475569;background:#f1f5f9;padding:1px 7px;border-radius:4px;">語幹: <strong>${item.r || item.w}</strong></span>
+              <span class="az-pos-badge">${posLabel}</span>
+            </div>
+            <div style="font-size:0.87rem;color:#1e293b;margin-top:4px;line-height:1.45;">${item.fullM || item.m}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+            <button type="button" class="inline-audio-chip az-card-tts" title="単語の発音を聞く">🔊 発音</button>
+            <button type="button" class="dict-star-btn ${starred ? 'starred' : ''}" title="スター登録/解除">${starred ? '★' : '☆'}</button>
+          </div>
+        `;
+        card.addEventListener("click", (e) => {
+          if (e.target.closest(".az-card-tts") || e.target.closest(".dict-star-btn")) return;
+          state.openedDetailFromAZ = true;
+          openDictDetailModal(item);
+        });
+        card.querySelector(".az-card-tts").addEventListener("click", (e) => {
+          e.stopPropagation();
+          speakIndo(item.w, state.sessionId);
+        });
+        card.querySelector(".dict-star-btn").addEventListener("click", (e) => {
+          e.stopPropagation();
+          toggleStarVocabHelper(item, allV);
+          renderAZDictBrowser();
+        });
+        listEl.appendChild(card);
+      });
+    }
+
+    function toggleStarVocabHelper(vocItem, allV) {
+      const vocId = `voc::${vocItem.w}`;
+      const posLabel = vocItem.p === "v" ? "動詞 (Verba)" : vocItem.p === "a" ? "形容詞 (Adjektiva)" : vocItem.p === "n" ? "名詞 (Nomina)" : vocItem.p === "singkatan" ? "略語 (Singkatan)" : "副詞・接続詞他";
+      const others = shuffle(allV.filter(x => x.m !== vocItem.m)).slice(0, 3).map(x => x.m);
+      toggleStarItem({
+        id: vocId,
+        effectiveMode: vocItem.p || "v",
+        sender: posLabel,
+        mainHtml: `<span class="msg-word-head">${vocItem.w}</span>`,
+        hintHtml: `語幹: <strong>${vocItem.r || vocItem.w}</strong>`,
+        subHtml: "",
+        ttsWord: vocItem.w,
+        ttsSentence: vocItem.ex || "",
+        ttsText: vocItem.w,
+        correctText: vocItem.m,
+        acceptedAnswers: [vocItem.m],
+        choices: shuffle([vocItem.m, ...others]),
+        summaryHead: `${vocItem.w} [語幹: ${vocItem.r}] ＝ ${vocItem.fullM || vocItem.m}`,
+        summarySent: vocItem.ex ? `${vocItem.ex}\n${vocItem.tr || ''}` : "",
+        summaryBrief: getFirstLineSummary(vocItem.note),
+        detailSectionsHtml: buildDetailSectionsHtml([
+          vocItem.note ? { title: "語義・文法解説", content: vocItem.note, theme: "amber" } : null
+        ])
+      });
+    }
+
+    function openDictDetailModal(vocItem) {
+      if (!vocItem) return;
+      if (state.autoNextTimer) {
+        clearTimeout(state.autoNextTimer);
+        state.autoNextTimer = null;
+      }
+      const mySession = state.sessionId;
+      const modal = document.getElementById("dict-detail-modal");
+      const box = document.getElementById("dict-detail-box");
+
+      const allV = [...DB.v, ...DB.a, ...DB.n, ...DB.other, ...DB.singkatan];
+      const posLabel = vocItem.p === "v" ? "動詞 (Verba)" : vocItem.p === "a" ? "形容詞 (Adjektiva)" : vocItem.p === "n" ? "名詞 (Nomina)" : vocItem.p === "singkatan" ? "略語 (Singkatan)" : "副詞・接続詞他";
+      const morphText = vocItem.p === "singkatan" ? `正式名称：${vocItem.r}` : analyzeMorphology(vocItem.w, vocItem.r);
+      const family = getRootFamilyList(vocItem.r, vocItem.w);
+      const vocId = `voc::${vocItem.w}`;
+      const starred = isStarred(vocId);
+
+      box.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;border-bottom:1px solid #e2e8f0;padding-bottom:12px;margin-bottom:12px;">
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <span style="font-size:1.45rem;font-weight:700;color:var(--wa-header-green);">${vocItem.w}</span>
+              <span style="background:#e6f4ea;color:#008069;font-size:0.74rem;font-weight:600;padding:2px 8px;border-radius:999px;">${posLabel}</span>
+            </div>
+            <div style="font-size:0.83rem;color:#475569;margin-top:3px;">${morphText}</div>
+          </div>
+          <div style="display:flex;gap:6px;">
+            ${state.openedDetailFromAZ ? `<button type="button" class="top-action-btn" id="btn-back-to-az">← A–Z一覧へ</button>` : ""}
+            <button type="button" class="top-action-btn" id="btn-close-dict-modal">✕ 閉じる</button>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+          <button type="button" id="btn-dict-modal-word-tts" style="background:var(--wa-teal);color:#fff;border:none;padding:7px 14px;border-radius:8px;font-size:0.82rem;font-weight:600;cursor:pointer;">🔊 単語の発音を聞く</button>
+          ${vocItem.ex ? `<button type="button" id="btn-dict-modal-ex-tts" style="background:#f0fdf4;color:#065f46;border:1px solid #86efac;padding:7px 14px;border-radius:8px;font-size:0.82rem;font-weight:600;cursor:pointer;">🔊 例文の発音を聞く</button>` : ""}
+          <button type="button" id="btn-dict-modal-star" style="background:${starred ? '#fef3c7' : '#f8fafc'};color:${starred ? '#b45309' : '#334155'};border:1px solid ${starred ? '#f59e0b' : '#cbd5e1'};padding:7px 14px;border-radius:8px;font-size:0.82rem;font-weight:600;cursor:pointer;">
+            ${starred ? '★ スター登録済' : '☆ スター復習に追加'}
+          </button>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:9px;">
+          <div class="exp-sec-card green">
+            <div class="exp-sec-label"><span>意味・定義</span></div>
+            <div class="exp-sec-content" style="font-weight:600;font-size:0.95rem;">${vocItem.fullM || vocItem.m}</div>
+          </div>
+
+          ${vocItem.ex ? `
+            <div class="exp-sec-card">
+              <div class="exp-sec-label"><span>実用例文と和訳</span></div>
+              <div class="exp-sec-content">${vocItem.ex}\n<span style="color:#475569;font-size:0.84rem;">${vocItem.tr || ''}</span></div>
+            </div>
+          ` : ""}
+
+          ${vocItem.note ? `
+            <div class="exp-sec-card amber">
+              <div class="exp-sec-label"><span>語法・コロケーション・解説</span></div>
+              <div class="exp-sec-content">${vocItem.note}</div>
+            </div>
+          ` : ""}
+
+          ${family.length ? `
+            <div class="exp-sec-card">
+              <div class="exp-sec-label"><span>同じ語幹「${vocItem.r}」の関連語ファミリー（タップで表示）</span></div>
+              <div class="exp-family-chips">
+                ${family.map((f, fIdx) => `<button type="button" class="exp-fam-chip dict-family-jump" data-fidx="${fIdx}"><strong>${f.w}</strong>：${f.m}</button>`).join("")}
+              </div>
+            </div>
+          ` : ""}
+        </div>
+      `;
+
+      modal.classList.add("open");
+
+      const backAzBtn = document.getElementById("btn-back-to-az");
+      if (backAzBtn) {
+        backAzBtn.addEventListener("click", () => {
+          hardStopSpeech();
+          modal.classList.remove("open");
+        });
+      }
+
+      document.getElementById("btn-close-dict-modal").addEventListener("click", () => {
+        hardStopSpeech();
+        modal.classList.remove("open");
+      });
+      document.getElementById("btn-dict-modal-word-tts").addEventListener("click", () => speakIndo(vocItem.w, mySession));
+      const exBtn = document.getElementById("btn-dict-modal-ex-tts");
+      if (exBtn) exBtn.addEventListener("click", () => speakIndo(vocItem.ex, mySession));
+
+      document.getElementById("btn-dict-modal-star").addEventListener("click", (e) => {
+        toggleStarVocabHelper(vocItem, allV);
+        const nowSt = isStarred(vocId);
+        e.target.textContent = nowSt ? "★ スター登録済" : "☆ スター復習に追加";
+        if (document.getElementById("az-dict-modal").classList.contains("open")) {
+          renderAZDictBrowser();
+        }
+      });
+
+      box.querySelectorAll(".dict-family-jump").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const fIdx = parseInt(btn.getAttribute("data-fidx"), 10);
+          openDictDetailModal(family[fIdx]);
+        });
+      });
+    }
+
+    // -----------------------------------------------------------------
+    // 11. イベント結線（Enter / → キーのみ！Spaceは除外）
+    // -----------------------------------------------------------------
+    function setupEvents() {
+      window.addEventListener("keydown", (e) => {
+        const activeTag = document.activeElement ? document.activeElement.tagName : "";
+        const isInputFocused = activeTag === "INPUT" || activeTag === "TEXTAREA";
+        const sModal = document.getElementById("settings-modal");
+        const dModal = document.getElementById("dict-detail-modal");
+        const azModal = document.getElementById("az-dict-modal");
+
+        if (sModal.classList.contains("open") || dModal.classList.contains("open") || azModal.classList.contains("open")) {
+          if (e.key === "Escape") {
+            hardStopSpeech();
+            if (dModal.classList.contains("open")) dModal.classList.remove("open");
+            else if (azModal.classList.contains("open")) azModal.classList.remove("open");
+            else sModal.classList.remove("open");
+          }
+          return;
+        }
+        if (document.activeElement && document.activeElement.id === "dict-input") return;
+
+        // Enter または ArrowRight（右矢印キー →）のみで次へ進む
+        if (e.key === "Enter" || e.key === "ArrowRight") {
+          if (e.key === "ArrowRight" && isInputFocused && !state.answered) {
+            const inpEl = document.getElementById("wa-input-field");
+            if (inpEl && inpEl.value.length > 0) return;
+          }
+
+          if (state.mode === "rush" && !state.rushActive) {
+            e.preventDefault();
+            startRushSession();
+            return;
+          }
+
+          const inp = document.getElementById("wa-input-field");
+          if (e.key === "Enter" && !state.answered && isInputFocused && inp && inp.value.trim()) {
+            e.preventDefault();
+            submitAnswer(inp.value.trim(), null);
+            inp.value = "";
+            return;
+          }
+
+          if (state.answered || !isInputFocused || (inp && !inp.value.trim())) {
+            e.preventDefault();
+            stopAllAudioAndTimers();
+            loadNextQuestion();
+            return;
+          }
+        }
+
+        // 数字キー 1〜4 で選択肢を回答
+        if (!state.answered && !isInputFocused && ["1", "2", "3", "4"].includes(e.key)) {
+          const idx = parseInt(e.key, 10) - 1;
+          const cards = document.querySelectorAll("#wa-choices-grid .wa-choice-card");
+          if (cards[idx] && !cards[idx].disabled) {
+            e.preventDefault();
+            cards[idx].click();
+          }
+          return;
+        }
+
+        if (!isInputFocused) {
+          if (e.key.toLowerCase() === "s" && state.currentQ) {
+            e.preventDefault();
+            toggleStarItem(state.currentQ);
+          } else if (e.key.toLowerCase() === "h") {
+            // ★ ヒント廃止対象モード・問題では H キーを押しても一切反応させない
+            if (isHintDisabledNow()) return;
+            e.preventDefault();
+            document.getElementById("btn-hint-toggle").click();
+          } else if (e.key.toLowerCase() === "r" && state.currentQ) {
+            e.preventDefault();
+            speakIndo(state.currentQ.ttsText, state.sessionId);
+          }
+        }
+      });
+
+      document.querySelectorAll("#cat-pills .wa-pill").forEach(pill => {
+        pill.addEventListener("click", () => {
+          document.querySelectorAll("#cat-pills .wa-pill").forEach(p => p.classList.remove("active"));
+          pill.classList.add("active");
+          state.catFilter = pill.getAttribute("data-cat");
+          renderSidebarList();
+        });
+      });
+
+      document.getElementById("btn-wrong-top").addEventListener("click", () => {
+        selectMode("wrong");
+        document.getElementById("wa-app").classList.add("mobile-chat-open");
+      });
+      document.getElementById("btn-star-top").addEventListener("click", () => {
+        selectMode("starred");
+        document.getElementById("wa-app").classList.add("mobile-chat-open");
+      });
+      document.getElementById("btn-back-list").addEventListener("click", () => {
+        stopAllAudioAndTimers();
+        stopRushTimer();
+        document.getElementById("wa-app").classList.remove("mobile-chat-open");
+      });
+      document.getElementById("btn-rush-stop").addEventListener("click", finishRushSession);
+
+      document.getElementById("btn-hint-toggle").addEventListener("click", () => {
+        if (isHintDisabledNow()) return;
+        state.showHint = !state.showHint;
+        savePrefs();
+        syncHintUI();
+        syncSettingsUI();
+      });
+      document.getElementById("btn-star-hdr").addEventListener("click", () => {
+        if (state.currentQ) toggleStarItem(state.currentQ);
+      });
+      document.getElementById("btn-star-bottom").addEventListener("click", () => {
+        if (state.currentQ) toggleStarItem(state.currentQ);
+      });
+      document.getElementById("btn-tts-hdr").addEventListener("click", () => {
+        if (state.currentQ) speakIndo(state.currentQ.ttsText, state.sessionId);
+      });
+      document.getElementById("btn-tts-bottom").addEventListener("click", () => {
+        if (state.currentQ) speakIndo(state.currentQ.ttsText, state.sessionId);
+      });
+      document.getElementById("btn-skip-bottom").addEventListener("click", () => {
+        stopAllAudioAndTimers();
+        loadNextQuestion();
+      });
+
+      const inp = document.getElementById("wa-input-field");
+      document.getElementById("btn-send-main").addEventListener("click", () => {
+        if (!state.answered && inp.value.trim()) {
+          submitAnswer(inp.value.trim(), null);
+          inp.value = "";
+        } else {
+          stopAllAudioAndTimers();
+          loadNextQuestion();
+        }
+      });
+
+      // A〜Z 辞書ブラウザのイベント結線
+      const azModal = document.getElementById("az-dict-modal");
+      document.getElementById("btn-open-az-dict").addEventListener("click", openAZDictModal);
+      document.getElementById("btn-close-az-dict").addEventListener("click", () => {
+        hardStopSpeech();
+        azModal.classList.remove("open");
+      });
+      azModal.addEventListener("click", (e) => {
+        if (e.target === azModal) {
+          hardStopSpeech();
+          azModal.classList.remove("open");
+        }
+      });
+
+      document.querySelectorAll("#az-pos-pills [data-azpos]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll("#az-pos-pills [data-azpos]").forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+          state.azPos = btn.getAttribute("data-azpos");
+          renderAZDictBrowser();
+        });
+      });
+
+      const sortWordBtn = document.getElementById("btn-az-sort-word");
+      const sortRootBtn = document.getElementById("btn-az-sort-root");
+      sortWordBtn.addEventListener("click", () => {
+        state.azSortBy = "word";
+        sortWordBtn.classList.add("active");
+        sortRootBtn.classList.remove("active");
+        renderAZDictBrowser();
+      });
+      sortRootBtn.addEventListener("click", () => {
+        state.azSortBy = "root";
+        sortRootBtn.classList.add("active");
+        sortWordBtn.classList.remove("active");
+        renderAZDictBrowser();
+      });
+
+      document.getElementById("az-filter-input").addEventListener("input", (e) => {
+        state.azQuery = e.target.value;
+        renderAZDictBrowser();
+      });
+
+      // サイドバーのクイック辞書検索
+      const dIn = document.getElementById("dict-input");
+      const dClr = document.getElementById("dict-clear");
+      const dDrop = document.getElementById("dict-dropdown");
+
+      function renderDict() {
+        const q = dIn.value.trim().toLowerCase();
+        dClr.style.display = q ? "block" : "none";
+        if (!q) { dDrop.style.display = "none"; return; }
+        const allV = [...DB.v, ...DB.a, ...DB.n, ...DB.other, ...DB.singkatan];
+        const hits = allV.filter(v =>
+          v.w.toLowerCase().includes(q) ||
+          (v.r && v.r.toLowerCase().includes(q)) ||
+          v.m.toLowerCase().includes(q) ||
+          (v.fullM && v.fullM.toLowerCase().includes(q)) ||
+          (v.ex && v.ex.toLowerCase().includes(q))
+        ).slice(0, 35);
+
+        dDrop.style.display = "block";
+        if (!hits.length) {
+          dDrop.innerHTML = `<div style="padding:10px;color:#64748b;font-size:0.84rem;">該当する単語・略語が見つかりませんでした。</div>`;
+          return;
+        }
+        dDrop.innerHTML = "";
+        hits.forEach(h => {
+          const vocId = `voc::${h.w}`;
+          const starred = isStarred(vocId);
+          const row = document.createElement("div");
+          row.className = "dict-item";
+          row.innerHTML = `
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;align-items:center;gap:6px;">
+                <strong style="color:var(--wa-header-green);font-weight:700;font-size:0.95rem;">${h.w}</strong>
+                <span style="font-size:0.73rem;color:#64748b;background:#f1f5f9;padding:1px 6px;border-radius:4px;">${h.r}</span>
+                <span style="font-size:0.7rem;color:#008069;">📖 詳細を開く</span>
+              </div>
+              <div style="font-size:0.84rem;color:#111b21;margin-top:2px;">${h.fullM || h.m}</div>
+            </div>
+            <button type="button" class="dict-star-btn ${starred ? 'starred' : ''}">${starred ? '★' : '☆'}</button>
+          `;
+          row.addEventListener("click", (e) => {
+            if (e.target.closest(".dict-star-btn")) return;
+            state.openedDetailFromAZ = false;
+            openDictDetailModal(h);
+          });
+          row.querySelector(".dict-star-btn").addEventListener("click", (e) => {
+            e.stopPropagation();
+            toggleStarVocabHelper(h, allV);
+            renderDict();
+          });
+          dDrop.appendChild(row);
+        });
+      }
+      dIn.addEventListener("input", renderDict);
+      dClr.addEventListener("click", () => {
+        dIn.value = ""; dClr.style.display = "none"; dDrop.style.display = "none";
+      });
+
+      const dModal = document.getElementById("dict-detail-modal");
+      dModal.addEventListener("click", (e) => {
+        if (e.target === dModal) {
+          hardStopSpeech();
+          dModal.classList.remove("open");
+        }
+      });
+
+      // 設定モーダル
+      const sModal = document.getElementById("settings-modal");
+      document.getElementById("btn-sound-top").addEventListener("click", (e) => {
+        state.soundOn = !state.soundOn;
+        e.target.textContent = state.soundOn ? "音:ON" : "音:OFF";
+        savePrefs();
+      });
+      document.getElementById("btn-settings-top").addEventListener("click", () => {
+        stopAllAudioAndTimers();
+        syncSettingsUI();
+        sModal.classList.add("open");
+      });
+      document.getElementById("btn-close-settings").addEventListener("click", () => sModal.classList.remove("open"));
+      sModal.addEventListener("click", (e) => {
+        if (e.target === sModal) sModal.classList.remove("open");
+      });
+
+      document.querySelectorAll("#seg-autonext-mode .setting-seg-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          state.autoNextMode = btn.getAttribute("data-an");
+          savePrefs();
+          syncSettingsUI();
+        });
+      });
+      document.getElementById("slider-autonext-delay").addEventListener("input", (e) => {
+        state.autoNextDelay = parseFloat(e.target.value);
+        document.getElementById("label-autonext-delay").textContent = `${state.autoNextDelay.toFixed(1)}秒`;
+        savePrefs();
+      });
+      document.getElementById("slider-sound-vol").addEventListener("input", (e) => {
+        state.soundVolume = parseInt(e.target.value, 10);
+        state.soundOn = state.soundVolume > 0;
+        document.getElementById("btn-sound-top").textContent = state.soundOn ? "音:ON" : "音:OFF";
+        document.getElementById("label-sound-vol").textContent = `${state.soundVolume}%`;
+        savePrefs();
+      });
+      document.getElementById("slider-sound-vol").addEventListener("change", () => {
+        playSoundEffect("send", 0);
+        playSoundEffect("correct", 0);
+      });
+      document.querySelectorAll("#seg-hint-mode .setting-seg-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          state.showHint = btn.getAttribute("data-hm") === "on";
+          savePrefs();
+          syncHintUI();
+          syncSettingsUI();
+        });
+      });
+      document.querySelectorAll("#seg-typing-anim .setting-seg-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          state.typingAnim = btn.getAttribute("data-ta") === "on";
+          savePrefs();
+          syncSettingsUI();
+        });
+      });
+      document.querySelectorAll("#seg-autotts-mode .setting-seg-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          state.autoTts = btn.getAttribute("data-tts") === "on";
+          savePrefs();
+          syncSettingsUI();
+        });
+      });
+
+      document.getElementById("btn-clear-chat-history").addEventListener("click", () => {
+        const room = CHAT_ROOMS.find(r => r.id === state.mode) || CHAT_ROOMS[0];
+        document.getElementById("chat-messages-area").innerHTML = `<div class="wa-date-badge">TODAY — ${room.name}</div>`;
+        state.qCounter = 0;
+        sModal.classList.remove("open");
+        loadNextQuestion();
+      });
+      document.getElementById("btn-clear-wrongs").addEventListener("click", () => {
+        state.wrongItems = [];
+        saveWrongs();
+        if (state.mode === "wrong") loadNextQuestion();
+      });
+      document.getElementById("btn-clear-stars").addEventListener("click", () => {
+        state.starItems = [];
+        saveStars();
+        if (state.mode === "starred") loadNextQuestion();
+      });
+    }
+
+    function syncSettingsUI() {
+      document.getElementById("btn-sound-top").textContent = state.soundOn ? "音:ON" : "音:OFF";
+      document.getElementById("label-autonext-delay").textContent = `${Number(state.autoNextDelay).toFixed(1)}秒`;
+      document.getElementById("slider-autonext-delay").value = state.autoNextDelay;
+      document.getElementById("label-sound-vol").textContent = `${state.soundVolume}%`;
+      document.getElementById("slider-sound-vol").value = state.soundVolume;
+
+      document.querySelectorAll("#seg-autonext-mode .setting-seg-btn").forEach(b => {
+        b.classList.toggle("active", b.getAttribute("data-an") === state.autoNextMode);
+      });
+      document.querySelectorAll("#seg-hint-mode .setting-seg-btn").forEach(b => {
+        b.classList.toggle("active", (b.getAttribute("data-hm") === "on") === state.showHint);
+      });
+      document.querySelectorAll("#seg-typing-anim .setting-seg-btn").forEach(b => {
+        b.classList.toggle("active", (b.getAttribute("data-ta") === "on") === state.typingAnim);
+      });
+      document.querySelectorAll("#seg-autotts-mode .setting-seg-btn").forEach(b => {
+        b.classList.toggle("active", (b.getAttribute("data-tts") === "on") === state.autoTts);
+      });
+    }
+
+    window.__reloadWhatsIndo = function() {
+      buildDatabase();
+      updateCountsFast();
+    };
+
+    buildDatabase();
+    setupEvents();
+    syncHintUI();
+    syncSettingsUI();
+    renderSidebarList();
+    updateCountsFast();
+    selectMode("v");
+  })();
+  </script>
+</body>
+</html>
