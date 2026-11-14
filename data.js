@@ -134561,3 +134561,391 @@ window.WHATSINDO_EXTERNAL_DATA = {
     }
   }, true);
 })();
+(async function() {
+  const res = await fetch("data.js?t=" + Date.now());
+  const src = await res.text();
+
+  // 1. 完全に後続パッチ(V5 / V-FINAL / V47 / V54 / V61)で置き換えられた「データを持たない純粋な旧UIパッチ」を特定して削除
+  const OBSOLETE_SIGNATURES = [
+    "initWhatsIndoStoriesUI",          // #31 廃止済みストーリーUI＆body監視
+    "initHyperSpeedDictionary",        // #38 初期A-Z試作パッチ
+    "renderPermanentTopicFilterBar",   // #49 旧分野バー試作
+    "renderTopicBarV3",                // #54 旧分野バーV3
+    "stopV11Broadcast",                // #63 旧リスニングV11（V47で置換済）
+    "bindV24SearchEnhancer",           // #76 旧検索フックV24-1（V61で置換済）
+    "bootV24CompactModalRelations",    // #77 旧関連語圧縮V24-2（V35で置換済）
+    "__wiV52PerfEngineInstalled",      // #104 旧軽量化V52
+    "finalizeV53Boot",                 // #105 旧軽量化V53
+    "wi-v60-dict-prio-style",          // #112 旧検索V60（V61で置換済）
+    "bootSentenceSyncFix",             // #125 旧例文同期1（V5で置換済）
+    "checkContextJaExplanation",       // #126 旧例文同期2（V5で置換済）
+    "bootCleanExplanationUI",          // #127 旧解説カード1（V5で置換済）
+    "bootMinimalExplanationUI",        // #128 旧解説カード2（V5で置換済）
+    "bootPerfectExpFix()",             // #129 旧解説カード3（V5で置換済）
+    "bootPerfectExpFixV2",             // #130 旧解説カード4（V5で置換済）
+    "bootPerfectExpV3",                // #131 旧解説カードV3（V5で置換済）
+    "bootWordbookStep1",               // #132 旧単語帳Step1（V5で置換済）
+    "bootCleanUnifiedPatch",           // #133 旧単語帳V4（V5で置換済）
+    "mountWorkingAnnotationSystem",    // #136 旧辞書ペンV2（#154のV3で置換済）
+    "bootMasterSyncPatch"              // #155 旧スター連動試作1（#157のV-FINALで置換済）
+  ];
+
+  // トップレベルIIFE単位に分割
+  const re = /(?:^|\n)(\(function\s*\(\)\s*\{)/g;
+  const starts = [];
+  let m;
+  while ((m = re.exec(src)) !== null) {
+    starts.push(m.index + (m[0].startsWith("\n") ? 1 : 0));
+  }
+
+  let out = src.slice(0, starts[0]);
+  const seenBlocks = new Set();
+  let removedCount = 0;
+
+  for (let i = 0; i < starts.length; i++) {
+    const s = starts[i];
+    const e = (i + 1 < starts.length) ? starts[i + 1] : src.length;
+    let chunk = src.slice(s, e);
+    const codeBody = chunk.split("})();")[0];
+
+    // 同一コードの2重貼り付け（#146と#147など）を1つに圧縮
+    if (seenBlocks.has(codeBody)) {
+      removedCount++;
+      continue;
+    }
+    seenBlocks.add(codeBody);
+
+    // 純粋な旧世代UIパッチならスキップ
+    if (OBSOLETE_SIGNATURES.some(sig => codeBody.includes(sig))) {
+      removedCount++;
+      continue;
+    }
+
+    // #150（初代排除リスト）：CSSとArray.prototype.pop（問題抽選時の排除スキップ）だけ残し、重いbody監視を除去
+    if (codeBody.includes("bootExcludeFeature")) {
+      chunk = chunk.replace(/function\s+injectExcludeTopButton[\s\S]*?\}\)\(\);/, "})();");
+    }
+
+    // #153（排除リストV2）＆ #156（旧スター連動試作2）：必要なCSS定義だけ残し、重複監視・イベントを除去
+    if (codeBody.includes("bootExcludeV2")) {
+      chunk = chunk.replace(/let\s+excludedMap\s*=\s*loadExcludedMap[\s\S]*?\}\)\(\);/, "})();");
+    }
+    if (codeBody.includes("bootUltimateSyncFix")) {
+      chunk = chunk.replace(/function\s+isUserActuallyTypingNow[\s\S]*?\}\)\(\);/, "})();");
+    }
+
+    // #141 の辞書を開くたび8,100語ループしていた subtree 監視だけを停止（Pulau等の単語データは100%保持）
+    if (codeBody.includes("bootIslandAndBulletFix")) {
+      chunk = chunk.replace(/obs\.observe\(detailBox[\s\S]*?\);/, "");
+    }
+
+    // 途中の __reloadWhatsIndo() / loadAllData() 呼び出しを除去（最後の1回に集約）
+    if (i < starts.length - 2) {
+      chunk = chunk
+        .replace(/if\s*\(\s*typeof\s+loadAllData\s*===\s*["']function["']\s*\)\s*\{[\s\S]*?\}/g, "")
+        .replace(/if\s*\(\s*typeof\s+window\.__reloadWhatsIndo\s*===\s*["']function["']\s*\)\s*\{\s*try\s*\{\s*window\.__reloadWhatsIndo\(\);\s*\}\s*catch\s*\([^)]*\)\s*\{\}\s*\}/g, "");
+    }
+
+    out += chunk;
+  }
+
+  // ファイルの最末尾で1回だけDB構築＆UI同期を実行
+  out += `\n/* === Final Single DB Build === */\nif (typeof window.__reloadWhatsIndo === "function") { try { window.__reloadWhatsIndo(); } catch (e) {} }\n`;
+
+  const blob = new Blob([out], { type: "text/javascript;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "data.js";
+  a.click();
+  console.log(`クリーンアップ完了！削除した旧重複パッチ数: ${removedCount}個 / サイズ: ${(src.length/1024/1024).toFixed(2)}MB -> ${(out.length/1024/1024).toFixed(2)}MB`);
+})();
+/* =====================================================================
+   WhatsIndo 辞書検索（文字入力時）ピンポイント高速化パッチ
+   - 他の機能・UI・検索結果（6段階優先度ソート＆ALL母数維持）は100%そのまま維持
+   - ① V15/V16/V24/V60の重複inputリスナー停止、② 小文字キャッシュ＆indexOf事前判定、
+     ③ 日本語IME変換中の負荷スキップ＆60msタイピングデバウンス（内部ジャンプは0ms通過）
+   ===================================================================== */
+(function() {
+  const d = window.WHATSINDO_EXTERNAL_DATA;
+  if (!d) return;
+
+  // -------------------------------------------------------------------
+  // 1. 古い検索パッチ（V15 / V16 / V24 / V60）が DOMContentLoaded で登録する
+  //    重複 input リスナー（裏で毎回8,100語ループしていたもの）を事前フラグで停止
+  // -------------------------------------------------------------------
+  const dIn    = document.getElementById("dict-input");
+  const azInp  = document.getElementById("az-filter-input");
+  const azList = document.getElementById("az-list-container");
+
+  if (dIn) {
+    dIn.__v15SearchSorted      = true;
+    dIn.__v16QuickPriorityHooked = true;
+    dIn.__v24SearchHooked      = true;
+    dIn.__v60Bound             = true;
+  }
+  if (azInp) {
+    azInp.__v60Bound = true;
+  }
+  if (azList) {
+    azList.__v16AzPriorityHooked = true;
+    azList.__v60ScrollBound      = true;
+  }
+
+  // -------------------------------------------------------------------
+  // 2. 検索用データの小文字キャッシュ ＆ 正規表現の1クエリ1回コンパイル化
+  // -------------------------------------------------------------------
+  const rootByWord = new Map();
+  const noteByWord = new Map();
+  let lastIndexedCount = -1;
+
+  function ensureFastLowerCache() {
+    const listV = Array.isArray(d.vocab) ? d.vocab : [];
+    const listA = Array.isArray(d.acro) ? d.acro : [];
+    if (lastIndexedCount === listV.length + listA.length) return;
+    lastIndexedCount = listV.length + listA.length;
+
+    rootByWord.clear();
+    noteByWord.clear();
+
+    for (let i = 0; i < listV.length; i++) {
+      const it = listV[i];
+      if (!it || !it.w) continue;
+      const wl = it.w.trim().toLowerCase();
+      const rl = (it.r || it.w).trim().toLowerCase();
+      const nl = (it.note || "").toLowerCase();
+      rootByWord.set(wl, rl);
+      noteByWord.set(wl, nl);
+    }
+    for (let i = 0; i < listA.length; i++) {
+      const it = listA[i];
+      if (!it || !it.acro) continue;
+      const al = it.acro.trim().toLowerCase();
+      if (!rootByWord.has(al)) rootByWord.set(al, (it.full || it.acro).trim().toLowerCase());
+      if (!noteByWord.has(al)) noteByWord.set(al, (it.exp || "").toLowerCase());
+    }
+  }
+
+  // 各アイテムに1回だけ小文字プロパティをキャッシュ（毎打鍵5万回の toLowerCase() をゼロにする）
+  function prepItemCache(v) {
+    if (v._cReady && v._cSrcW === v.w && v._cSrcM === v.m) return;
+    v._cSrcW = v.w;
+    v._cSrcM = v.m;
+    v._wl  = (v.w || "").trim().toLowerCase();
+    v._rl  = (v.r || rootByWord.get(v._wl) || v._wl).trim().toLowerCase();
+    v._ml  = (v.fullM || v.m || "").toLowerCase();
+    v._exl = (v.ex || "").toLowerCase();
+    v._trl = (v.tr || "").toLowerCase();
+    v._nl  = v.note ? v.note.toLowerCase() : (noteByWord.get(v._wl) || "");
+    v._cReady = true;
+  }
+
+  let lastReQuery = "";
+  let cachedWordRe = null;
+  function getWordBoundaryRegex(qLower) {
+    if (!qLower || !/^[a-z0-9\-\s]+$/.test(qLower)) return null;
+    if (lastReQuery === qLower) return cachedWordRe;
+    lastReQuery = qLower;
+    const esc = qLower.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    cachedWordRe = new RegExp(`(?<![a-z])${esc}(?![a-z])`, "i");
+    return cachedWordRe;
+  }
+
+  // まず高速な indexOf で99%を弾き、含まれている時だけ正規表現で単語境界を判定
+  function matchWordFast(textLower, qLower, wordRe) {
+    if (!textLower || textLower.indexOf(qLower) === -1) return false;
+    return wordRe ? wordRe.test(textLower) : true;
+  }
+
+  function calcScoreFast(v, qLower, targetRoot, wordRe) {
+    const wl = v._wl;
+    if (wl === qLower) return 0;
+    if (wl.startsWith(qLower)) return 1;
+    if (wl.indexOf(qLower) !== -1) return 2;
+    const rl = v._rl;
+    if (rl === qLower || (targetRoot && rl === targetRoot) || (qLower.length >= 3 && rl.indexOf(qLower) !== -1)) return 3;
+    if (v._ml.indexOf(qLower) !== -1 || matchWordFast(v._nl, qLower, wordRe)) return 4;
+    return 5;
+  }
+
+  // -------------------------------------------------------------------
+  // 3. 既存のフィルタ・ソートチェーンを壊さず、V61の検索ループだけを高速版で処理
+  // -------------------------------------------------------------------
+  const prevFilter = Array.prototype.filter;
+  const prevSort   = Array.prototype.sort;
+  let lastAZPosCount = 0;
+
+  Array.prototype.filter = function(callback, thisArg) {
+    if (this.length > 0 && typeof callback === "function" && this[0] && typeof this[0] === "object" && "w" in this[0]) {
+      const fnStr = Function.prototype.toString.call(callback);
+
+      // (A) A-Z辞書の品詞・分野フィルタ：既存のチェーン（V54等）をそのまま通して母数を記録
+      if (fnStr.indexOf("state.azPos") !== -1) {
+        const res = prevFilter.call(this, callback, thisArg);
+        lastAZPosCount = res.length;
+        return res;
+      }
+
+      // (B) A-Z辞書の検索窓 (#az-filter-input)
+      if (fnStr.indexOf("v.fullM || v.m") !== -1 && fnStr.indexOf("v.ex") !== -1) {
+        const q = azInp ? azInp.value.trim().toLowerCase() : "";
+        if (q) {
+          ensureFastLowerCache();
+          const targetRoot = rootByWord.get(q) || "";
+          const wordRe = getWordBoundaryRegex(q);
+          const expanded = [];
+
+          for (let i = 0; i < this.length; i++) {
+            const v = this[i];
+            if (!v || !v.w) continue;
+            prepItemCache(v);
+            if (
+              v._wl.indexOf(q) !== -1 ||
+              v._rl.indexOf(q) !== -1 ||
+              (targetRoot && v._rl === targetRoot) ||
+              v._ml.indexOf(q) !== -1 ||
+              (q.length >= 2 && matchWordFast(v._nl, q, wordRe)) ||
+              v._exl.indexOf(q) !== -1 ||
+              (q.length >= 2 && v._trl.indexOf(q) !== -1)
+            ) {
+              v._qScore = calcScoreFast(v, q, targetRoot, wordRe);
+              v._qStr   = q;
+              expanded.push(v);
+            }
+          }
+          return expanded;
+        }
+      }
+
+      // (C) 左上のクイック検索バー (#dict-input)
+      if (fnStr.indexOf("v.fullM && v.fullM.toLowerCase()") !== -1) {
+        const q = dIn ? dIn.value.trim().toLowerCase() : "";
+        if (q) {
+          ensureFastLowerCache();
+          const targetRoot = rootByWord.get(q) || "";
+          const wordRe = getWordBoundaryRegex(q);
+          const hits = [];
+
+          for (let i = 0; i < this.length; i++) {
+            const v = this[i];
+            if (!v || !v.w) continue;
+            prepItemCache(v);
+            if (
+              v._wl.indexOf(q) !== -1 ||
+              v._rl.indexOf(q) !== -1 ||
+              (targetRoot && v._rl === targetRoot) ||
+              v._ml.indexOf(q) !== -1 ||
+              (q.length >= 2 && matchWordFast(v._nl, q, wordRe)) ||
+              v._exl.indexOf(q) !== -1
+            ) {
+              v._qScore = calcScoreFast(v, q, targetRoot, wordRe);
+              hits.push(v);
+            }
+          }
+
+          // スコアは上で計算済みのため、数値比較だけで一瞬でソート完了
+          prevSort.call(hits, function(a, b) {
+            if (a._qScore !== b._qScore) return a._qScore - b._qScore;
+            return a._wl < b._wl ? -1 : a._wl > b._wl ? 1 : 0;
+          });
+          return hits;
+        }
+      }
+    }
+    return prevFilter.call(this, callback, thisArg);
+  };
+
+  Array.prototype.sort = function(compareFn) {
+    if (
+      this.length > 0 &&
+      typeof compareFn === "function" &&
+      this[0] && typeof this[0] === "object" && "w" in this[0] && "m" in this[0]
+    ) {
+      const fnStr = Function.prototype.toString.call(compareFn);
+      if (fnStr.indexOf("state.azSortBy") !== -1) {
+        const q = azInp ? azInp.value.trim().toLowerCase() : "";
+        const allBtn = document.querySelector("#az-letter-bar .az-letter-btn");
+        if (allBtn && allBtn.textContent.startsWith("ALL") && lastAZPosCount > 0) {
+          allBtn.textContent = `ALL (${lastAZPosCount})`;
+        }
+        if (q) {
+          ensureFastLowerCache();
+          const targetRoot = rootByWord.get(q) || "";
+          const wordRe = getWordBoundaryRegex(q);
+          for (let i = 0; i < this.length; i++) {
+            const v = this[i];
+            prepItemCache(v);
+            if (v._qStr !== q || typeof v._qScore !== "number") {
+              v._qScore = calcScoreFast(v, q, targetRoot, wordRe);
+              v._qStr   = q;
+            }
+          }
+          // 比較関数内で calcPriorityScoreV61 を呼ばず、事前計算した数値だけで高速ソート
+          return prevSort.call(this, function(a, b) {
+            if (a._qScore !== b._qScore) return a._qScore - b._qScore;
+            return a._wl < b._wl ? -1 : a._wl > b._wl ? 1 : 0;
+          });
+        }
+      }
+    }
+    return prevSort.call(this, compareFn);
+  };
+
+  // -------------------------------------------------------------------
+  // 4. 人間がタイピング中（e.isTrusted）のみ 60ms デバウンス ＆ 日本語IME変換中スキップ
+  //    （※関連語チップをクリックした時の内部ジャンプ !e.isTrusted は0msで即通過！）
+  // -------------------------------------------------------------------
+  function bindSmoothTypingInput(inpEl) {
+    if (!inpEl || inpEl.__wiSmoothTypingBound) return;
+    inpEl.__wiSmoothTypingBound = true;
+
+    let timer = null;
+    let composing = false;
+    let bypassOnce = false;
+
+    inpEl.addEventListener("compositionstart", function() {
+      composing = true;
+    }, true);
+
+    inpEl.addEventListener("compositionend", function() {
+      composing = false;
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(function() {
+        timer = null;
+        bypassOnce = true;
+        inpEl.dispatchEvent(new Event("input", { bubbles: true }));
+      }, 20);
+    }, true);
+
+    inpEl.addEventListener("input", function(e) {
+      // プログラムからの合成イベント（関連語ジャンプ等）またはデバウンス完了後の発火は即通過
+      if (!e.isTrusted || bypassOnce) {
+        bypassOnce = false;
+        return;
+      }
+
+      // 文字をすべて消した時は待たずに即クリア
+      if (inpEl.value === "") {
+        if (timer) { clearTimeout(timer); timer = null; }
+        return;
+      }
+
+      // 日本語IMEで変換未確定の入力中は検索を待機してタイピングを軽くする
+      if (composing || e.isComposing) {
+        e.stopImmediatePropagation();
+        return;
+      }
+
+      // 連続タイピング中は最後の打鍵から 60ms 後に1回だけ検索を実行
+      e.stopImmediatePropagation();
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(function() {
+        timer = null;
+        bypassOnce = true;
+        inpEl.dispatchEvent(new Event("input", { bubbles: true }));
+      }, 60);
+    }, true);
+  }
+
+  bindSmoothTypingInput(dIn);
+  bindSmoothTypingInput(azInp);
+})();
