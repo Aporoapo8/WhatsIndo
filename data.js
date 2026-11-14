@@ -134949,3 +134949,5897 @@ window.WHATSINDO_EXTERNAL_DATA = {
   bindSmoothTypingInput(dIn);
   bindSmoothTypingInput(azInp);
 })();
+/* =====================================================================
+   WhatsIndo 解説カード表示バグ完全修正 ＆「紛らわしい語の使い分け」モード削除パッチ
+   1. 「紛らわしい語の使い分け (confuse)」モードをサイドバー・模試・ラッシュ・復習から完全削除
+   2. ことわざモードで先頭単語(Maksud等)の例文にすり替わるバグを根治し、ことわざの「意味・直訳・解説」を正確に表示
+   3. 慣用句・前置詞・誤文訂正・類義語等で文や和訳が2回重複表示されるバグと、箇条書き(・)が1行に潰れるバグを完全修正
+   ===================================================================== */
+(function() {
+  const d = window.WHATSINDO_EXTERNAL_DATA;
+  if (!d) return;
+
+  function escHtml(str) {
+    return String(str || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  // -------------------------------------------------------------------
+  // 1. 「紛らわしい語の使い分け (confuse)」モードの完全削除
+  // -------------------------------------------------------------------
+  if (Array.isArray(d.confuse)) {
+    d.confuse.length = 0;
+    d.confuse.push = function() { return 0; };
+  }
+
+  // 復習リスト（間違えた問題・スター）内に残っている confuse 問題も自動クリーンアップ
+  ["wi_wrongs_v2", "wi_stars_v2"].forEach(function(key) {
+    try {
+      const list = JSON.parse(localStorage.getItem(key) || "[]");
+      if (Array.isArray(list) && list.length > 0) {
+        const cleaned = list.filter(function(it) {
+          if (!it) return false;
+          if (it.effectiveMode === "confuse") return false;
+          if (it.id && /^(?:conf|confuse)::/i.test(it.id)) return false;
+          return true;
+        });
+        if (cleaned.length !== list.length) {
+          localStorage.setItem(key, JSON.stringify(cleaned));
+        }
+      }
+    } catch (e) {}
+  });
+
+  function removeConfuseRoomFromSidebar() {
+    // カテゴリピルの「単語・略語 (7)」を「単語・略語 (6)」に更新
+    const vocabPill = document.querySelector('#cat-pills .wa-pill[data-cat="vocab"]');
+    if (vocabPill && vocabPill.textContent.indexOf("(7)") !== -1) {
+      vocabPill.textContent = vocabPill.textContent.replace("(7)", "(6)");
+    }
+    // サイドバー一覧から「紛らわしい語の使い分け」のチャット項目を非表示・削除
+    const chatList = document.getElementById("wa-chat-list");
+    if (chatList) {
+      chatList.querySelectorAll(".wa-chat-item").forEach(function(item) {
+        const titleEl = item.querySelector(".wa-item-title");
+        if (titleEl && titleEl.textContent.indexOf("紛らわしい語の使い分け") !== -1) {
+          item.remove();
+        }
+      });
+    }
+  }
+
+  // -------------------------------------------------------------------
+  // 2. ことわざ（d.proverb）の不自然な解説文の刷新＆重複整理
+  // -------------------------------------------------------------------
+  const PROVERB_EXP_UPGRADES = {
+    "maksud hati memeluk gunung, apa daya tangan tak sampai.":
+      "・maksud hati（心の願い・本心では）memeluk gunung（山を抱きしめたいと思うが）、apa daya（いかんせん・どうしようもなく）tangan tak sampai（手が届かない）。\n・インドネシア語の定義：ingin mencapai sesuatu yang besar, tetapi tidak mempunyai daya atau kemampuan untuk mencapainya（大きな目標や高嶺の花を望んでいるが、実力や資力が伴わず実現できないこと）。",
+    "tong kosong nyaring bunyinya.":
+      "・tong kosong（空っぽの樽・ドラム缶は）nyaring（甲高く大きく響く）bunyinya（その音が）。\n・インドネシア語の定義：orang yang bodoh atau tidak berilmu biasanya banyak cakapnya（知識や実力のない人ほど、口数が多く大げさに語る）。\n・類義ことわざ：『air beriak tanda tak dalam（波立つ水は深くない）』\n・対義ことわざ：『seperti ilmu padi, kian berisi kian merunduk（実るほど頭を垂れる稲穂かな）』",
+    "bagai pinang dibelah dua.":
+      "・pinang（ビンロウの実を）dibelah dua（2つにパカッと割ったよう）。\n・半分に割ったビンロウの実の断面が左右対称で全く同じ形をしていることから、双子や親子などの顔立ち・性質が「瓜二つ（sangat mirip / serupa benar）」であることを表します。",
+    "sudah jatuh tertimpa tangga pula.":
+      "・sudah jatuh（すでに梯子から落ちたのに）tertimpa tangga pula（さらにその上から梯子が倒れてきて下敷きになる）。\n・インドネシア語の定義：mendapat kemalangan atau kesusahan secara bertubi-tubi（不幸や災難が立て続けに重なること＝「踏んだり蹴ったり」「泣きっ面に蜂」）。",
+    "habis manis sepah dibuang.":
+      "・habis manis（甘い汁を吸い尽くしたら）sepah dibuang（サトウキビの絞りかすは捨てられる）。\n・インドネシア語の定義：sesudah tidak berguna lagi lalu dicampakkan atau dilupakan（利用価値がある間だけ重宝し、用が済めば冷たく見捨てること）。",
+    "bagaikan telur di ujung tanduk.":
+      "・telur（卵が）di ujung tanduk（動物の尖った角の先端に乗っているよう）。\n・ほんの少しの揺れでも落ちて割れてしまうことから、極めて危うく緊迫した危機的状況（keadaan yang sangat berbahaya atau genting＝風前の灯・薄氷を踏む思い）を表します。\n・類義ことわざ：『seperti abu di atas tanggul（堤防の上の灰のよう）』",
+    "air susu dibalas dengan air tuba.":
+      "・air susu（甘い母乳・ミルクが）dibalas dengan air tuba（魚を麻痺させる毒汁で返される）。\n・インドネシア語の定義：kebaikan dibalas dengan kejahatan（親身な恩義や親切に対して、悪意や裏切りで報いること＝「恩を仇で返す」）。",
+    "air cucuran atap jatuhnya ke pelimbahan juga.":
+      "・air cucuran atap（屋根の軒先から滴り落ちる雨水は）jatuhnya ke pelimbahan juga（結局はその真下の水溜まり・排水溝に落ちる）。\n・インドネシア語の定義：sifat-sifat anak biasanya menurun dari sifat orang tuanya（親の性質や日頃の振る舞いは、良くも悪くもそのまま子どもに受け継がれる＝「蛙の子は蛙」「親の背中を見て子は育つ」）。",
+    "menepuk air di dulang, terpercik muka sendiri.":
+      "・menepuk air di dulang（お盆に張った水をパシャッと手で叩けば）terpercik muka sendiri（水しぶきが自分の顔に跳ね返ってくる）。\n・インドネシア語の定義：menceritakan aib keluarga atau saudara sendiri kepada orang lain, akhirnya diri sendiri juga yang mendapat malu（身内や自分の組織の恥を他人に言いふらせば、結局は自分自身が恥をかくことになる＝「天に唾する」）。\n・類義ことわざ：『mencabik baju di dada（自分の胸元の服を引き裂く）』",
+    "air tenang menghanyutkan.":
+      "・air tenang（静かに見える川の水こそ）menghanyutkan（人を押し流してしまうほど深く勢いがある）。\n・インドネシア語の定義：orang yang pendiam biasanya banyak pengetahuannya（普段は無口で物静かな人ほど、実は深い知識や並外れた実力を秘めている＝「能ある鷹は爪を隠す」）。\n・対義ことわざ：『air beriak tanda tak dalam（波立つ水は深くない＝おしゃべりな人ほど知識が浅い）』",
+    "bagai air di daun talas.":
+      "・air di daun talas（サトイモ・タロイモの葉の上に乗った水滴のよう）。\n・タロイモの葉は水を弾いて水滴がコロコロ転がり定まらないことから、「自分の信念や原則を持たず、意見や態度が変わりやすいこと（tidak tetap pendirian / selalu berubah-ubah）」を表します。",
+    "ada ubi ada talas, ada budi ada balas.":
+      "・ada ubi ada talas（ヤムイモがあればタロイモがあるように）、ada budi ada balas（善行・恩義があれば必ず報い・恩返しがある）。\n・前半と後半が美しい韻を踏んだパントゥン（Pantun）形式のことわざで、「情けは人のためならず（善い行いをすれば必ず善い報いが返ってくる）」を表します。"
+  };
+
+  if (Array.isArray(d.proverb)) {
+    const seenPb = new Set();
+    for (let i = d.proverb.length - 1; i >= 0; i--) {
+      const it = d.proverb[i];
+      if (!it || !it.pb) continue;
+      const key = it.pb.trim().toLowerCase();
+      if (PROVERB_EXP_UPGRADES[key]) {
+        it.exp = PROVERB_EXP_UPGRADES[key];
+      } else if (it.exp) {
+        it.exp = it.exp
+          .replace(/^KBBI[^：:！!。]*[：:！!。]?\s*/i, "")
+          .replace(/^関連する非常に文学的で有名なことわざです\s*/, "大きな理想や強い願いを抱いているものの、自分の力や資力が及ばず実現できないもどかしさを表すことわざです");
+      }
+      if (seenPb.has(key)) {
+        d.proverb.splice(i, 1);
+      } else {
+        seenPb.add(key);
+      }
+    }
+  }
+
+  // -------------------------------------------------------------------
+  // 3. 各モードの元データ高速検索マップ（解説カードの完全復元・整形用）
+  // -------------------------------------------------------------------
+  const proverbMap = new Map();
+  const idiomMap   = new Map();
+  const prepMap    = new Map();
+  const errorMap   = new Map();
+  const sinonimMap = new Map();
+
+  function buildModeMaps() {
+    proverbMap.clear();
+    idiomMap.clear();
+    prepMap.clear();
+    errorMap.clear();
+    sinonimMap.clear();
+
+    (d.proverb || []).forEach(function(it) {
+      if (it && it.pb) proverbMap.set(it.pb.trim().toLowerCase(), it);
+    });
+    (d.idiom || []).forEach(function(it) {
+      if (!it || !it.s) return;
+      const fullS = it.s.replace(/___+/g, it.a || "").replace(/\s+/g, " ").trim().toLowerCase();
+      idiomMap.set(fullS, it);
+      if (it.a) idiomMap.set("ans::" + it.a.trim().toLowerCase(), it);
+    });
+    (d.prep || []).forEach(function(it) {
+      if (!it || !it.s) return;
+      const fullS = it.s.replace(/___+/g, it.a || "").replace(/\s+/g, " ").trim().toLowerCase();
+      prepMap.set(fullS, it);
+    });
+    (d.error || []).forEach(function(it) {
+      if (!it || !it.s) return;
+      const plainS = it.s.replace(/<[^>]+>/g, "").replace(/\[[A-D]\]\s*/g, "").replace(/\s+/g, " ").trim().toLowerCase();
+      errorMap.set(plainS, it);
+      if (it.tr) errorMap.set("tr::" + it.tr.trim(), it);
+    });
+    (d.sinonim || []).forEach(function(it) {
+      if (!it || !it.target) return;
+      sinonimMap.set(it.target.trim().toLowerCase(), it);
+    });
+  }
+  buildModeMaps();
+
+  // 解説テキストを箇条書きHTMLに美しく整形する関数（1行潰れを100%防止）
+  function formatCleanExplanationHtml(rawText) {
+    if (!rawText) return "";
+    let s = String(rawText)
+      .replace(/\[cite:\s*[\d,\s]+\]/gi, "")
+      .replace(/^KBBI\s*(?:[（(][^）)]*[）)])?\s*(?:収録|関連|公式定義)?(?:の?(?:超)?(?:重要|定番|有名)?(?:表現|ことわざ|慣用句))?\s*[：:・！!]?\s*/gim, "")
+      .replace(/\s*／\s*(?=[・•■①②③④1-9])/g, "\n")
+      // 文中の「・」や「•」の手前に改行がない場合も自動で改行を入れて独立した箇条書き行にする
+      .replace(/([^\n])\s*(?=[・•]\s*[a-zA-Z0-9『「])/g, "$1\n")
+      .replace(/([^\n])\s*(?=■)/g, "$1\n")
+      .trim();
+
+    const lines = s.split(/\n+/).map(l => l.trim()).filter(Boolean);
+    if (!lines.length) return "";
+
+    return lines.map(function(line) {
+      // ■ 見出し行
+      if (line.startsWith("■")) {
+        const body = line.replace(/^■\s*/, "").trim();
+        return `<div class="wi-slang-sec-head">${escHtml(body.replace(/[【】]/g, ""))}</div>`;
+      }
+      // 【...】のみの見出し行
+      if (/^【[^】]+】[：:]?$/.test(line)) {
+        return `<div class="wi-slang-sec-head">${escHtml(line.replace(/[【】：:]/g, ""))}</div>`;
+      }
+      // 【...】＋本文が同じ行にある場合
+      const mBracket = line.match(/^【([^】]+)】[：:]?\s*(.+)$/);
+      if (mBracket) {
+        return `<div class="wi-slang-sec-head">${escHtml(mBracket[1])}</div><div class="wi-slang-plain-line">${escHtml(mBracket[2])}</div>`;
+      }
+      // コロンで終わる導入見出し行（例：「liar（野生の ➔ 無許可・違法の）を使った4大重要複合語：」）
+      if (/[：:]$/.test(line) && !/^[・•\-①②③④]/.test(line)) {
+        return `<div class="wi-slang-sec-head">${escHtml(line.replace(/[：:]$/, ""))}</div>`;
+      }
+      // ・ や • や - で始まる箇条書き行（コロン前の語句を太字に）
+      if (/^[・•\-]\s*/.test(line)) {
+        const body = line.replace(/^[・•\-]\s*/, "").trim();
+        const colonIdx = body.search(/[：:]/);
+        if (colonIdx > 0 && colonIdx < 55) {
+          const term = body.slice(0, colonIdx).trim();
+          const desc = body.slice(colonIdx + 1).trim();
+          return `<div class="wi-slang-bullet-item"><strong>${escHtml(term)}</strong>：${escHtml(desc)}</div>`;
+        }
+        return `<div class="wi-slang-bullet-item">${escHtml(body)}</div>`;
+      }
+      // ①〜⑥ や 1. 2. で始まる番号付き行
+      if (/^(?:[①②③④⑤⑥]|\d+\.)\s*/.test(line)) {
+        const colonIdx = line.search(/[：:]/);
+        if (colonIdx > 0 && colonIdx < 45) {
+          const term = line.slice(0, colonIdx).trim();
+          const desc = line.slice(colonIdx + 1).trim();
+          return `<div class="wi-slang-bullet-item"><strong>${escHtml(term)}</strong>：${escHtml(desc)}</div>`;
+        }
+        return `<div class="wi-slang-bullet-item">${escHtml(line)}</div>`;
+      }
+      return `<div class="wi-slang-plain-line">${escHtml(line)}</div>`;
+    }).join("");
+  }
+
+  function highlightPhraseHtml(sentence, targetPhrase) {
+    const safe = escHtml(sentence || "");
+    if (!targetPhrase) return safe;
+    const escP = String(targetPhrase).trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    if (!escP) return safe;
+    return safe.replace(new RegExp(`(${escP})`, "gi"), '<span class="wi-ex-hw-hl">$1</span>');
+  }
+
+  // -------------------------------------------------------------------
+  // 4. 解説カード（ことわざ・慣用句・前置詞・誤文訂正・類義語・文脈和訳等）の重複除去＆整形
+  // -------------------------------------------------------------------
+  function fixNonVocabExplanationCard(expRow) {
+    if (!expRow) return;
+    const summaryBox = expRow.querySelector(".exp-compact-summary");
+    if (!summaryBox) return;
+
+    const ansEl  = summaryBox.querySelector(".exp-summary-ans");
+    const sentEl = summaryBox.querySelector(".exp-summary-sent");
+    if (!ansEl) return;
+
+    const rawAns = (ansEl.getAttribute("data-raw-ans") || ansEl.textContent || "").trim();
+
+    // 単語カード（[語幹: ...] を含むもの）はスキップ
+    if (rawAns.indexOf("[語幹:") !== -1) return;
+
+    // 同じ問題ターンの出題バブル（直前の .msg-row-in）から送信者名（モード名）を取得
+    const area = document.getElementById("chat-messages-area");
+    let senderTxt = "";
+    let qMainHtml = "";
+    if (area) {
+      const rows = Array.from(area.querySelectorAll(".msg-row-in"));
+      const myIdx = rows.indexOf(expRow);
+      for (let i = (myIdx >= 0 ? myIdx - 1 : rows.length - 2); i >= 0; i--) {
+        const r = rows[i];
+        if (r && !r.querySelector(".exp-compact-summary") && r.querySelector(".msg-main-text")) {
+          const sdr = r.querySelector(".msg-sender-name");
+          senderTxt = sdr ? sdr.textContent.trim() : "";
+          qMainHtml = r.querySelector(".msg-main-text").innerHTML || "";
+          break;
+        }
+      }
+    }
+
+    // ① ことわざモード (Peribahasa) の修復（単語の例文へのすり替わりを防止し、意味・直訳・解説を表示）
+    const pbCandidate = proverbMap.get(rawAns.toLowerCase());
+    if (pbCandidate || senderTxt.indexOf("ことわざ") !== -1) {
+      const pbItem = pbCandidate || proverbMap.get(rawAns.toLowerCase());
+      if (pbItem && sentEl) {
+        sentEl.__v63Hl = true; // V63による単語例文上書きをブロック
+        const litClean = (pbItem.lit || "").replace(/^直訳[：:]\s*/, "").trim();
+        sentEl.innerHTML = `
+          <div style="font-size:0.93rem;font-weight:700;color:#0f172a;line-height:1.58;">
+            <span style="display:inline-block;background:#dcfce7;color:#166534;font-size:0.72rem;padding:1px 7px;border-radius:4px;margin-right:6px;">意味</span>${escHtml(pbItem.a)}
+          </div>
+          ${litClean ? `<div style="font-size:0.84rem;color:#475569;line-height:1.52;margin-top:3px;"><strong style="color:#64748b;">直訳：</strong>${escHtml(litClean)}</div>` : ""}
+        `;
+      }
+      if (pbItem && pbItem.exp) {
+        let expBox = summaryBox.querySelector(".wi-slang-exp-box");
+        if (!expBox) {
+          expBox = document.createElement("div");
+          expBox.className = "wi-slang-exp-box";
+          summaryBox.appendChild(expBox);
+        }
+        expBox.__wiBulletFormatted = true;
+        expBox.innerHTML = formatCleanExplanationHtml(pbItem.exp);
+      }
+      return;
+    }
+
+    // ② 誤文訂正モード (Tata Bahasa / error) の2重和訳解消
+    if (rawAns.startsWith("誤り箇所：") || senderTxt.indexOf("誤文訂正") !== -1) {
+      const trInSent = sentEl ? sentEl.textContent.replace(/^【和訳】\s*/, "").trim() : "";
+      const errItem = errorMap.get("tr::" + trInSent);
+      if (sentEl) {
+        sentEl.__v63Hl = true;
+        const cleanQHtml = qMainHtml || (errItem ? errItem.s : "");
+        const trText = errItem ? errItem.tr : trInSent;
+        sentEl.innerHTML = `
+          ${cleanQHtml ? `<div style="font-size:0.92rem;color:#111b21;line-height:1.6;">${cleanQHtml}</div>` : ""}
+          ${trText ? `<div style="font-size:0.84rem;color:#475569;line-height:1.52;margin-top:3px;"><strong style="color:#0f766e;">和訳：</strong>${escHtml(trText)}</div>` : ""}
+        `;
+      }
+      const rawExp = errItem ? errItem.exp : getAmberExplanationText(expRow);
+      renderSingleExpBox(summaryBox, rawExp);
+      return;
+    }
+
+    // ③ 類義語・対義語モード (sinonim) の例文2重表示解消
+    if (rawAns.indexOf("➔ 正解：") !== -1 && (senderTxt.indexOf("類義語") !== -1 || senderTxt.indexOf("対義語") !== -1)) {
+      const targetPart = rawAns.split("➔")[0].trim().toLowerCase();
+      const sinItem = sinonimMap.get(targetPart);
+      if (sinItem && sentEl) {
+        sentEl.__v63Hl = true;
+        sentEl.innerHTML = sinItem.ex
+          ? `<div style="font-size:0.92rem;color:#111b21;line-height:1.58;">${highlightPhraseHtml(sinItem.ex, sinItem.a)}</div>`
+          : "";
+      }
+      const rawExp = sinItem ? sinItem.exp : getAmberExplanationText(expRow);
+      renderSingleExpBox(summaryBox, rawExp);
+      return;
+    }
+
+    // ④ 慣用句 (idiom) ＆ 前置詞・コロケーション (prep) の文2重表示＆箇条書き潰れ解消
+    if (rawAns.startsWith("正解：") && (senderTxt.indexOf("慣用句") !== -1 || senderTxt.indexOf("前置詞") !== -1 || rawAns.indexOf("【コロケーション") !== -1)) {
+      const ansWord = rawAns.replace(/^正解[：:]\s*/, "").replace(/\s*【.*$/, "").trim();
+      const sentLines = sentEl ? (sentEl.textContent || "").split(/\n+/).map(s => s.trim()).filter(Boolean) : [];
+      const firstLineLower = (sentLines[0] || "").replace(/\s+/g, " ").toLowerCase();
+
+      const matchedItem = idiomMap.get(firstLineLower) || prepMap.get(firstLineLower) || idiomMap.get("ans::" + ansWord.toLowerCase());
+      if (sentEl && sentLines.length >= 1) {
+        sentEl.__v63Hl = true;
+        const idSent = sentLines[0];
+        const jaSent = sentLines.slice(1).join(" ");
+        sentEl.innerHTML = `
+          <div style="font-size:0.92rem;color:#111b21;line-height:1.58;">${highlightPhraseHtml(idSent, ansWord)}</div>
+          ${jaSent ? `<div style="font-size:0.84rem;color:#475569;line-height:1.52;margin-top:3px;">${escHtml(jaSent)}</div>` : ""}
+        `;
+      }
+      const rawExp = (matchedItem && matchedItem.exp) ? matchedItem.exp : getAmberExplanationText(expRow);
+      renderSingleExpBox(summaryBox, rawExp);
+      return;
+    }
+
+    // ⑤ その他の非単語カード（文脈下線和訳・語幹活用・長文適訳・リスニング等）でも
+    //    上段 (.exp-summary-sent) と同じ文が下段 (.wi-slang-exp-box) に重複しないよう解説セクションのみを表示
+    const existingExpBox = summaryBox.querySelector(".wi-slang-exp-box");
+    if (existingExpBox && !existingExpBox.__wiDeduped) {
+      const amberOnlyTxt = getAmberExplanationText(expRow);
+      if (amberOnlyTxt) {
+        existingExpBox.__wiDeduped = true;
+        existingExpBox.innerHTML = formatCleanExplanationHtml(amberOnlyTxt);
+      }
+    }
+  }
+
+  // アコーディオン内から重複する第1セクション（完成文・問題文・実用例文）を除外し、純粋な解説（amberカード）のテキストを改行保持で取得
+  function getAmberExplanationText(expRow) {
+    const accBody = expRow.querySelector(".exp-accordion-body");
+    if (!accBody) return "";
+    const amberCards = Array.from(accBody.querySelectorAll(".exp-sec-card.amber .exp-sec-content"));
+    const targetEls = amberCards.length > 0
+      ? amberCards
+      : Array.from(accBody.querySelectorAll(".exp-sec-content")).slice(1);
+
+    return targetEls.map(function(el) {
+      // すでに V35/V63 で <div> 化されている場合も、<div> ごとに改行を復元してからテキスト化する
+      const clone = el.cloneNode(true);
+      clone.querySelectorAll("div, br, p, li").forEach(function(blk) {
+        blk.insertAdjacentText("beforebegin", "\n");
+      });
+      return (clone.textContent || "").trim();
+    }).filter(Boolean).join("\n");
+  }
+
+  function renderSingleExpBox(summaryBox, rawExpText) {
+    let expBox = summaryBox.querySelector(".wi-slang-exp-box");
+    if (!rawExpText || !rawExpText.trim()) {
+      if (expBox) expBox.remove();
+      return;
+    }
+    if (!expBox) {
+      expBox = document.createElement("div");
+      expBox.className = "wi-slang-exp-box";
+      summaryBox.appendChild(expBox);
+    }
+    expBox.__wiBulletFormatted = true;
+    expBox.__wiDeduped = true;
+    expBox.innerHTML = formatCleanExplanationHtml(rawExpText);
+  }
+
+  // -------------------------------------------------------------------
+  // 5. 画面監視 ＆ 起動時同期
+  // -------------------------------------------------------------------
+  function scanAndFixExplanationCards() {
+    removeConfuseRoomFromSidebar();
+    const area = document.getElementById("chat-messages-area");
+    if (!area) return;
+    area.querySelectorAll(".msg-row-in").forEach(function(row) {
+      if (row.querySelector(".exp-compact-summary")) {
+        fixNonVocabExplanationCard(row);
+      }
+    });
+  }
+
+  function bootExplanationAndModeCleanPatch() {
+    buildModeMaps();
+    if (typeof window.__reloadWhatsIndo === "function") {
+      try { window.__reloadWhatsIndo(); } catch (e) {}
+    }
+    removeConfuseRoomFromSidebar();
+    scanAndFixExplanationCards();
+
+    const chatList = document.getElementById("wa-chat-list");
+    if (chatList && !chatList.__wiConfuseRemovedObs) {
+      chatList.__wiConfuseRemovedObs = true;
+      new MutationObserver(removeConfuseRoomFromSidebar).observe(chatList, { childList: true });
+    }
+
+    const area = document.getElementById("chat-messages-area");
+    if (area && !area.__wiExpCleanObs) {
+      area.__wiExpCleanObs = true;
+      new MutationObserver(function() {
+        scanAndFixExplanationCards();
+        setTimeout(scanAndFixExplanationCards, 30);
+      }).observe(area, { childList: true });
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function() {
+      setTimeout(bootExplanationAndModeCleanPatch, 45);
+    });
+  } else {
+    setTimeout(bootExplanationAndModeCleanPatch, 45);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 5大改善・高速化統合パッチ
+   1. スター機能を「★ 単語スター」と「★ 問題スター（問題リスト選択＆ランダム出題）」に完全分離
+   2. ダークモードを完全廃止し、左上バーを整理
+   3. 類義語・対義語モードの出題時に日本語訳を隠し、ヒント＆回答後解説でのみ表示
+   4. ゼミ討論モードの解説カードに「討論スレッドと設問の全文和訳」と解説を完全復活
+   5. マイ単語帳モーダルを「初回40語即表示＋スクロール追記＋イベント一括処理」で超軽量化（要素削減ゼロ）
+   ===================================================================== */
+(function() {
+  const d = window.WHATSINDO_EXTERNAL_DATA;
+  if (!d) return;
+
+  const STAR_STORAGE_KEY    = "wi_stars_v2";
+  const WB_STORAGE_KEY      = "wi_custom_wordbooks_v1";
+  const EXCLUDE_STORAGE_KEY = "wi_excluded_words_v1";
+
+  function escHtml(str) {
+    return String(str || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  // -------------------------------------------------------------------
+  // 1. ダークモードの完全廃止
+  // -------------------------------------------------------------------
+  function removeDarkModeCompletely() {
+    document.body.classList.remove("wi-dark");
+    try { localStorage.removeItem("wi_dark_mode_v35"); } catch (e) {}
+    const dmBtn = document.getElementById("btn-v35-theme-toggle");
+    if (dmBtn) dmBtn.remove();
+  }
+  removeDarkModeCompletely();
+
+  if (!document.getElementById("wi-five-upgrades-style")) {
+    const st = document.createElement("style");
+    st.id = "wi-five-upgrades-style";
+    st.textContent = `
+      /* ダークモードボタン・紛らわしい語モードを完全非表示 */
+      #btn-v35-theme-toggle { display: none !important; }
+
+      /* 左上バーの「単語スター」「問題スター」ボタン */
+      .top-action-btn.word-star-btn {
+        background: #fffbeb !important;
+        color: #b45309 !important;
+        border: 1px solid #fde68a !important;
+      }
+      .top-action-btn.word-star-btn.active {
+        background: #d97706 !important;
+        color: #ffffff !important;
+      }
+      .top-action-btn.prob-star-btn {
+        background: #eff6ff !important;
+        color: #1d4ed8 !important;
+        border: 1px solid #bfdbfe !important;
+      }
+      .top-action-btn.prob-star-btn.active {
+        background: #2563eb !important;
+        color: #ffffff !important;
+      }
+
+      /* 問題スター・リスト選択ビューのカードスタイル */
+      .wi-qstar-list-wrap {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        width: 100%;
+        max-width: 780px;
+        margin: 0 auto;
+        padding: 4px 0 18px 0;
+      }
+      .wi-qstar-card {
+        background: #ffffff;
+        border: 1px solid #cbd5e1;
+        border-left: 4px solid #2563eb;
+        border-radius: 9px;
+        padding: 10px 13px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        cursor: pointer;
+        transition: background 0.12s, border-color 0.12s;
+      }
+      .wi-qstar-card:hover {
+        background: #f8fafc;
+        border-color: #2563eb;
+      }
+      .wi-qstar-card.word-card {
+        border-left-color: #d97706;
+      }
+      .wi-qstar-card.word-card:hover {
+        border-color: #d97706;
+      }
+      .wi-qstar-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .wi-qstar-badge {
+        background: #dbeafe;
+        color: #1e40af;
+        font-size: 0.72rem;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 999px;
+      }
+      .wi-qstar-badge.word-badge {
+        background: #fef3c7;
+        color: #b45309;
+      }
+      .wi-qstar-actions {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .wi-qstar-play-btn {
+        background: #008069;
+        color: #ffffff;
+        border: none;
+        border-radius: 6px;
+        padding: 4px 10px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .wi-qstar-play-btn:hover { background: #075e54; }
+      .wi-qstar-unstar-btn {
+        background: #fff1f2;
+        color: #be123c;
+        border: 1px solid #fecdd3;
+        border-radius: 6px;
+        padding: 3px 8px;
+        font-size: 0.73rem;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .wi-qstar-unstar-btn:hover { background: #ffe4e6; }
+      .wi-qstar-preview {
+        font-size: 0.91rem;
+        color: #1e293b;
+        line-height: 1.52;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+
+      /* ゼミ討論の全文和訳ボックス */
+      .wi-debate-tr-box {
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        border-left: 3.5px solid #008069;
+        border-radius: 7px;
+        padding: 8px 11px;
+        margin-top: 4px;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .wi-debate-tr-title {
+        font-size: 0.74rem;
+        font-weight: 700;
+        color: #065f46;
+        border-bottom: 1px dashed #86efac;
+        padding-bottom: 3px;
+      }
+      .wi-debate-tr-line {
+        font-size: 0.85rem;
+        color: #1e293b;
+        line-height: 1.58;
+      }
+    `;
+    document.head.appendChild(st);
+  }
+
+  // -------------------------------------------------------------------
+  // 2. 類義語・対義語（d.sinonim）の出題文から日本語の意味を隠し、ヒント＆解説に回す
+  // -------------------------------------------------------------------
+  const sinonimFullMap = new Map();
+
+  function sanitizeSinonimTargets() {
+    if (!Array.isArray(d.sinonim)) return;
+    for (let i = 0; i < d.sinonim.length; i++) {
+      const it = d.sinonim[i];
+      if (!it || !it.target) continue;
+
+      const origTarget = it.__origTarget || it.target;
+      it.__origTarget = origTarget;
+
+      // カッコ内にひらがな・カタカナ・漢字が含まれている場合、出題表示用の target から除去
+      const jaMatch = origTarget.match(/[（(]([^）)]*[\u3040-\u30FF\u4E00-\u9FFF][^）)]*)[）)]/);
+      const jaMeaning = jaMatch ? jaMatch[1].trim() : "";
+      const cleanTarget = origTarget
+        .replace(/\s*[（(][^）)]*[\u3040-\u30FF\u4E00-\u9FFF][^）)]*[）)]/g, "")
+        .replace(/\s{2,}/g, " ")
+        .trim();
+
+      it.target = cleanTarget;
+      it.__jaMeaning = jaMeaning;
+
+      // 解説（exp）の先頭に元の日本語意味が分かる見出しを補完
+      if (jaMeaning && it.exp && it.exp.indexOf(jaMeaning) === -1) {
+        it.exp = `【問題語の意味】${cleanTarget.replace(/\s*⇔.*$/, "")}（${jaMeaning}）\n` + it.exp;
+      }
+
+      sinonimFullMap.set(cleanTarget.toLowerCase(), it);
+      sinonimFullMap.set(origTarget.toLowerCase(), it);
+    }
+
+    // すでに保存されている復習・スター内の sinonim 問題からも出題文の日本語カッコを除去
+    ["wi_wrongs_v2", STAR_STORAGE_KEY].forEach(function(sKey) {
+      try {
+        const list = JSON.parse(localStorage.getItem(sKey) || "[]");
+        if (!Array.isArray(list)) return;
+        let modified = false;
+        list.forEach(function(q) {
+          if (q && (q.effectiveMode === "sinonim" || (q.id && q.id.startsWith("sin::"))) && q.mainHtml) {
+            const m = q.mainHtml.match(/[（(]([^）)]*[\u3040-\u30FF\u4E00-\u9FFF][^）)]*)[）)]/);
+            if (m) {
+              if (!q.hintHtml || q.hintHtml.indexOf(m[1]) === -1) {
+                q.hintHtml = `意味ヒント: <strong>${escHtml(m[1])}</strong>` + (q.hintHtml ? `<br>${q.hintHtml}` : "");
+              }
+              q.mainHtml = q.mainHtml.replace(/\s*[（(][^）)]*[\u3040-\u30FF\u4E00-\u9FFF][^）)]*[）)]/g, "").trim();
+              modified = true;
+            }
+          }
+        });
+        if (modified) localStorage.setItem(sKey, JSON.stringify(list));
+      } catch (e) {}
+    });
+  }
+  sanitizeSinonimTargets();
+
+  // -------------------------------------------------------------------
+  // 3. ゼミ討論グループ（d.debate）の全文日本語訳（trThread）＆解説の完全復活
+  // -------------------------------------------------------------------
+  const debateByPrompt = new Map();
+  function indexDebateItems() {
+    debateByPrompt.clear();
+    (d.debate || []).forEach(function(it) {
+      if (!it || !it.prompt) return;
+      debateByPrompt.set(it.prompt.trim().toLowerCase(), it);
+      if (Array.isArray(it.choices) && typeof it.ans === "number" && it.choices[it.ans]) {
+        debateByPrompt.set("ans::" + it.choices[it.ans].trim().toLowerCase(), it);
+      }
+    });
+  }
+  indexDebateItems();
+
+  function formatDebateTrThreadHtml(trThreadStr) {
+    if (!trThreadStr) return "";
+    const lines = String(trThreadStr)
+      .replace(/\[cite:\s*[\d,\s]+\]/gi, "")
+      .split(/\n+/)
+      .map(l => l.trim())
+      .filter(Boolean);
+    if (!lines.length) return "";
+
+    const rowsHtml = lines.map(function(line) {
+      const cIdx = line.search(/[：:]/);
+      if (cIdx > 0 && cIdx < 28) {
+        const speaker = line.slice(0, cIdx).trim();
+        const body    = line.slice(cIdx + 1).trim();
+        return `<div class="wi-debate-tr-line"><strong style="color:#075e54;">${escHtml(speaker)}：</strong>${escHtml(body)}</div>`;
+      }
+      return `<div class="wi-debate-tr-line">${escHtml(line)}</div>`;
+    }).join("");
+
+    return `
+      <div class="wi-debate-tr-box">
+        <div class="wi-debate-tr-title">💬 討論スレッドと設問の全文和訳</div>
+        ${rowsHtml}
+      </div>
+    `;
+  }
+
+  function enhanceDebateAndSinonimCard(expRow) {
+    if (!expRow) return;
+    const summaryBox = expRow.querySelector(".exp-compact-summary");
+    if (!summaryBox) return;
+
+    const ansEl  = summaryBox.querySelector(".exp-summary-ans");
+    const sentEl = summaryBox.querySelector(".exp-summary-sent");
+    if (!ansEl) return;
+
+    const rawAns = (ansEl.getAttribute("data-raw-ans") || ansEl.textContent || "").trim();
+
+    // (A) 類義語・対義語カード：見出しに日本語意味を復元表示
+    if (rawAns.indexOf("➔ 正解：") !== -1) {
+      const targetKey = rawAns.split("➔")[0].trim().toLowerCase();
+      const sinItem = sinonimFullMap.get(targetKey);
+      if (sinItem && sinItem.__origTarget && rawAns.indexOf(sinItem.__origTarget) === -1) {
+        ansEl.textContent = `${sinItem.__origTarget} ➔ 正解：${sinItem.a}`;
+      }
+    }
+
+    // (B) ゼミ討論カード：討論スレッドの全文和訳（trThread）＋解説を復活表示
+    if (rawAns.indexOf("【正解の主張】") !== -1 || expRow.querySelector(".wi-debate-tr-box")) {
+      if (summaryBox.querySelector(".wi-debate-tr-box")) return;
+      const ansTextLower = sentEl ? sentEl.textContent.trim().toLowerCase() : "";
+      let debItem = debateByPrompt.get("ans::" + ansTextLower);
+
+      // アコーディオン内の第1セクション（緑カード：討論スレッドと設問の全文和訳）からも取得可能
+      let trThreadText = debItem ? debItem.trThread : "";
+      if (!trThreadText) {
+        const greenCardContent = expRow.querySelector(".exp-accordion-body .exp-sec-card.green .exp-sec-content");
+        if (greenCardContent) trThreadText = greenCardContent.textContent.trim();
+      }
+
+      if (trThreadText) {
+        const trHtml = formatDebateTrThreadHtml(trThreadText);
+        if (sentEl) {
+          sentEl.insertAdjacentHTML("afterend", trHtml);
+        } else {
+          summaryBox.insertAdjacentHTML("beforeend", trHtml);
+        }
+      }
+    }
+  }
+
+  // -------------------------------------------------------------------
+  // 4. スター機能の「★ 単語スター」と「★ 問題スター（リスト選択＆ランダム出題）」への完全分離
+  // -------------------------------------------------------------------
+  function readAllStarsRaw() {
+    try {
+      const list = JSON.parse(localStorage.getItem(STAR_STORAGE_KEY) || "[]");
+      return Array.isArray(list) ? list : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function isWordStarItem(it) {
+    if (!it || typeof it !== "object") return false;
+    const eff = it.effectiveMode || "";
+    const qid = String(it.id || "");
+    if (["v", "a", "n", "other", "singkatan"].includes(eff)) return true;
+    if (/^(?:voc|voc_ja2id|abbr_ja|abbr_full|ctx::voc)::/i.test(qid)) return true;
+    return false;
+  }
+
+  function getWordStarsList() {
+    return readAllStarsRaw().filter(isWordStarItem);
+  }
+
+  function getProblemStarsList() {
+    return readAllStarsRaw().filter(it => it && !isWordStarItem(it));
+  }
+
+  function getProblemModeCategory(it) {
+    const eff = it.effectiveMode || "";
+    const qid = String(it.id || "");
+    if (eff === "listening" || qid.startsWith("lis::")) return { cat: "listen", label: "🎧 リスニング" };
+    if (eff === "trans" || qid.startsWith("tr::")) return { cat: "reading", label: "📄 長文適訳" };
+    if (eff === "contextJa" || qid.startsWith("ctx::")) return { cat: "reading", label: "🔍 文脈下線和訳" };
+    if (eff === "conj" || qid.startsWith("conj::")) return { cat: "grammar", label: "🔧 語幹活用" };
+    if (eff === "error" || qid.startsWith("err::")) return { cat: "grammar", label: "⚠️ 誤文訂正" };
+    if (eff === "prep" || qid.startsWith("prep::")) return { cat: "grammar", label: "🔗 前置詞・コロケーション" };
+    if (eff === "sinonim" || qid.startsWith("sin::")) return { cat: "expr", label: "🔄 類義語・対義語" };
+    if (eff === "idiom" || qid.startsWith("id::") || qid.startsWith("idiom::")) return { cat: "expr", label: "💡 慣用句" };
+    if (eff === "proverb" || qid.startsWith("pb::")) return { cat: "expr", label: "📜 ことわざ" };
+    if (eff === "slang" || qid.startsWith("slang::")) return { cat: "chat", label: "💬 スラング会話" };
+    if (eff === "debate" || qid.startsWith("deb::")) return { cat: "chat", label: "🎙️ ゼミ討論" };
+    return { cat: "other", label: it.sender || "📌 問題" };
+  }
+
+  let customStarView = {
+    activeType: null, // "word_star" | "prob_star" | null
+    viewMode: "list", // "list" (リストから選ぶ) | "random" (ランダム出題)
+    catFilter: "all",
+    renderedCount: 0,
+    currentFiltered: [],
+    currentPlayIdx: -1
+  };
+
+  function updateDualStarBadges() {
+    removeDarkModeCompletely();
+    const wStars = getWordStarsList();
+    const pStars = getProblemStarsList();
+
+    // ① 左上のアクションバーを「★単語スター」「★問題スター」の2ボタンに整備
+    const origStarBtn = document.getElementById("btn-star-top");
+    const actionsBar  = document.querySelector(".sidebar-actions");
+    if (origStarBtn && actionsBar) {
+      origStarBtn.className = "top-action-btn word-star-btn" + (customStarView.activeType === "word_star" ? " active" : "");
+      origStarBtn.innerHTML = `<span>★単語</span><span class="count-pill" id="badge-star-count">${wStars.length}</span>`;
+      origStarBtn.title = "辞書・単語・略語のスター復習";
+
+      let probBtn = document.getElementById("btn-prob-star-top");
+      if (!probBtn) {
+        probBtn = document.createElement("button");
+        probBtn.type = "button";
+        probBtn.id = "btn-prob-star-top";
+        probBtn.className = "top-action-btn prob-star-btn";
+        probBtn.title = "長文・リスニング・文法・ことわざ等の問題スター（リスト選択＆ランダム出題）";
+        origStarBtn.insertAdjacentElement("afterend", probBtn);
+        probBtn.addEventListener("click", function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          openCustomStarRoom("prob_star", "list");
+          const app = document.getElementById("wa-app");
+          if (app) app.classList.add("mobile-chat-open");
+        });
+      }
+      probBtn.classList.toggle("active", customStarView.activeType === "prob_star");
+      probBtn.innerHTML = `<span>★問題</span><span class="count-pill" id="badge-prob-star-count">${pStars.length}</span>`;
+    }
+
+    // ② 左サイドバーの復習カテゴリピルの件数を「復習 (3)」に更新
+    const revPill = document.querySelector('#cat-pills .wa-pill[data-cat="review"]');
+    if (revPill) revPill.textContent = "復習 (3)";
+
+    // ③ 左サイドバー内の「スター復習」を「★ 単語スター」と「★ 問題スター」の2ルームに分離表示
+    const chatList = document.getElementById("wa-chat-list");
+    if (chatList) {
+      const items = Array.from(chatList.querySelectorAll(".wa-chat-item"));
+      items.forEach(function(item) {
+        const titleEl = item.querySelector(".wa-item-title");
+        if (!titleEl) return;
+        const t = titleEl.textContent.trim();
+        if (t === "スター復習" || t === "★ 単語スター (単語・略語)") {
+          titleEl.textContent = "★ 単語スター (単語・略語)";
+          const descEl = item.querySelector("#room-desc-starred") || item.querySelector(".wa-item-row2 span:last-child");
+          if (descEl) descEl.textContent = `単語・略語のスター：${wStars.length} 語`;
+          item.classList.toggle("active", customStarView.activeType === "word_star");
+          if (!item.__wiDualStarHooked) {
+            item.__wiDualStarHooked = true;
+            item.addEventListener("click", function(e) {
+              e.preventDefault();
+              e.stopPropagation();
+              openCustomStarRoom("word_star", "random");
+              const app = document.getElementById("wa-app");
+              if (app) app.classList.add("mobile-chat-open");
+            }, true);
+          }
+
+          // すぐ下に「★ 問題スター」ルームがなければ追加
+          if (!document.getElementById("wa-room-prob-star")) {
+            const pRoom = document.createElement("div");
+            pRoom.id = "wa-room-prob-star";
+            pRoom.className = "wa-chat-item" + (customStarView.activeType === "prob_star" ? " active" : "");
+            pRoom.innerHTML = `
+              <div class="wa-kanji-avatar" style="background:#dbeafe;color:#1d4ed8;">問</div>
+              <div class="wa-item-body">
+                <div class="wa-item-row1">
+                  <span class="wa-item-title">★ 問題スター (リスト選択・復習)</span>
+                  <span class="wa-item-time">Today</span>
+                </div>
+                <div class="wa-item-row2">
+                  <span class="wa-blue-checks">✓✓</span>
+                  <span id="room-desc-prob-star">問題スター登録済：${pStars.length} 問（リスト選択可）</span>
+                </div>
+              </div>
+            `;
+            pRoom.addEventListener("click", function(e) {
+              e.preventDefault();
+              e.stopPropagation();
+              openCustomStarRoom("prob_star", "list");
+              const app = document.getElementById("wa-app");
+              if (app) app.classList.add("mobile-chat-open");
+            });
+            item.insertAdjacentElement("afterend", pRoom);
+          } else {
+            const pRoom = document.getElementById("wa-room-prob-star");
+            pRoom.classList.toggle("active", customStarView.activeType === "prob_star");
+            const pDesc = document.getElementById("room-desc-prob-star");
+            if (pDesc) pDesc.textContent = `問題スター登録済：${pStars.length} 問（リスト選択可）`;
+          }
+        }
+      });
+    }
+  }
+
+  // 左上の「★単語」ボタンが押されたときも「★ 単語スター」専用ルームを開く
+  window.addEventListener("click", function(e) {
+    if (!e.target || !e.target.closest) return;
+    const wStarTop = e.target.closest("#btn-star-top");
+    if (wStarTop) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+      openCustomStarRoom("word_star", "random");
+      const app = document.getElementById("wa-app");
+      if (app) app.classList.add("mobile-chat-open");
+      return;
+    }
+    // 他の通常ルームがクリックされたら customStarView.activeType を解除
+    const chatItem = e.target.closest(".wa-chat-item");
+    if (chatItem && chatItem.id !== "wa-room-prob-star") {
+      const titleEl = chatItem.querySelector(".wa-item-title");
+      if (titleEl && titleEl.textContent.indexOf("単語スター") === -1) {
+        customStarView.activeType = null;
+        setTimeout(updateDualStarBadges, 20);
+      }
+    }
+  }, true);
+
+  function openCustomStarRoom(type, initialViewMode) {
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
+    customStarView.activeType = type;
+    customStarView.viewMode   = initialViewMode || (type === "prob_star" ? "list" : "random");
+    customStarView.catFilter  = "all";
+
+    const hdrAva  = document.getElementById("hdr-avatar");
+    const hdrName = document.getElementById("hdr-name");
+    const hdrSub  = document.getElementById("hdr-sub");
+
+    if (type === "prob_star") {
+      if (hdrAva) { hdrAva.textContent = "問"; hdrAva.style.background = "#dbeafe"; hdrAva.style.color = "#1d4ed8"; }
+      if (hdrName) hdrName.textContent = "★ 問題スター (長文・聴解・文法・表現)";
+      if (hdrSub)  hdrSub.textContent  = `${getProblemStarsList().length} 問登録中`;
+    } else {
+      if (hdrAva) { hdrAva.textContent = "星"; hdrAva.style.background = "#fef3c7"; hdrAva.style.color = "#d97706"; }
+      if (hdrName) hdrName.textContent = "★ 単語スター (単語・略語)";
+      if (hdrSub)  hdrSub.textContent  = `${getWordStarsList().length} 語登録中`;
+    }
+
+    updateDualStarBadges();
+    renderCustomStarSubfilterBar();
+
+    if (customStarView.viewMode === "list") {
+      renderStarQuestionListView();
+    } else {
+      playNextStarQuestionRandom();
+    }
+  }
+
+  function renderCustomStarSubfilterBar() {
+    const bar = document.getElementById("chat-subfilter-bar");
+    if (!bar) return;
+    bar.classList.add("show");
+
+    const isProb = customStarView.activeType === "prob_star";
+    const listCount = isProb ? getProblemStarsList().length : getWordStarsList().length;
+
+    const catPillsHtml = isProb ? `
+      <div class="sub-filter-group">
+        <button type="button" class="sub-filter-pill ${customStarView.catFilter === 'all' ? 'active' : ''}" data-pscat="all">すべて (${listCount})</button>
+        <button type="button" class="sub-filter-pill ${customStarView.catFilter === 'listen' ? 'active' : ''}" data-pscat="listen">🎧 リスニング</button>
+        <button type="button" class="sub-filter-pill ${customStarView.catFilter === 'reading' ? 'active' : ''}" data-pscat="reading">📄 長文・文脈</button>
+        <button type="button" class="sub-filter-pill ${customStarView.catFilter === 'grammar' ? 'active' : ''}" data-pscat="grammar">🔧 文法・活用・誤文・前置詞</button>
+        <button type="button" class="sub-filter-pill ${customStarView.catFilter === 'expr' ? 'active' : ''}" data-pscat="expr">💡 類義語・慣用句・ことわざ</button>
+        <button type="button" class="sub-filter-pill ${customStarView.catFilter === 'chat' ? 'active' : ''}" data-pscat="chat">💬 スラング・ゼミ討論</button>
+      </div>
+    ` : `
+      <div class="sub-filter-group">
+        <span style="font-size:0.78rem;font-weight:700;color:#b45309;">登録済の単語・略語：${listCount} 語</span>
+      </div>
+    `;
+
+    bar.innerHTML = `
+      <div class="sub-filter-group">
+        <button type="button" class="sub-filter-pill ${customStarView.viewMode === 'list' ? 'active' : ''}" id="btn-cstar-mode-list">📋 リストから選ぶ (${listCount})</button>
+        <button type="button" class="sub-filter-pill ${customStarView.viewMode === 'random' ? 'active' : ''}" id="btn-cstar-mode-random">🎲 ランダム出題</button>
+      </div>
+      ${catPillsHtml}
+    `;
+
+    bar.querySelector("#btn-cstar-mode-list").onclick = function() {
+      customStarView.viewMode = "list";
+      renderCustomStarSubfilterBar();
+      renderStarQuestionListView();
+    };
+    bar.querySelector("#btn-cstar-mode-random").onclick = function() {
+      customStarView.viewMode = "random";
+      renderCustomStarSubfilterBar();
+      playNextStarQuestionRandom();
+    };
+    bar.querySelectorAll("[data-pscat]").forEach(function(btn) {
+      btn.onclick = function() {
+        customStarView.catFilter = btn.getAttribute("data-pscat");
+        renderCustomStarSubfilterBar();
+        if (customStarView.viewMode === "list") renderStarQuestionListView();
+        else playNextStarQuestionRandom();
+      };
+    });
+  }
+
+  function getFilteredStarPool() {
+    const isProb = customStarView.activeType === "prob_star";
+    const base = isProb ? getProblemStarsList() : getWordStarsList();
+    if (!isProb || customStarView.catFilter === "all") return base;
+    return base.filter(it => getProblemModeCategory(it).cat === customStarView.catFilter);
+  }
+
+  // ★ 問題リスト表示ビュー（初回40件＋スクロール追記で何百問あっても一瞬で表示！）
+  function renderStarQuestionListView() {
+    const area = document.getElementById("chat-messages-area");
+    const grid = document.getElementById("wa-choices-grid");
+    if (!area || !grid) return;
+    grid.innerHTML = "";
+
+    const isProb = customStarView.activeType === "prob_star";
+    const items  = getFilteredStarPool();
+    customStarView.currentFiltered = items;
+    customStarView.renderedCount   = 0;
+
+    area.innerHTML = `
+      <div class="wa-date-badge">${isProb ? "★ 問題スター 一覧（タップでその問題に挑戦）" : "★ 単語スター 一覧（タップでその単語に出題）"}</div>
+      <div class="wi-qstar-list-wrap" id="wi-qstar-list-wrap"></div>
+    `;
+
+    const wrap = document.getElementById("wi-qstar-list-wrap");
+    if (!items.length) {
+      wrap.innerHTML = `
+        <div class="wa-bubble-left" style="align-self:center;text-align:center;padding:22px;max-width:480px;">
+          <div class="msg-main-text" style="color:#64748b;">
+            ${isProb ? "該当する問題スターはまだ登録されていません。<br>長文・リスニング・文法・ことわざ等の問題で「☆ スター (Sキー)」を押すとここに追加されます。" : "単語スターはまだ登録されていません。<br>単語クイズや辞書で「☆ スター (Sキー)」を押すとここに追加されます。"}
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    function appendNextStarBatch() {
+      const end = Math.min(customStarView.renderedCount + 40, items.length);
+      const frag = document.createDocumentFragment();
+
+      for (let i = customStarView.renderedCount; i < end; i++) {
+        const q = items[i];
+        const info = isProb ? getProblemModeCategory(q) : { label: q.sender || "単語・略語" };
+        const plainPreview = String(q.mainHtml || "")
+          .replace(/<div class="listen-ctrl-box">[\s\S]*?<\/div>/gi, "")
+          .replace(/<[^>]+>/g, " ")
+          .replace(/\s+/g, " ")
+          .trim() || q.ttsText || q.correctText || "（音声問題）";
+
+        const card = document.createElement("div");
+        card.className = "wi-qstar-card" + (isProb ? "" : " word-card");
+        card.setAttribute("data-qstar-idx", String(i));
+        card.innerHTML = `
+          <div class="wi-qstar-top">
+            <span class="wi-qstar-badge ${isProb ? '' : 'word-badge'}">${i + 1}. ${escHtml(info.label)}</span>
+            <div class="wi-qstar-actions">
+              <button type="button" class="wi-qstar-play-btn" data-play-idx="${i}">▶ この問題を解く</button>
+              <button type="button" class="wi-qstar-unstar-btn" data-unstar-id="${escHtml(q.id)}">★ 解除</button>
+            </div>
+          </div>
+          <div class="wi-qstar-preview">${escHtml(plainPreview)}</div>
+          ${q.subHtml ? `<div style="font-size:0.78rem;color:#64748b;">${q.subHtml}</div>` : ""}
+        `;
+        frag.appendChild(card);
+      }
+      wrap.appendChild(frag);
+      customStarView.renderedCount = end;
+    }
+
+    appendNextStarBatch();
+
+    // イベントデリゲーション（親要素1つでクリックを一括処理）
+    wrap.onclick = function(e) {
+      const unstarBtn = e.target.closest("[data-unstar-id]");
+      if (unstarBtn) {
+        e.stopPropagation();
+        const targetId = unstarBtn.getAttribute("data-unstar-id");
+        const all = readAllStarsRaw().filter(x => x && x.id !== targetId);
+        try { localStorage.setItem(STAR_STORAGE_KEY, JSON.stringify(all)); } catch (err) {}
+        updateDualStarBadges();
+        renderCustomStarSubfilterBar();
+        renderStarQuestionListView();
+        return;
+      }
+
+      const card = e.target.closest("[data-qstar-idx]");
+      if (card) {
+        const idx = parseInt(card.getAttribute("data-qstar-idx"), 10);
+        playSpecificStarQuestion(idx);
+      }
+    };
+
+    area.onscroll = function() {
+      if (customStarView.viewMode !== "list") return;
+      if (customStarView.renderedCount < customStarView.currentFiltered.length) {
+        if (area.scrollTop + area.clientHeight >= area.scrollHeight - 360) {
+          appendNextStarBatch();
+        }
+      }
+    };
+  }
+
+  function playNextStarQuestionRandom() {
+    const pool = getFilteredStarPool();
+    customStarView.currentFiltered = pool;
+    if (!pool.length) {
+      renderStarQuestionListView();
+      return;
+    }
+    const rndIdx = Math.floor(Math.random() * pool.length);
+    playSpecificStarQuestion(rndIdx);
+  }
+
+  // リストで選んだ問題（またはランダム抽選した問題）をチャット画面に出題して解かせる関数
+  function playSpecificStarQuestion(idx) {
+    const pool = customStarView.currentFiltered.length ? customStarView.currentFiltered : getFilteredStarPool();
+    if (!pool.length) {
+      renderStarQuestionListView();
+      return;
+    }
+    if (idx < 0 || idx >= pool.length) idx = 0;
+    customStarView.currentPlayIdx = idx;
+
+    const qObj = pool[idx];
+    const area = document.getElementById("chat-messages-area");
+    const grid = document.getElementById("wa-choices-grid");
+    if (!area || !grid) return;
+
+    area.innerHTML = `
+      <div class="wa-date-badge">
+        ${customStarView.activeType === "prob_star" ? `★ 問題スター（${idx + 1} / ${pool.length} 問目）` : `★ 単語スター（${idx + 1} / ${pool.length} 語目）`}
+      </div>
+    `;
+    grid.innerHTML = "";
+
+    const qRow = document.createElement("div");
+    qRow.className = "msg-row-in";
+    qRow.innerHTML = `
+      <div class="wa-bubble-left">
+        <div class="msg-sender-row">
+          <span class="msg-sender-name">${escHtml(qObj.sender || "★ スター問題")}</span>
+          <div class="msg-action-group">
+            <button type="button" class="inline-audio-chip" id="btn-back-to-qstar-list">📋 リストへ戻る</button>
+            ${qObj.ttsText ? `<button type="button" class="inline-audio-chip" id="btn-cstar-q-tts">🔊 音声</button>` : ""}
+          </div>
+        </div>
+        <div class="msg-main-text">${qObj.mainHtml || ""}</div>
+        ${qObj.subHtml ? `<div class="msg-sub-box">${qObj.subHtml}</div>` : ""}
+        ${qObj.hintHtml ? `<div class="msg-sub-box dynamic-hint-box" style="background:#fffbeb;border-left-color:#f59e0b;color:#92400e;">${qObj.hintHtml}</div>` : ""}
+      </div>
+    `;
+    area.appendChild(qRow);
+
+    const backBtn = qRow.querySelector("#btn-back-to-qstar-list");
+    if (backBtn) {
+      backBtn.onclick = function() {
+        customStarView.viewMode = "list";
+        renderCustomStarSubfilterBar();
+        renderStarQuestionListView();
+      };
+    }
+    const ttsBtn = qRow.querySelector("#btn-cstar-q-tts");
+    if (ttsBtn) {
+      ttsBtn.onclick = function() {
+        if (window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+          const u = new SpeechSynthesisUtterance(String(qObj.ttsText || "").replace(/<[^>]+>/g, ""));
+          u.lang = "id-ID";
+          window.speechSynthesis.speak(u);
+        }
+      };
+    }
+
+    // リスニング問題の再生ボタン結線
+    const pBtn = qRow.querySelector("#btn-listen-passage");
+    const qBtn = qRow.querySelector("#btn-listen-question");
+    if (pBtn) pBtn.onclick = function() { ttsBtn && ttsBtn.click(); };
+    if (qBtn && qObj.ttsWord) {
+      qBtn.onclick = function() {
+        if (window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+          const u = new SpeechSynthesisUtterance(qObj.ttsWord);
+          u.lang = "id-ID";
+          window.speechSynthesis.speak(u);
+        }
+      };
+    }
+
+    const choices = Array.isArray(qObj.choices) ? qObj.choices : [];
+    const validList = (qObj.acceptedAnswers && qObj.acceptedAnswers.length ? qObj.acceptedAnswers : [qObj.correctText])
+      .map(a => String(a || "").trim().toLowerCase().replace(/\s+/g, " "));
+
+    let answeredHere = false;
+
+    choices.forEach(function(chTxt, cIdx) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "wa-choice-card";
+      btn.innerHTML = `
+        <span class="wa-choice-num">${cIdx + 1}</span>
+        <span class="choice-label-text">${escHtml(chTxt)}</span>
+      `;
+      btn.onclick = function() {
+        if (answeredHere) return;
+        answeredHere = true;
+
+        const normSel = String(chTxt).trim().toLowerCase().replace(/\s+/g, " ");
+        const isOk = validList.includes(normSel);
+
+        Array.from(grid.children).forEach(function(b, bi) {
+          b.disabled = true;
+          const rawC = String(choices[bi] || "").trim().toLowerCase().replace(/\s+/g, " ");
+          if (validList.includes(rawC)) b.classList.add("correct");
+        });
+        if (!isOk) btn.classList.add("wrong");
+
+        const outRow = document.createElement("div");
+        outRow.className = "msg-row-out";
+        outRow.innerHTML = `<div class="wa-bubble-right"><div class="msg-main-text">${escHtml(chTxt)}</div></div>`;
+        area.appendChild(outRow);
+
+        const expRow = document.createElement("div");
+        expRow.className = "msg-row-in";
+        expRow.style.maxWidth = "92%";
+        expRow.innerHTML = `
+          <div class="wa-bubble-left" style="border-left: 3.5px solid ${isOk ? '#16a34a' : '#dc2626'};width:100%;">
+            <div class="msg-sender-row">
+              <span class="msg-sender-name" style="color:${isOk ? '#15803d' : '#dc2626'};font-size:0.9rem;">
+                ${isOk ? "⭕ 正解" : `❌ 不正解（正解：${escHtml(qObj.correctText)}）`}
+              </span>
+            </div>
+            <div class="exp-compact-summary">
+              <div class="exp-summary-head">
+                <span class="exp-summary-ans">${escHtml(qObj.summaryHead || `正解：${qObj.correctText}`)}</span>
+                <div style="display:flex;gap:5px;">
+                  ${qObj.ttsWord ? `<button type="button" class="inline-audio-chip exp-sum-word-tts">🔊 語の発音</button>` : ""}
+                  ${qObj.ttsSentence ? `<button type="button" class="inline-audio-chip exp-sum-sent-tts">🔊 文の発音</button>` : ""}
+                </div>
+              </div>
+              ${qObj.summarySent ? `<div class="exp-summary-sent">${escHtml(qObj.summarySent)}</div>` : ""}
+              ${qObj.summaryBrief ? `<div class="exp-summary-brief">💡 ${escHtml(qObj.summaryBrief)}</div>` : ""}
+            </div>
+            ${qObj.detailSectionsHtml ? `<div class="exp-accordion-body" style="display:none;">${qObj.detailSectionsHtml}</div>` : ""}
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;gap:8px;flex-wrap:wrap;">
+              <button type="button" class="sub-filter-pill" id="btn-cstar-return-list">📋 問題リストへ戻る</button>
+              <button type="button" class="wa-next-inline-btn" id="btn-cstar-next-q" style="background:var(--wa-teal);color:#fff;border:none;padding:6px 14px;border-radius:999px;font-weight:600;font-size:0.8rem;cursor:pointer;">次のスター問題へ ▶</button>
+            </div>
+          </div>
+        `;
+        area.appendChild(expRow);
+
+        const wTts = expRow.querySelector(".exp-sum-word-tts");
+        if (wTts) wTts.onclick = function() {
+          if (window.speechSynthesis) {
+            window.speechSynthesis.cancel();
+            const u = new SpeechSynthesisUtterance(qObj.ttsWord);
+            u.lang = "id-ID";
+            window.speechSynthesis.speak(u);
+          }
+        };
+        const sTts = expRow.querySelector(".exp-sum-sent-tts");
+        if (sTts) sTts.onclick = function() {
+          if (window.speechSynthesis) {
+            window.speechSynthesis.cancel();
+            const u = new SpeechSynthesisUtterance(qObj.ttsSentence);
+            u.lang = "id-ID";
+            window.speechSynthesis.speak(u);
+          }
+        };
+
+        expRow.querySelector("#btn-cstar-return-list").onclick = function() {
+          customStarView.viewMode = "list";
+          renderCustomStarSubfilterBar();
+          renderStarQuestionListView();
+        };
+        expRow.querySelector("#btn-cstar-next-q").onclick = function() {
+          if (customStarView.viewMode === "random") playNextStarQuestionRandom();
+          else playSpecificStarQuestion((idx + 1) % pool.length);
+        };
+
+        enhanceDebateAndSinonimCard(expRow);
+        area.scrollTop = area.scrollHeight;
+      };
+      grid.appendChild(btn);
+    });
+  }
+
+  // -------------------------------------------------------------------
+  // 5. マイ単語帳モーダル（#wi-wordbook-modal）の仮想チャンク描画（初回40語＋スクロール追記）
+  //    ※要素や機能は一切削らず、開く瞬間のDOM生成負荷だけを 1/10 に軽量化！
+  // -------------------------------------------------------------------
+  const wbVocabLookup = new Map();
+  let wbIndexedCount = -1;
+
+  function ensureWbVocabLookup() {
+    const vLen = (d.vocab ? d.vocab.length : 0) + (d.acro ? d.acro.length : 0);
+    if (wbVocabLookup.size > 0 && wbIndexedCount === vLen) return;
+    wbIndexedCount = vLen;
+    wbVocabLookup.clear();
+    (d.vocab || []).forEach(function(it) {
+      if (it && it.w) wbVocabLookup.set(it.w.trim().toLowerCase(), { w: it.w.trim(), r: (it.r || it.w).trim(), p: it.p || "other", m: (it.fullM || it.m || "").trim() });
+    });
+    (d.acro || []).forEach(function(it) {
+      if (it && it.acro && !wbVocabLookup.has(it.acro.trim().toLowerCase())) {
+        wbVocabLookup.set(it.acro.trim().toLowerCase(), { w: it.acro.trim(), r: (it.full || it.acro).trim(), p: "singkatan", m: (it.tr || "").trim() });
+      }
+    });
+  }
+
+  function loadFastWbData() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(WB_STORAGE_KEY) || "null");
+      if (raw && Array.isArray(raw.folders) && raw.folders.length > 0 && raw.items) return raw;
+    } catch (e) {}
+    return { folders: [{ id: "folder_1", name: "フォルダ1", createdAt: 1 }], items: {} };
+  }
+
+  function saveFastWbData(wbData) {
+    try { localStorage.setItem(WB_STORAGE_KEY, JSON.stringify(wbData)); } catch (e) {}
+    const topBadge = document.getElementById("badge-wordbook-count");
+    if (topBadge) {
+      let total = 0;
+      Object.keys(wbData.items || {}).forEach(k => {
+        if (wbData.items[k] && Array.isArray(wbData.items[k].fIds) && wbData.items[k].fIds.length > 0) total++;
+      });
+      topBadge.textContent = String(total);
+    }
+  }
+
+  function formatFastWbMeaning(rawText) {
+    if (!rawText) return "";
+    const parts = String(rawText).split(/(?=[①②③④⑤⑥⑦⑧⑨⑩])/g).map(s => s.trim()).filter(Boolean);
+    const list = parts.length > 0 ? parts : [String(rawText).trim()];
+    return list.map(function(part) {
+      let s = escHtml(part);
+      s = s.replace(/^([①②③④⑤⑥⑦⑧⑨⑩])\s*/, '<span class="wi-wb-num">$1</span>');
+      s = s.replace(/([（(][^）)]+[）)])/g, '<span class="wi-wb-sub-paren">$1</span>');
+      return `<span class="wi-wb-sense-line">${s}</span>`;
+    }).join("");
+  }
+
+  let fastWbState = {
+    activeFolderId: "folder_1",
+    statusFilter: 0,
+    sortBy: "added_desc",
+    searchQuery: "",
+    maskMeaning: false,
+    addSearchOpen: false,
+    entries: [],
+    renderedCount: 0
+  };
+
+  function openFastWordbookModal() {
+    ensureWbVocabLookup();
+    let modal = document.getElementById("wi-wordbook-modal");
+    if (!modal) {
+      modal = document.createElement("div");
+      modal.className = "modal-overlay";
+      modal.id = "wi-wordbook-modal";
+      modal.innerHTML = `<div class="modal-box wide-dict-box" id="wi-wb-modal-inner" style="max-width:820px;height:86vh;"></div>`;
+      document.body.appendChild(modal);
+      modal.addEventListener("click", function(e) {
+        if (e.target === modal) modal.classList.remove("open");
+      });
+    }
+    modal.classList.add("open");
+    renderFastWordbookModal(false);
+  }
+
+  function buildWbRowElement(entry) {
+    const { rec, info, stLv } = entry;
+    const stLabel  = stLv === 1 ? "未暗記" : stLv === 2 ? "うろ覚え" : "済";
+    const posLabel = info.p === "v" ? "動詞" : info.p === "a" ? "形容詞" : info.p === "n" ? "名詞" : info.p === "singkatan" ? "略語" : "他";
+
+    const row = document.createElement("div");
+    row.className = "wi-wb-word-row";
+    row.setAttribute("data-wb-word", info.w);
+    row.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;">
+          <strong class="wb-row-open-dict" style="font-size:1.03rem;color:#075e54;cursor:pointer;text-decoration:underline;">${escHtml(info.w)}</strong>
+          <span style="font-size:0.74rem;color:#64748b;">[${escHtml(info.r)}]</span>
+          <span class="az-pos-badge">${posLabel}</span>
+          <button type="button" class="wi-lv-dot-btn lv-${stLv} wb-row-status-btn">${stLabel}</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <button type="button" class="inline-audio-chip wb-row-tts">🔊 発音</button>
+          <button type="button" class="inline-audio-chip wi-wb-trigger-btn wb-row-folder-pop" data-wb-word="${escHtml(info.w)}">メモ・移動</button>
+          <button type="button" class="inline-audio-chip wb-row-open-dict">辞書</button>
+          <button type="button" class="inline-audio-chip wb-row-remove" style="color:#b91c1c;border-color:#fecaca;background:#fff1f2;">削除</button>
+        </div>
+      </div>
+      <div class="wb-row-meaning ${fastWbState.maskMeaning ? 'wi-wb-masked-meaning' : ''}" style="font-size:0.92rem;font-weight:700;color:#0f172a;margin-top:2px;">
+        ${formatFastWbMeaning(info.m)}
+      </div>
+      ${rec.memo ? `<div class="wi-wb-inline-mynote"><span><strong>メモ：</strong>${escHtml(rec.memo)}</span></div>` : ""}
+    `;
+    return row;
+  }
+
+  function appendNextWbChunk() {
+    const listEl = document.getElementById("wb-words-container");
+    if (!listEl) return;
+    const oldMore = listEl.querySelector(".wb-load-more-ind");
+    if (oldMore) oldMore.remove();
+
+    const entries = fastWbState.entries;
+    const end = Math.min(fastWbState.renderedCount + 40, entries.length);
+    const frag = document.createDocumentFragment();
+
+    for (let i = fastWbState.renderedCount; i < end; i++) {
+      frag.appendChild(buildWbRowElement(entries[i]));
+    }
+    listEl.appendChild(frag);
+    fastWbState.renderedCount = end;
+
+    if (fastWbState.renderedCount < entries.length) {
+      const ind = document.createElement("div");
+      ind.className = "wb-load-more-ind";
+      ind.style.cssText = "text-align:center;padding:10px;font-size:0.78rem;color:#64748b;font-weight:600;";
+      ind.textContent = `▼ スクロールでさらに表示（残り ${entries.length - fastWbState.renderedCount} 語）`;
+      listEl.appendChild(ind);
+    }
+  }
+
+  function renderFastWordbookModal(preserveScroll) {
+    const modal = document.getElementById("wi-wordbook-modal");
+    const inner = document.getElementById("wi-wb-modal-inner");
+    if (!modal || !inner) return;
+
+    ensureWbVocabLookup();
+    const prevContainer = document.getElementById("wb-words-container");
+    const prevScroll = (preserveScroll && prevContainer) ? prevContainer.scrollTop : 0;
+
+    const wbData = loadFastWbData();
+    if (fastWbState.activeFolderId !== "ALL" && !wbData.folders.some(f => f.id === fastWbState.activeFolderId)) {
+      fastWbState.activeFolderId = wbData.folders[0] ? wbData.folders[0].id : "ALL";
+    }
+    const activeFolderObj = wbData.folders.find(f => f.id === fastWbState.activeFolderId) || null;
+
+    // 1回のループで各フォルダの単語数と現在のフィルタ結果を集計
+    const folderCounts = { ALL: 0 };
+    wbData.folders.forEach(f => { folderCounts[f.id] = 0; });
+
+    const rawEntries = [];
+    const q = (fastWbState.searchQuery || "").trim().toLowerCase();
+
+    Object.keys(wbData.items || {}).forEach(function(k) {
+      const rec = wbData.items[k];
+      if (!rec || !Array.isArray(rec.fIds) || rec.fIds.length === 0) return;
+
+      folderCounts.ALL++;
+      for (let i = 0; i < rec.fIds.length; i++) {
+        const fid = rec.fIds[i];
+        if (folderCounts[fid] !== undefined) folderCounts[fid]++;
+      }
+
+      if (fastWbState.activeFolderId !== "ALL" && !rec.fIds.includes(fastWbState.activeFolderId)) return;
+      const stLv = rec.status || rec.lv || 1;
+      if (fastWbState.statusFilter !== 0 && stLv !== fastWbState.statusFilter) return;
+
+      const mInfo = wbVocabLookup.get(k) || { w: rec.w || k, r: rec.w || k, p: "other", m: "（辞書データ外）" };
+      if (q) {
+        const hit = mInfo.w.toLowerCase().includes(q) || mInfo.r.toLowerCase().includes(q) || mInfo.m.toLowerCase().includes(q) || (rec.memo && rec.memo.toLowerCase().includes(q));
+        if (!hit) return;
+      }
+      rawEntries.push({ key: k, rec: rec, info: mInfo, stLv: stLv });
+    });
+
+    rawEntries.sort(function(a, b) {
+      if (fastWbState.sortBy === "word_asc") return a.info.w.toLowerCase().localeCompare(b.info.w.toLowerCase());
+      if (fastWbState.sortBy === "root_asc") return (a.info.r + a.info.w).toLowerCase().localeCompare((b.info.r + b.info.w).toLowerCase());
+      if (fastWbState.sortBy === "status_asc") return a.stLv - b.stLv;
+      return (b.rec.addedAt || 0) - (a.rec.addedAt || 0);
+    });
+
+    fastWbState.entries = rawEntries;
+    fastWbState.renderedCount = 0;
+
+    const folderTabsHtml = [
+      ...wbData.folders.map(f => `<button type="button" class="wi-wb-folder-tab ${fastWbState.activeFolderId === f.id ? 'active' : ''}" data-wbf="${escHtml(f.id)}">${escHtml(f.name)} (${folderCounts[f.id] || 0})</button>`),
+      wbData.folders.length > 1 ? `<button type="button" class="wi-wb-folder-tab ${fastWbState.activeFolderId === 'ALL' ? 'active' : ''}" data-wbf="ALL">全フォルダ (${folderCounts.ALL})</button>` : "",
+      `<button type="button" class="wi-wb-folder-tab" id="btn-wb-add-folder" style="border-style:dashed;color:#075e54;">＋ フォルダ追加</button>`
+    ].join("");
+
+    inner.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding-bottom:8px;border-bottom:1px solid #e2e8f0;flex-shrink:0;flex-wrap:wrap;">
+        <div><h3 style="color:#111b21;font-size:1.02rem;font-weight:800;">マイ単語帳（全 ${folderCounts.ALL} 語）</h3></div>
+        <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;">
+          <button type="button" class="sub-filter-pill ${fastWbState.addSearchOpen ? 'active' : ''}" id="btn-wb-toggle-addsearch">＋ 単語を追加</button>
+          <button type="button" class="sub-filter-pill" id="btn-wb-import-stars">単語スターを取込</button>
+          ${activeFolderObj ? `<button type="button" class="sub-filter-pill" id="btn-wb-rename-folder">名前変更</button>` : ""}
+          ${activeFolderObj && wbData.folders.length > 1 ? `<button type="button" class="sub-filter-pill" id="btn-wb-delete-folder" style="color:#b91c1c;">フォルダ削除</button>` : ""}
+          <button type="button" class="top-action-btn" id="btn-wb-close-modal">✕ 閉じる</button>
+        </div>
+      </div>
+
+      <div class="wi-wb-folder-tabs">${folderTabsHtml}</div>
+
+      <div id="wb-direct-add-drawer" style="display:${fastWbState.addSearchOpen ? 'flex' : 'none'};flex-direction:column;gap:6px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:7px;padding:8px 10px;margin-top:6px;flex-shrink:0;">
+        <input type="text" id="wb-direct-add-input" placeholder="追加したい単語や意味を検索..." style="width:100%;border:1px solid #94a3b8;border-radius:5px;padding:5px 9px;font-size:0.8rem;outline:none;" />
+        <div id="wb-direct-add-results" style="max-height:140px;overflow-y:auto;display:flex;flex-direction:column;gap:3px;"></div>
+      </div>
+
+      <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:space-between;padding:8px 0 4px 0;flex-shrink:0;">
+        <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;">
+          <button type="button" class="sub-filter-pill ${fastWbState.statusFilter === 0 ? 'active' : ''}" data-wbst="0">すべて (${rawEntries.length})</button>
+          <button type="button" class="sub-filter-pill ${fastWbState.statusFilter === 1 ? 'active' : ''}" data-wbst="1">未暗記</button>
+          <button type="button" class="sub-filter-pill ${fastWbState.statusFilter === 2 ? 'active' : ''}" data-wbst="2">うろ覚え</button>
+          <button type="button" class="sub-filter-pill ${fastWbState.statusFilter === 3 ? 'active' : ''}" data-wbst="3">済</button>
+          <button type="button" class="sub-filter-pill ${fastWbState.maskMeaning ? 'active' : ''}" id="btn-wb-mask-meaning" style="margin-left:4px;">意味を隠す</button>
+        </div>
+        <div style="display:flex;gap:5px;align-items:center;">
+          <select id="wb-sort-select" style="border:1px solid #cbd5e1;border-radius:5px;padding:4px 7px;font-size:0.75rem;color:#334155;outline:none;">
+            <option value="added_desc" ${fastWbState.sortBy === 'added_desc' ? 'selected' : ''}>追加順</option>
+            <option value="word_asc" ${fastWbState.sortBy === 'word_asc' ? 'selected' : ''}>A–Z順</option>
+            <option value="root_asc" ${fastWbState.sortBy === 'root_asc' ? 'selected' : ''}>語幹順</option>
+            <option value="status_asc" ${fastWbState.sortBy === 'status_asc' ? 'selected' : ''}>未暗記優先</option>
+          </select>
+          <input type="text" id="wb-filter-input" value="${escHtml(fastWbState.searchQuery)}" placeholder="絞り込み..." style="border:1px solid #cbd5e1;border-radius:5px;padding:4px 8px;font-size:0.76rem;outline:none;width:125px;" />
+        </div>
+      </div>
+
+      <div class="az-list-container" id="wb-words-container"></div>
+    `;
+
+    const listEl = document.getElementById("wb-words-container");
+    if (!rawEntries.length) {
+      listEl.innerHTML = `<div style="padding:32px 16px;text-align:center;color:#64748b;font-size:0.86rem;line-height:1.7;">このフォルダにはまだ単語が登録されていません。</div>`;
+    } else {
+      appendNextWbChunk();
+      if (prevScroll > 0) listEl.scrollTop = prevScroll;
+      listEl.onscroll = function() {
+        if (fastWbState.renderedCount < fastWbState.entries.length) {
+          if (listEl.scrollTop + listEl.clientHeight >= listEl.scrollHeight - 380) {
+            appendNextWbChunk();
+          }
+        }
+      };
+    }
+
+    // 親要素1つでのイベントデリゲーション（何百語あってもリスナー登録は1個だけ！）
+    listEl.onclick = function(e) {
+      const row = e.target.closest(".wi-wb-word-row");
+      if (!row) return;
+      const w = row.getAttribute("data-wb-word");
+      const key = (w || "").trim().toLowerCase();
+
+      if (e.target.closest(".wb-row-open-dict")) {
+        const dIn = document.getElementById("dict-input");
+        const dDrop = document.getElementById("dict-dropdown");
+        if (dIn && dDrop) {
+          const prev = dIn.value;
+          dIn.value = w;
+          dIn.dispatchEvent(new Event("input"));
+          const items = Array.from(dDrop.querySelectorAll(".dict-item"));
+          const hit = items.find(r => r.querySelector("strong") && r.querySelector("strong").textContent.trim().toLowerCase() === key) || items[0];
+          if (hit) hit.click();
+          dIn.value = prev;
+          dDrop.style.display = "none";
+        }
+        return;
+      }
+
+      if (e.target.closest(".wb-row-tts")) {
+        if (window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+          const u = new SpeechSynthesisUtterance(w);
+          u.lang = "id-ID";
+          window.speechSynthesis.speak(u);
+        }
+        return;
+      }
+
+      const stBtn = e.target.closest(".wb-row-status-btn");
+      if (stBtn) {
+        const curWb = loadFastWbData();
+        if (!curWb.items[key]) return;
+        const curLv = curWb.items[key].status || curWb.items[key].lv || 1;
+        const nextLv = curLv === 1 ? 2 : curLv === 2 ? 3 : 1;
+        curWb.items[key].status = nextLv;
+        saveFastWbData(curWb);
+        stBtn.className = `wi-lv-dot-btn lv-${nextLv} wb-row-status-btn`;
+        stBtn.textContent = nextLv === 1 ? "未暗記" : nextLv === 2 ? "うろ覚え" : "済";
+        return;
+      }
+
+      if (e.target.closest(".wb-row-remove")) {
+        const curWb = loadFastWbData();
+        if (!curWb.items[key]) return;
+        if (fastWbState.activeFolderId === "ALL") curWb.items[key].fIds = [];
+        else if (Array.isArray(curWb.items[key].fIds)) {
+          curWb.items[key].fIds = curWb.items[key].fIds.filter(id => id !== fastWbState.activeFolderId);
+        }
+        saveFastWbData(curWb);
+        row.remove();
+        return;
+      }
+
+      const meanEl = e.target.closest(".wb-row-meaning");
+      if (meanEl && meanEl.classList.contains("wi-wb-masked-meaning")) {
+        meanEl.classList.toggle("revealed");
+      }
+    };
+
+    // 上部ボタン群の結線
+    inner.querySelector("#btn-wb-close-modal").onclick = function() { modal.classList.remove("open"); };
+    inner.querySelectorAll("[data-wbf]").forEach(function(tab) {
+      tab.onclick = function() {
+        fastWbState.activeFolderId = tab.getAttribute("data-wbf");
+        renderFastWordbookModal(false);
+      };
+    });
+    inner.querySelector("#btn-wb-add-folder").onclick = function() {
+      const curWb = loadFastWbData();
+      const name = prompt("新しいフォルダ名を入力してください：", `フォルダ${curWb.folders.length + 1}`);
+      if (!name || !name.trim()) return;
+      const newId = "f_" + Date.now();
+      curWb.folders.push({ id: newId, name: name.trim(), createdAt: Date.now() });
+      fastWbState.activeFolderId = newId;
+      saveFastWbData(curWb);
+      renderFastWordbookModal(false);
+    };
+    const renBtn = inner.querySelector("#btn-wb-rename-folder");
+    if (renBtn && activeFolderObj) {
+      renBtn.onclick = function() {
+        const curWb = loadFastWbData();
+        const tf = curWb.folders.find(f => f.id === activeFolderObj.id);
+        if (!tf) return;
+        const nn = prompt("フォルダ名を変更：", tf.name);
+        if (!nn || !nn.trim()) return;
+        tf.name = nn.trim();
+        saveFastWbData(curWb);
+        renderFastWordbookModal(true);
+      };
+    }
+    const delBtn = inner.querySelector("#btn-wb-delete-folder");
+    if (delBtn && activeFolderObj) {
+      delBtn.onclick = function() {
+        const curWb = loadFastWbData();
+        if (curWb.folders.length <= 1 || !confirm(`「${activeFolderObj.name}」を削除しますか？`)) return;
+        const delId = activeFolderObj.id;
+        curWb.folders = curWb.folders.filter(f => f.id !== delId);
+        Object.keys(curWb.items || {}).forEach(k => {
+          if (curWb.items[k] && Array.isArray(curWb.items[k].fIds)) {
+            curWb.items[k].fIds = curWb.items[k].fIds.filter(id => id !== delId);
+          }
+        });
+        fastWbState.activeFolderId = curWb.folders[0].id;
+        saveFastWbData(curWb);
+        renderFastWordbookModal(false);
+      };
+    }
+    inner.querySelector("#btn-wb-toggle-addsearch").onclick = function() {
+      fastWbState.addSearchOpen = !fastWbState.addSearchOpen;
+      renderFastWordbookModal(true);
+    };
+    inner.querySelector("#btn-wb-import-stars").onclick = function() {
+      const curWb = loadFastWbData();
+      const targetFid = activeFolderObj ? activeFolderObj.id : curWb.folders[0].id;
+      const wStars = getWordStarsList();
+      let cnt = 0;
+      wStars.forEach(function(stItem) {
+        let w = stItem.ttsWord || (stItem.id ? stItem.id.split("::").pop() : "");
+        const key = (w || "").trim().toLowerCase();
+        if (key && wbVocabLookup.has(key)) {
+          const origW = wbVocabLookup.get(key).w;
+          if (!curWb.items[key]) {
+            curWb.items[key] = { w: origW, fIds: [targetFid], status: 1, memo: "", addedAt: Date.now() };
+            cnt++;
+          } else if (!curWb.items[key].fIds.includes(targetFid)) {
+            curWb.items[key].fIds.push(targetFid);
+            cnt++;
+          }
+        }
+      });
+      saveFastWbData(curWb);
+      alert(`単語スターから ${cnt} 語を追加しました。`);
+      renderFastWordbookModal(true);
+    };
+    inner.querySelectorAll("[data-wbst]").forEach(function(b) {
+      b.onclick = function() {
+        fastWbState.statusFilter = parseInt(b.getAttribute("data-wbst"), 10);
+        renderFastWordbookModal(false);
+      };
+    });
+    const maskBtn = inner.querySelector("#btn-wb-mask-meaning");
+    if (maskBtn) {
+      maskBtn.onclick = function() {
+        fastWbState.maskMeaning = !fastWbState.maskMeaning;
+        maskBtn.classList.toggle("active", fastWbState.maskMeaning);
+        listEl.querySelectorAll(".wb-row-meaning").forEach(function(el) {
+          el.classList.toggle("wi-wb-masked-meaning", fastWbState.maskMeaning);
+          el.classList.remove("revealed");
+        });
+      };
+    }
+    inner.querySelector("#wb-sort-select").onchange = function(e) {
+      fastWbState.sortBy = e.target.value;
+      renderFastWordbookModal(false);
+    };
+    const fIn = inner.querySelector("#wb-filter-input");
+    fIn.oninput = function() {
+      fastWbState.searchQuery = fIn.value;
+      renderFastWordbookModal(false);
+      const nf = document.getElementById("wb-filter-input");
+      if (nf) { nf.focus(); nf.setSelectionRange(nf.value.length, nf.value.length); }
+    };
+  }
+
+  // 左上の「単語帳」ボタンをクリックした際、この超軽量版モーダルを最優先で開く
+  window.addEventListener("click", function(e) {
+    if (!e.target || !e.target.closest) return;
+    if (e.target.closest("#btn-wordbook-top")) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+      openFastWordbookModal();
+    }
+  }, true);
+
+  // -------------------------------------------------------------------
+  // 6. 起動＆画面更新フック
+  // -------------------------------------------------------------------
+  function bootAllFiveUpgrades() {
+    removeDarkModeCompletely();
+    sanitizeSinonimTargets();
+    indexDebateItems();
+    if (typeof window.__reloadWhatsIndo === "function") {
+      try { window.__reloadWhatsIndo(); } catch (e) {}
+    }
+    updateDualStarBadges();
+
+    const chatList = document.getElementById("wa-chat-list");
+    if (chatList && !chatList.__wiFiveUpObs) {
+      chatList.__wiFiveUpObs = true;
+      new MutationObserver(updateDualStarBadges).observe(chatList, { childList: true });
+    }
+
+    const area = document.getElementById("chat-messages-area");
+    if (area && !area.__wiFiveAreaObs) {
+      area.__wiFiveAreaObs = true;
+      new MutationObserver(function() {
+        updateDualStarBadges();
+        area.querySelectorAll(".msg-row-in").forEach(function(row) {
+          if (row.querySelector(".exp-compact-summary")) {
+            enhanceDebateAndSinonimCard(row);
+          }
+        });
+      }).observe(area, { childList: true });
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function() {
+      setTimeout(bootAllFiveUpgrades, 50);
+    });
+  } else {
+    setTimeout(bootAllFiveUpgrades, 50);
+  }
+})();
+/* =====================================================================
+   WhatsIndo スター復習統合（内部フィルタ＆リスト選択・本体エンジン直結）＆
+   単語帳メモリ解放・ダークモード廃止・類義語・ゼミ討論修正パッチ
+   1. スターを「スター復習」1つに統合し、その内部で「すべて / 単語・略語 / 問題（分野別）」および
+      「ランダム出題 / リストから選ぶ」を切り替え（絵文字なし・目に優しい配色）
+   2. 本体の出題エンジン(loadNextQuestion)をそのまま使うため、効果音・入力中(...)演出・
+      ユーザーのヒントON/OFF設定・数字の即時反映が100%正常に動作
+   3. 単語帳モーダルは初回40語分割描画に加え、閉じた瞬間に内部DOMを完全破棄して後の重さをゼロ化
+   4. ダークモード廃止、類義語・対義語の出題時日本語隠し、ゼミ討論の全文和訳復活を完備
+   ===================================================================== */
+(function() {
+  const d = window.WHATSINDO_EXTERNAL_DATA;
+  if (!d) return;
+
+  const STAR_STORAGE_KEY = "wi_stars_v2";
+  const WB_STORAGE_KEY   = "wi_custom_wordbooks_v1";
+
+  function escHtml(str) {
+    return String(str || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  // -------------------------------------------------------------------
+  // 0. 前回パッチの分割ボタン等があればクリーンアップ ＆ ダークモード完全廃止
+  // -------------------------------------------------------------------
+  function cleanupPreviousAndDarkMode() {
+    document.body.classList.remove("wi-dark");
+    try { localStorage.removeItem("wi_dark_mode_v35"); } catch (e) {}
+
+    ["btn-v35-theme-toggle", "btn-prob-star-top", "wa-room-prob-star", "wi-five-upgrades-style"].forEach(function(id) {
+      const el = document.getElementById(id);
+      if (el) el.remove();
+    });
+
+    const revPill = document.querySelector('#cat-pills .wa-pill[data-cat="review"]');
+    if (revPill) revPill.textContent = "復習 (2)";
+
+    const origStarBtn = document.getElementById("btn-star-top");
+    if (origStarBtn) {
+      origStarBtn.className = "top-action-btn star-btn";
+      const labelSpan = origStarBtn.querySelector("span:first-child");
+      if (labelSpan) labelSpan.textContent = "スター";
+    }
+  }
+  cleanupPreviousAndDarkMode();
+
+  // -------------------------------------------------------------------
+  // 1. 目に優しい落ち着いたスタイル定義（絵文字なし・クリーン配色）
+  // -------------------------------------------------------------------
+  if (!document.getElementById("wi-unified-star-and-fixes-style")) {
+    const st = document.createElement("style");
+    st.id = "wi-unified-star-and-fixes-style";
+    st.textContent = `
+      #btn-v35-theme-toggle, #btn-prob-star-top, #wa-room-prob-star { display: none !important; }
+
+      /* スター復習内のリスト選択ビュー（目に優しい落ち着いた配色） */
+      .wi-star-browser-wrap {
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+        width: 100%;
+        max-width: 780px;
+        margin: 0 auto;
+        padding: 4px 0 18px 0;
+      }
+      .wi-star-browser-card {
+        background: #ffffff;
+        border: 1px solid #d1d7db;
+        border-left: 3.5px solid #008069;
+        border-radius: 8px;
+        padding: 10px 13px;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        cursor: pointer;
+        transition: background 0.12s, border-color 0.12s;
+      }
+      .wi-star-browser-card:hover {
+        background: #f8fafc;
+        border-color: #008069;
+      }
+      .wi-star-browser-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .wi-star-type-tag {
+        background: #f1f5f9;
+        color: #334155;
+        border: 1px solid #cbd5e1;
+        font-size: 0.72rem;
+        font-weight: 600;
+        padding: 1px 8px;
+        border-radius: 6px;
+      }
+      .wi-star-card-actions {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .wi-star-solve-btn {
+        background: #008069;
+        color: #ffffff;
+        border: none;
+        border-radius: 6px;
+        padding: 4px 11px;
+        font-size: 0.74rem;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .wi-star-solve-btn:hover { background: #075e54; }
+      .wi-star-remove-btn {
+        background: #f8fafc;
+        color: #64748b;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        padding: 3px 9px;
+        font-size: 0.73rem;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .wi-star-remove-btn:hover {
+        background: #fee2e2;
+        color: #b91c1c;
+        border-color: #fca5a5;
+      }
+      .wi-star-preview-txt {
+        font-size: 0.91rem;
+        color: #111b21;
+        line-height: 1.54;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+
+      /* ゼミ討論の全文和訳ボックス */
+      .wi-debate-tr-box {
+        background: #f8fafc;
+        border: 1px solid #cbd5e1;
+        border-left: 3px solid #008069;
+        border-radius: 7px;
+        padding: 8px 11px;
+        margin-top: 4px;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .wi-debate-tr-title {
+        font-size: 0.74rem;
+        font-weight: 700;
+        color: #0f766e;
+        border-bottom: 1px dashed #cbd5e1;
+        padding-bottom: 3px;
+      }
+      .wi-debate-tr-line {
+        font-size: 0.85rem;
+        color: #1e293b;
+        line-height: 1.58;
+      }
+    `;
+    document.head.appendChild(st);
+  }
+
+  // -------------------------------------------------------------------
+  // 2. 類義語・対義語（d.sinonim）の出題文から日本語を隠し、ヒント＆解説に回す
+  // -------------------------------------------------------------------
+  const sinonimFullMap = new Map();
+
+  function sanitizeSinonimTargets() {
+    if (!Array.isArray(d.sinonim)) return;
+    for (let i = 0; i < d.sinonim.length; i++) {
+      const it = d.sinonim[i];
+      if (!it || !it.target) continue;
+
+      const origTarget = it.__origTarget || it.target;
+      it.__origTarget = origTarget;
+
+      const jaMatch = origTarget.match(/[（(]([^）)]*[\u3040-\u30FF\u4E00-\u9FFF][^）)]*)[）)]/);
+      const jaMeaning = jaMatch ? jaMatch[1].trim() : "";
+      const cleanTarget = origTarget
+        .replace(/\s*[（(][^）)]*[\u3040-\u30FF\u4E00-\u9FFF][^）)]*[）)]/g, "")
+        .replace(/\s{2,}/g, " ")
+        .trim();
+
+      it.target = cleanTarget;
+      it.__jaMeaning = jaMeaning;
+
+      if (jaMeaning && it.exp && it.exp.indexOf(jaMeaning) === -1) {
+        it.exp = `【問題語の意味】${cleanTarget.replace(/\s*⇔.*$/, "")}（${jaMeaning}）\n` + it.exp;
+      }
+
+      sinonimFullMap.set(cleanTarget.toLowerCase(), it);
+      sinonimFullMap.set(origTarget.toLowerCase(), it);
+    }
+
+    ["wi_wrongs_v2", STAR_STORAGE_KEY].forEach(function(sKey) {
+      try {
+        const list = JSON.parse(localStorage.getItem(sKey) || "[]");
+        if (!Array.isArray(list)) return;
+        let modified = false;
+        list.forEach(function(q) {
+          if (q && (q.effectiveMode === "sinonim" || (q.id && q.id.startsWith("sin::"))) && q.mainHtml) {
+            const m = q.mainHtml.match(/[（(]([^）)]*[\u3040-\u30FF\u4E00-\u9FFF][^）)]*)[）)]/);
+            if (m) {
+              if (!q.hintHtml || q.hintHtml.indexOf(m[1]) === -1) {
+                q.hintHtml = `意味: <strong>${escHtml(m[1])}</strong>` + (q.hintHtml ? `<br>${q.hintHtml}` : "");
+              }
+              q.mainHtml = q.mainHtml.replace(/\s*[（(][^）)]*[\u3040-\u30FF\u4E00-\u9FFF][^）)]*[）)]/g, "").trim();
+              modified = true;
+            }
+          }
+        });
+        if (modified) localStorage.setItem(sKey, JSON.stringify(list));
+      } catch (e) {}
+    });
+  }
+  sanitizeSinonimTargets();
+
+  // -------------------------------------------------------------------
+  // 3. ゼミ討論グループ（d.debate）の全文日本語訳（trThread）復活
+  // -------------------------------------------------------------------
+  const debateByAns = new Map();
+  function indexDebateItems() {
+    debateByAns.clear();
+    (d.debate || []).forEach(function(it) {
+      if (!it) return;
+      if (Array.isArray(it.choices) && typeof it.ans === "number" && it.choices[it.ans]) {
+        debateByAns.set(it.choices[it.ans].trim().toLowerCase(), it);
+      }
+    });
+  }
+  indexDebateItems();
+
+  function formatDebateTrThreadHtml(trThreadStr) {
+    if (!trThreadStr) return "";
+    const lines = String(trThreadStr)
+      .replace(/\[cite:\s*[\d,\s]+\]/gi, "")
+      .split(/\n+/)
+      .map(l => l.trim())
+      .filter(Boolean);
+    if (!lines.length) return "";
+
+    const rowsHtml = lines.map(function(line) {
+      const cIdx = line.search(/[：:]/);
+      if (cIdx > 0 && cIdx < 28) {
+        const speaker = line.slice(0, cIdx).trim();
+        const body    = line.slice(cIdx + 1).trim();
+        return `<div class="wi-debate-tr-line"><strong style="color:#075e54;">${escHtml(speaker)}：</strong>${escHtml(body)}</div>`;
+      }
+      return `<div class="wi-debate-tr-line">${escHtml(line)}</div>`;
+    }).join("");
+
+    return `
+      <div class="wi-debate-tr-box">
+        <div class="wi-debate-tr-title">討論スレッドと設問の全文和訳</div>
+        ${rowsHtml}
+      </div>
+    `;
+  }
+
+  function enhanceDebateAndSinonimCard(expRow) {
+    if (!expRow) return;
+    const summaryBox = expRow.querySelector(".exp-compact-summary");
+    if (!summaryBox) return;
+
+    const ansEl  = summaryBox.querySelector(".exp-summary-ans");
+    const sentEl = summaryBox.querySelector(".exp-summary-sent");
+    if (!ansEl) return;
+
+    const rawAns = (ansEl.getAttribute("data-raw-ans") || ansEl.textContent || "").trim();
+
+    // (A) 類義語・対義語カード：回答後の見出しに日本語意味を復元
+    if (rawAns.indexOf("➔ 正解：") !== -1) {
+      const targetKey = rawAns.split("➔")[0].trim().toLowerCase();
+      const sinItem = sinonimFullMap.get(targetKey);
+      if (sinItem && sinItem.__origTarget && rawAns.indexOf(sinItem.__origTarget) === -1) {
+        ansEl.textContent = `${sinItem.__origTarget} ➔ 正解：${sinItem.a}`;
+      }
+    }
+
+    // (B) ゼミ討論カード：討論スレッドの全文和訳（trThread）を表示
+    if (rawAns.indexOf("【正解の主張】") !== -1) {
+      if (summaryBox.querySelector(".wi-debate-tr-box")) return;
+      const ansTextLower = sentEl ? sentEl.textContent.trim().toLowerCase() : "";
+      const debItem = debateByAns.get(ansTextLower);
+      let trThreadText = debItem ? debItem.trThread : "";
+      if (!trThreadText) {
+        const greenCardContent = expRow.querySelector(".exp-accordion-body .exp-sec-card.green .exp-sec-content");
+        if (greenCardContent) trThreadText = greenCardContent.textContent.trim();
+      }
+      if (trThreadText) {
+        const trHtml = formatDebateTrThreadHtml(trThreadText);
+        if (sentEl) sentEl.insertAdjacentHTML("afterend", trHtml);
+        else summaryBox.insertAdjacentHTML("beforeend", trHtml);
+      }
+    }
+  }
+
+  // -------------------------------------------------------------------
+  // 4. 統合版「スター復習」内部フィルタ ＆ リスト選択エンジン（本体エンジン100%直結！）
+  // -------------------------------------------------------------------
+  function readStarItems() {
+    try {
+      const list = JSON.parse(localStorage.getItem(STAR_STORAGE_KEY) || "[]");
+      return Array.isArray(list) ? list : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function classifyStarEntry(it) {
+    if (!it || typeof it !== "object") return { group: "word", cat: "word", label: "単語" };
+    const eff = it.effectiveMode || "";
+    const qid = String(it.id || "");
+    if (["v", "a", "n", "other", "singkatan"].includes(eff) || /^(?:voc|voc_ja2id|abbr_ja|abbr_full|ctx::voc)::/i.test(qid)) {
+      const pLabel = eff === "v" ? "動詞" : eff === "a" ? "形容詞" : eff === "n" ? "名詞" : eff === "singkatan" ? "略語" : "単語・他";
+      return { group: "word", cat: "word", label: pLabel };
+    }
+    if (eff === "listening" || qid.startsWith("lis::")) return { group: "prob", cat: "listen", label: "リスニング" };
+    if (eff === "trans" || qid.startsWith("tr::")) return { group: "prob", cat: "reading", label: "長文適訳" };
+    if (eff === "contextJa" || qid.startsWith("ctx::")) return { group: "prob", cat: "reading", label: "文脈下線和訳" };
+    if (eff === "conj" || qid.startsWith("conj::")) return { group: "prob", cat: "grammar", label: "語幹活用" };
+    if (eff === "error" || qid.startsWith("err::")) return { group: "prob", cat: "grammar", label: "誤文訂正" };
+    if (eff === "prep" || qid.startsWith("prep::")) return { group: "prob", cat: "grammar", label: "前置詞・コロケーション" };
+    if (eff === "sinonim" || qid.startsWith("sin::")) return { group: "prob", cat: "expr", label: "類義語・対義語" };
+    if (eff === "idiom" || qid.startsWith("id::") || qid.startsWith("idiom::")) return { group: "prob", cat: "expr", label: "慣用句" };
+    if (eff === "proverb" || qid.startsWith("pb::")) return { group: "prob", cat: "expr", label: "ことわざ" };
+    if (eff === "slang" || qid.startsWith("slang::")) return { group: "prob", cat: "chat", label: "スラング会話" };
+    if (eff === "debate" || qid.startsWith("deb::")) return { group: "prob", cat: "chat", label: "ゼミ討論" };
+    return { group: "prob", cat: "other", label: it.sender || "問題" };
+  }
+
+  let starFilterState = {
+    viewMode: "random", // "random" (通常出題) | "list" (リストから選ぶ)
+    filterKey: "all",   // "all" | "word" | "prob" | "listen" | "reading" | "grammar" | "expr" | "chat"
+    forcedNextStarIndex: -1,
+    renderedListCount: 0,
+    filteredEntries: [] // { item, origIndex, meta }
+  };
+
+  function isStarredModeActiveNow() {
+    const hdrName = document.getElementById("hdr-name");
+    return Boolean(hdrName && hdrName.textContent.trim() === "スター復習");
+  }
+
+  function getFilteredStarEntries() {
+    const all = readStarItems();
+    const res = [];
+    for (let i = 0; i < all.length; i++) {
+      const it = all[i];
+      if (!it) continue;
+      const meta = classifyStarEntry(it);
+      const fk = starFilterState.filterKey;
+      const match =
+        fk === "all" ||
+        (fk === "word" && meta.group === "word") ||
+        (fk === "prob" && meta.group === "prob") ||
+        (meta.cat === fk);
+      if (match) {
+        res.push({ item: it, origIndex: i, meta: meta });
+      }
+    }
+    return res;
+  }
+
+  // ★核心：本体の loadNextQuestion() が drawQuestion("starred") で Math.random() を呼ぶ瞬間、
+  //   指定された問題（または現在のフィルタ内の問題）のインデックスを返すようにして、
+  //   本体の効果音・入力中(...)演出・ヒントON/OFF設定を100%そのまま動かす！
+  const origMathRandom = Math.random;
+  let interceptNextStarRandom = false;
+
+  Math.random = function() {
+    if (interceptNextStarRandom && isStarredModeActiveNow()) {
+      interceptNextStarRandom = false;
+      const all = readStarItems();
+      const total = all.length;
+      if (total > 0) {
+        if (starFilterState.forcedNextStarIndex >= 0 && starFilterState.forcedNextStarIndex < total) {
+          const targetIdx = starFilterState.forcedNextStarIndex;
+          starFilterState.forcedNextStarIndex = -1;
+          return (targetIdx + 0.1) / total;
+        }
+        if (starFilterState.filterKey !== "all") {
+          const valid = getFilteredStarEntries();
+          if (valid.length > 0) {
+            const picked = valid[Math.floor(origMathRandom() * valid.length)];
+            return (picked.origIndex + 0.1) / total;
+          }
+        }
+      }
+    }
+    return origMathRandom();
+  };
+
+  function triggerNativeStarQuestionLoad(specificOrigIndex) {
+    const valid = getFilteredStarEntries();
+    if (!valid.length) {
+      const area = document.getElementById("chat-messages-area");
+      const grid = document.getElementById("wa-choices-grid");
+      if (grid) grid.innerHTML = "";
+      if (area) {
+        area.innerHTML = `
+          <div class="wa-date-badge">TODAY — スター復習</div>
+          <div class="msg-row-in">
+            <div class="wa-bubble-left">
+              <div class="msg-main-text">選択中のカテゴリにはスター登録された項目がありません。上のボタンで別のカテゴリを選ぶか、問題や辞書で「☆」を押して追加してください。</div>
+            </div>
+          </div>
+        `;
+      }
+      return;
+    }
+
+    if (typeof specificOrigIndex === "number" && specificOrigIndex >= 0) {
+      starFilterState.forcedNextStarIndex = specificOrigIndex;
+    } else {
+      starFilterState.forcedNextStarIndex = -1;
+    }
+    interceptNextStarRandom = true;
+
+    // 本体純正の「次へ」ボタン（loadNextQuestion）を発火させることで、効果音・入力中(...)演出・ヒント設定がすべて純正のまま動く！
+    const skipBtn = document.getElementById("btn-skip-bottom");
+    if (skipBtn) {
+      skipBtn.click();
+    }
+  }
+
+  function renderStarSubfilterBar() {
+    const bar = document.getElementById("chat-subfilter-bar");
+    if (!bar) return;
+    if (!isStarredModeActiveNow()) return;
+
+    const all = readStarItems();
+    let wordCnt = 0;
+    let probCnt = 0;
+    const catCnt = { listen: 0, reading: 0, grammar: 0, expr: 0, chat: 0 };
+
+    for (let i = 0; i < all.length; i++) {
+      const m = classifyStarEntry(all[i]);
+      if (m.group === "word") wordCnt++;
+      else {
+        probCnt++;
+        if (catCnt[m.cat] !== undefined) catCnt[m.cat]++;
+      }
+    }
+
+    bar.classList.add("show");
+    const fk = starFilterState.filterKey;
+    const vm = starFilterState.viewMode;
+
+    bar.innerHTML = `
+      <div class="sub-filter-group">
+        <button type="button" class="sub-filter-pill ${vm === 'random' ? 'active' : ''}" id="btn-ustar-random">ランダム出題</button>
+        <button type="button" class="sub-filter-pill ${vm === 'list' ? 'active' : ''}" id="btn-ustar-list">リストから選ぶ</button>
+      </div>
+      <div class="sub-filter-group">
+        <button type="button" class="sub-filter-pill ${fk === 'all' ? 'active' : ''}" data-ufk="all">すべて (${all.length})</button>
+        <button type="button" class="sub-filter-pill ${fk === 'word' ? 'active' : ''}" data-ufk="word">単語・略語 (${wordCnt})</button>
+        <button type="button" class="sub-filter-pill ${fk === 'prob' ? 'active' : ''}" data-ufk="prob">問題すべて (${probCnt})</button>
+        <button type="button" class="sub-filter-pill ${fk === 'listen' ? 'active' : ''}" data-ufk="listen">リスニング (${catCnt.listen})</button>
+        <button type="button" class="sub-filter-pill ${fk === 'reading' ? 'active' : ''}" data-ufk="reading">長文・文脈 (${catCnt.reading})</button>
+        <button type="button" class="sub-filter-pill ${fk === 'grammar' ? 'active' : ''}" data-ufk="grammar">文法・活用・誤文・前置詞 (${catCnt.grammar})</button>
+        <button type="button" class="sub-filter-pill ${fk === 'expr' ? 'active' : ''}" data-ufk="expr">類義語・慣用句・ことわざ (${catCnt.expr})</button>
+        <button type="button" class="sub-filter-pill ${fk === 'chat' ? 'active' : ''}" data-ufk="chat">スラング・討論 (${catCnt.chat})</button>
+      </div>
+    `;
+
+    bar.querySelector("#btn-ustar-random").onclick = function() {
+      starFilterState.viewMode = "random";
+      renderStarSubfilterBar();
+      triggerNativeStarQuestionLoad(-1);
+    };
+
+    bar.querySelector("#btn-ustar-list").onclick = function() {
+      starFilterState.viewMode = "list";
+      renderStarSubfilterBar();
+      renderStarBrowserList();
+    };
+
+    bar.querySelectorAll("[data-ufk]").forEach(function(btn) {
+      btn.onclick = function() {
+        starFilterState.filterKey = btn.getAttribute("data-ufk");
+        renderStarSubfilterBar();
+        if (starFilterState.viewMode === "list") {
+          renderStarBrowserList();
+        } else {
+          triggerNativeStarQuestionLoad(-1);
+        }
+      };
+    });
+  }
+
+  function renderStarBrowserList() {
+    const area = document.getElementById("chat-messages-area");
+    const grid = document.getElementById("wa-choices-grid");
+    if (!area || !grid) return;
+    grid.innerHTML = "";
+
+    const entries = getFilteredStarEntries();
+    starFilterState.filteredEntries = entries;
+    starFilterState.renderedListCount = 0;
+
+    area.innerHTML = `
+      <div class="wa-date-badge">スター復習 リスト（項目をクリックすると出題されます）</div>
+      <div class="wi-star-browser-wrap" id="wi-star-browser-wrap"></div>
+    `;
+
+    const wrap = document.getElementById("wi-star-browser-wrap");
+    if (!entries.length) {
+      wrap.innerHTML = `
+        <div class="wa-bubble-left" style="align-self:center;text-align:center;padding:20px;max-width:460px;">
+          <div class="msg-main-text" style="color:#64748b;">該当するスター項目はありません。</div>
+        </div>
+      `;
+      return;
+    }
+
+    function appendNextStarListBatch() {
+      const end = Math.min(starFilterState.renderedListCount + 40, entries.length);
+      const frag = document.createDocumentFragment();
+
+      for (let i = starFilterState.renderedListCount; i < end; i++) {
+        const { item, origIndex, meta } = entries[i];
+        const preview = String(item.mainHtml || "")
+          .replace(/<div class="listen-ctrl-box">[\s\S]*?<\/div>/gi, "")
+          .replace(/<[^>]+>/g, " ")
+          .replace(/\s+/g, " ")
+          .trim() || item.ttsWord || item.correctText || "（音声問題）";
+
+        const card = document.createElement("div");
+        card.className = "wi-star-browser-card";
+        card.setAttribute("data-orig-idx", String(origIndex));
+        card.innerHTML = `
+          <div class="wi-star-browser-top">
+            <span class="wi-star-type-tag">${i + 1}. ${escHtml(meta.label)}</span>
+            <div class="wi-star-card-actions">
+              <button type="button" class="wi-star-solve-btn" data-solve-idx="${origIndex}">この問題を解く</button>
+              <button type="button" class="wi-star-remove-btn" data-rem-id="${escHtml(item.id)}">スター解除</button>
+            </div>
+          </div>
+          <div class="wi-star-preview-txt">${escHtml(preview)}</div>
+        `;
+        frag.appendChild(card);
+      }
+      wrap.appendChild(frag);
+      starFilterState.renderedListCount = end;
+    }
+
+    appendNextStarListBatch();
+
+    wrap.onclick = function(e) {
+      const remBtn = e.target.closest("[data-rem-id]");
+      if (remBtn) {
+        e.stopPropagation();
+        const remId = remBtn.getAttribute("data-rem-id");
+        // 指定されたスター項目に狙いを定めて本体のスター解除を動かすか、またはストレージ同期
+        const all = readStarItems();
+        const targetIdx = all.findIndex(x => x && x.id === remId);
+        if (targetIdx !== -1) {
+          all.splice(targetIdx, 1);
+          try { localStorage.setItem(STAR_STORAGE_KEY, JSON.stringify(all)); } catch (err) {}
+          const topBadge = document.getElementById("badge-star-count");
+          if (topBadge) topBadge.textContent = String(all.length);
+          const sDesc = document.getElementById("room-desc-starred");
+          if (sDesc) sDesc.textContent = `スター登録済：${all.length} 件`;
+        }
+        renderStarSubfilterBar();
+        renderStarBrowserList();
+        return;
+      }
+
+      const card = e.target.closest("[data-orig-idx]");
+      if (card) {
+        const origIdx = parseInt(card.getAttribute("data-orig-idx"), 10);
+        starFilterState.viewMode = "random";
+        renderStarSubfilterBar();
+        triggerNativeStarQuestionLoad(origIdx);
+      }
+    };
+
+    area.onscroll = function() {
+      if (!isStarredModeActiveNow() || starFilterState.viewMode !== "list") return;
+      if (starFilterState.renderedListCount < starFilterState.filteredEntries.length) {
+        if (area.scrollTop + area.clientHeight >= area.scrollHeight - 350) {
+          appendNextStarListBatch();
+        }
+      }
+    };
+  }
+
+  // スター復習モード中、「次へ（Enter / → / 次の問題へボタン）」で進む際にも現在のカテゴリ絞り込みを維持する
+  window.addEventListener("click", function(e) {
+    if (!e.target || !e.target.closest) return;
+    if (isStarredModeActiveNow() && starFilterState.viewMode === "random") {
+      if (e.target.closest("#btn-skip-bottom, #btn-send-main, .wa-next-inline-btn")) {
+        interceptNextStarRandom = true;
+      }
+    }
+  }, true);
+
+  window.addEventListener("keydown", function(e) {
+    if (isStarredModeActiveNow() && starFilterState.viewMode === "random") {
+      if (e.key === "Enter" || e.key === "ArrowRight") {
+        interceptNextStarRandom = true;
+      }
+    }
+  }, true);
+
+  // -------------------------------------------------------------------
+  // 5. マイ単語帳モーダルの軽量化 ＆ 閉じた瞬間のDOM完全解放（後の重さを100%解消！）
+  // -------------------------------------------------------------------
+  const wbVocabLookup = new Map();
+  let wbIndexedLen = -1;
+
+  function ensureWbLookup() {
+    const vLen = (d.vocab ? d.vocab.length : 0) + (d.acro ? d.acro.length : 0);
+    if (wbVocabLookup.size > 0 && wbIndexedLen === vLen) return;
+    wbIndexedLen = vLen;
+    wbVocabLookup.clear();
+    (d.vocab || []).forEach(function(it) {
+      if (it && it.w) wbVocabLookup.set(it.w.trim().toLowerCase(), { w: it.w.trim(), r: (it.r || it.w).trim(), p: it.p || "other", m: (it.fullM || it.m || "").trim() });
+    });
+    (d.acro || []).forEach(function(it) {
+      if (it && it.acro && !wbVocabLookup.has(it.acro.trim().toLowerCase())) {
+        wbVocabLookup.set(it.acro.trim().toLowerCase(), { w: it.acro.trim(), r: (it.full || it.acro).trim(), p: "singkatan", m: (it.tr || "").trim() });
+      }
+    });
+  }
+
+  function loadWbStore() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(WB_STORAGE_KEY) || "null");
+      if (raw && Array.isArray(raw.folders) && raw.folders.length > 0 && raw.items) return raw;
+    } catch (e) {}
+    return { folders: [{ id: "folder_1", name: "フォルダ1", createdAt: 1 }], items: {} };
+  }
+
+  function saveWbStore(wbData) {
+    try { localStorage.setItem(WB_STORAGE_KEY, JSON.stringify(wbData)); } catch (e) {}
+    const topBadge = document.getElementById("badge-wordbook-count");
+    if (topBadge) {
+      let total = 0;
+      Object.keys(wbData.items || {}).forEach(k => {
+        if (wbData.items[k] && Array.isArray(wbData.items[k].fIds) && wbData.items[k].fIds.length > 0) total++;
+      });
+      topBadge.textContent = String(total);
+    }
+  }
+
+  function formatWbSenseHtml(rawText) {
+    if (!rawText) return "";
+    const parts = String(rawText).split(/(?=[①②③④⑤⑥⑦⑧⑨⑩])/g).map(s => s.trim()).filter(Boolean);
+    const list = parts.length > 0 ? parts : [String(rawText).trim()];
+    return list.map(function(part) {
+      let s = escHtml(part);
+      s = s.replace(/^([①②③④⑤⑥⑦⑧⑨⑩])\s*/, '<span class="wi-wb-num">$1</span>');
+      s = s.replace(/([（(][^）)]+[）)])/g, '<span class="wi-wb-sub-paren">$1</span>');
+      return `<span class="wi-wb-sense-line">${s}</span>`;
+    }).join("");
+  }
+
+  let lightWbState = {
+    activeFolderId: "folder_1",
+    statusFilter: 0,
+    sortBy: "added_desc",
+    searchQuery: "",
+    maskMeaning: false,
+    addSearchOpen: false,
+    entries: [],
+    renderedCount: 0
+  };
+
+  // ★単語帳を閉じた瞬間に内部の大量DOMを完全に空にしてメモリを解放する関数
+  function closeAndPurgeWordbookModal() {
+    const modal = document.getElementById("wi-wordbook-modal");
+    const inner = document.getElementById("wi-wb-modal-inner");
+    if (modal) modal.classList.remove("open");
+    if (inner) inner.innerHTML = "";
+    lightWbState.entries = [];
+    lightWbState.renderedCount = 0;
+  }
+
+  function buildLightWbRow(entry) {
+    const { rec, info, stLv } = entry;
+    const stLabel  = stLv === 1 ? "未暗記" : stLv === 2 ? "うろ覚え" : "済";
+    const posLabel = info.p === "v" ? "動詞" : info.p === "a" ? "形容詞" : info.p === "n" ? "名詞" : info.p === "singkatan" ? "略語" : "他";
+
+    const row = document.createElement("div");
+    row.className = "wi-wb-word-row";
+    row.setAttribute("data-wb-word", info.w);
+    row.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;">
+          <strong class="wb-row-open-dict" style="font-size:1.03rem;color:#075e54;cursor:pointer;text-decoration:underline;">${escHtml(info.w)}</strong>
+          <span style="font-size:0.74rem;color:#64748b;">[${escHtml(info.r)}]</span>
+          <span class="az-pos-badge">${posLabel}</span>
+          <button type="button" class="wi-lv-dot-btn lv-${stLv} wb-row-status-btn">${stLabel}</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <button type="button" class="inline-audio-chip wb-row-tts">🔊 発音</button>
+          <button type="button" class="inline-audio-chip wi-wb-trigger-btn wb-row-folder-pop" data-wb-word="${escHtml(info.w)}">メモ・移動</button>
+          <button type="button" class="inline-audio-chip wb-row-open-dict">辞書</button>
+          <button type="button" class="inline-audio-chip wb-row-remove" style="color:#b91c1c;border-color:#fecaca;background:#fff1f2;">削除</button>
+        </div>
+      </div>
+      <div class="wb-row-meaning ${lightWbState.maskMeaning ? 'wi-wb-masked-meaning' : ''}" style="font-size:0.92rem;font-weight:700;color:#0f172a;margin-top:2px;">
+        ${formatWbSenseHtml(info.m)}
+      </div>
+      ${rec.memo ? `<div class="wi-wb-inline-mynote"><span><strong>メモ：</strong>${escHtml(rec.memo)}</span></div>` : ""}
+    `;
+    return row;
+  }
+
+  function appendNextLightWbChunk() {
+    const listEl = document.getElementById("wb-light-list-container");
+    if (!listEl) return;
+    const oldMore = listEl.querySelector(".wb-load-more-ind");
+    if (oldMore) oldMore.remove();
+
+    const entries = lightWbState.entries;
+    const end = Math.min(lightWbState.renderedCount + 40, entries.length);
+    const frag = document.createDocumentFragment();
+
+    for (let i = lightWbState.renderedCount; i < end; i++) {
+      frag.appendChild(buildLightWbRow(entries[i]));
+    }
+    listEl.appendChild(frag);
+    lightWbState.renderedCount = end;
+
+    if (lightWbState.renderedCount < entries.length) {
+      const ind = document.createElement("div");
+      ind.className = "wb-load-more-ind";
+      ind.style.cssText = "text-align:center;padding:10px;font-size:0.78rem;color:#64748b;font-weight:600;";
+      ind.textContent = `▼ スクロールでさらに表示（残り ${entries.length - lightWbState.renderedCount} 語）`;
+      listEl.appendChild(ind);
+    }
+  }
+
+  function openLightWordbookModal() {
+    ensureWbLookup();
+    let modal = document.getElementById("wi-wordbook-modal");
+    if (!modal) {
+      modal = document.createElement("div");
+      modal.className = "modal-overlay";
+      modal.id = "wi-wordbook-modal";
+      modal.innerHTML = `<div class="modal-box wide-dict-box" id="wi-wb-modal-inner" style="max-width:820px;height:86vh;"></div>`;
+      document.body.appendChild(modal);
+    }
+    modal.onclick = function(e) {
+      if (e.target === modal) closeAndPurgeWordbookModal();
+    };
+    modal.classList.add("open");
+    renderLightWordbookModal(false);
+  }
+
+  function renderLightWordbookModal(preserveScroll) {
+    const modal = document.getElementById("wi-wordbook-modal");
+    const inner = document.getElementById("wi-wb-modal-inner");
+    if (!modal || !modal.classList.contains("open") || !inner) return;
+
+    ensureWbLookup();
+    const prevList = document.getElementById("wb-light-list-container");
+    const prevScroll = (preserveScroll && prevList) ? prevList.scrollTop : 0;
+
+    const wbData = loadWbStore();
+    if (lightWbState.activeFolderId !== "ALL" && !wbData.folders.some(f => f.id === lightWbState.activeFolderId)) {
+      lightWbState.activeFolderId = wbData.folders[0] ? wbData.folders[0].id : "ALL";
+    }
+    const activeFolderObj = wbData.folders.find(f => f.id === lightWbState.activeFolderId) || null;
+
+    const folderCounts = { ALL: 0 };
+    wbData.folders.forEach(f => { folderCounts[f.id] = 0; });
+
+    const rawEntries = [];
+    const q = (lightWbState.searchQuery || "").trim().toLowerCase();
+
+    Object.keys(wbData.items || {}).forEach(function(k) {
+      const rec = wbData.items[k];
+      if (!rec || !Array.isArray(rec.fIds) || rec.fIds.length === 0) return;
+
+      folderCounts.ALL++;
+      for (let i = 0; i < rec.fIds.length; i++) {
+        const fid = rec.fIds[i];
+        if (folderCounts[fid] !== undefined) folderCounts[fid]++;
+      }
+
+      if (lightWbState.activeFolderId !== "ALL" && !rec.fIds.includes(lightWbState.activeFolderId)) return;
+      const stLv = rec.status || rec.lv || 1;
+      if (lightWbState.statusFilter !== 0 && stLv !== lightWbState.statusFilter) return;
+
+      const mInfo = wbVocabLookup.get(k) || { w: rec.w || k, r: rec.w || k, p: "other", m: "（辞書データ外）" };
+      if (q) {
+        const hit = mInfo.w.toLowerCase().includes(q) || mInfo.r.toLowerCase().includes(q) || mInfo.m.toLowerCase().includes(q) || (rec.memo && rec.memo.toLowerCase().includes(q));
+        if (!hit) return;
+      }
+      rawEntries.push({ key: k, rec: rec, info: mInfo, stLv: stLv });
+    });
+
+    rawEntries.sort(function(a, b) {
+      if (lightWbState.sortBy === "word_asc") return a.info.w.toLowerCase().localeCompare(b.info.w.toLowerCase());
+      if (lightWbState.sortBy === "root_asc") return (a.info.r + a.info.w).toLowerCase().localeCompare((b.info.r + b.info.w).toLowerCase());
+      if (lightWbState.sortBy === "status_asc") return a.stLv - b.stLv;
+      return (b.rec.addedAt || 0) - (a.rec.addedAt || 0);
+    });
+
+    lightWbState.entries = rawEntries;
+    lightWbState.renderedCount = 0;
+
+    const folderTabsHtml = [
+      ...wbData.folders.map(f => `<button type="button" class="wi-wb-folder-tab ${lightWbState.activeFolderId === f.id ? 'active' : ''}" data-wbf="${escHtml(f.id)}">${escHtml(f.name)} (${folderCounts[f.id] || 0})</button>`),
+      wbData.folders.length > 1 ? `<button type="button" class="wi-wb-folder-tab ${lightWbState.activeFolderId === 'ALL' ? 'active' : ''}" data-wbf="ALL">全フォルダ (${folderCounts.ALL})</button>` : "",
+      `<button type="button" class="wi-wb-folder-tab" id="btn-wb-add-folder" style="border-style:dashed;color:#075e54;">＋ フォルダ追加</button>`
+    ].join("");
+
+    inner.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding-bottom:8px;border-bottom:1px solid #e2e8f0;flex-shrink:0;flex-wrap:wrap;">
+        <div><h3 style="color:#111b21;font-size:1.02rem;font-weight:800;">マイ単語帳（全 ${folderCounts.ALL} 語）</h3></div>
+        <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;">
+          <button type="button" class="sub-filter-pill ${lightWbState.addSearchOpen ? 'active' : ''}" id="btn-wb-toggle-addsearch">＋ 単語を追加</button>
+          <button type="button" class="sub-filter-pill" id="btn-wb-import-stars">スター語を取込</button>
+          ${activeFolderObj ? `<button type="button" class="sub-filter-pill" id="btn-wb-rename-folder">名前変更</button>` : ""}
+          ${activeFolderObj && wbData.folders.length > 1 ? `<button type="button" class="sub-filter-pill" id="btn-wb-delete-folder" style="color:#b91c1c;">フォルダ削除</button>` : ""}
+          <button type="button" class="top-action-btn" id="btn-wb-close-modal">✕ 閉じる</button>
+        </div>
+      </div>
+
+      <div class="wi-wb-folder-tabs">${folderTabsHtml}</div>
+
+      <div id="wb-direct-add-drawer" style="display:${lightWbState.addSearchOpen ? 'flex' : 'none'};flex-direction:column;gap:6px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:7px;padding:8px 10px;margin-top:6px;flex-shrink:0;">
+        <input type="text" id="wb-direct-add-input" placeholder="追加したい単語や意味を検索..." style="width:100%;border:1px solid #94a3b8;border-radius:5px;padding:5px 9px;font-size:0.8rem;outline:none;" />
+        <div id="wb-direct-add-results" style="max-height:140px;overflow-y:auto;display:flex;flex-direction:column;gap:3px;"></div>
+      </div>
+
+      <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:space-between;padding:8px 0 4px 0;flex-shrink:0;">
+        <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;">
+          <button type="button" class="sub-filter-pill ${lightWbState.statusFilter === 0 ? 'active' : ''}" data-wbst="0">すべて (${rawEntries.length})</button>
+          <button type="button" class="sub-filter-pill ${lightWbState.statusFilter === 1 ? 'active' : ''}" data-wbst="1">未暗記</button>
+          <button type="button" class="sub-filter-pill ${lightWbState.statusFilter === 2 ? 'active' : ''}" data-wbst="2">うろ覚え</button>
+          <button type="button" class="sub-filter-pill ${lightWbState.statusFilter === 3 ? 'active' : ''}" data-wbst="3">済</button>
+          <button type="button" class="sub-filter-pill ${lightWbState.maskMeaning ? 'active' : ''}" id="btn-wb-mask-meaning" style="margin-left:4px;">意味を隠す</button>
+        </div>
+        <div style="display:flex;gap:5px;align-items:center;">
+          <select id="wb-sort-select" style="border:1px solid #cbd5e1;border-radius:5px;padding:4px 7px;font-size:0.75rem;color:#334155;outline:none;">
+            <option value="added_desc" ${lightWbState.sortBy === 'added_desc' ? 'selected' : ''}>追加順</option>
+            <option value="word_asc" ${lightWbState.sortBy === 'word_asc' ? 'selected' : ''}>A–Z順</option>
+            <option value="root_asc" ${lightWbState.sortBy === 'root_asc' ? 'selected' : ''}>語幹順</option>
+            <option value="status_asc" ${lightWbState.sortBy === 'status_asc' ? 'selected' : ''}>未暗記優先</option>
+          </select>
+          <input type="text" id="wb-filter-input" value="${escHtml(lightWbState.searchQuery)}" placeholder="絞り込み..." style="border:1px solid #cbd5e1;border-radius:5px;padding:4px 8px;font-size:0.76rem;outline:none;width:125px;" />
+        </div>
+      </div>
+
+      <div class="az-list-container" id="wb-light-list-container"></div>
+    `;
+
+    const listEl = document.getElementById("wb-light-list-container");
+    if (!rawEntries.length) {
+      listEl.innerHTML = `<div style="padding:32px 16px;text-align:center;color:#64748b;font-size:0.86rem;line-height:1.7;">このフォルダにはまだ単語が登録されていません。</div>`;
+    } else {
+      appendNextLightWbChunk();
+      if (prevScroll > 0) listEl.scrollTop = prevScroll;
+      listEl.onscroll = function() {
+        if (lightWbState.renderedCount < lightWbState.entries.length) {
+          if (listEl.scrollTop + listEl.clientHeight >= listEl.scrollHeight - 380) {
+            appendNextLightWbChunk();
+          }
+        }
+      };
+    }
+
+    listEl.onclick = function(e) {
+      const row = e.target.closest(".wi-wb-word-row");
+      if (!row) return;
+      const w = row.getAttribute("data-wb-word");
+      const key = (w || "").trim().toLowerCase();
+
+      if (e.target.closest(".wb-row-open-dict")) {
+        const dIn = document.getElementById("dict-input");
+        const dDrop = document.getElementById("dict-dropdown");
+        if (dIn && dDrop) {
+          const prev = dIn.value;
+          dIn.value = w;
+          dIn.dispatchEvent(new Event("input"));
+          const items = Array.from(dDrop.querySelectorAll(".dict-item"));
+          const hit = items.find(r => r.querySelector("strong") && r.querySelector("strong").textContent.trim().toLowerCase() === key) || items[0];
+          if (hit) hit.click();
+          dIn.value = prev;
+          dDrop.style.display = "none";
+        }
+        return;
+      }
+
+      if (e.target.closest(".wb-row-tts")) {
+        if (window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+          const u = new SpeechSynthesisUtterance(w);
+          u.lang = "id-ID";
+          window.speechSynthesis.speak(u);
+        }
+        return;
+      }
+
+      const stBtn = e.target.closest(".wb-row-status-btn");
+      if (stBtn) {
+        const curWb = loadWbStore();
+        if (!curWb.items[key]) return;
+        const curLv = curWb.items[key].status || curWb.items[key].lv || 1;
+        const nextLv = curLv === 1 ? 2 : curLv === 2 ? 3 : 1;
+        curWb.items[key].status = nextLv;
+        saveWbStore(curWb);
+        stBtn.className = `wi-lv-dot-btn lv-${nextLv} wb-row-status-btn`;
+        stBtn.textContent = nextLv === 1 ? "未暗記" : nextLv === 2 ? "うろ覚え" : "済";
+        return;
+      }
+
+      if (e.target.closest(".wb-row-remove")) {
+        const curWb = loadWbStore();
+        if (!curWb.items[key]) return;
+        if (lightWbState.activeFolderId === "ALL") curWb.items[key].fIds = [];
+        else if (Array.isArray(curWb.items[key].fIds)) {
+          curWb.items[key].fIds = curWb.items[key].fIds.filter(id => id !== lightWbState.activeFolderId);
+        }
+        saveWbStore(curWb);
+        row.remove();
+        return;
+      }
+
+      const meanEl = e.target.closest(".wb-row-meaning");
+      if (meanEl && meanEl.classList.contains("wi-wb-masked-meaning")) {
+        meanEl.classList.toggle("revealed");
+      }
+    };
+
+    inner.querySelector("#btn-wb-close-modal").onclick = closeAndPurgeWordbookModal;
+
+    inner.querySelectorAll("[data-wbf]").forEach(function(tab) {
+      tab.onclick = function() {
+        lightWbState.activeFolderId = tab.getAttribute("data-wbf");
+        renderLightWordbookModal(false);
+      };
+    });
+
+    inner.querySelector("#btn-wb-add-folder").onclick = function() {
+      const curWb = loadWbStore();
+      const name = prompt("新しいフォルダ名を入力してください：", `フォルダ${curWb.folders.length + 1}`);
+      if (!name || !name.trim()) return;
+      const newId = "f_" + Date.now();
+      curWb.folders.push({ id: newId, name: name.trim(), createdAt: Date.now() });
+      lightWbState.activeFolderId = newId;
+      saveWbStore(curWb);
+      renderLightWordbookModal(false);
+    };
+
+    const renBtn = inner.querySelector("#btn-wb-rename-folder");
+    if (renBtn && activeFolderObj) {
+      renBtn.onclick = function() {
+        const curWb = loadWbStore();
+        const tf = curWb.folders.find(f => f.id === activeFolderObj.id);
+        if (!tf) return;
+        const nn = prompt("フォルダ名を変更：", tf.name);
+        if (!nn || !nn.trim()) return;
+        tf.name = nn.trim();
+        saveWbStore(curWb);
+        renderLightWordbookModal(true);
+      };
+    }
+
+    const delBtn = inner.querySelector("#btn-wb-delete-folder");
+    if (delBtn && activeFolderObj) {
+      delBtn.onclick = function() {
+        const curWb = loadWbStore();
+        if (curWb.folders.length <= 1 || !confirm(`「${activeFolderObj.name}」を削除しますか？`)) return;
+        const delId = activeFolderObj.id;
+        curWb.folders = curWb.folders.filter(f => f.id !== delId);
+        Object.keys(curWb.items || {}).forEach(k => {
+          if (curWb.items[k] && Array.isArray(curWb.items[k].fIds)) {
+            curWb.items[k].fIds = curWb.items[k].fIds.filter(id => id !== delId);
+          }
+        });
+        lightWbState.activeFolderId = curWb.folders[0].id;
+        saveWbStore(curWb);
+        renderLightWordbookModal(false);
+      };
+    }
+
+    inner.querySelector("#btn-wb-toggle-addsearch").onclick = function() {
+      lightWbState.addSearchOpen = !lightWbState.addSearchOpen;
+      renderLightWordbookModal(true);
+      if (lightWbState.addSearchOpen) {
+        const inp = document.getElementById("wb-direct-add-input");
+        if (inp) inp.focus();
+      }
+    };
+
+    const directIn  = inner.querySelector("#wb-direct-add-input");
+    const directRes = inner.querySelector("#wb-direct-add-results");
+    if (directIn && directRes) {
+      const targetFid = activeFolderObj ? activeFolderObj.id : wbData.folders[0].id;
+      directIn.oninput = function() {
+        const sq = directIn.value.trim().toLowerCase();
+        if (!sq) { directRes.innerHTML = ""; return; }
+        const curWb = loadWbStore();
+        const matches = [];
+        wbVocabLookup.forEach(function(val) {
+          if (matches.length >= 25) return;
+          if (val.w.toLowerCase().includes(sq) || val.r.toLowerCase().includes(sq) || val.m.toLowerCase().includes(sq)) {
+            matches.push(val);
+          }
+        });
+        directRes.innerHTML = matches.map(function(m) {
+          const rec = curWb.items[m.w.toLowerCase()];
+          const already = Boolean(rec && Array.isArray(rec.fIds) && rec.fIds.includes(targetFid));
+          return `
+            <div style="display:flex;justify-content:space-between;align-items:center;background:#fff;padding:4px 8px;border-radius:5px;border:1px solid #e2e8f0;font-size:0.79rem;gap:8px;">
+              <div style="min-width:0;flex:1;"><strong>${escHtml(m.w)}</strong> <span style="color:#64748b;font-size:0.71rem;">[${escHtml(m.r)}]</span> — ${escHtml(m.m)}</div>
+              <button type="button" class="sub-filter-pill wb-direct-add-item-btn ${already ? 'active' : ''}" data-addw="${escHtml(m.w)}" style="font-size:0.71rem;padding:2px 8px;flex-shrink:0;">
+                ${already ? "追加済" : "＋追加"}
+              </button>
+            </div>
+          `;
+        }).join("");
+        directRes.querySelectorAll(".wb-direct-add-item-btn").forEach(function(b) {
+          b.onclick = function() {
+            const w = b.getAttribute("data-addw");
+            const k = w.trim().toLowerCase();
+            const latest = loadWbStore();
+            if (!latest.items[k]) latest.items[k] = { w: w.trim(), fIds: [targetFid], status: 1, memo: "", addedAt: Date.now() };
+            else {
+              if (!Array.isArray(latest.items[k].fIds)) latest.items[k].fIds = [];
+              const idx = latest.items[k].fIds.indexOf(targetFid);
+              if (idx === -1) latest.items[k].fIds.push(targetFid);
+              else latest.items[k].fIds.splice(idx, 1);
+            }
+            saveWbStore(latest);
+            renderLightWordbookModal(true);
+          };
+        });
+      };
+    }
+
+    inner.querySelector("#btn-wb-import-stars").onclick = function() {
+      const curWb = loadWbStore();
+      const targetFid = activeFolderObj ? activeFolderObj.id : curWb.folders[0].id;
+      const allStars = readStarItems();
+      let cnt = 0;
+      allStars.forEach(function(stItem) {
+        if (classifyStarEntry(stItem).group !== "word") return;
+        let w = stItem.ttsWord || (stItem.id ? stItem.id.split("::").pop() : "");
+        const key = (w || "").trim().toLowerCase();
+        if (key && wbVocabLookup.has(key)) {
+          const origW = wbVocabLookup.get(key).w;
+          if (!curWb.items[key]) {
+            curWb.items[key] = { w: origW, fIds: [targetFid], status: 1, memo: "", addedAt: Date.now() };
+            cnt++;
+          } else if (!curWb.items[key].fIds.includes(targetFid)) {
+            curWb.items[key].fIds.push(targetFid);
+            cnt++;
+          }
+        }
+      });
+      saveWbStore(curWb);
+      alert(`スター登録された単語から ${cnt} 語を追加しました。`);
+      renderLightWordbookModal(true);
+    };
+
+    inner.querySelectorAll("[data-wbst]").forEach(function(b) {
+      b.onclick = function() {
+        lightWbState.statusFilter = parseInt(b.getAttribute("data-wbst"), 10);
+        renderLightWordbookModal(false);
+      };
+    });
+
+    const maskBtn = inner.querySelector("#btn-wb-mask-meaning");
+    if (maskBtn) {
+      maskBtn.onclick = function() {
+        lightWbState.maskMeaning = !lightWbState.maskMeaning;
+        maskBtn.classList.toggle("active", lightWbState.maskMeaning);
+        listEl.querySelectorAll(".wb-row-meaning").forEach(function(el) {
+          el.classList.toggle("wi-wb-masked-meaning", lightWbState.maskMeaning);
+          el.classList.remove("revealed");
+        });
+      };
+    }
+
+    inner.querySelector("#wb-sort-select").onchange = function(e) {
+      lightWbState.sortBy = e.target.value;
+      renderLightWordbookModal(false);
+    };
+
+    const fIn = inner.querySelector("#wb-filter-input");
+    fIn.oninput = function() {
+      lightWbState.searchQuery = fIn.value;
+      renderLightWordbookModal(false);
+      const nf = document.getElementById("wb-filter-input");
+      if (nf) { nf.focus(); nf.setSelectionRange(nf.value.length, nf.value.length); }
+    };
+  }
+
+  // 左上の「単語帳」ボタンをクローン置換して旧単語帳パッチの重複発火を完全遮断し、閉じた際のメモリ解放も結線
+  function bindCleanWordbookTopButton() {
+    const topWbBtn = document.getElementById("btn-wordbook-top");
+    if (topWbBtn && !topWbBtn.__wiCleanWbBound) {
+      const cloned = topWbBtn.cloneNode(true);
+      cloned.__wiCleanWbBound = true;
+      topWbBtn.parentNode.replaceChild(cloned, topWbBtn);
+      cloned.addEventListener("click", function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+        openLightWordbookModal();
+      }, true);
+    }
+  }
+
+  window.addEventListener("keydown", function(e) {
+    if (e.key === "Escape") {
+      const wbModal = document.getElementById("wi-wordbook-modal");
+      if (wbModal && wbModal.classList.contains("open")) {
+        closeAndPurgeWordbookModal();
+      }
+    }
+  }, true);
+
+  // -------------------------------------------------------------------
+  // 6. 起動 ＆ モード切り替え監視
+  // -------------------------------------------------------------------
+  function bootUnifiedUpgradePatch() {
+    cleanupPreviousAndDarkMode();
+    sanitizeSinonimTargets();
+    indexDebateItems();
+    bindCleanWordbookTopButton();
+
+    if (typeof window.__reloadWhatsIndo === "function") {
+      try { window.__reloadWhatsIndo(); } catch (e) {}
+    }
+
+    // ヘッダー名（#hdr-name）が「スター復習」に切り替わった瞬間、サブフィルターバーを表示する
+    const hdrNameEl = document.getElementById("hdr-name");
+    if (hdrNameEl && !hdrNameEl.__wiStarHdrObs) {
+      hdrNameEl.__wiStarHdrObs = true;
+      new MutationObserver(function() {
+        cleanupPreviousAndDarkMode();
+        bindCleanWordbookTopButton();
+        if (isStarredModeActiveNow()) {
+          starFilterState.viewMode = "random";
+          renderStarSubfilterBar();
+        }
+      }).observe(hdrNameEl, { childList: true, characterData: true, subtree: true });
+    }
+
+    // チャットエリアの更新監視（スター追加/解除時のサブフィルター件数即時更新 ＆ ゼミ討論・類義語カード補正）
+    const area = document.getElementById("chat-messages-area");
+    if (area && !area.__wiUnifiedAreaObs) {
+      area.__wiUnifiedAreaObs = true;
+      new MutationObserver(function() {
+        if (isStarredModeActiveNow()) {
+          renderStarSubfilterBar();
+        }
+        area.querySelectorAll(".msg-row-in").forEach(function(row) {
+          if (row.querySelector(".exp-compact-summary")) {
+            enhanceDebateAndSinonimCard(row);
+          }
+        });
+      }).observe(area, { childList: true });
+    }
+
+    // スターボタンが押された瞬間、0msでスター復習のサブフィルター件数も即時同期
+    window.addEventListener("click", function(e) {
+      if (!e.target || !e.target.closest) return;
+      if (e.target.closest("#btn-star-hdr, #btn-star-bottom, .msg-star-btn, .exp-star-btn, #btn-dict-modal-star, .dict-star-btn")) {
+        setTimeout(function() {
+          if (isStarredModeActiveNow()) renderStarSubfilterBar();
+        }, 10);
+      }
+    }, false);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function() {
+      setTimeout(bootUnifiedUpgradePatch, 50);
+    });
+  } else {
+    setTimeout(bootUnifiedUpgradePatch, 50);
+  }
+})();
+/* =====================================================================
+   WhatsIndo スター機能整理（単語＋ことわざ限定・効果音＆演出100%稼働）＆
+   単語帳メモリ解放・ダークモード廃止・類義語・ゼミ討論修正パッチ
+   1. ことわざ以外の問題モードではスターボタンを非表示にし、Sキー登録も完全ブロック
+   2. スター復習の上部バーはシンプルな「単語 (件数)」「ことわざ (件数)」の2ボタンのみ（絵文字なし）
+   3. 本体の出題エンジン(loadNextQuestion)で出題するため、効果音・入力中(...)演出・ヒントON/OFFが完全稼働
+   4. 単語帳の「スター語を取込」はことわざを除いた単語のみ取込＆閉じた瞬間にDOMを解放して重さを解消
+   5. ダークモード廃止、類義語・対義語の出題時日本語隠し、ゼミ討論の全文和訳復活を完備
+   ===================================================================== */
+(function() {
+  const d = window.WHATSINDO_EXTERNAL_DATA;
+  if (!d) return;
+
+  const STAR_STORAGE_KEY = "wi_stars_v2";
+  const WB_STORAGE_KEY   = "wi_custom_wordbooks_v1";
+
+  function escHtml(str) {
+    return String(str || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  // -------------------------------------------------------------------
+  // 0. ダークモード完全廃止 ＆ 旧分割ボタン等のクリーンアップ
+  // -------------------------------------------------------------------
+  function cleanupLegacyUI() {
+    document.body.classList.remove("wi-dark");
+    try { localStorage.removeItem("wi_dark_mode_v35"); } catch (e) {}
+
+    ["btn-v35-theme-toggle", "btn-prob-star-top", "wa-room-prob-star", "wi-five-upgrades-style", "wi-unified-star-and-fixes-style"].forEach(function(id) {
+      const el = document.getElementById(id);
+      if (el) el.remove();
+    });
+
+    const revPill = document.querySelector('#cat-pills .wa-pill[data-cat="review"]');
+    if (revPill) revPill.textContent = "復習 (2)";
+
+    const origStarBtn = document.getElementById("btn-star-top");
+    if (origStarBtn) {
+      origStarBtn.className = "top-action-btn star-btn";
+      const labelSpan = origStarBtn.querySelector("span:first-child");
+      if (labelSpan) labelSpan.textContent = "スター";
+    }
+  }
+  cleanupLegacyUI();
+
+  if (!document.getElementById("wi-clean-star-and-fixes-style")) {
+    const st = document.createElement("style");
+    st.id = "wi-clean-star-and-fixes-style";
+    st.textContent = `
+      #btn-v35-theme-toggle, #btn-prob-star-top, #wa-room-prob-star { display: none !important; }
+
+      /* ことわざ以外の問題出題中は右上・下部・バブル内・解説内のスターボタンをすべて非表示 */
+      body[data-wi-star-allowed="false"] #btn-star-hdr,
+      body[data-wi-star-allowed="false"] #btn-star-bottom,
+      body[data-wi-star-allowed="false"] .msg-star-btn,
+      body[data-wi-star-allowed="false"] .exp-star-btn,
+      .msg-row-in[data-row-star-allowed="false"] .msg-star-btn,
+      .msg-row-in[data-row-star-allowed="false"] .exp-star-btn {
+        display: none !important;
+      }
+
+      /* ゼミ討論の全文和訳ボックス（目に優しい配色） */
+      .wi-debate-tr-box {
+        background: #f8fafc;
+        border: 1px solid #cbd5e1;
+        border-left: 3px solid #008069;
+        border-radius: 7px;
+        padding: 8px 11px;
+        margin-top: 4px;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .wi-debate-tr-title {
+        font-size: 0.74rem;
+        font-weight: 700;
+        color: #0f766e;
+        border-bottom: 1px dashed #cbd5e1;
+        padding-bottom: 3px;
+      }
+      .wi-debate-tr-line {
+        font-size: 0.85rem;
+        color: #1e293b;
+        line-height: 1.58;
+      }
+    `;
+    document.head.appendChild(st);
+  }
+
+  // -------------------------------------------------------------------
+  // 1. スター対象判定（単語・略語 と ことわざ のみ許可！それ以外の問題はすべて不可）
+  // -------------------------------------------------------------------
+  function getStarItemType(it) {
+    if (!it || typeof it !== "object") return null;
+    const eff = it.effectiveMode || "";
+    const qid = String(it.id || "");
+    const sdr = String(it.sender || "");
+
+    if (eff === "proverb" || qid.startsWith("pb::") || sdr.indexOf("ことわざ") !== -1) {
+      return "proverb";
+    }
+    if (
+      ["v", "a", "n", "other", "singkatan"].includes(eff) ||
+      /^(?:voc|voc_ja2id|abbr_ja|abbr_full|ctx::voc)::/i.test(qid) ||
+      /^(?:動詞|形容詞|名詞|副詞・接続詞他|略語)/.test(sdr)
+    ) {
+      return "word";
+    }
+    return null; // ことわざ以外の問題（リスニング・長文・文法・類義語・スラング・討論・慣用句等）は null
+  }
+
+  function isSenderStarAllowed(senderText) {
+    const s = String(senderText || "").trim();
+    if (!s) return false;
+    return /^(?:動詞|形容詞|名詞|副詞・接続詞他|略語|ことわざ)/.test(s);
+  }
+
+  // 現在画面に出ている問題がスター可能（単語・略語・ことわざ）かどうかを判定
+  function isCurrentQuestionStarAllowed() {
+    const area = document.getElementById("chat-messages-area");
+    if (area) {
+      const inRows = Array.from(area.querySelectorAll(".msg-row-in"));
+      for (let i = inRows.length - 1; i >= 0; i--) {
+        const r = inRows[i];
+        if (r.querySelector(".exp-compact-summary")) continue;
+        const sdr = r.querySelector(".msg-sender-name");
+        if (sdr) {
+          return isSenderStarAllowed(sdr.textContent);
+        }
+      }
+    }
+    const hdrName = document.getElementById("hdr-name");
+    const hTxt = hdrName ? hdrName.textContent.trim() : "";
+    return /^(?:動詞|形容詞|名詞|副詞・接続詞他|略語|ことわざ|スター復習)/.test(hTxt);
+  }
+
+  // -------------------------------------------------------------------
+  // 2. 本体の state.starItems 配列参照の取得 ＆ マスターデータ（単語＋ことわざ）管理
+  // -------------------------------------------------------------------
+  let internalStarArrayRef = null;
+  let activeStarSubTab = "word"; // "word" (単語) | "proverb" (ことわざ)
+
+  const origArraySome = Array.prototype.some;
+  Array.prototype.some = function(callback, thisArg) {
+    if (
+      !internalStarArrayRef &&
+      Array.isArray(this) &&
+      typeof callback === "function" &&
+      Function.prototype.toString.call(callback).indexOf("x.id === id") !== -1
+    ) {
+      internalStarArrayRef = this;
+    }
+    return origArraySome.call(this, callback, thisArg);
+  };
+
+  function readCleanMasterStars() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(STAR_STORAGE_KEY) || "[]");
+      if (!Array.isArray(raw)) return [];
+      const cleaned = raw.filter(it => getStarItemType(it) !== null);
+      if (cleaned.length !== raw.length) {
+        localStorage.setItem(STAR_STORAGE_KEY, JSON.stringify(cleaned));
+      }
+      return cleaned;
+    } catch (e) {
+      return [];
+    }
+  }
+
+  let masterStarsCache = readCleanMasterStars();
+
+  function saveCleanMasterStars(list) {
+    const cleaned = [];
+    const seenIds = new Set();
+    for (let i = 0; i < list.length; i++) {
+      const it = list[i];
+      if (!it || !it.id || getStarItemType(it) === null) continue;
+      if (seenIds.has(it.id)) continue;
+      seenIds.add(it.id);
+      cleaned.push(it);
+    }
+    masterStarsCache = cleaned;
+    try {
+      localStorage.setItem(STAR_STORAGE_KEY, JSON.stringify(cleaned));
+    } catch (e) {}
+    syncInternalStarArrayWithMode();
+    updateTotalStarCountUI();
+  }
+
+  function isStarredModeActive() {
+    const hdrName = document.getElementById("hdr-name");
+    return Boolean(hdrName && hdrName.textContent.trim() === "スター復習");
+  }
+
+  // 通常時は「単語＋ことわざ」全件を state.starItems に入れ、
+  // 「スター復習」モード中は選択中のタブ（単語 または ことわざ）の項目だけを state.starItems にセットする
+  function syncInternalStarArrayWithMode() {
+    if (!internalStarArrayRef) return;
+    const all = masterStarsCache;
+    let targetList = all;
+    if (isStarredModeActive()) {
+      targetList = all.filter(it => getStarItemType(it) === activeStarSubTab);
+    }
+    internalStarArrayRef.length = 0;
+    for (let i = 0; i < targetList.length; i++) {
+      internalStarArrayRef.push(targetList[i]);
+    }
+  }
+
+  function updateTotalStarCountUI() {
+    const total = masterStarsCache.length;
+    const topBadge = document.getElementById("badge-star-count");
+    if (topBadge) topBadge.textContent = String(total);
+    const sDesc = document.getElementById("room-desc-starred");
+    if (sDesc) sDesc.textContent = `スター登録済：${total} 件`;
+  }
+
+  // localStorage.setItem("wi_stars_v2", ...) が本体や他パッチから呼ばれた瞬間をフックし、
+  // スター復習で片方のタブ表示中に保存されても、もう片方のタブのスターが消えないようマージ保護する
+  const origSetItem = Storage.prototype.setItem;
+  Storage.prototype.setItem = function(key, val) {
+    if (this === window.localStorage && key === STAR_STORAGE_KEY) {
+      try {
+        const incoming = JSON.parse(val || "[]");
+        if (Array.isArray(incoming)) {
+          // 許可された種類（word / proverb）のみ抽出
+          const validIncoming = incoming.filter(it => getStarItemType(it) !== null);
+
+          if (isStarredModeActive() && internalStarArrayRef && incoming.length === internalStarArrayRef.length) {
+            // スター復習モードで片方のタブのみが state.starItems に入っている状態での saveStars() の場合、
+            // 反対側のタブの項目を消さずに維持する
+            const otherTabType = activeStarSubTab === "word" ? "proverb" : "word";
+            const otherTabItems = masterStarsCache.filter(it => getStarItemType(it) === otherTabType);
+            const merged = [...otherTabItems, ...validIncoming];
+            masterStarsCache = merged;
+            const res = origSetItem.call(this, key, JSON.stringify(merged));
+            setTimeout(updateTotalStarCountUI, 0);
+            return res;
+          } else {
+            masterStarsCache = validIncoming;
+            const res = origSetItem.call(this, key, JSON.stringify(validIncoming));
+            setTimeout(function() {
+              syncInternalStarArrayWithMode();
+              updateTotalStarCountUI();
+            }, 0);
+            return res;
+          }
+        }
+      } catch (e) {}
+    }
+    return origSetItem.call(this, key, val);
+  };
+
+  // -------------------------------------------------------------------
+  // 3. ことわざ以外の問題での Sキー ＆ スターボタンクリック完全ブロック、
+  //    および ことわざモードでのスター登録・解除の完全連動
+  // -------------------------------------------------------------------
+  function updateStarButtonVisibility() {
+    const allowed = isCurrentQuestionStarAllowed();
+    document.body.setAttribute("data-wi-star-allowed", allowed ? "true" : "false");
+
+    const area = document.getElementById("chat-messages-area");
+    if (!area) return;
+
+    const pbStarSet = new Set(
+      masterStarsCache.filter(it => getStarItemType(it) === "proverb").map(it => it.id)
+    );
+
+    const rows = Array.from(area.querySelectorAll(".msg-row-in"));
+    let lastQuestionIsAllowed = allowed;
+    let lastProverbId = "";
+
+    rows.forEach(function(row) {
+      if (!row.querySelector(".exp-compact-summary")) {
+        const sdr = row.querySelector(".msg-sender-name");
+        if (sdr) {
+          lastQuestionIsAllowed = isSenderStarAllowed(sdr.textContent);
+          if (sdr.textContent.indexOf("ことわざ") !== -1) {
+            const mTxt = row.querySelector(".msg-main-text");
+            if (mTxt) lastProverbId = "pb::" + mTxt.textContent.trim();
+          } else {
+            lastProverbId = "";
+          }
+        }
+        row.setAttribute("data-row-star-allowed", lastQuestionIsAllowed ? "true" : "false");
+        if (lastProverbId) {
+          row.setAttribute("data-pb-id", lastProverbId);
+          const mStar = row.querySelector(".msg-star-btn");
+          if (mStar) {
+            const stNow = pbStarSet.has(lastProverbId);
+            mStar.textContent = stNow ? "★" : "☆";
+            mStar.classList.toggle("starred", stNow);
+          }
+        }
+      } else {
+        row.setAttribute("data-row-star-allowed", lastQuestionIsAllowed ? "true" : "false");
+        if (lastProverbId) {
+          row.setAttribute("data-pb-id", lastProverbId);
+          const eStar = row.querySelector(".exp-star-btn");
+          if (eStar) {
+            const stNow = pbStarSet.has(lastProverbId);
+            eStar.textContent = stNow ? "★ スター済" : "☆ スター";
+            eStar.classList.toggle("is-starred-now", stNow);
+          }
+        }
+      }
+    });
+
+    if (lastProverbId) {
+      const stNow = pbStarSet.has(lastProverbId);
+      const hdrBtn = document.getElementById("btn-star-hdr");
+      const botBtn = document.getElementById("btn-star-bottom");
+      if (hdrBtn) {
+        hdrBtn.textContent = stNow ? "★ スター済" : "☆ スター";
+        hdrBtn.classList.toggle("starred", stNow);
+      }
+      if (botBtn) {
+        botBtn.textContent = stNow ? "★" : "☆";
+        botBtn.style.color = stNow ? "#d97706" : "#667781";
+      }
+    }
+  }
+
+  const proverbByText = new Map();
+  function indexProverbsForStar() {
+    proverbByText.clear();
+    (d.proverb || []).forEach(function(it) {
+      if (it && it.pb) proverbByText.set(it.pb.trim().toLowerCase(), it);
+    });
+  }
+  indexProverbsForStar();
+
+  function toggleCurrentProverbStar(pbTextRaw) {
+    if (!pbTextRaw) return false;
+    const pbClean = pbTextRaw.trim();
+    const pbId = "pb::" + pbClean;
+    const idx = masterStarsCache.findIndex(x => x && x.id === pbId);
+
+    if (idx !== -1) {
+      masterStarsCache.splice(idx, 1);
+    } else {
+      const raw = proverbByText.get(pbClean.toLowerCase());
+      if (!raw) return false;
+      masterStarsCache.push({
+        id: pbId,
+        effectiveMode: "proverb",
+        sender: "ことわざ (Peribahasa)",
+        mainHtml: raw.pb,
+        hintHtml: raw.lit || "",
+        subHtml: "",
+        ttsWord: "",
+        ttsSentence: raw.pb,
+        ttsText: raw.pb,
+        correctText: raw.a,
+        acceptedAnswers: [raw.a],
+        choices: Array.isArray(raw.choices) ? [...raw.choices] : [raw.a],
+        summaryHead: raw.pb,
+        summarySent: `${raw.lit ? raw.lit + "\n" : ""}【意味】 ${raw.a}`,
+        summaryBrief: "",
+        detailSectionsHtml: raw.exp ? `<div class="exp-sec-card amber"><div class="exp-sec-content">${escHtml(raw.exp)}</div></div>` : "",
+        isTyping: false
+      });
+    }
+    saveCleanMasterStars(masterStarsCache);
+    updateStarButtonVisibility();
+    if (isStarredModeActive()) renderStarWordOrProverbBar();
+    return true;
+  }
+
+  function getActiveProverbText() {
+    const area = document.getElementById("chat-messages-area");
+    if (!area) return "";
+    const rows = Array.from(area.querySelectorAll(".msg-row-in"));
+    for (let i = rows.length - 1; i >= 0; i--) {
+      const r = rows[i];
+      if (r.querySelector(".exp-compact-summary")) continue;
+      const sdr = r.querySelector(".msg-sender-name");
+      if (sdr && sdr.textContent.indexOf("ことわざ") !== -1) {
+        const mTxt = r.querySelector(".msg-main-text");
+        return mTxt ? mTxt.textContent.trim() : "";
+      }
+      break;
+    }
+    return "";
+  }
+
+  // 最上流キャプチャフェーズで、スター不可問題の Sキー・スタークリックを遮断し、ことわざのスターを処理
+  window.addEventListener("keydown", function(e) {
+    const dModal = document.getElementById("dict-detail-modal");
+    if (dModal && dModal.classList.contains("open")) return;
+
+    const el = document.activeElement;
+    if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable)) {
+      if (el.id !== "wa-input-field" || el.value.length > 0) return;
+    }
+
+    if ((e.key || "").toLowerCase() === "s" && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      if (!isCurrentQuestionStarAllowed()) {
+        // ことわざ以外の問題では S キーを完全ブロック！
+        e.preventDefault();
+        e.__wiAllowFinalStop = true;
+        if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+        e.stopPropagation();
+        return;
+      }
+      const pbTxt = getActiveProverbText();
+      if (pbTxt) {
+        e.preventDefault();
+        e.__wiAllowFinalStop = true;
+        if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+        e.stopPropagation();
+        toggleCurrentProverbStar(pbTxt);
+        return;
+      }
+    }
+  }, true);
+
+  window.addEventListener("click", function(e) {
+    if (!e.target || !e.target.closest) return;
+    const starBtn = e.target.closest("#btn-star-hdr, #btn-star-bottom, .msg-star-btn, .exp-star-btn");
+    if (!starBtn) return;
+
+    if (!isCurrentQuestionStarAllowed()) {
+      e.preventDefault();
+      e.__wiAllowFinalStop = true;
+      if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+      e.stopPropagation();
+      return;
+    }
+
+    const pbTxt = getActiveProverbText();
+    if (pbTxt) {
+      e.preventDefault();
+      e.__wiAllowFinalStop = true;
+      if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+      e.stopPropagation();
+      toggleCurrentProverbStar(pbTxt);
+    }
+  }, true);
+
+  // -------------------------------------------------------------------
+  // 4. 「スター復習」上部サブフィルターバー（「単語」「ことわざ」の2ボタンのみ！）
+  //    ※本体の loadNextQuestion() をそのまま呼ぶため、効果音・(...)演出・ヒント設定が100%稼働
+  // -------------------------------------------------------------------
+  function renderStarWordOrProverbBar() {
+    const bar = document.getElementById("chat-subfilter-bar");
+    if (!bar || !isStarredModeActive()) return;
+
+    const wordCnt    = masterStarsCache.filter(it => getStarItemType(it) === "word").length;
+    const proverbCnt = masterStarsCache.filter(it => getStarItemType(it) === "proverb").length;
+
+    bar.classList.add("show");
+    bar.innerHTML = `
+      <div class="sub-filter-group">
+        <button type="button" class="sub-filter-pill ${activeStarSubTab === 'word' ? 'active' : ''}" data-stab="word">単語 (${wordCnt})</button>
+        <button type="button" class="sub-filter-pill ${activeStarSubTab === 'proverb' ? 'active' : ''}" data-stab="proverb">ことわざ (${proverbCnt})</button>
+      </div>
+    `;
+
+    bar.querySelectorAll("[data-stab]").forEach(function(btn) {
+      btn.onclick = function() {
+        activeStarSubTab = btn.getAttribute("data-stab");
+        syncInternalStarArrayWithMode();
+        renderStarWordOrProverbBar();
+
+        const area = document.getElementById("chat-messages-area");
+        if (area) {
+          area.innerHTML = `<div class="wa-date-badge">TODAY — スター復習（${activeStarSubTab === 'word' ? '単語' : 'ことわざ'}）</div>`;
+        }
+        // 本体純正の「次へ」ボタンを発火させることで、(...)演出・効果音・ヒント設定がすべてそのまま動く！
+        const skipBtn = document.getElementById("btn-skip-bottom");
+        if (skipBtn) skipBtn.click();
+      };
+    });
+  }
+
+  // -------------------------------------------------------------------
+  // 5. 類義語・対義語の日本語隠し ＆ ゼミ討論の全文和訳復活
+  // -------------------------------------------------------------------
+  const sinonimFullMap = new Map();
+  function sanitizeSinonimTargets() {
+    if (!Array.isArray(d.sinonim)) return;
+    for (let i = 0; i < d.sinonim.length; i++) {
+      const it = d.sinonim[i];
+      if (!it || !it.target) continue;
+      const origTarget = it.__origTarget || it.target;
+      it.__origTarget = origTarget;
+
+      const jaMatch = origTarget.match(/[（(]([^）)]*[\u3040-\u30FF\u4E00-\u9FFF][^）)]*)[）)]/);
+      const jaMeaning = jaMatch ? jaMatch[1].trim() : "";
+      const cleanTarget = origTarget
+        .replace(/\s*[（(][^）)]*[\u3040-\u30FF\u4E00-\u9FFF][^）)]*[）)]/g, "")
+        .replace(/\s{2,}/g, " ")
+        .trim();
+
+      it.target = cleanTarget;
+      it.__jaMeaning = jaMeaning;
+      if (jaMeaning && it.exp && it.exp.indexOf(jaMeaning) === -1) {
+        it.exp = `【問題語の意味】${cleanTarget.replace(/\s*⇔.*$/, "")}（${jaMeaning}）\n` + it.exp;
+      }
+      sinonimFullMap.set(cleanTarget.toLowerCase(), it);
+      sinonimFullMap.set(origTarget.toLowerCase(), it);
+    }
+  }
+  sanitizeSinonimTargets();
+
+  const debateByAns = new Map();
+  function indexDebateItems() {
+    debateByAns.clear();
+    (d.debate || []).forEach(function(it) {
+      if (it && Array.isArray(it.choices) && typeof it.ans === "number" && it.choices[it.ans]) {
+        debateByAns.set(it.choices[it.ans].trim().toLowerCase(), it);
+      }
+    });
+  }
+  indexDebateItems();
+
+  function formatDebateTrThreadHtml(trThreadStr) {
+    if (!trThreadStr) return "";
+    const lines = String(trThreadStr).replace(/\[cite:\s*[\d,\s]+\]/gi, "").split(/\n+/).map(l => l.trim()).filter(Boolean);
+    if (!lines.length) return "";
+    const rowsHtml = lines.map(function(line) {
+      const cIdx = line.search(/[：:]/);
+      if (cIdx > 0 && cIdx < 28) {
+        return `<div class="wi-debate-tr-line"><strong style="color:#075e54;">${escHtml(line.slice(0, cIdx).trim())}：</strong>${escHtml(line.slice(cIdx + 1).trim())}</div>`;
+      }
+      return `<div class="wi-debate-tr-line">${escHtml(line)}</div>`;
+    }).join("");
+    return `<div class="wi-debate-tr-box"><div class="wi-debate-tr-title">討論スレッドと設問の全文和訳</div>${rowsHtml}</div>`;
+  }
+
+  function enhanceDebateAndSinonimCard(expRow) {
+    if (!expRow) return;
+    const summaryBox = expRow.querySelector(".exp-compact-summary");
+    if (!summaryBox) return;
+    const ansEl  = summaryBox.querySelector(".exp-summary-ans");
+    const sentEl = summaryBox.querySelector(".exp-summary-sent");
+    if (!ansEl) return;
+
+    const rawAns = (ansEl.getAttribute("data-raw-ans") || ansEl.textContent || "").trim();
+    if (rawAns.indexOf("➔ 正解：") !== -1) {
+      const targetKey = rawAns.split("➔")[0].trim().toLowerCase();
+      const sinItem = sinonimFullMap.get(targetKey);
+      if (sinItem && sinItem.__origTarget && rawAns.indexOf(sinItem.__origTarget) === -1) {
+        ansEl.textContent = `${sinItem.__origTarget} ➔ 正解：${sinItem.a}`;
+      }
+    }
+    if (rawAns.indexOf("【正解の主張】") !== -1 && !summaryBox.querySelector(".wi-debate-tr-box")) {
+      const ansTextLower = sentEl ? sentEl.textContent.trim().toLowerCase() : "";
+      const debItem = debateByAns.get(ansTextLower);
+      let trThreadText = debItem ? debItem.trThread : "";
+      if (!trThreadText) {
+        const greenCardContent = expRow.querySelector(".exp-accordion-body .exp-sec-card.green .exp-sec-content");
+        if (greenCardContent) trThreadText = greenCardContent.textContent.trim();
+      }
+      if (trThreadText) {
+        const trHtml = formatDebateTrThreadHtml(trThreadText);
+        if (sentEl) sentEl.insertAdjacentHTML("afterend", trHtml);
+        else summaryBox.insertAdjacentHTML("beforeend", trHtml);
+      }
+    }
+  }
+
+  // -------------------------------------------------------------------
+  // 6. マイ単語帳モーダルの軽量化（初回40語＋スクロール追記＋閉じた瞬間のDOM完全解放）
+  //    ＆「スター語を取込」ではことわざを除外して単語のみを取込！
+  // -------------------------------------------------------------------
+  const wbVocabLookup = new Map();
+  let wbIndexedLen = -1;
+
+  function ensureWbLookup() {
+    const vLen = (d.vocab ? d.vocab.length : 0) + (d.acro ? d.acro.length : 0);
+    if (wbVocabLookup.size > 0 && wbIndexedLen === vLen) return;
+    wbIndexedLen = vLen;
+    wbVocabLookup.clear();
+    (d.vocab || []).forEach(function(it) {
+      if (it && it.w) wbVocabLookup.set(it.w.trim().toLowerCase(), { w: it.w.trim(), r: (it.r || it.w).trim(), p: it.p || "other", m: (it.fullM || it.m || "").trim() });
+    });
+    (d.acro || []).forEach(function(it) {
+      if (it && it.acro && !wbVocabLookup.has(it.acro.trim().toLowerCase())) {
+        wbVocabLookup.set(it.acro.trim().toLowerCase(), { w: it.acro.trim(), r: (it.full || it.acro).trim(), p: "singkatan", m: (it.tr || "").trim() });
+      }
+    });
+  }
+
+  function loadWbStore() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(WB_STORAGE_KEY) || "null");
+      if (raw && Array.isArray(raw.folders) && raw.folders.length > 0 && raw.items) return raw;
+    } catch (e) {}
+    return { folders: [{ id: "folder_1", name: "フォルダ1", createdAt: 1 }], items: {} };
+  }
+
+  function saveWbStore(wbData) {
+    try { localStorage.setItem(WB_STORAGE_KEY, JSON.stringify(wbData)); } catch (e) {}
+    const topBadge = document.getElementById("badge-wordbook-count");
+    if (topBadge) {
+      let total = 0;
+      Object.keys(wbData.items || {}).forEach(k => {
+        if (wbData.items[k] && Array.isArray(wbData.items[k].fIds) && wbData.items[k].fIds.length > 0) total++;
+      });
+      topBadge.textContent = String(total);
+    }
+  }
+
+  function formatWbSenseHtml(rawText) {
+    if (!rawText) return "";
+    const parts = String(rawText).split(/(?=[①②③④⑤⑥⑦⑧⑨⑩])/g).map(s => s.trim()).filter(Boolean);
+    const list = parts.length > 0 ? parts : [String(rawText).trim()];
+    return list.map(function(part) {
+      let s = escHtml(part);
+      s = s.replace(/^([①②③④⑤⑥⑦⑧⑨⑩])\s*/, '<span class="wi-wb-num">$1</span>');
+      s = s.replace(/([（(][^）)]+[）)])/g, '<span class="wi-wb-sub-paren">$1</span>');
+      return `<span class="wi-wb-sense-line">${s}</span>`;
+    }).join("");
+  }
+
+  let lightWbState = {
+    activeFolderId: "folder_1",
+    statusFilter: 0,
+    sortBy: "added_desc",
+    searchQuery: "",
+    maskMeaning: false,
+    addSearchOpen: false,
+    entries: [],
+    renderedCount: 0
+  };
+
+  function closeAndPurgeWordbookModal() {
+    const modal = document.getElementById("wi-wordbook-modal");
+    const inner = document.getElementById("wi-wb-modal-inner");
+    if (modal) modal.classList.remove("open");
+    if (inner) inner.innerHTML = "";
+    lightWbState.entries = [];
+    lightWbState.renderedCount = 0;
+  }
+
+  function buildLightWbRow(entry) {
+    const { rec, info, stLv } = entry;
+    const stLabel  = stLv === 1 ? "未暗記" : stLv === 2 ? "うろ覚え" : "済";
+    const posLabel = info.p === "v" ? "動詞" : info.p === "a" ? "形容詞" : info.p === "n" ? "名詞" : info.p === "singkatan" ? "略語" : "他";
+
+    const row = document.createElement("div");
+    row.className = "wi-wb-word-row";
+    row.setAttribute("data-wb-word", info.w);
+    row.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;">
+          <strong class="wb-row-open-dict" style="font-size:1.03rem;color:#075e54;cursor:pointer;text-decoration:underline;">${escHtml(info.w)}</strong>
+          <span style="font-size:0.74rem;color:#64748b;">[${escHtml(info.r)}]</span>
+          <span class="az-pos-badge">${posLabel}</span>
+          <button type="button" class="wi-lv-dot-btn lv-${stLv} wb-row-status-btn">${stLabel}</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <button type="button" class="inline-audio-chip wb-row-tts">🔊 発音</button>
+          <button type="button" class="inline-audio-chip wi-wb-trigger-btn wb-row-folder-pop" data-wb-word="${escHtml(info.w)}">メモ・移動</button>
+          <button type="button" class="inline-audio-chip wb-row-open-dict">辞書</button>
+          <button type="button" class="inline-audio-chip wb-row-remove" style="color:#b91c1c;border-color:#fecaca;background:#fff1f2;">削除</button>
+        </div>
+      </div>
+      <div class="wb-row-meaning ${lightWbState.maskMeaning ? 'wi-wb-masked-meaning' : ''}" style="font-size:0.92rem;font-weight:700;color:#0f172a;margin-top:2px;">
+        ${formatWbSenseHtml(info.m)}
+      </div>
+      ${rec.memo ? `<div class="wi-wb-inline-mynote"><span><strong>メモ：</strong>${escHtml(rec.memo)}</span></div>` : ""}
+    `;
+    return row;
+  }
+
+  function appendNextLightWbChunk() {
+    const listEl = document.getElementById("wb-light-list-container");
+    if (!listEl) return;
+    const oldMore = listEl.querySelector(".wb-load-more-ind");
+    if (oldMore) oldMore.remove();
+
+    const entries = lightWbState.entries;
+    const end = Math.min(lightWbState.renderedCount + 40, entries.length);
+    const frag = document.createDocumentFragment();
+
+    for (let i = lightWbState.renderedCount; i < end; i++) {
+      frag.appendChild(buildLightWbRow(entries[i]));
+    }
+    listEl.appendChild(frag);
+    lightWbState.renderedCount = end;
+
+    if (lightWbState.renderedCount < entries.length) {
+      const ind = document.createElement("div");
+      ind.className = "wb-load-more-ind";
+      ind.style.cssText = "text-align:center;padding:10px;font-size:0.78rem;color:#64748b;font-weight:600;";
+      ind.textContent = `▼ スクロールでさらに表示（残り ${entries.length - lightWbState.renderedCount} 語）`;
+      listEl.appendChild(ind);
+    }
+  }
+
+  function openLightWordbookModal() {
+    ensureWbLookup();
+    let modal = document.getElementById("wi-wordbook-modal");
+    if (!modal) {
+      modal = document.createElement("div");
+      modal.className = "modal-overlay";
+      modal.id = "wi-wordbook-modal";
+      modal.innerHTML = `<div class="modal-box wide-dict-box" id="wi-wb-modal-inner" style="max-width:820px;height:86vh;"></div>`;
+      document.body.appendChild(modal);
+    }
+    modal.onclick = function(e) {
+      if (e.target === modal) closeAndPurgeWordbookModal();
+    };
+    modal.classList.add("open");
+    renderLightWordbookModal(false);
+  }
+
+  function renderLightWordbookModal(preserveScroll) {
+    const modal = document.getElementById("wi-wordbook-modal");
+    const inner = document.getElementById("wi-wb-modal-inner");
+    if (!modal || !modal.classList.contains("open") || !inner) return;
+
+    ensureWbLookup();
+    const prevList = document.getElementById("wb-light-list-container");
+    const prevScroll = (preserveScroll && prevList) ? prevList.scrollTop : 0;
+
+    const wbData = loadWbStore();
+    if (lightWbState.activeFolderId !== "ALL" && !wbData.folders.some(f => f.id === lightWbState.activeFolderId)) {
+      lightWbState.activeFolderId = wbData.folders[0] ? wbData.folders[0].id : "ALL";
+    }
+    const activeFolderObj = wbData.folders.find(f => f.id === lightWbState.activeFolderId) || null;
+
+    const folderCounts = { ALL: 0 };
+    wbData.folders.forEach(f => { folderCounts[f.id] = 0; });
+
+    const rawEntries = [];
+    const q = (lightWbState.searchQuery || "").trim().toLowerCase();
+
+    Object.keys(wbData.items || {}).forEach(function(k) {
+      const rec = wbData.items[k];
+      if (!rec || !Array.isArray(rec.fIds) || rec.fIds.length === 0) return;
+
+      folderCounts.ALL++;
+      for (let i = 0; i < rec.fIds.length; i++) {
+        const fid = rec.fIds[i];
+        if (folderCounts[fid] !== undefined) folderCounts[fid]++;
+      }
+
+      if (lightWbState.activeFolderId !== "ALL" && !rec.fIds.includes(lightWbState.activeFolderId)) return;
+      const stLv = rec.status || rec.lv || 1;
+      if (lightWbState.statusFilter !== 0 && stLv !== lightWbState.statusFilter) return;
+
+      const mInfo = wbVocabLookup.get(k) || { w: rec.w || k, r: rec.w || k, p: "other", m: "（辞書データ外）" };
+      if (q) {
+        const hit = mInfo.w.toLowerCase().includes(q) || mInfo.r.toLowerCase().includes(q) || mInfo.m.toLowerCase().includes(q) || (rec.memo && rec.memo.toLowerCase().includes(q));
+        if (!hit) return;
+      }
+      rawEntries.push({ key: k, rec: rec, info: mInfo, stLv: stLv });
+    });
+
+    rawEntries.sort(function(a, b) {
+      if (lightWbState.sortBy === "word_asc") return a.info.w.toLowerCase().localeCompare(b.info.w.toLowerCase());
+      if (lightWbState.sortBy === "root_asc") return (a.info.r + a.info.w).toLowerCase().localeCompare((b.info.r + b.info.w).toLowerCase());
+      if (lightWbState.sortBy === "status_asc") return a.stLv - b.stLv;
+      return (b.rec.addedAt || 0) - (a.rec.addedAt || 0);
+    });
+
+    lightWbState.entries = rawEntries;
+    lightWbState.renderedCount = 0;
+
+    const folderTabsHtml = [
+      ...wbData.folders.map(f => `<button type="button" class="wi-wb-folder-tab ${lightWbState.activeFolderId === f.id ? 'active' : ''}" data-wbf="${escHtml(f.id)}">${escHtml(f.name)} (${folderCounts[f.id] || 0})</button>`),
+      wbData.folders.length > 1 ? `<button type="button" class="wi-wb-folder-tab ${lightWbState.activeFolderId === 'ALL' ? 'active' : ''}" data-wbf="ALL">全フォルダ (${folderCounts.ALL})</button>` : "",
+      `<button type="button" class="wi-wb-folder-tab" id="btn-wb-add-folder" style="border-style:dashed;color:#075e54;">＋ フォルダ追加</button>`
+    ].join("");
+
+    inner.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding-bottom:8px;border-bottom:1px solid #e2e8f0;flex-shrink:0;flex-wrap:wrap;">
+        <div><h3 style="color:#111b21;font-size:1.02rem;font-weight:800;">マイ単語帳（全 ${folderCounts.ALL} 語）</h3></div>
+        <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;">
+          <button type="button" class="sub-filter-pill ${lightWbState.addSearchOpen ? 'active' : ''}" id="btn-wb-toggle-addsearch">＋ 単語を追加</button>
+          <button type="button" class="sub-filter-pill" id="btn-wb-import-stars">スター語を取込</button>
+          ${activeFolderObj ? `<button type="button" class="sub-filter-pill" id="btn-wb-rename-folder">名前変更</button>` : ""}
+          ${activeFolderObj && wbData.folders.length > 1 ? `<button type="button" class="sub-filter-pill" id="btn-wb-delete-folder" style="color:#b91c1c;">フォルダ削除</button>` : ""}
+          <button type="button" class="top-action-btn" id="btn-wb-close-modal">✕ 閉じる</button>
+        </div>
+      </div>
+
+      <div class="wi-wb-folder-tabs">${folderTabsHtml}</div>
+
+      <div id="wb-direct-add-drawer" style="display:${lightWbState.addSearchOpen ? 'flex' : 'none'};flex-direction:column;gap:6px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:7px;padding:8px 10px;margin-top:6px;flex-shrink:0;">
+        <input type="text" id="wb-direct-add-input" placeholder="追加したい単語や意味を検索..." style="width:100%;border:1px solid #94a3b8;border-radius:5px;padding:5px 9px;font-size:0.8rem;outline:none;" />
+        <div id="wb-direct-add-results" style="max-height:140px;overflow-y:auto;display:flex;flex-direction:column;gap:3px;"></div>
+      </div>
+
+      <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:space-between;padding:8px 0 4px 0;flex-shrink:0;">
+        <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;">
+          <button type="button" class="sub-filter-pill ${lightWbState.statusFilter === 0 ? 'active' : ''}" data-wbst="0">すべて (${rawEntries.length})</button>
+          <button type="button" class="sub-filter-pill ${lightWbState.statusFilter === 1 ? 'active' : ''}" data-wbst="1">未暗記</button>
+          <button type="button" class="sub-filter-pill ${lightWbState.statusFilter === 2 ? 'active' : ''}" data-wbst="2">うろ覚え</button>
+          <button type="button" class="sub-filter-pill ${lightWbState.statusFilter === 3 ? 'active' : ''}" data-wbst="3">済</button>
+          <button type="button" class="sub-filter-pill ${lightWbState.maskMeaning ? 'active' : ''}" id="btn-wb-mask-meaning" style="margin-left:4px;">意味を隠す</button>
+        </div>
+        <div style="display:flex;gap:5px;align-items:center;">
+          <select id="wb-sort-select" style="border:1px solid #cbd5e1;border-radius:5px;padding:4px 7px;font-size:0.75rem;color:#334155;outline:none;">
+            <option value="added_desc" ${lightWbState.sortBy === 'added_desc' ? 'selected' : ''}>追加順</option>
+            <option value="word_asc" ${lightWbState.sortBy === 'word_asc' ? 'selected' : ''}>A–Z順</option>
+            <option value="root_asc" ${lightWbState.sortBy === 'root_asc' ? 'selected' : ''}>語幹順</option>
+            <option value="status_asc" ${lightWbState.sortBy === 'status_asc' ? 'selected' : ''}>未暗記優先</option>
+          </select>
+          <input type="text" id="wb-filter-input" value="${escHtml(lightWbState.searchQuery)}" placeholder="絞り込み..." style="border:1px solid #cbd5e1;border-radius:5px;padding:4px 8px;font-size:0.76rem;outline:none;width:125px;" />
+        </div>
+      </div>
+
+      <div class="az-list-container" id="wb-light-list-container"></div>
+    `;
+
+    const listEl = document.getElementById("wb-light-list-container");
+    if (!rawEntries.length) {
+      listEl.innerHTML = `<div style="padding:32px 16px;text-align:center;color:#64748b;font-size:0.86rem;line-height:1.7;">このフォルダにはまだ単語が登録されていません。</div>`;
+    } else {
+      appendNextLightWbChunk();
+      if (prevScroll > 0) listEl.scrollTop = prevScroll;
+      listEl.onscroll = function() {
+        if (lightWbState.renderedCount < lightWbState.entries.length) {
+          if (listEl.scrollTop + listEl.clientHeight >= listEl.scrollHeight - 380) {
+            appendNextLightWbChunk();
+          }
+        }
+      };
+    }
+
+    listEl.onclick = function(e) {
+      const row = e.target.closest(".wi-wb-word-row");
+      if (!row) return;
+      const w = row.getAttribute("data-wb-word");
+      const key = (w || "").trim().toLowerCase();
+
+      if (e.target.closest(".wb-row-open-dict")) {
+        const dIn = document.getElementById("dict-input");
+        const dDrop = document.getElementById("dict-dropdown");
+        if (dIn && dDrop) {
+          const prev = dIn.value;
+          dIn.value = w;
+          dIn.dispatchEvent(new Event("input"));
+          const items = Array.from(dDrop.querySelectorAll(".dict-item"));
+          const hit = items.find(r => r.querySelector("strong") && r.querySelector("strong").textContent.trim().toLowerCase() === key) || items[0];
+          if (hit) hit.click();
+          dIn.value = prev;
+          dDrop.style.display = "none";
+        }
+        return;
+      }
+
+      if (e.target.closest(".wb-row-tts")) {
+        if (window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+          const u = new SpeechSynthesisUtterance(w);
+          u.lang = "id-ID";
+          window.speechSynthesis.speak(u);
+        }
+        return;
+      }
+
+      const stBtn = e.target.closest(".wb-row-status-btn");
+      if (stBtn) {
+        const curWb = loadWbStore();
+        if (!curWb.items[key]) return;
+        const curLv = curWb.items[key].status || curWb.items[key].lv || 1;
+        const nextLv = curLv === 1 ? 2 : curLv === 2 ? 3 : 1;
+        curWb.items[key].status = nextLv;
+        saveWbStore(curWb);
+        stBtn.className = `wi-lv-dot-btn lv-${nextLv} wb-row-status-btn`;
+        stBtn.textContent = nextLv === 1 ? "未暗記" : nextLv === 2 ? "うろ覚え" : "済";
+        return;
+      }
+
+      if (e.target.closest(".wb-row-remove")) {
+        const curWb = loadWbStore();
+        if (!curWb.items[key]) return;
+        if (lightWbState.activeFolderId === "ALL") curWb.items[key].fIds = [];
+        else if (Array.isArray(curWb.items[key].fIds)) {
+          curWb.items[key].fIds = curWb.items[key].fIds.filter(id => id !== lightWbState.activeFolderId);
+        }
+        saveWbStore(curWb);
+        row.remove();
+        return;
+      }
+
+      const meanEl = e.target.closest(".wb-row-meaning");
+      if (meanEl && meanEl.classList.contains("wi-wb-masked-meaning")) {
+        meanEl.classList.toggle("revealed");
+      }
+    };
+
+    inner.querySelector("#btn-wb-close-modal").onclick = closeAndPurgeWordbookModal;
+
+    inner.querySelectorAll("[data-wbf]").forEach(function(tab) {
+      tab.onclick = function() {
+        lightWbState.activeFolderId = tab.getAttribute("data-wbf");
+        renderLightWordbookModal(false);
+      };
+    });
+
+    inner.querySelector("#btn-wb-add-folder").onclick = function() {
+      const curWb = loadWbStore();
+      const name = prompt("新しいフォルダ名を入力してください：", `フォルダ${curWb.folders.length + 1}`);
+      if (!name || !name.trim()) return;
+      const newId = "f_" + Date.now();
+      curWb.folders.push({ id: newId, name: name.trim(), createdAt: Date.now() });
+      lightWbState.activeFolderId = newId;
+      saveWbStore(curWb);
+      renderLightWordbookModal(false);
+    };
+
+    const renBtn = inner.querySelector("#btn-wb-rename-folder");
+    if (renBtn && activeFolderObj) {
+      renBtn.onclick = function() {
+        const curWb = loadWbStore();
+        const tf = curWb.folders.find(f => f.id === activeFolderObj.id);
+        if (!tf) return;
+        const nn = prompt("フォルダ名を変更：", tf.name);
+        if (!nn || !nn.trim()) return;
+        tf.name = nn.trim();
+        saveWbStore(curWb);
+        renderLightWordbookModal(true);
+      };
+    }
+
+    const delBtn = inner.querySelector("#btn-wb-delete-folder");
+    if (delBtn && activeFolderObj) {
+      delBtn.onclick = function() {
+        const curWb = loadWbStore();
+        if (curWb.folders.length <= 1 || !confirm(`「${activeFolderObj.name}」を削除しますか？`)) return;
+        const delId = activeFolderObj.id;
+        curWb.folders = curWb.folders.filter(f => f.id !== delId);
+        Object.keys(curWb.items || {}).forEach(k => {
+          if (curWb.items[k] && Array.isArray(curWb.items[k].fIds)) {
+            curWb.items[k].fIds = curWb.items[k].fIds.filter(id => id !== delId);
+          }
+        });
+        lightWbState.activeFolderId = curWb.folders[0].id;
+        saveWbStore(curWb);
+        renderLightWordbookModal(false);
+      };
+    }
+
+    inner.querySelector("#btn-wb-toggle-addsearch").onclick = function() {
+      lightWbState.addSearchOpen = !lightWbState.addSearchOpen;
+      renderLightWordbookModal(true);
+      if (lightWbState.addSearchOpen) {
+        const inp = document.getElementById("wb-direct-add-input");
+        if (inp) inp.focus();
+      }
+    };
+
+    const directIn  = inner.querySelector("#wb-direct-add-input");
+    const directRes = inner.querySelector("#wb-direct-add-results");
+    if (directIn && directRes) {
+      const targetFid = activeFolderObj ? activeFolderObj.id : wbData.folders[0].id;
+      directIn.oninput = function() {
+        const sq = directIn.value.trim().toLowerCase();
+        if (!sq) { directRes.innerHTML = ""; return; }
+        const curWb = loadWbStore();
+        const matches = [];
+        wbVocabLookup.forEach(function(val) {
+          if (matches.length >= 25) return;
+          if (val.w.toLowerCase().includes(sq) || val.r.toLowerCase().includes(sq) || val.m.toLowerCase().includes(sq)) {
+            matches.push(val);
+          }
+        });
+        directRes.innerHTML = matches.map(function(m) {
+          const rec = curWb.items[m.w.toLowerCase()];
+          const already = Boolean(rec && Array.isArray(rec.fIds) && rec.fIds.includes(targetFid));
+          return `
+            <div style="display:flex;justify-content:space-between;align-items:center;background:#fff;padding:4px 8px;border-radius:5px;border:1px solid #e2e8f0;font-size:0.79rem;gap:8px;">
+              <div style="min-width:0;flex:1;"><strong>${escHtml(m.w)}</strong> <span style="color:#64748b;font-size:0.71rem;">[${escHtml(m.r)}]</span> — ${escHtml(m.m)}</div>
+              <button type="button" class="sub-filter-pill wb-direct-add-item-btn ${already ? 'active' : ''}" data-addw="${escHtml(m.w)}" style="font-size:0.71rem;padding:2px 8px;flex-shrink:0;">
+                ${already ? "追加済" : "＋追加"}
+              </button>
+            </div>
+          `;
+        }).join("");
+        directRes.querySelectorAll(".wb-direct-add-item-btn").forEach(function(b) {
+          b.onclick = function() {
+            const w = b.getAttribute("data-addw");
+            const k = w.trim().toLowerCase();
+            const latest = loadWbStore();
+            if (!latest.items[k]) latest.items[k] = { w: w.trim(), fIds: [targetFid], status: 1, memo: "", addedAt: Date.now() };
+            else {
+              if (!Array.isArray(latest.items[k].fIds)) latest.items[k].fIds = [];
+              const idx = latest.items[k].fIds.indexOf(targetFid);
+              if (idx === -1) latest.items[k].fIds.push(targetFid);
+              else latest.items[k].fIds.splice(idx, 1);
+            }
+            saveWbStore(latest);
+            renderLightWordbookModal(true);
+          };
+        });
+      };
+    }
+
+    // ★「スター語を取込」ではことわざ（proverb）を除外し、純粋な単語・略語のみを取り込む！
+    inner.querySelector("#btn-wb-import-stars").onclick = function() {
+      const curWb = loadWbStore();
+      const targetFid = activeFolderObj ? activeFolderObj.id : curWb.folders[0].id;
+      let cnt = 0;
+      masterStarsCache.forEach(function(stItem) {
+        if (getStarItemType(stItem) !== "word") return; // ことわざは除外
+        let w = stItem.ttsWord || (stItem.id ? stItem.id.split("::").pop() : "");
+        const key = (w || "").trim().toLowerCase();
+        if (key && wbVocabLookup.has(key)) {
+          const origW = wbVocabLookup.get(key).w;
+          if (!curWb.items[key]) {
+            curWb.items[key] = { w: origW, fIds: [targetFid], status: 1, memo: "", addedAt: Date.now() };
+            cnt++;
+          } else if (!curWb.items[key].fIds.includes(targetFid)) {
+            curWb.items[key].fIds.push(targetFid);
+            cnt++;
+          }
+        }
+      });
+      saveWbStore(curWb);
+      alert(`スター登録された単語（ことわざを除く）から ${cnt} 語を追加しました。`);
+      renderLightWordbookModal(true);
+    };
+
+    inner.querySelectorAll("[data-wbst]").forEach(function(b) {
+      b.onclick = function() {
+        lightWbState.statusFilter = parseInt(b.getAttribute("data-wbst"), 10);
+        renderLightWordbookModal(false);
+      };
+    });
+
+    const maskBtn = inner.querySelector("#btn-wb-mask-meaning");
+    if (maskBtn) {
+      maskBtn.onclick = function() {
+        lightWbState.maskMeaning = !lightWbState.maskMeaning;
+        maskBtn.classList.toggle("active", lightWbState.maskMeaning);
+        listEl.querySelectorAll(".wb-row-meaning").forEach(function(el) {
+          el.classList.toggle("wi-wb-masked-meaning", lightWbState.maskMeaning);
+          el.classList.remove("revealed");
+        });
+      };
+    }
+
+    inner.querySelector("#wb-sort-select").onchange = function(e) {
+      lightWbState.sortBy = e.target.value;
+      renderLightWordbookModal(false);
+    };
+
+    const fIn = inner.querySelector("#wb-filter-input");
+    fIn.oninput = function() {
+      lightWbState.searchQuery = fIn.value;
+      renderLightWordbookModal(false);
+      const nf = document.getElementById("wb-filter-input");
+      if (nf) { nf.focus(); nf.setSelectionRange(nf.value.length, nf.value.length); }
+    };
+  }
+
+  function bindCleanWordbookTopButton() {
+    const topWbBtn = document.getElementById("btn-wordbook-top");
+    if (topWbBtn && !topWbBtn.__wiCleanWbBound2) {
+      const cloned = topWbBtn.cloneNode(true);
+      cloned.__wiCleanWbBound2 = true;
+      topWbBtn.parentNode.replaceChild(cloned, topWbBtn);
+      cloned.addEventListener("click", function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+        openLightWordbookModal();
+      }, true);
+    }
+  }
+
+  window.addEventListener("keydown", function(e) {
+    if (e.key === "Escape") {
+      const wbModal = document.getElementById("wi-wordbook-modal");
+      if (wbModal && wbModal.classList.contains("open")) {
+        closeAndPurgeWordbookModal();
+      }
+    }
+  }, true);
+
+  // -------------------------------------------------------------------
+  // 7. 起動 ＆ モード切り替え監視
+  // -------------------------------------------------------------------
+  function captureInternalStarArray() {
+    if (internalStarArrayRef) return;
+    // ダミー検索を一瞬走らせて isStarred() -> state.starItems.some() を呼び出し、配列参照を取得
+    const dIn = document.getElementById("dict-input");
+    const dDrop = document.getElementById("dict-dropdown");
+    const dClr = document.getElementById("dict-clear");
+    if (dIn && dDrop) {
+      const prev = dIn.value;
+      dIn.value = "a";
+      dIn.dispatchEvent(new Event("input"));
+      dIn.value = prev;
+      if (!prev) {
+        dDrop.style.display = "none";
+        if (dClr) dClr.style.display = "none";
+      }
+    }
+  }
+
+  function bootFinalStarAndWbPatch() {
+    cleanupLegacyUI();
+    sanitizeSinonimTargets();
+    indexDebateItems();
+    indexProverbsForStar();
+    bindCleanWordbookTopButton();
+
+    if (typeof window.__reloadWhatsIndo === "function") {
+      try { window.__reloadWhatsIndo(); } catch (e) {}
+    }
+
+    // サイドバーを再描画させて旧パッチのリスナー汚染をリセット
+    const activeCatPill = document.querySelector("#cat-pills .wa-pill.active");
+    if (activeCatPill) activeCatPill.click();
+
+    captureInternalStarArray();
+    masterStarsCache = readCleanMasterStars();
+    syncInternalStarArrayWithMode();
+    updateTotalStarCountUI();
+    updateStarButtonVisibility();
+
+    // ヘッダー名（#hdr-name）の監視：モードが切り替わった瞬間にスター復習バーやスターボタン表示を同期
+    const hdrNameEl = document.getElementById("hdr-name");
+    if (hdrNameEl && !hdrNameEl.__wiCleanStarHdrObs) {
+      hdrNameEl.__wiCleanStarHdrObs = true;
+      let wasStarMode = isStarredModeActive();
+
+      new MutationObserver(function() {
+        cleanupLegacyUI();
+        bindCleanWordbookTopButton();
+
+        const nowStarMode = isStarredModeActive();
+        if (nowStarMode && !wasStarMode) {
+          // スター復習に入った瞬間：単語があれば「単語」、単語が0でことわざがあれば「ことわざ」を初期選択
+          const wCnt = masterStarsCache.filter(it => getStarItemType(it) === "word").length;
+          const pCnt = masterStarsCache.filter(it => getStarItemType(it) === "proverb").length;
+          if (wCnt === 0 && pCnt > 0) activeStarSubTab = "proverb";
+          else activeStarSubTab = "word";
+
+          syncInternalStarArrayWithMode();
+          renderStarWordOrProverbBar();
+
+          // タブに合わせた内容で1問目を本体の loadNextQuestion() で出題（(...)演出・効果音つき）
+          const area = document.getElementById("chat-messages-area");
+          if (area) {
+            area.innerHTML = `<div class="wa-date-badge">TODAY — スター復習（${activeStarSubTab === 'word' ? '単語' : 'ことわざ'}）</div>`;
+          }
+          const skipBtn = document.getElementById("btn-skip-bottom");
+          if (skipBtn) skipBtn.click();
+        } else if (!nowStarMode && wasStarMode) {
+          syncInternalStarArrayWithMode();
+        }
+
+        wasStarMode = nowStarMode;
+        updateTotalStarCountUI();
+        updateStarButtonVisibility();
+      }).observe(hdrNameEl, { childList: true, characterData: true, subtree: true });
+    }
+
+    // チャット欄の監視：新しい問題バブルや解説バブルが出た瞬間にスターボタン表示制御＆討論・類義語補正
+    const area = document.getElementById("chat-messages-area");
+    if (area && !area.__wiCleanStarAreaObs) {
+      area.__wiCleanStarAreaObs = true;
+      new MutationObserver(function() {
+        updateStarButtonVisibility();
+        updateTotalStarCountUI();
+        if (isStarredModeActive()) {
+          renderStarWordOrProverbBar();
+        }
+        area.querySelectorAll(".msg-row-in").forEach(function(row) {
+          if (row.querySelector(".exp-compact-summary")) {
+            enhanceDebateAndSinonimCard(row);
+          }
+        });
+      }).observe(area, { childList: true });
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function() {
+      setTimeout(bootFinalStarAndWbPatch, 55);
+    });
+  } else {
+    setTimeout(bootFinalStarAndWbPatch, 55);
+  }
+})();
+/* =====================================================================
+   WhatsIndo スター機能ピンポイント完全修復パッチ
+   - ファイル内に残っている旧スター分割パッチ(bootAllFiveUpgrades等)の起動とクリック横取りを100%遮断
+   - 左上は「スター」、スター復習の上部バーはシンプルな「単語」「ことわざ」の2ボタンのみに統一
+   - 本体純正の出題エンジン(selectMode / loadNextQuestion)で動くため、
+     ユーザーのヒントON/OFF設定・効果音・入力中(...)演出が100%正常に稼働
+   ===================================================================== */
+(function() {
+  const d = window.WHATSINDO_EXTERNAL_DATA;
+  if (!d) return;
+
+  const STAR_STORAGE_KEY = "wi_stars_v2";
+
+  // -------------------------------------------------------------------
+  // 1. 前のパッチ（5大改善パッチ等）の起動タイマーと #btn-star-top 横取りを100%完全遮断！
+  // -------------------------------------------------------------------
+  const origSetTimeout = window.setTimeout;
+  window.setTimeout = function(fn, delay) {
+    if (typeof fn === "function") {
+      const fnName = fn.name || "";
+      if (
+        fnName === "bootAllFiveUpgrades" ||
+        fnName === "bootUnifiedUpgradePatch" ||
+        fnName === "bootFinalStarAndWbPatch"
+      ) {
+        return 0; // 旧スターパッチの起動を完全にブロック
+      }
+    }
+    return origSetTimeout.apply(this, arguments);
+  };
+
+  // 旧パッチの「#btn-star-top をクリックした時に ★単語スター 画面へ飛ばす横取りリスナー」をピンポイントで無力化
+  const prevClosest = Element.prototype.closest;
+  Element.prototype.closest = function(selector) {
+    if (selector === "#btn-star-top") {
+      return null; // 旧パッチの横取りをスキップさせ、index.html 本来の selectMode("starred") を動かす
+    }
+    return prevClosest.call(this, selector);
+  };
+
+  // 旧パッチが監視を貼ろうとするフラグを事前に埋めて無効化
+  const chatListEl = document.getElementById("wa-chat-list");
+  if (chatListEl) chatListEl.__wiFiveUpObs = true;
+  const chatAreaEl = document.getElementById("chat-messages-area");
+  if (chatAreaEl) {
+    chatAreaEl.__wiFiveAreaObs   = true;
+    chatAreaEl.__wiUnifiedAreaObs = true;
+    chatAreaEl.__wiCleanStarAreaObs = true;
+  }
+  const hdrNameInit = document.getElementById("hdr-name");
+  if (hdrNameInit) {
+    hdrNameInit.__wiStarHdrObs      = true;
+    hdrNameInit.__wiCleanStarHdrObs = true;
+  }
+
+  // -------------------------------------------------------------------
+  // 2. スタイル定義（ことわざ以外の問題出題中はスターボタンを非表示）
+  // -------------------------------------------------------------------
+  ["btn-prob-star-top", "wa-room-prob-star", "wi-five-upgrades-style", "wi-unified-star-and-fixes-style", "wi-clean-star-and-fixes-style"].forEach(function(id) {
+    const el = document.getElementById(id);
+    if (el) el.remove();
+  });
+
+  if (!document.getElementById("wi-star-only-fix-style")) {
+    const st = document.createElement("style");
+    st.id = "wi-star-only-fix-style";
+    st.textContent = `
+      #btn-prob-star-top, #wa-room-prob-star { display: none !important; }
+
+      /* ことわざ以外の問題モードではスターボタンをすべて非表示 */
+      body[data-wi-star-allowed="false"] #btn-star-hdr,
+      body[data-wi-star-allowed="false"] #btn-star-bottom,
+      body[data-wi-star-allowed="false"] .msg-star-btn,
+      body[data-wi-star-allowed="false"] .exp-star-btn,
+      .msg-row-in[data-row-star-allowed="false"] .msg-star-btn,
+      .msg-row-in[data-row-star-allowed="false"] .exp-star-btn {
+        display: none !important;
+      }
+    `;
+    document.head.appendChild(st);
+  }
+
+  // -------------------------------------------------------------------
+  // 3. スターデータの判定（「単語・略語」と「ことわざ」のみ許可）
+  // -------------------------------------------------------------------
+  function getStarType(it) {
+    if (!it || typeof it !== "object") return null;
+    const eff = it.effectiveMode || "";
+    const qid = String(it.id || "");
+    const sdr = String(it.sender || "");
+
+    if (eff === "proverb" || qid.startsWith("pb::") || sdr.indexOf("ことわざ") !== -1) {
+      return "proverb";
+    }
+    if (
+      ["v", "a", "n", "other", "singkatan"].includes(eff) ||
+      /^(?:voc|voc_ja2id|abbr_ja|abbr_full|ctx::voc)::/i.test(qid) ||
+      /^(?:動詞|形容詞|名詞|副詞・接続詞他|略語)/.test(sdr)
+    ) {
+      return "word";
+    }
+    return null;
+  }
+
+  function isSenderAllowedForStar(senderText) {
+    const s = String(senderText || "").trim();
+    if (!s) return false;
+    return /^(?:動詞|形容詞|名詞|副詞・接続詞他|略語|ことわざ)/.test(s);
+  }
+
+  function isCurrentViewAllowedForStar() {
+    const area = document.getElementById("chat-messages-area");
+    if (area) {
+      const inRows = Array.from(area.querySelectorAll(".msg-row-in"));
+      for (let i = inRows.length - 1; i >= 0; i--) {
+        const r = inRows[i];
+        if (r.querySelector(".exp-compact-summary")) continue;
+        const sdr = r.querySelector(".msg-sender-name");
+        if (sdr) return isSenderAllowedForStar(sdr.textContent);
+      }
+    }
+    const hdrName = document.getElementById("hdr-name");
+    const hTxt = hdrName ? hdrName.textContent.trim() : "";
+    return /^(?:動詞|形容詞|名詞|副詞・接続詞他|略語|ことわざ|スター復習)/.test(hTxt);
+  }
+
+  // 起動前に localStorage 内の不要な問題スター（リスニング等）を掃除しておく
+  function loadMasterStars() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(STAR_STORAGE_KEY) || "[]");
+      if (!Array.isArray(raw)) return [];
+      const valid = [];
+      const seen = new Set();
+      for (let i = 0; i < raw.length; i++) {
+        const it = raw[i];
+        if (!it || !it.id || getStarType(it) === null) continue;
+        if (seen.has(it.id)) continue;
+        seen.add(it.id);
+        valid.push(it);
+      }
+      if (valid.length !== raw.length) {
+        localStorage.setItem(STAR_STORAGE_KEY, JSON.stringify(valid));
+      }
+      return valid;
+    } catch (e) {
+      return [];
+    }
+  }
+
+  let masterStars = loadMasterStars();
+  let activeSubTab = "word"; // "word" (単語) | "proverb" (ことわざ)
+  let realStateStarItems = null;
+
+  // index.html 本体が起動時に state.starItems を初期化する瞬間（.map(normalizeSavedQuestionRules)）を捕捉して本物の配列参照を握る
+  const origArrayMap = Array.prototype.map;
+  let normMapCallCount = 0;
+  Array.prototype.map = function(callback, thisArg) {
+    const res = origArrayMap.call(this, callback, thisArg);
+    if (typeof callback === "function" && callback.name === "normalizeSavedQuestionRules") {
+      normMapCallCount++;
+      if (normMapCallCount === 2) {
+        realStateStarItems = res; // 2回目の呼び出しが state.starItems
+      }
+    }
+    return res;
+  };
+
+  function isStarModeNow() {
+    const hdrName = document.getElementById("hdr-name");
+    return Boolean(hdrName && hdrName.textContent.trim() === "スター復習");
+  }
+
+  // 本体の state.starItems の中身を同期する（スター復習モード中は選択中の「単語」または「ことわざ」だけを入れる）
+  function syncRealStateStarItems() {
+    if (!realStateStarItems) return;
+    const targetList = isStarModeNow()
+      ? masterStars.filter(it => getStarType(it) === activeSubTab)
+      : masterStars;
+
+    realStateStarItems.length = 0;
+    for (let i = 0; i < targetList.length; i++) {
+      realStateStarItems.push(targetList[i]);
+    }
+  }
+
+  function refreshStarBadgesEverywhere() {
+    const total = masterStars.length;
+    const origStarBtn = document.getElementById("btn-star-top");
+    if (origStarBtn) {
+      origStarBtn.className = "top-action-btn star-btn" + (isStarModeNow() ? " active" : "");
+      origStarBtn.innerHTML = `<span>スター</span><span class="count-pill" id="badge-star-count">${total}</span>`;
+    }
+    const sDesc = document.getElementById("room-desc-starred");
+    if (sDesc) sDesc.textContent = `スター登録済：${total} 件`;
+  }
+
+  function saveMasterStars(newList) {
+    const valid = [];
+    const seen = new Set();
+    for (let i = 0; i < newList.length; i++) {
+      const it = newList[i];
+      if (!it || !it.id || getStarType(it) === null) continue;
+      if (seen.has(it.id)) continue;
+      seen.add(it.id);
+      valid.push(it);
+    }
+    masterStars = valid;
+    try {
+      origSetItem.call(window.localStorage, STAR_STORAGE_KEY, JSON.stringify(valid));
+    } catch (e) {}
+    syncRealStateStarItems();
+    refreshStarBadgesEverywhere();
+  }
+
+  // 本体や辞書から localStorage.setItem("wi_stars_v2", ...) が呼ばれたとき、反対側タブのデータを消さないようマージ保護
+  const origSetItem = Storage.prototype.setItem;
+  Storage.prototype.setItem = function(key, val) {
+    if (this === window.localStorage && key === STAR_STORAGE_KEY) {
+      try {
+        const parsed = JSON.parse(val || "[]");
+        if (Array.isArray(parsed)) {
+          const validIncoming = parsed.filter(it => getStarType(it) !== null);
+          if (isStarModeNow()) {
+            const otherType = activeSubTab === "word" ? "proverb" : "word";
+            const otherItems = masterStars.filter(it => getStarType(it) === otherType);
+            const merged = [];
+            const seen = new Set();
+            [...otherItems, ...validIncoming].forEach(function(it) {
+              if (it && it.id && !seen.has(it.id)) {
+                seen.add(it.id);
+                merged.push(it);
+              }
+            });
+            masterStars = merged;
+            const res = origSetItem.call(this, key, JSON.stringify(merged));
+            setTimeout(refreshStarBadgesEverywhere, 0);
+            return res;
+          } else {
+            masterStars = validIncoming;
+            const res = origSetItem.call(this, key, JSON.stringify(validIncoming));
+            setTimeout(function() {
+              syncRealStateStarItems();
+              refreshStarBadgesEverywhere();
+            }, 0);
+            return res;
+          }
+        }
+      } catch (e) {}
+    }
+    return origSetItem.call(this, key, val);
+  };
+
+  // -------------------------------------------------------------------
+  // 4. 「スター復習」の上部サブフィルターバー（「単語」「ことわざ」の2ボタンのみ！）
+  // -------------------------------------------------------------------
+  function renderCleanStarSubBar() {
+    const bar = document.getElementById("chat-subfilter-bar");
+    if (!bar || !isStarModeNow()) return;
+
+    const wordCnt    = masterStars.filter(it => getStarType(it) === "word").length;
+    const proverbCnt = masterStars.filter(it => getStarType(it) === "proverb").length;
+
+    bar.classList.add("show");
+    bar.innerHTML = `
+      <div class="sub-filter-group">
+        <button type="button" class="sub-filter-pill ${activeSubTab === 'word' ? 'active' : ''}" data-stab="word">単語 (${wordCnt})</button>
+        <button type="button" class="sub-filter-pill ${activeSubTab === 'proverb' ? 'active' : ''}" data-stab="proverb">ことわざ (${proverbCnt})</button>
+      </div>
+    `;
+
+    bar.querySelectorAll("[data-stab]").forEach(function(btn) {
+      btn.onclick = function() {
+        activeSubTab = btn.getAttribute("data-stab");
+        syncRealStateStarItems();
+        renderCleanStarSubBar();
+
+        const area = document.getElementById("chat-messages-area");
+        if (area) {
+          area.innerHTML = `<div class="wa-date-badge">TODAY — スター復習</div>`;
+        }
+        // 本体の「次へ」ボタン（loadNextQuestion）をそのまま呼ぶので、(...)演出・効果音・ヒント設定が100%稼働
+        const skipBtn = document.getElementById("btn-skip-bottom");
+        if (skipBtn) skipBtn.click();
+      };
+    });
+  }
+
+  // -------------------------------------------------------------------
+  // 5. ことわざのスター登録・解除 ＆ ことわざ以外の問題のスター完全遮断
+  // -------------------------------------------------------------------
+  const proverbLookup = new Map();
+  (d.proverb || []).forEach(function(it) {
+    if (it && it.pb) proverbLookup.set(it.pb.trim().toLowerCase(), it);
+  });
+
+  function getActiveProverbText() {
+    const area = document.getElementById("chat-messages-area");
+    if (!area) return "";
+    const rows = Array.from(area.querySelectorAll(".msg-row-in"));
+    for (let i = rows.length - 1; i >= 0; i--) {
+      const r = rows[i];
+      if (r.querySelector(".exp-compact-summary")) continue;
+      const sdr = r.querySelector(".msg-sender-name");
+      if (sdr && sdr.textContent.indexOf("ことわざ") !== -1) {
+        const mTxt = r.querySelector(".msg-main-text");
+        return mTxt ? mTxt.textContent.trim() : "";
+      }
+      break;
+    }
+    return "";
+  }
+
+  function toggleProverbStar(pbTextRaw) {
+    const pbClean = (pbTextRaw || "").trim();
+    if (!pbClean) return;
+    const pbId = "pb::" + pbClean;
+    const idx = masterStars.findIndex(x => x && x.id === pbId);
+
+    if (idx !== -1) {
+      masterStars.splice(idx, 1);
+    } else {
+      const raw = proverbLookup.get(pbClean.toLowerCase());
+      if (!raw) return;
+      masterStars.push({
+        id: pbId,
+        effectiveMode: "proverb",
+        sender: "ことわざ (Peribahasa)",
+        mainHtml: raw.pb,
+        hintHtml: raw.lit || "",
+        subHtml: "",
+        ttsWord: "",
+        ttsSentence: raw.pb,
+        ttsText: raw.pb,
+        correctText: raw.a,
+        acceptedAnswers: [raw.a],
+        choices: Array.isArray(raw.choices) ? [...raw.choices] : [raw.a],
+        summaryHead: raw.pb,
+        summarySent: `${raw.lit ? raw.lit + "\n" : ""}【意味】 ${raw.a}`,
+        summaryBrief: "",
+        detailSectionsHtml: raw.exp ? `<div class="exp-sec-card amber"><div class="exp-sec-content">${ raw.exp }</div></div>` : "",
+        isTyping: false
+      });
+    }
+    saveMasterStars(masterStars);
+    syncStarButtonsVisibilityAndState();
+    if (isStarModeNow()) renderCleanStarSubBar();
+  }
+
+  function syncStarButtonsVisibilityAndState() {
+    const allowed = isCurrentViewAllowedForStar();
+    document.body.setAttribute("data-wi-star-allowed", allowed ? "true" : "false");
+
+    const area = document.getElementById("chat-messages-area");
+    if (!area) return;
+
+    const pbSet = new Set(masterStars.filter(it => getStarType(it) === "proverb").map(it => it.id));
+    const rows = Array.from(area.querySelectorAll(".msg-row-in"));
+    let rowAllowed = allowed;
+    let curPbId = "";
+
+    rows.forEach(function(row) {
+      if (!row.querySelector(".exp-compact-summary")) {
+        const sdr = row.querySelector(".msg-sender-name");
+        if (sdr) {
+          rowAllowed = isSenderAllowedForStar(sdr.textContent);
+          if (sdr.textContent.indexOf("ことわざ") !== -1) {
+            const mTxt = row.querySelector(".msg-main-text");
+            curPbId = mTxt ? ("pb::" + mTxt.textContent.trim()) : "";
+          } else {
+            curPbId = "";
+          }
+        }
+        row.setAttribute("data-row-star-allowed", rowAllowed ? "true" : "false");
+        if (curPbId) {
+          const mBtn = row.querySelector(".msg-star-btn");
+          if (mBtn) {
+            const st = pbSet.has(curPbId);
+            mBtn.textContent = st ? "★" : "☆";
+            mBtn.classList.toggle("starred", st);
+          }
+        }
+      } else {
+        row.setAttribute("data-row-star-allowed", rowAllowed ? "true" : "false");
+        if (curPbId) {
+          const eBtn = row.querySelector(".exp-star-btn");
+          if (eBtn) {
+            const st = pbSet.has(curPbId);
+            eBtn.textContent = st ? "★ スター済" : "☆ スター";
+            eBtn.classList.toggle("is-starred-now", st);
+          }
+        }
+      }
+    });
+
+    if (curPbId) {
+      const st = pbSet.has(curPbId);
+      const hdrBtn = document.getElementById("btn-star-hdr");
+      const botBtn = document.getElementById("btn-star-bottom");
+      if (hdrBtn) {
+        hdrBtn.textContent = st ? "★ スター済" : "☆ スター";
+        hdrBtn.classList.toggle("starred", st);
+      }
+      if (botBtn) {
+        botBtn.textContent = st ? "★" : "☆";
+        botBtn.style.color = st ? "#d97706" : "#667781";
+      }
+    }
+  }
+
+  // Sキーとスターボタンのイベント制御（ことわざ以外の問題はブロック、ことわざは登録・解除）
+  window.addEventListener("keydown", function(e) {
+    const dModal = document.getElementById("dict-detail-modal");
+    if (dModal && dModal.classList.contains("open")) return;
+    const el = document.activeElement;
+    if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable)) {
+      if (el.id !== "wa-input-field" || el.value.length > 0) return;
+    }
+    if ((e.key || "").toLowerCase() === "s" && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      if (!isCurrentViewAllowedForStar()) {
+        e.preventDefault();
+        e.__wiAllowFinalStop = true;
+        if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+        e.stopPropagation();
+        return;
+      }
+      const pbTxt = getActiveProverbText();
+      if (pbTxt) {
+        e.preventDefault();
+        e.__wiAllowFinalStop = true;
+        if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+        e.stopPropagation();
+        toggleProverbStar(pbTxt);
+      }
+    }
+  }, true);
+
+  window.addEventListener("click", function(e) {
+    if (!e.target || typeof prevClosest !== "function") return;
+
+    // 左上「スター」ボタンまたは左サイドバー「スター復習」がクリックされる直前に、
+    // state.starItems を現在のタブ（単語 or ことわざ）に合わせてセットしておく！
+    // これで本体の selectMode("starred") ➔ loadNextQuestion() が1回で綺麗に（...演出＆効果音付きで）動く！
+    const isTopStarClick = prevClosest.call(e.target, "#btn-star-top");
+    const sideItem = prevClosest.call(e.target, ".wa-chat-item");
+    const isSideStarClick = sideItem && sideItem.textContent && sideItem.textContent.indexOf("スター") !== -1;
+
+    if (isTopStarClick || isSideStarClick) {
+      const wCnt = masterStars.filter(it => getStarType(it) === "word").length;
+      const pCnt = masterStars.filter(it => getStarType(it) === "proverb").length;
+      if (activeSubTab === "word" && wCnt === 0 && pCnt > 0) activeSubTab = "proverb";
+      else if (activeSubTab === "proverb" && pCnt === 0 && wCnt > 0) activeSubTab = "word";
+
+      if (realStateStarItems) {
+        const targetList = masterStars.filter(it => getStarType(it) === activeSubTab);
+        realStateStarItems.length = 0;
+        for (let i = 0; i < targetList.length; i++) realStateStarItems.push(targetList[i]);
+      }
+      setTimeout(function() {
+        renderCleanStarSubBar();
+        refreshStarBadgesEverywhere();
+      }, 0);
+      return;
+    }
+
+    const starBtn = prevClosest.call(e.target, "#btn-star-hdr, #btn-star-bottom, .msg-star-btn, .exp-star-btn");
+    if (!starBtn) return;
+
+    if (!isCurrentViewAllowedForStar()) {
+      e.preventDefault();
+      e.__wiAllowFinalStop = true;
+      if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+      e.stopPropagation();
+      return;
+    }
+
+    const pbTxt = getActiveProverbText();
+    if (pbTxt) {
+      e.preventDefault();
+      e.__wiAllowFinalStop = true;
+      if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+      e.stopPropagation();
+      toggleProverbStar(pbTxt);
+    }
+  }, true);
+
+  // -------------------------------------------------------------------
+  // 6. 起動時の初期同期
+  // -------------------------------------------------------------------
+  function bootCleanStarFixOnly() {
+    masterStars = loadMasterStars();
+    syncRealStateStarItems();
+    refreshStarBadgesEverywhere();
+    syncStarButtonsVisibilityAndState();
+
+    const hdrNameEl = document.getElementById("hdr-name");
+    if (hdrNameEl) {
+      new MutationObserver(function() {
+        syncRealStateStarItems();
+        refreshStarBadgesEverywhere();
+        syncStarButtonsVisibilityAndState();
+        if (isStarModeNow()) {
+          renderCleanStarSubBar();
+        }
+      }).observe(hdrNameEl, { childList: true, characterData: true, subtree: true });
+    }
+
+    const area = document.getElementById("chat-messages-area");
+    if (area) {
+      new MutationObserver(function() {
+        syncStarButtonsVisibilityAndState();
+        refreshStarBadgesEverywhere();
+        if (isStarModeNow()) {
+          renderCleanStarSubBar();
+        }
+      }).observe(area, { childList: true });
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function() {
+      origSetTimeout(bootCleanStarFixOnly, 20);
+    });
+  } else {
+    origSetTimeout(bootCleanStarFixOnly, 20);
+  }
+})();
+/* =====================================================================
+   WhatsIndo モード一覧のスター完全削除 ＆ 単語帳（オープン時・閉じた後）超軽量化パッチ
+   1. 左サイドバー（モード一覧）から「★ 単語スター / スター復習」を完全削除し再生成も遮断
+   2. 旧単語帳パッチ(#btn-wordbook-top 横取り・全件一括DOM生成)をボタンID分離により100%バイパス
+   3. 単語帳は初回30語のみ即座に描画（0.002秒）し、閉じた瞬間にDOM要素を完全破棄して後の重さをゼロ化
+   4. 画面更新のたびに裏で全DOM要素をなめていた querySelectorAll('span, div...') を完全停止
+   ===================================================================== */
+(function() {
+  const d = window.WHATSINDO_EXTERNAL_DATA;
+  if (!d) return;
+
+  const WB_STORAGE_KEY   = "wi_custom_wordbooks_v1";
+  const STAR_STORAGE_KEY = "wi_stars_v2";
+
+  function escHtml(str) {
+    return String(str || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  // -------------------------------------------------------------------
+  // 1. 裏で画面変化のたびに全DOM（数千要素）をスキャンしていた初期パッチの処理を停止！
+  //    （単語帳を開いたあとに全体が重くなっていた最大の原因をカット）
+  // -------------------------------------------------------------------
+  const origDocQSA = Document.prototype.querySelectorAll;
+  Document.prototype.querySelectorAll = function(selector) {
+    if (
+      selector === "span, div, b, strong, small" ||
+      selector === "button, .sub-btn, .chip, .filter-btn, span, label"
+    ) {
+      return [];
+    }
+    return origDocQSA.call(this, selector);
+  };
+
+  // 旧パッチの「★ 単語スター」再生成タイマー（updateDualStarBadges）と旧単語帳再描画をブロック
+  const origSetTimeout = window.setTimeout;
+  window.setTimeout = function(fn, delay) {
+    if (typeof fn === "function") {
+      const name = fn.name || "";
+      if (
+        name === "updateDualStarBadges" ||
+        name === "bootAllFiveUpgrades" ||
+        name === "bootUnifiedUpgradePatch" ||
+        name === "bootFinalStarAndWbPatch" ||
+        name === "renderLiveWordbookModal"
+      ) {
+        return 0;
+      }
+    }
+    return origSetTimeout.apply(this, arguments);
+  };
+
+  // -------------------------------------------------------------------
+  // 2. 左サイドバー（モード一覧）からスター項目を100%完全削除
+  // -------------------------------------------------------------------
+  if (!document.getElementById("wi-remove-sidebar-star-and-fastwb-style")) {
+    const st = document.createElement("style");
+    st.id = "wi-remove-sidebar-star-and-fastwb-style";
+    st.textContent = `
+      /* 左サイドバーのスター項目を常時非表示 */
+      #wa-room-prob-star,
+      #wa-chat-list .wa-chat-item:has(#room-desc-starred),
+      #wa-chat-list .wa-chat-item:has(#room-desc-prob-star) {
+        display: none !important;
+      }
+      /* 文脈下線モードの旧3つ目ボタン非表示（全DOMスキャンの代替CSS） */
+      #chat-subfilter-bar button[data-ctx="both"] {
+        display: none !important;
+      }
+      /* 高速単語帳モーダルを最前面（辞書詳細の下）に配置 */
+      #wi-wordbook-modal-vfast {
+        z-index: 950 !important;
+      }
+    `;
+    document.head.appendChild(st);
+  }
+
+  function removeStarItemFromSidebarNow() {
+    const revPill = document.querySelector('#cat-pills .wa-pill[data-cat="review"]');
+    if (revPill && revPill.textContent !== "復習 (1)") {
+      revPill.textContent = "復習 (1)";
+    }
+    const chatList = document.getElementById("wa-chat-list");
+    if (!chatList) return;
+
+    chatList.querySelectorAll(".wa-chat-item").forEach(function(item) {
+      const titleEl = item.querySelector(".wa-item-title");
+      const txt = titleEl ? titleEl.textContent : "";
+      if (
+        item.id === "wa-room-prob-star" ||
+        item.querySelector("#room-desc-starred") ||
+        item.querySelector("#room-desc-prob-star") ||
+        txt.indexOf("スター") !== -1
+      ) {
+        item.remove();
+      }
+    });
+  }
+
+  // -------------------------------------------------------------------
+  // 3. 単語帳の超軽量エンジン（旧パッチの521語一括描画を完全に切り離し、初回30語即表示＋閉じた瞬間DOM破棄）
+  // -------------------------------------------------------------------
+  const wbVocabMap = new Map();
+  let wbVocabIndexedCount = -1;
+
+  function ensureFastWbVocabMap() {
+    const total = (d.vocab ? d.vocab.length : 0) + (d.acro ? d.acro.length : 0);
+    if (wbVocabMap.size > 0 && wbVocabIndexedCount === total) return;
+    wbVocabIndexedCount = total;
+    wbVocabMap.clear();
+
+    const vArr = d.vocab || [];
+    for (let i = 0; i < vArr.length; i++) {
+      const it = vArr[i];
+      if (!it || !it.w) continue;
+      const w = it.w.trim();
+      const mRaw = (it.fullM || it.m || "").trim();
+      wbVocabMap.set(w.toLowerCase(), {
+        w: w,
+        r: (it.r || w).trim(),
+        p: it.p || "other",
+        m: mRaw,
+        wLow: w.toLowerCase(),
+        rLow: (it.r || w).trim().toLowerCase(),
+        mLow: mRaw.toLowerCase()
+      });
+    }
+
+    const aArr = d.acro || [];
+    for (let i = 0; i < aArr.length; i++) {
+      const it = aArr[i];
+      if (!it || !it.acro) continue;
+      const w = it.acro.trim();
+      const wl = w.toLowerCase();
+      if (!wbVocabMap.has(wl)) {
+        const mRaw = (it.tr || "").trim();
+        wbVocabMap.set(wl, {
+          w: w,
+          r: (it.full || w).trim(),
+          p: "singkatan",
+          m: mRaw,
+          wLow: wl,
+          rLow: (it.full || w).trim().toLowerCase(),
+          mLow: mRaw.toLowerCase()
+        });
+      }
+    }
+  }
+
+  function loadWbDataFast() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(WB_STORAGE_KEY) || "null");
+      if (raw && Array.isArray(raw.folders) && raw.folders.length > 0 && raw.items) {
+        return raw;
+      }
+    } catch (e) {}
+    return { folders: [{ id: "folder_1", name: "フォルダ1", createdAt: 1 }], items: {} };
+  }
+
+  function saveWbDataFast(wbData) {
+    try {
+      localStorage.setItem(WB_STORAGE_KEY, JSON.stringify(wbData));
+    } catch (e) {}
+    const badge = document.getElementById("badge-wordbook-count");
+    if (badge) {
+      let cnt = 0;
+      const items = wbData.items || {};
+      for (const k in items) {
+        if (items[k] && Array.isArray(items[k].fIds) && items[k].fIds.length > 0) cnt++;
+      }
+      badge.textContent = String(cnt);
+    }
+  }
+
+  // 意味のHTML整形結果もキャッシュして2回目以降の文字列処理をゼロにする
+  const meaningHtmlCache = new Map();
+  function getFormattedWbMeaning(rawText) {
+    if (!rawText) return "";
+    if (meaningHtmlCache.has(rawText)) return meaningHtmlCache.get(rawText);
+    const parts = String(rawText).split(/(?=[①②③④⑤⑥⑦⑧⑨⑩])/g).map(s => s.trim()).filter(Boolean);
+    const list = parts.length > 0 ? parts : [String(rawText).trim()];
+    const html = list.map(function(part) {
+      let s = escHtml(part);
+      s = s.replace(/^([①②③④⑤⑥⑦⑧⑨⑩])\s*/, '<span class="wi-wb-num">$1</span>');
+      s = s.replace(/([（(][^）)]+[）)])/g, '<span class="wi-wb-sub-paren">$1</span>');
+      return `<span class="wi-wb-sense-line">${s}</span>`;
+    }).join("");
+    meaningHtmlCache.set(rawText, html);
+    return html;
+  }
+
+  const WB_CHUNK_SIZE = 30;
+  let vfastWbState = {
+    activeFolderId: "folder_1",
+    statusFilter: 0,
+    sortBy: "added_desc",
+    searchQuery: "",
+    maskMeaning: false,
+    addSearchOpen: false,
+    entries: [],
+    renderedCount: 0
+  };
+
+  // 旧モーダル（#wi-wordbook-modal）の中身を完全に空にして無力化し、ショートカット判定用の空箱だけにする
+  function syncDummyOldWbModalOpenState(isOpen) {
+    let oldModal = document.getElementById("wi-wordbook-modal");
+    if (!oldModal) {
+      oldModal = document.createElement("div");
+      oldModal.id = "wi-wordbook-modal";
+      oldModal.style.display = "none";
+      document.body.appendChild(oldModal);
+    } else {
+      oldModal.innerHTML = ""; // 旧パッチが残した521語のDOMを完全消去！
+      oldModal.style.display = "none";
+    }
+    oldModal.classList.toggle("open", Boolean(isOpen));
+  }
+
+  // ★単語帳を閉じた瞬間に内部のDOMノードを100%破棄してメモリを解放！
+  function closeVFastWordbookModal() {
+    const modal = document.getElementById("wi-wordbook-modal-vfast");
+    const inner = document.getElementById("wi-wb-modal-inner-vfast");
+    if (modal) modal.classList.remove("open");
+    if (inner) inner.innerHTML = "";
+    vfastWbState.entries = [];
+    vfastWbState.renderedCount = 0;
+    syncDummyOldWbModalOpenState(false);
+  }
+
+  function createVFastWbRowNode(entry) {
+    const rec  = entry.rec;
+    const info = entry.info;
+    const stLv = entry.stLv;
+    const stLabel  = stLv === 1 ? "未暗記" : stLv === 2 ? "うろ覚え" : "済";
+    const posLabel = info.p === "v" ? "動詞" : info.p === "a" ? "形容詞" : info.p === "n" ? "名詞" : info.p === "singkatan" ? "略語" : "他";
+
+    const row = document.createElement("div");
+    row.className = "wi-wb-word-row";
+    row.setAttribute("data-wb-word", info.w);
+    row.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;">
+          <strong class="wb-row-open-dict" style="font-size:1.03rem;color:#075e54;cursor:pointer;text-decoration:underline;">${escHtml(info.w)}</strong>
+          <span style="font-size:0.74rem;color:#64748b;">[${escHtml(info.r)}]</span>
+          <span class="az-pos-badge">${posLabel}</span>
+          <button type="button" class="wi-lv-dot-btn lv-${stLv} wb-row-status-btn">${stLabel}</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <button type="button" class="inline-audio-chip wb-row-tts">🔊 発音</button>
+          <button type="button" class="inline-audio-chip wi-wb-trigger-btn wb-row-folder-pop" data-wb-word="${escHtml(info.w)}">メモ・移動</button>
+          <button type="button" class="inline-audio-chip wb-row-open-dict">辞書</button>
+          <button type="button" class="inline-audio-chip wb-row-remove" style="color:#b91c1c;border-color:#fecaca;background:#fff1f2;">削除</button>
+        </div>
+      </div>
+      <div class="wb-row-meaning ${vfastWbState.maskMeaning ? 'wi-wb-masked-meaning' : ''}" style="font-size:0.92rem;font-weight:700;color:#0f172a;margin-top:2px;">
+        ${getFormattedWbMeaning(info.m)}
+      </div>
+      ${rec.memo ? `<div class="wi-wb-inline-mynote"><span><strong>メモ：</strong>${escHtml(rec.memo)}</span></div>` : ""}
+    `;
+    return row;
+  }
+
+  function appendNextVFastWbBatch() {
+    const listEl = document.getElementById("wb-vfast-list-container");
+    if (!listEl) return;
+    const oldMore = listEl.querySelector(".wb-vfast-more");
+    if (oldMore) oldMore.remove();
+
+    const entries = vfastWbState.entries;
+    const end = Math.min(vfastWbState.renderedCount + WB_CHUNK_SIZE, entries.length);
+    const frag = document.createDocumentFragment();
+
+    for (let i = vfastWbState.renderedCount; i < end; i++) {
+      frag.appendChild(createVFastWbRowNode(entries[i]));
+    }
+    listEl.appendChild(frag);
+    vfastWbState.renderedCount = end;
+
+    if (vfastWbState.renderedCount < entries.length) {
+      const more = document.createElement("div");
+      more.className = "wb-vfast-more";
+      more.style.cssText = "text-align:center;padding:10px;font-size:0.78rem;color:#64748b;font-weight:600;";
+      more.textContent = `▼ スクロールでさらに表示（残り ${entries.length - vfastWbState.renderedCount} 語）`;
+      listEl.appendChild(more);
+    }
+  }
+
+  function openVFastWordbookModal() {
+    ensureFastWbVocabMap();
+    syncDummyOldWbModalOpenState(true);
+
+    let modal = document.getElementById("wi-wordbook-modal-vfast");
+    if (!modal) {
+      modal = document.createElement("div");
+      modal.className = "modal-overlay";
+      modal.id = "wi-wordbook-modal-vfast";
+      modal.innerHTML = `<div class="modal-box wide-dict-box" id="wi-wb-modal-inner-vfast" style="max-width:820px;height:86vh;"></div>`;
+      document.body.appendChild(modal);
+      modal.addEventListener("click", function(e) {
+        if (e.target === modal) closeVFastWordbookModal();
+      });
+    }
+    modal.classList.add("open");
+    renderVFastWordbookModal(false);
+  }
+
+  function renderVFastWordbookModal(preserveScroll) {
+    const modal = document.getElementById("wi-wordbook-modal-vfast");
+    const inner = document.getElementById("wi-wb-modal-inner-vfast");
+    if (!modal || !modal.classList.contains("open") || !inner) return;
+
+    ensureFastWbVocabMap();
+    const prevList = document.getElementById("wb-vfast-list-container");
+    const prevScroll = (preserveScroll && prevList) ? prevList.scrollTop : 0;
+
+    const wbData = loadWbDataFast();
+    if (vfastWbState.activeFolderId !== "ALL" && !wbData.folders.some(f => f.id === vfastWbState.activeFolderId)) {
+      vfastWbState.activeFolderId = wbData.folders[0] ? wbData.folders[0].id : "ALL";
+    }
+    const activeFolderObj = wbData.folders.find(f => f.id === vfastWbState.activeFolderId) || null;
+
+    // 1回のループでフォルダ別件数と表示対象エントリーを高速集計
+    const folderCounts = { ALL: 0 };
+    for (let i = 0; i < wbData.folders.length; i++) {
+      folderCounts[wbData.folders[i].id] = 0;
+    }
+
+    const rawEntries = [];
+    const q = (vfastWbState.searchQuery || "").trim().toLowerCase();
+    const itemsObj = wbData.items || {};
+    const keys = Object.keys(itemsObj);
+
+    for (let i = 0; i < keys.length; i++) {
+      const k = keys[i];
+      const rec = itemsObj[k];
+      if (!rec || !Array.isArray(rec.fIds) || rec.fIds.length === 0) continue;
+
+      folderCounts.ALL++;
+      for (let j = 0; j < rec.fIds.length; j++) {
+        const fid = rec.fIds[j];
+        if (folderCounts[fid] !== undefined) folderCounts[fid]++;
+      }
+
+      if (vfastWbState.activeFolderId !== "ALL" && !rec.fIds.includes(vfastWbState.activeFolderId)) continue;
+      const stLv = rec.status || rec.lv || 1;
+      if (vfastWbState.statusFilter !== 0 && stLv !== vfastWbState.statusFilter) continue;
+
+      const mInfo = wbVocabMap.get(k) || {
+        w: rec.w || k, r: rec.w || k, p: "other", m: "（辞書データ外）",
+        wLow: k, rLow: k, mLow: ""
+      };
+
+      if (q) {
+        const hit =
+          mInfo.wLow.indexOf(q) !== -1 ||
+          mInfo.rLow.indexOf(q) !== -1 ||
+          mInfo.mLow.indexOf(q) !== -1 ||
+          (rec.memo && rec.memo.toLowerCase().indexOf(q) !== -1);
+        if (!hit) continue;
+      }
+      rawEntries.push({ key: k, rec: rec, info: mInfo, stLv: stLv });
+    }
+
+    rawEntries.sort(function(a, b) {
+      if (vfastWbState.sortBy === "word_asc") return a.info.wLow < b.info.wLow ? -1 : a.info.wLow > b.info.wLow ? 1 : 0;
+      if (vfastWbState.sortBy === "root_asc") {
+        const ra = a.info.rLow + " " + a.info.wLow;
+        const rb = b.info.rLow + " " + b.info.wLow;
+        return ra < rb ? -1 : ra > rb ? 1 : 0;
+      }
+      if (vfastWbState.sortBy === "status_asc") return a.stLv - b.stLv;
+      return (b.rec.addedAt || b.rec.t || 0) - (a.rec.addedAt || a.rec.t || 0);
+    });
+
+    vfastWbState.entries = rawEntries;
+    vfastWbState.renderedCount = 0;
+
+    const folderTabsHtml = [
+      ...wbData.folders.map(f => `<button type="button" class="wi-wb-folder-tab ${vfastWbState.activeFolderId === f.id ? 'active' : ''}" data-wbf="${escHtml(f.id)}">${escHtml(f.name)} (${folderCounts[f.id] || 0})</button>`),
+      wbData.folders.length > 1 ? `<button type="button" class="wi-wb-folder-tab ${vfastWbState.activeFolderId === 'ALL' ? 'active' : ''}" data-wbf="ALL">全フォルダ (${folderCounts.ALL})</button>` : "",
+      `<button type="button" class="wi-wb-folder-tab" id="btn-wb-vfast-add-folder" style="border-style:dashed;color:#075e54;">＋ フォルダ追加</button>`
+    ].join("");
+
+    inner.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding-bottom:8px;border-bottom:1px solid #e2e8f0;flex-shrink:0;flex-wrap:wrap;">
+        <div><h3 style="color:#111b21;font-size:1.02rem;font-weight:800;">マイ単語帳（全 ${folderCounts.ALL} 語）</h3></div>
+        <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;">
+          <button type="button" class="sub-filter-pill ${vfastWbState.addSearchOpen ? 'active' : ''}" id="btn-wb-vfast-toggle-add">＋ 単語を追加</button>
+          <button type="button" class="sub-filter-pill" id="btn-wb-vfast-import-stars">スター語を取込</button>
+          ${activeFolderObj ? `<button type="button" class="sub-filter-pill" id="btn-wb-vfast-rename">名前変更</button>` : ""}
+          ${activeFolderObj && wbData.folders.length > 1 ? `<button type="button" class="sub-filter-pill" id="btn-wb-vfast-delete" style="color:#b91c1c;">フォルダ削除</button>` : ""}
+          <button type="button" class="top-action-btn" id="btn-wb-vfast-close">✕ 閉じる</button>
+        </div>
+      </div>
+
+      <div class="wi-wb-folder-tabs">${folderTabsHtml}</div>
+
+      <div id="wb-vfast-add-drawer" style="display:${vfastWbState.addSearchOpen ? 'flex' : 'none'};flex-direction:column;gap:6px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:7px;padding:8px 10px;margin-top:6px;flex-shrink:0;">
+        <input type="text" id="wb-vfast-add-input" placeholder="追加したい単語や意味を検索..." style="width:100%;border:1px solid #94a3b8;border-radius:5px;padding:5px 9px;font-size:0.8rem;outline:none;" />
+        <div id="wb-vfast-add-results" style="max-height:140px;overflow-y:auto;display:flex;flex-direction:column;gap:3px;"></div>
+      </div>
+
+      <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:space-between;padding:8px 0 4px 0;flex-shrink:0;">
+        <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;">
+          <button type="button" class="sub-filter-pill ${vfastWbState.statusFilter === 0 ? 'active' : ''}" data-wbst="0">すべて (${rawEntries.length})</button>
+          <button type="button" class="sub-filter-pill ${vfastWbState.statusFilter === 1 ? 'active' : ''}" data-wbst="1">未暗記</button>
+          <button type="button" class="sub-filter-pill ${vfastWbState.statusFilter === 2 ? 'active' : ''}" data-wbst="2">うろ覚え</button>
+          <button type="button" class="sub-filter-pill ${vfastWbState.statusFilter === 3 ? 'active' : ''}" data-wbst="3">済</button>
+          <button type="button" class="sub-filter-pill ${vfastWbState.maskMeaning ? 'active' : ''}" id="btn-wb-vfast-mask" style="margin-left:4px;">意味を隠す</button>
+        </div>
+        <div style="display:flex;gap:5px;align-items:center;">
+          <select id="wb-vfast-sort" style="border:1px solid #cbd5e1;border-radius:5px;padding:4px 7px;font-size:0.75rem;color:#334155;outline:none;">
+            <option value="added_desc" ${vfastWbState.sortBy === 'added_desc' ? 'selected' : ''}>追加順</option>
+            <option value="word_asc" ${vfastWbState.sortBy === 'word_asc' ? 'selected' : ''}>A–Z順</option>
+            <option value="root_asc" ${vfastWbState.sortBy === 'root_asc' ? 'selected' : ''}>語幹順</option>
+            <option value="status_asc" ${vfastWbState.sortBy === 'status_asc' ? 'selected' : ''}>未暗記優先</option>
+          </select>
+          <input type="text" id="wb-vfast-filter" value="${escHtml(vfastWbState.searchQuery)}" placeholder="絞り込み..." style="border:1px solid #cbd5e1;border-radius:5px;padding:4px 8px;font-size:0.76rem;outline:none;width:125px;" />
+        </div>
+      </div>
+
+      <div class="az-list-container" id="wb-vfast-list-container"></div>
+    `;
+
+    const listEl = document.getElementById("wb-vfast-list-container");
+    if (!rawEntries.length) {
+      listEl.innerHTML = `<div style="padding:32px 16px;text-align:center;color:#64748b;font-size:0.86rem;line-height:1.7;">このフォルダにはまだ単語が登録されていません。</div>`;
+    } else {
+      appendNextVFastWbBatch();
+      if (prevScroll > 0) listEl.scrollTop = prevScroll;
+      listEl.addEventListener("scroll", function() {
+        if (vfastWbState.renderedCount < vfastWbState.entries.length) {
+          if (listEl.scrollTop + listEl.clientHeight >= listEl.scrollHeight - 360) {
+            appendNextVFastWbBatch();
+          }
+        }
+      }, { passive: true });
+    }
+
+    // リスト内のイベントは親要素1つで一括処理（521語あってもリスナーは1個だけ）
+    listEl.onclick = function(e) {
+      const row = e.target.closest(".wi-wb-word-row");
+      if (!row) return;
+      const w = row.getAttribute("data-wb-word");
+      const key = (w || "").trim().toLowerCase();
+
+      if (e.target.closest(".wb-row-open-dict")) {
+        const dIn = document.getElementById("dict-input");
+        const dDrop = document.getElementById("dict-dropdown");
+        if (dIn && dDrop) {
+          const prev = dIn.value;
+          dIn.value = w;
+          dIn.dispatchEvent(new Event("input"));
+          const items = Array.from(dDrop.querySelectorAll(".dict-item"));
+          const hit = items.find(r => r.querySelector("strong") && r.querySelector("strong").textContent.trim().toLowerCase() === key) || items[0];
+          if (hit) hit.click();
+          dIn.value = prev;
+          dDrop.style.display = "none";
+        }
+        return;
+      }
+
+      if (e.target.closest(".wb-row-tts")) {
+        if (window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+          const u = new SpeechSynthesisUtterance(w);
+          u.lang = "id-ID";
+          window.speechSynthesis.speak(u);
+        }
+        return;
+      }
+
+      const stBtn = e.target.closest(".wb-row-status-btn");
+      if (stBtn) {
+        const curWb = loadWbDataFast();
+        if (!curWb.items[key]) return;
+        const curLv = curWb.items[key].status || curWb.items[key].lv || 1;
+        const nextLv = curLv === 1 ? 2 : curLv === 2 ? 3 : 1;
+        curWb.items[key].status = nextLv;
+        saveWbDataFast(curWb);
+        stBtn.className = `wi-lv-dot-btn lv-${nextLv} wb-row-status-btn`;
+        stBtn.textContent = nextLv === 1 ? "未暗記" : nextLv === 2 ? "うろ覚え" : "済";
+        return;
+      }
+
+      if (e.target.closest(".wb-row-remove")) {
+        const curWb = loadWbDataFast();
+        if (!curWb.items[key]) return;
+        if (vfastWbState.activeFolderId === "ALL") curWb.items[key].fIds = [];
+        else if (Array.isArray(curWb.items[key].fIds)) {
+          curWb.items[key].fIds = curWb.items[key].fIds.filter(id => id !== vfastWbState.activeFolderId);
+        }
+        saveWbDataFast(curWb);
+        row.remove();
+        return;
+      }
+
+      const meanEl = e.target.closest(".wb-row-meaning");
+      if (meanEl && meanEl.classList.contains("wi-wb-masked-meaning")) {
+        meanEl.classList.toggle("revealed");
+      }
+    };
+
+    inner.querySelector("#btn-wb-vfast-close").onclick = closeVFastWordbookModal;
+
+    inner.querySelectorAll("[data-wbf]").forEach(function(tab) {
+      tab.onclick = function() {
+        vfastWbState.activeFolderId = tab.getAttribute("data-wbf");
+        renderVFastWordbookModal(false);
+      };
+    });
+
+    inner.querySelector("#btn-wb-vfast-add-folder").onclick = function() {
+      const curWb = loadWbDataFast();
+      const name = prompt("新しいフォルダ名を入力してください：", `フォルダ${curWb.folders.length + 1}`);
+      if (!name || !name.trim()) return;
+      const newId = "f_" + Date.now();
+      curWb.folders.push({ id: newId, name: name.trim(), createdAt: Date.now() });
+      vfastWbState.activeFolderId = newId;
+      saveWbDataFast(curWb);
+      renderVFastWordbookModal(false);
+    };
+
+    const renBtn = inner.querySelector("#btn-wb-vfast-rename");
+    if (renBtn && activeFolderObj) {
+      renBtn.onclick = function() {
+        const curWb = loadWbDataFast();
+        const tf = curWb.folders.find(f => f.id === activeFolderObj.id);
+        if (!tf) return;
+        const nn = prompt("フォルダ名を変更：", tf.name);
+        if (!nn || !nn.trim()) return;
+        tf.name = nn.trim();
+        saveWbDataFast(curWb);
+        renderVFastWordbookModal(true);
+      };
+    }
+
+    const delBtn = inner.querySelector("#btn-wb-vfast-delete");
+    if (delBtn && activeFolderObj) {
+      delBtn.onclick = function() {
+        const curWb = loadWbDataFast();
+        if (curWb.folders.length <= 1 || !confirm(`「${activeFolderObj.name}」を削除しますか？`)) return;
+        const delId = activeFolderObj.id;
+        curWb.folders = curWb.folders.filter(f => f.id !== delId);
+        Object.keys(curWb.items || {}).forEach(k => {
+          if (curWb.items[k] && Array.isArray(curWb.items[k].fIds)) {
+            curWb.items[k].fIds = curWb.items[k].fIds.filter(id => id !== delId);
+          }
+        });
+        vfastWbState.activeFolderId = curWb.folders[0].id;
+        saveWbDataFast(curWb);
+        renderVFastWordbookModal(false);
+      };
+    }
+
+    inner.querySelector("#btn-wb-vfast-toggle-add").onclick = function() {
+      vfastWbState.addSearchOpen = !vfastWbState.addSearchOpen;
+      renderVFastWordbookModal(true);
+      if (vfastWbState.addSearchOpen) {
+        const inp = document.getElementById("wb-vfast-add-input");
+        if (inp) inp.focus();
+      }
+    };
+
+    const directIn  = inner.querySelector("#wb-vfast-add-input");
+    const directRes = inner.querySelector("#wb-vfast-add-results");
+    if (directIn && directRes) {
+      const targetFid = activeFolderObj ? activeFolderObj.id : wbData.folders[0].id;
+      directIn.oninput = function() {
+        const sq = directIn.value.trim().toLowerCase();
+        if (!sq) { directRes.innerHTML = ""; return; }
+        const curWb = loadWbDataFast();
+        const matches = [];
+        wbVocabMap.forEach(function(val) {
+          if (matches.length >= 25) return;
+          if (val.wLow.indexOf(sq) !== -1 || val.rLow.indexOf(sq) !== -1 || val.mLow.indexOf(sq) !== -1) {
+            matches.push(val);
+          }
+        });
+        directRes.innerHTML = matches.map(function(m) {
+          const rec = curWb.items[m.wLow];
+          const already = Boolean(rec && Array.isArray(rec.fIds) && rec.fIds.includes(targetFid));
+          return `
+            <div style="display:flex;justify-content:space-between;align-items:center;background:#fff;padding:4px 8px;border-radius:5px;border:1px solid #e2e8f0;font-size:0.79rem;gap:8px;">
+              <div style="min-width:0;flex:1;"><strong>${escHtml(m.w)}</strong> <span style="color:#64748b;font-size:0.71rem;">[${escHtml(m.r)}]</span> — ${escHtml(m.m)}</div>
+              <button type="button" class="sub-filter-pill wb-vfast-add-item ${already ? 'active' : ''}" data-addw="${escHtml(m.w)}" style="font-size:0.71rem;padding:2px 8px;flex-shrink:0;">
+                ${already ? "追加済" : "＋追加"}
+              </button>
+            </div>
+          `;
+        }).join("");
+        directRes.querySelectorAll(".wb-vfast-add-item").forEach(function(b) {
+          b.onclick = function() {
+            const w = b.getAttribute("data-addw");
+            const k = w.trim().toLowerCase();
+            const latest = loadWbDataFast();
+            if (!latest.items[k]) latest.items[k] = { w: w.trim(), fIds: [targetFid], status: 1, memo: "", addedAt: Date.now() };
+            else {
+              if (!Array.isArray(latest.items[k].fIds)) latest.items[k].fIds = [];
+              const idx = latest.items[k].fIds.indexOf(targetFid);
+              if (idx === -1) latest.items[k].fIds.push(targetFid);
+              else latest.items[k].fIds.splice(idx, 1);
+            }
+            saveWbDataFast(latest);
+            renderVFastWordbookModal(true);
+          };
+        });
+      };
+    }
+
+    inner.querySelector("#btn-wb-vfast-import-stars").onclick = function() {
+      const curWb = loadWbDataFast();
+      const targetFid = activeFolderObj ? activeFolderObj.id : curWb.folders[0].id;
+      let cnt = 0;
+      try {
+        const stars = JSON.parse(localStorage.getItem(STAR_STORAGE_KEY) || "[]");
+        if (Array.isArray(stars)) {
+          stars.forEach(function(stItem) {
+            if (!stItem || stItem.effectiveMode === "proverb" || String(stItem.id || "").startsWith("pb::")) return;
+            const w = stItem.ttsWord || (stItem.id ? stItem.id.split("::").pop() : "");
+            const key = (w || "").trim().toLowerCase();
+            if (key && wbVocabMap.has(key)) {
+              const origW = wbVocabMap.get(key).w;
+              if (!curWb.items[key]) {
+                curWb.items[key] = { w: origW, fIds: [targetFid], status: 1, memo: "", addedAt: Date.now() };
+                cnt++;
+              } else if (!curWb.items[key].fIds.includes(targetFid)) {
+                curWb.items[key].fIds.push(targetFid);
+                cnt++;
+              }
+            }
+          });
+        }
+      } catch (e) {}
+      saveWbDataFast(curWb);
+      alert(`スター登録された単語から ${cnt} 語を追加しました。`);
+      renderVFastWordbookModal(true);
+    };
+
+    inner.querySelectorAll("[data-wbst]").forEach(function(b) {
+      b.onclick = function() {
+        vfastWbState.statusFilter = parseInt(b.getAttribute("data-wbst"), 10);
+        renderVFastWordbookModal(false);
+      };
+    });
+
+    const maskBtn = inner.querySelector("#btn-wb-vfast-mask");
+    if (maskBtn) {
+      maskBtn.onclick = function() {
+        vfastWbState.maskMeaning = !vfastWbState.maskMeaning;
+        maskBtn.classList.toggle("active", vfastWbState.maskMeaning);
+        listEl.querySelectorAll(".wb-row-meaning").forEach(function(el) {
+          el.classList.toggle("wi-wb-masked-meaning", vfastWbState.maskMeaning);
+          el.classList.remove("revealed");
+        });
+      };
+    }
+
+    inner.querySelector("#wb-vfast-sort").onchange = function(e) {
+      vfastWbState.sortBy = e.target.value;
+      renderVFastWordbookModal(false);
+    };
+
+    const fIn = inner.querySelector("#wb-vfast-filter");
+    fIn.oninput = function() {
+      vfastWbState.searchQuery = fIn.value;
+      renderVFastWordbookModal(false);
+      const nf = document.getElementById("wb-vfast-filter");
+      if (nf) { nf.focus(); nf.setSelectionRange(nf.value.length, nf.value.length); }
+    };
+  }
+
+  // ★核心：左上の「単語帳」ボタンの ID を #btn-wordbook-top ➔ #btn-wordbook-top-vfast に変更！
+  //   これにより、旧パッチの window クリック横取り（521語一括描画）が100%空振りし、この超軽量版だけが動く！
+  function upgradeWordbookTopButtonToVFast() {
+    const oldBtn = document.getElementById("btn-wordbook-top");
+    if (oldBtn) {
+      const fastBtn = oldBtn.cloneNode(true);
+      fastBtn.id = "btn-wordbook-top-vfast";
+      oldBtn.parentNode.replaceChild(fastBtn, oldBtn);
+      fastBtn.addEventListener("click", function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        openVFastWordbookModal();
+      });
+    }
+  }
+
+  // ポップオーバー（メモ・フォルダ移動）操作時に高速単語帳が開いていればその場で再同期
+  window.addEventListener("click", function(e) {
+    if (!e.target) return;
+    const pop = document.getElementById("wi-wb-popover-v5");
+    if (pop && pop.contains(e.target)) {
+      origSetTimeout(function() {
+        const modal = document.getElementById("wi-wordbook-modal-vfast");
+        if (modal && modal.classList.contains("open")) {
+          renderVFastWordbookModal(true);
+        }
+      }, 20);
+    }
+  }, true);
+
+  window.addEventListener("keydown", function(e) {
+    const modal = document.getElementById("wi-wordbook-modal-vfast");
+    if (!modal || !modal.classList.contains("open")) return;
+    const pop = document.getElementById("wi-wb-popover-v5");
+    if (pop && pop.classList.contains("open")) {
+      if (e.key === "Enter" || /^[1-9]$/.test(e.key)) {
+        origSetTimeout(function() { renderVFastWordbookModal(true); }, 25);
+      }
+      return;
+    }
+    if (e.key === "Escape") {
+      e.preventDefault();
+      closeVFastWordbookModal();
+    }
+  }, true);
+
+  // -------------------------------------------------------------------
+  // 4. 起動 ＆ 常時クリーンアップ結線
+  // -------------------------------------------------------------------
+  function bootSidebarStarRemoveAndFastWb() {
+    removeStarItemFromSidebarNow();
+    upgradeWordbookTopButtonToVFast();
+    syncDummyOldWbModalOpenState(false);
+
+    const chatList = document.getElementById("wa-chat-list");
+    if (chatList && !chatList.__wiFastNoStarObs) {
+      chatList.__wiFastNoStarObs = true;
+      new MutationObserver(removeStarItemFromSidebarNow).observe(chatList, { childList: true, subtree: true });
+    }
+
+    // 少し遅れて走る旧パッチが #btn-wordbook-top を作った場合も確実に新IDへ切り替える
+    origSetTimeout(function() {
+      removeStarItemFromSidebarNow();
+      upgradeWordbookTopButtonToVFast();
+    }, 120);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function() {
+      origSetTimeout(bootSidebarStarRemoveAndFastWb, 30);
+    });
+  } else {
+    origSetTimeout(bootSidebarStarRemoveAndFastWb, 30);
+  }
+})();
+// ★ 最初に1回だけ定義しておく「ゼロ負荷・差分登録エンジン」
+window.wiAddPack = function(pack) {
+  const d = window.WHATSINDO_EXTERNAL_DATA;
+  if (!d || !pack) return;
+
+  // 共有インデックスMap（初回のみ構築、以降はO(1)で直接参照）
+  if (!window.__wiMasterVocabMap) {
+    window.__wiMasterVocabMap = new Map();
+    for (let i = 0; i < d.vocab.length; i++) {
+      const it = d.vocab[i];
+      if (it && it.w) window.__wiMasterVocabMap.set(it.w.trim().toLowerCase(), it);
+    }
+  }
+  const vMap = window.__wiMasterVocabMap;
+  const catMap = window.__WI_V5_VCAT || (window.__WI_V5_VCAT = new Map());
+
+  // 1. 単語の差分登録（8,000語ループなし！追加された単語数だけ O(1) で即反映）
+  if (Array.isArray(pack.vocab)) {
+    for (let i = 0; i < pack.vocab.length; i++) {
+      const item = pack.vocab[i];
+      if (!item || !item.w) continue;
+      const key = item.w.trim().toLowerCase();
+      if (item.topicCat) catMap.set(key, item.topicCat);
+      if (vMap.has(key)) {
+        Object.assign(vMap.get(key), item);
+      } else {
+        d.vocab.push(item);
+        vMap.set(key, item);
+      }
+    }
+  }
+
+  // 2. 各問題モードの追加（純粋な push のみ）
+  const modes = ["slang", "trans", "listening", "contextJa", "conj", "prep", "error", "sinonim", "idiom", "proverb", "debate", "acro"];
+  for (let m = 0; m < modes.length; m++) {
+    const k = modes[m];
+    if (Array.isArray(pack[k]) && Array.isArray(d[k])) {
+      d[k].push(...pack[k]);
+    }
+  }
+
+  // 3. リロードは即時実行せず、1フレームに1回だけ自動でまとめる（バッチ化）
+  window.__wiDataRevision = (window.__wiDataRevision || 0) + 1;
+  if (!window.__wiReloadQueued) {
+    window.__wiReloadQueued = true;
+    queueMicrotask(function() {
+      window.__wiReloadQueued = false;
+      if (typeof window.__reloadWhatsIndo === "function") window.__reloadWhatsIndo();
+    });
+  }
+};
+/* =====================================================================
+   WhatsIndo ダークモード完全撤去・単語帳ボタン重複解消・リスニング＆ゼミ討論解説完全復活パッチ
+   1. 「🌙 ダーク」ボタン(#btn-v35-theme-toggle)を完全撤去しライトモードに固定
+   2. 「単語帳」ボタンが2個作られる現象を根治し、超軽量版モーダルのみを1ボタンで起動
+   3. リスニングとゼミ討論の解説カードに「放送スクリプト全文＆和訳」「討論スレッド全文和訳」「詳細解説」を完全復活
+   ===================================================================== */
+(function() {
+  const d = window.WHATSINDO_EXTERNAL_DATA;
+  if (!d) return;
+
+  function escHtml(str) {
+    return String(str || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  // -------------------------------------------------------------------
+  // 1. ダークモード完全廃止 ＆ 単語帳2個目ボタン非表示 ＆ リスニング・討論解説カードのスタイル
+  // -------------------------------------------------------------------
+  if (!document.getElementById("wi-fix-dark-wb-listen-debate-style")) {
+    const st = document.createElement("style");
+    st.id = "wi-fix-dark-wb-listen-debate-style";
+    st.textContent = `
+      /* ダークモードボタン、およびV5が後から作る2個目の旧単語帳ボタンを完全非表示 */
+      #btn-v35-theme-toggle,
+      #btn-wordbook-top {
+        display: none !important;
+      }
+
+      /* リスニング・ゼミ討論の全文スクリプト＆和訳ボックス（目に優しいクリーン配色） */
+      .wi-full-script-tr-box {
+        background: #f8fafc;
+        border: 1px solid #cbd5e1;
+        border-left: 3.5px solid #008069;
+        border-radius: 7px;
+        padding: 9px 12px;
+        margin-top: 6px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .wi-full-script-tr-head {
+        font-size: 0.74rem;
+        font-weight: 700;
+        color: #0f766e;
+        border-bottom: 1px dashed #cbd5e1;
+        padding-bottom: 3px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .wi-full-script-id {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #0f172a;
+        line-height: 1.58;
+      }
+      .wi-full-script-ja {
+        font-size: 0.85rem;
+        color: #334155;
+        line-height: 1.58;
+      }
+      .wi-debate-turn-line {
+        font-size: 0.85rem;
+        color: #1e293b;
+        line-height: 1.58;
+      }
+    `;
+    document.head.appendChild(st);
+  }
+
+  function purgeDarkModeAndDuplicateWbBtn() {
+    document.body.classList.remove("wi-dark");
+    try { localStorage.removeItem("wi_dark_mode_v35"); } catch (e) {}
+
+    const dmBtn = document.getElementById("btn-v35-theme-toggle");
+    if (dmBtn) dmBtn.remove();
+
+    // 単語帳ボタンの重複解消：#btn-wordbook-top-vfast 1個だけに統一し、余分なボタンは削除
+    const allWbBtns = document.querySelectorAll("#btn-wordbook-top, #btn-wordbook-top-vfast, .top-action-btn.wordbook-btn");
+    if (allWbBtns.length > 1) {
+      let keptFast = null;
+      allWbBtns.forEach(function(b) {
+        if (b.id === "btn-wordbook-top-vfast" && !keptFast) {
+          keptFast = b;
+        }
+      });
+      allWbBtns.forEach(function(b) {
+        if (keptFast) {
+          if (b !== keptFast) b.remove();
+        } else {
+          b.id = "btn-wordbook-top-vfast";
+          keptFast = b;
+        }
+      });
+    }
+  }
+
+  // V5パッチ等が後から document.getElementById("btn-wordbook-top") を呼んだ際、
+  // 既存の #btn-wordbook-top-vfast を返して2個目のボタン生成を100%防ぐ
+  const rawGetElById = Document.prototype.getElementById.bind(document);
+  document.getElementById = function(id) {
+    if (id === "btn-wordbook-top") {
+      return rawGetElById("btn-wordbook-top-vfast") || rawGetElById("btn-wordbook-top");
+    }
+    return rawGetElById(id);
+  };
+
+  purgeDarkModeAndDuplicateWbBtn();
+
+  // -------------------------------------------------------------------
+  // 2. ゼミ討論（d.debate）の途中パッチで削られていた解説データの完全復元
+  // -------------------------------------------------------------------
+  const DEBATE_EXP_RESTORE_MAP = {
+    "Diskusi Ekonomi: Subsidi Kendaraan Listrik vs Transportasi Publik":
+      "■ 【論理のポイント】：個人のEV購入補助（即効性）と大量公共交通の拡充（渋滞の抜本解決）の対立に対し、長期予算の主軸は公共交通に置きつつ、EV補助を「限定的な移行措置（langkah transisi）」と位置づける選択肢が最も合理的です。\n■ 【重要表現】：\n・kurang sependapat：あまり賛成できない（知的な反対表明）\n・membengkak：（車両数や予算などが）膨れ上がる\n・terurai：（渋滞などが）解消される、ほぐれる\n・langkah transisi：移行措置",
+    "Diskusi Lingkungan: Kuota Pengunjung Taman Nasional":
+      "■ 【論理のポイント】：「観光客を無制限に入れれば収入も増え自然も守られる」というリズキの主張の矛盾を突くため、環境収容力（daya dukung lingkungan）を超える観光客の流入が生態系と野生動物の生息地を破壊すると指摘する文を選びます。\n■ 【重要表現】：\n・menurut hemat saya：私の見解（考え）では\n・melampaui daya dukung lingkungan：環境収容力（キャパシティ）を超える\n・kelestarian satwa liar：野生動物の保全\n・habitat alami：自然の生息環境",
+    "Diskusi Kebijakan Publik: Efektivitas Larangan Kantong Plastik":
+      "■ 【論理のポイント】：「レジ袋禁止は全く効果がない」というビマの決めつけに対し、環境局の公式統計データ（家庭のプラスチックごみ発生量が38%削減された事実）を提示して客観的に反証している選択肢が正解です。\n■ 【重要表現】：\n・sia-sia belaka：全くの無駄にすぎない\n・menarik kesimpulan：結論を下す、結論を引き出す\n・mematahkan klaim：主張を覆す、論破する\n・ditekan hingga ~：〜まで抑制（削減）された",
+    "Diskusi Agribisnis: Kendala Ekspor Kopi Desa Binaan":
+      "■ 【論理のポイント】：ファルハン（コーヒー豆の品質は国際基準を満たし優秀）とケジア（道路の破損と高いトラック輸送費で発送が遅れる）の2人の発言を統合し、「問題は品質ではなく道路インフラと物流コストにある」と結論づけた選択肢が正解です。\n■ 【重要表現】：\n・mengantongi sertifikat：認証（証明書）を取得している\n・secara berkala：定期的に\n・bukan pada A, melainkan pada B：Aにあるのではなく、Bにある",
+    "Diskusi Pertanian: Alih Fungsi Lahan Sawah Produktif":
+      "■ 【論理のポイント】：工業化による雇用・税収増と、食料安全保障（水田維持）を両立させるため、「技術的灌漑水田（優良農地）は厳格に保護し、新工場の建設は農業に不向きな不毛地へ誘導する」という空間計画を選びます。\n■ 【重要表現】：\n・alih fungsi lahan：土地の用途転換（転用）\n・sawah beririgasi teknis：技術的灌漑設備の整った水田\n・ketahanan pangan：食料安全保障\n・lahan tandus：痩せた土地、不毛地",
+    "Diskusi Kesehatan: Cukai Minuman Berpemanis dalam Kemasan":
+      "■ 【論理のポイント】：飲料業界への打撃を懸念する声と、若年層の糖尿病急増を抑えたい医療側の双方に応えるため、「糖分含有量に応じた課税によってメーカーに低糖製品の開発を促す」という選択肢が正解となります。\n■ 【重要表現】：\n・minuman berpemanis dalam kemasan：容器入り加糖飲料\n・cukai：物品税（タバコや酒、加糖飲料などに課される税）\n・menutup mata terhadap ~：〜に対して目をつぶる（見て見ぬふりをする）\n・kadar gula：糖分含有量、糖度",
+    "Diskusi Kota: Penataan Pedagang Kaki Lima di Trotoar":
+      "■ 【論理のポイント】：代替場所なしの強制撤去は「いたちごっこ（aksi kucing-kucingan）」になるという社会学者の指摘を踏まえ、歩道の機能を回復しつつ「歩行者が多く通る戦略的な統合商業スペースへ移転（リロケーション）させる」施策を選びます。\n■ 【重要表現】：\n・pedagang kaki lima (PKL)：露天商、屋台商人\n・menggusur paksa：強制撤去する、立ち退かせる\n・aksi kucing-kucingan：いたちごっこ（直訳：猫ごっこ・鬼ごっこ）\n・merelokasi：移転させる",
+    "Diskusi Maritim: Penanganan Kapal Asing Pencuri Ikan":
+      "■ 【論理のポイント】：違法外国漁船の爆破・沈没による抑止効果（efek jera）は認めつつ、海洋汚染を防いで有効活用するため、「まだ使える押収船は法執行の厳格さを緩めずに地元の漁業協同組合へ無償譲渡する」という選択肢が正解です。\n■ 【重要表現】：\n・efek jera：抑止効果（二度とやるまいと懲りさせる効果）\n・kapal sitaan：押収された船（語幹 sita）\n・laik laut / layak pakai：航海に適した / 使用に耐えうる\n・dihibahkan：無償譲渡（寄贈）される"
+  };
+
+  const listeningLookup = new Map();
+  const debateLookup    = new Map();
+
+  function buildListeningAndDebateIndex() {
+    listeningLookup.clear();
+    debateLookup.clear();
+
+    (d.listening || []).forEach(function(it) {
+      if (!it) return;
+      if (it.question) listeningLookup.set("q::" + it.question.trim().toLowerCase(), it);
+      if (it.passage)  listeningLookup.set("p::" + it.passage.trim().toLowerCase(), it);
+    });
+
+    (d.debate || []).forEach(function(it) {
+      if (!it) return;
+      if (it.topic && DEBATE_EXP_RESTORE_MAP[it.topic] && (!it.exp || it.exp.length < 30)) {
+        it.exp = DEBATE_EXP_RESTORE_MAP[it.topic];
+      }
+      if (it.prompt) debateLookup.set("pr::" + it.prompt.trim().toLowerCase(), it);
+      if (Array.isArray(it.choices) && typeof it.ans === "number" && it.choices[it.ans]) {
+        debateLookup.set("ans::" + it.choices[it.ans].trim().toLowerCase(), it);
+      }
+    });
+  }
+  buildListeningAndDebateIndex();
+
+  function formatBulletsClean(rawText) {
+    if (!rawText) return "";
+    const cleaned = String(rawText)
+      .replace(/\[cite:\s*[\d,\s]+\]/gi, "")
+      .replace(/([^\n])\s*(?=[・•]\s*)/g, "$1\n")
+      .replace(/([^\n])\s*(?=■)/g, "$1\n")
+      .trim();
+
+    const lines = cleaned.split(/\n+/).map(l => l.trim()).filter(Boolean);
+    return lines.map(function(line) {
+      if (line.startsWith("■")) {
+        return `<div class="wi-slang-sec-head">${escHtml(line.replace(/^■\s*/, "").replace(/[【】]/g, ""))}</div>`;
+      }
+      if (/^【[^】]+】[：:]?$/.test(line)) {
+        return `<div class="wi-slang-sec-head">${escHtml(line.replace(/[【】：:]/g, ""))}</div>`;
+      }
+      const mB = line.match(/^【([^】]+)】[：:]?\s*(.+)$/);
+      if (mB) {
+        return `<div class="wi-slang-sec-head">${escHtml(mB[1])}</div><div class="wi-slang-plain-line">${escHtml(mB[2])}</div>`;
+      }
+      if (/^[・•\-]\s*/.test(line)) {
+        const body = line.replace(/^[・•\-]\s*/, "").trim();
+        const cIdx = body.search(/[：:]/);
+        if (cIdx > 0 && cIdx < 55) {
+          return `<div class="wi-slang-bullet-item"><strong>${escHtml(body.slice(0, cIdx).trim())}</strong>：${escHtml(body.slice(cIdx + 1).trim())}</div>`;
+        }
+        return `<div class="wi-slang-bullet-item">${escHtml(body)}</div>`;
+      }
+      return `<div class="wi-slang-plain-line">${escHtml(line)}</div>`;
+    }).join("");
+  }
+
+  // アコーディオン内の要素から、<div> や <br> の改行を失わずにテキストを抽出するヘルパー
+  function extractMultilineText(el) {
+    if (!el) return "";
+    const clone = el.cloneNode(true);
+    clone.querySelectorAll("div, br, p, li").forEach(function(b) {
+      b.insertAdjacentText("beforebegin", "\n");
+    });
+    return (clone.textContent || "").replace(/\n{3,}/g, "\n\n").trim();
+  }
+
+  // -------------------------------------------------------------------
+  // 3. リスニング（Menyimak）＆ ゼミ討論（Diskusi）の解説カードを完全リッチ化
+  // -------------------------------------------------------------------
+  function upgradeListeningAndDebateCard(expRow) {
+    if (!expRow) return;
+    const summaryBox = expRow.querySelector(".exp-compact-summary");
+    if (!summaryBox) return;
+
+    const ansEl  = summaryBox.querySelector(".exp-summary-ans");
+    const sentEl = summaryBox.querySelector(".exp-summary-sent");
+    if (!ansEl) return;
+
+    const rawAns = (ansEl.getAttribute("data-raw-ans") || ansEl.textContent || "").trim();
+    const sentTxt = sentEl ? (sentEl.textContent || "").trim() : "";
+
+    // =================================================================
+    // (A) リスニングモード (Menyimak) の解説カード完全復元
+    // =================================================================
+    const isListeningCard = sentTxt.startsWith("質問：") || Boolean(expRow.querySelector(".exp-accordion-body .exp-sec-label") && expRow.querySelector(".exp-accordion-body .exp-sec-label").textContent.indexOf("放送スクリプト") !== -1);
+
+    if (isListeningCard) {
+      // 設問文から該当するリスニング問題データを特定
+      const qLineMatch = sentTxt.match(/質問[：:]\s*([^\n（(]+)/);
+      const qKey = qLineMatch ? ("q::" + qLineMatch[1].trim().toLowerCase()) : "";
+      const lisItem = qKey ? listeningLookup.get(qKey) : null;
+
+      let passageStr   = lisItem ? lisItem.passage : "";
+      let trPassageStr = lisItem ? lisItem.trPassage : "";
+      let expStr       = lisItem ? lisItem.exp : "";
+
+      // 万一マップ外の場合はアコーディオン内の緑カード・黄色カードから抽出
+      if (!passageStr) {
+        const greenEl = expRow.querySelector(".exp-accordion-body .exp-sec-card.green .exp-sec-content");
+        const greenTxt = extractMultilineText(greenEl);
+        if (greenTxt) {
+          const parts = greenTxt.split(/【スクリプト和訳】/);
+          passageStr   = (parts[0] || "").trim();
+          trPassageStr = (parts[1] || "").trim();
+        }
+      }
+      if (!expStr) {
+        const amberEl = expRow.querySelector(".exp-accordion-body .exp-sec-card.amber .exp-sec-content");
+        expStr = extractMultilineText(amberEl);
+      }
+
+      // ① 放送スクリプト全文（インドネシア語）＋ スクリプト全文和訳（日本語）の専用ボックスを挿入
+      if (passageStr && !summaryBox.querySelector(".wi-listen-full-box")) {
+        const scriptBox = document.createElement("div");
+        scriptBox.className = "wi-full-script-tr-box wi-listen-full-box";
+        scriptBox.innerHTML = `
+          <div class="wi-full-script-tr-head">
+            <span>放送スクリプト全文と和訳</span>
+          </div>
+          <div class="wi-full-script-id">${escHtml(passageStr)}</div>
+          ${trPassageStr ? `<div class="wi-full-script-ja">${escHtml(trPassageStr)}</div>` : ""}
+        `;
+        if (sentEl) {
+          sentEl.insertAdjacentElement("beforebegin", scriptBox);
+        } else {
+          summaryBox.appendChild(scriptBox);
+        }
+      }
+
+      // ② 設問と設問和訳を見やすく整形
+      if (sentEl && !sentEl.__wiLisFormatted) {
+        sentEl.__wiLisFormatted = true;
+        const qStr  = lisItem ? lisItem.question : (qLineMatch ? qLineMatch[1].trim() : sentTxt);
+        const trQ   = lisItem ? lisItem.trQuestion : "";
+        if (qStr) {
+          sentEl.innerHTML = `
+            <div style="font-size:0.9rem;font-weight:700;color:#0f172a;line-height:1.55;"><span style="color:#008069;">設問：</span>${escHtml(qStr)}</div>
+            ${trQ ? `<div style="font-size:0.83rem;color:#475569;line-height:1.5;margin-top:2px;">（${escHtml(trQ)}）</div>` : ""}
+          `;
+        }
+      }
+
+      // ③ 聞き取り・言い換えのポイント解説ボックスを確実に表示
+      if (expStr) {
+        let expBox = summaryBox.querySelector(".wi-slang-exp-box");
+        if (!expBox) {
+          expBox = document.createElement("div");
+          expBox.className = "wi-slang-exp-box";
+          summaryBox.appendChild(expBox);
+        }
+        expBox.innerHTML = `<div class="wi-slang-sec-head">聞き取り・言い換えのポイント</div>` + formatBulletsClean(expStr);
+      }
+      return;
+    }
+
+    // =================================================================
+    // (B) ゼミ討論グループ (Diskusi / debate) の解説カード完全復元
+    // =================================================================
+    const isDebateCard = rawAns.indexOf("【正解の主張】") !== -1 || Boolean(expRow.querySelector(".exp-accordion-body .exp-sec-label") && expRow.querySelector(".exp-accordion-body .exp-sec-label").textContent.indexOf("討論スレッド") !== -1);
+
+    if (isDebateCard) {
+      const debItem = debateLookup.get("ans::" + sentTxt.toLowerCase());
+
+      let trThreadStr = debItem ? debItem.trThread : "";
+      let expStr      = debItem ? debItem.exp : "";
+
+      if (!trThreadStr) {
+        const greenEl = expRow.querySelector(".exp-accordion-body .exp-sec-card.green .exp-sec-content");
+        trThreadStr = extractMultilineText(greenEl);
+      }
+      if (!expStr) {
+        const amberEl = expRow.querySelector(".exp-accordion-body .exp-sec-card.amber .exp-sec-content");
+        expStr = extractMultilineText(amberEl);
+      }
+
+      // ① 討論スレッドと設問の全文和訳ボックスを確実に表示
+      if (trThreadStr && !summaryBox.querySelector(".wi-debate-full-box")) {
+        const lines = trThreadStr
+          .replace(/\[cite:\s*[\d,\s]+\]/gi, "")
+          .replace(/([^\n])\s*(?=【)/g, "$1\n")
+          .replace(/([^\n])\s*(?=[・•])/g, "$1\n")
+          .split(/\n+/)
+          .map(l => l.trim())
+          .filter(Boolean);
+
+        const linesHtml = lines.map(function(line) {
+          if (/^【[^】]+】/.test(line)) {
+            const m = line.match(/^【([^】]+)】\s*(.*)$/);
+            if (m) {
+              return `<div class="wi-debate-turn-line" style="margin-top:3px;"><strong style="color:#0f766e;">【${escHtml(m[1])}】</strong>${escHtml(m[2])}</div>`;
+            }
+          }
+          const cleanLine = line.replace(/^[・•]\s*/, "");
+          const cIdx = cleanLine.search(/[：:]/);
+          if (cIdx > 0 && cIdx < 28) {
+            return `<div class="wi-debate-turn-line"><strong style="color:#075e54;">・${escHtml(cleanLine.slice(0, cIdx).trim())}：</strong>${escHtml(cleanLine.slice(cIdx + 1).trim())}</div>`;
+          }
+          return `<div class="wi-debate-turn-line">${escHtml(line)}</div>`;
+        }).join("");
+
+        const trBox = document.createElement("div");
+        trBox.className = "wi-full-script-tr-box wi-debate-full-box";
+        trBox.innerHTML = `
+          <div class="wi-full-script-tr-head">
+            <span>討論スレッドと設問の全文和訳</span>
+          </div>
+          ${linesHtml}
+        `;
+        if (sentEl) {
+          sentEl.insertAdjacentElement("afterend", trBox);
+        } else {
+          summaryBox.appendChild(trBox);
+        }
+      }
+
+      // ② 論理展開・重要表現の解説ボックスを確実に表示
+      if (expStr) {
+        let expBox = summaryBox.querySelector(".wi-slang-exp-box");
+        if (!expBox) {
+          expBox = document.createElement("div");
+          expBox.className = "wi-slang-exp-box";
+          summaryBox.appendChild(expBox);
+        }
+        expBox.innerHTML = formatBulletsClean(expStr);
+      }
+    }
+  }
+
+  // -------------------------------------------------------------------
+  // 4. 常時監視 ＆ 起動フック
+  // -------------------------------------------------------------------
+  function scanAndFixAll() {
+    purgeDarkModeAndDuplicateWbBtn();
+    const area = rawGetElById("chat-messages-area");
+    if (!area) return;
+    area.querySelectorAll(".msg-row-in").forEach(function(row) {
+      if (row.querySelector(".exp-compact-summary")) {
+        upgradeListeningAndDebateCard(row);
+      }
+    });
+  }
+
+  function bootFinalThreeFixes() {
+    buildListeningAndDebateIndex();
+    if (typeof window.__reloadWhatsIndo === "function") {
+      try { window.__reloadWhatsIndo(); } catch (e) {}
+    }
+    scanAndFixAll();
+
+    // 50ms / 250ms / 500ms の遅延パッチが走った直後にも確実にダークモード＆重複単語帳ボタンを掃除
+    [60, 180, 300, 600].forEach(function(ms) {
+      setTimeout(scanAndFixAll, ms);
+    });
+
+    const actionsBar = document.querySelector(".sidebar-actions");
+    if (actionsBar && !actionsBar.__wiSingleWbObs) {
+      actionsBar.__wiSingleWbObs = true;
+      new MutationObserver(purgeDarkModeAndDuplicateWbBtn).observe(actionsBar, { childList: true, subtree: true });
+    }
+
+    const area = rawGetElById("chat-messages-area");
+    if (area && !area.__wiLisDebFixObs) {
+      area.__wiLisDebFixObs = true;
+      new MutationObserver(function() {
+        scanAndFixAll();
+        setTimeout(scanAndFixAll, 35);
+      }).observe(area, { childList: true });
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function() {
+      setTimeout(bootFinalThreeFixes, 25);
+    });
+  } else {
+    setTimeout(bootFinalThreeFixes, 25);
+  }
+})();
