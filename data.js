@@ -146791,3 +146791,163 @@ window.wiAddPack({
   }
   attachFixObserver();
 })();
+/* =====================================================================
+   WhatsIndo 語彙追加・統合パック（jadi / wapres 追加 ＆ tutup usia・tutup mata・tutup mulut を tutup へ統合）
+   ===================================================================== */
+(function() {
+  const d = window.WHATSINDO_EXTERNAL_DATA;
+  if (!d || !Array.isArray(d.vocab)) return;
+
+  // 1. 見出し語から削除して「tutup」へ統合する3語
+  const REMOVE_SET = new Set([
+    "tutup usia",
+    "tutup mata",
+    "tutup mulut"
+  ]);
+
+  // 2. 新規追加・統合データ（jadi / wapres / tutup）
+  const ITEMS = [
+    {
+      p: "v", w: "jadi", r: "jadi", topicCat: "🏠 日常・生活・移動",
+      m: "①〜になる（＝menjadi） ②（計画・予定などが）実現する、決行される、成立する ③（接続詞）だから、したがって、つまり ④出来上がった、完成した",
+      ex: "Rencana liburan ke Bali bulan depan akhirnya jadi dilaksanakan setelah sempat tertunda.",
+      tr: "来月のバリ島への旅行計画は、一時延期された後、最終的に実施されることになった（実現した）。",
+      note: [
+        "■ 【用法・コロケーション】：\n・tidak jadi ~：〜しないことになった、取りやめになる（Tidak jadi pergi karena hujan＝雨で行かないことになった）\n・jadi ~（＝menjadi ~）：〜になる（jadi guru＝教師になる）\n・barang jadi / pakaian jadi：完成品、既製品 ／ 既製服（⇔ bahan mentah＝原材料）\n・Jadi, ...（文頭の接続詞）：だから、したがって、つまり（＝Oleh karena itu）",
+        "■ 【関連語】：\n・menjadi（動詞）：〜になる、〜を務める\n・menjadikan（他動詞）：AをBにする（menjadikan A sebagai B）\n・terjadi（自動詞）：（出来事や現象が）起こる、発生する\n・kejadian（名詞）：出来事、事件、発生（tempat kejadian perkara＝事件現場）"
+      ].join("\n")
+    },
+    {
+      p: "singkatan", w: "wapres", r: "Wakil Presiden", alts: ["wakil presiden"], topicCat: "⚖️ 政治・法律・社会",
+      m: "副大統領",
+      ex: "Wapres dijadwalkan akan menghadiri konferensi tingkat tinggi tersebut mewakili kepala negara.",
+      tr: "副大統領は国家元首を代表してその首脳会議に出席する予定だ。",
+      note: [
+        "■ 【語構成】：WAkil（副・代理）+ PRESiden（大統領）の合成略語（アクロニム）。",
+        "■ 【関連略語】：\n・capres (calon presiden)：大統領候補\n・cawapres (calon wakil presiden)：副大統領候補"
+      ].join("\n")
+    },
+    {
+      p: "v", w: "tutup", r: "tutup", topicCat: "🏠 日常・生活・移動",
+      m: "①閉まる、閉じる、（店や窓口などが）閉店・休業する（⇔ buka） ②蓋（ふた）、カバー",
+      ex: "Pada hari libur nasional, seluruh kantor pelayanan bank tutup dan baru buka kembali keesokan harinya.",
+      tr: "国民の祝日にはすべての銀行窓口が休業（閉店）し、翌日に営業を再開する。",
+      note: [
+        "■ 【基本表現・名詞用法】：\n・jam tutup：閉店時間（⇔ jam buka＝開店時間）\n・tutup botol / tutup panci：ボトルのキャップ ／ 鍋の蓋",
+        "■ 【慣用表現（tutup + 名詞）】：\n・tutup usia：亡くなる、逝去する（＝meninggal dunia / wafat）\n・tutup mata（menutup mata）：見て見ぬふりをする、現実から目を背ける\n・tutup mulut：口を閉ざす、黙秘する、秘密を守る（＝bungkam ／ uang tutup mulut＝口止め料）\n・tutup buku：①年度末の帳簿を締める（決算する）、②過去の問題を水に流して終わりにする",
+        "■ 【関連語】：\n・menutup（他動詞）：（ドア・店・道路・口座・会議などを）閉める、閉鎖する\n・menutupi（他動詞）：（布などで）覆う、（過ちや事実を）隠す、隠蔽する\n・tertutup（形容詞）：閉まった、非公開の（secara tertutup ⇔ secara terbuka）、内向的な\n・penutup（名詞）：蓋、最後の締めくくり（kata penutup＝結びの言葉）\n・penutupan（名詞）：閉鎖、閉会式、終了（upacara penutupan＝閉会式）"
+      ].join("\n")
+    }
+  ];
+
+  const updateKeySet = new Set(ITEMS.map(x => x.w.toLowerCase()));
+  const vCatMap = window.__WI_V5_VCAT || (window.__WI_V5_VCAT = new Map());
+  const masterMap = window.__wiMasterVocabMap;
+
+  // 既存配列から削除対象3語と更新対象の古い重複エントリを除去
+  for (let i = d.vocab.length - 1; i >= 0; i--) {
+    const it = d.vocab[i];
+    if (!it || !it.w) continue;
+    const wl = it.w.trim().toLowerCase();
+    if (REMOVE_SET.has(wl) || updateKeySet.has(wl)) {
+      d.vocab.splice(i, 1);
+      if (REMOVE_SET.has(wl)) {
+        vCatMap.delete(wl);
+        if (masterMap) masterMap.delete(wl);
+      }
+    }
+  }
+
+  // 先頭側へ登録（同じ語幹の関連語ファミリーの上位枠に jadi / tutup が確実に入るようにする）
+  for (let i = ITEMS.length - 1; i >= 0; i--) {
+    const item = ITEMS[i];
+    const key = item.w.toLowerCase();
+    vCatMap.set(key, item.topicCat);
+    d.vocab.unshift(item);
+    if (masterMap) masterMap.set(key, item);
+  }
+
+  // wapres を略語リスト (d.acro / d.singkatan) にも登録
+  const wapresAcro = {
+    acro: "wapres",
+    full: "wakil presiden",
+    alts: [],
+    topicCat: "⚖️ 政治・法律・社会",
+    tr: "副大統領",
+    exp: "■ 【語構成】：WAkil（副・代理）+ PRESiden（大統領）の合成略語（アクロニム）。\n■ 【関連略語】：capres（calon presiden＝大統領候補）、cawapres（calon wakil presiden＝副大統領候補）。"
+  };
+  if (Array.isArray(d.acro) && !d.acro.some(a => a && a.acro && a.acro.trim().toLowerCase() === "wapres")) {
+    d.acro.push(wapresAcro);
+  }
+  if (Array.isArray(d.singkatan) && !d.singkatan.some(s => s && s.w && s.w.trim().toLowerCase() === "wapres")) {
+    d.singkatan.push(ITEMS[1]);
+  }
+
+  window.__wiDataRevision = (window.__wiDataRevision || 0) + 1;
+  if (typeof window.__reloadWhatsIndo === "function") {
+    try { window.__reloadWhatsIndo(); } catch (e) {}
+  }
+})();
+/* =====================================================================
+   WhatsIndo 単語帳「クリックで意味を表示」2重トグル打ち消しバグ修正パッチ
+   - 1回のクリックでキャプチャ処理とリスト処理の2回 toggle("revealed") が走って
+     即座に元に戻ってしまう現象を遮断し、1クリックで確実に意味を表示/非表示にします
+   ===================================================================== */
+(function() {
+  if (!document.getElementById("wi-wb-reveal-fix-style")) {
+    const st = document.createElement("style");
+    st.id = "wi-wb-reveal-fix-style";
+    st.textContent = `
+      .wb-row-meaning.wi-wb-masked-meaning.revealed {
+        background: transparent !important;
+        color: #0f172a !important;
+        padding: 2px 0 !important;
+      }
+      .wb-row-meaning.wi-wb-masked-meaning.revealed::after {
+        content: none !important;
+        display: none !important;
+      }
+      .wb-row-meaning.wi-wb-masked-meaning.revealed span,
+      .wb-row-meaning.wi-wb-masked-meaning.revealed .wi-wb-sense-line {
+        color: #0f172a !important;
+      }
+      .wb-row-meaning.wi-wb-masked-meaning.revealed .wi-wb-num {
+        color: #008069 !important;
+      }
+      .wb-row-meaning.wi-wb-masked-meaning.revealed .wi-wb-sub-paren {
+        color: #64748b !important;
+      }
+    `;
+    document.head.appendChild(st);
+  }
+
+  // ① 同一要素に対して 80ms 以内に2回目の toggle("revealed") が呼ばれても無視する安全ロック
+  const origClassToggle = DOMTokenList.prototype.toggle;
+  DOMTokenList.prototype.toggle = function(token, force) {
+    if (token === "revealed") {
+      const now = Date.now();
+      if (this.__lastRevealToggleTs && (now - this.__lastRevealToggleTs < 80)) {
+        return this.contains("revealed");
+      }
+      this.__lastRevealToggleTs = now;
+    }
+    return origClassToggle.apply(this, arguments);
+  };
+
+  // ② 最上流（windowキャプチャ）で1回だけ開閉し、後続の重複リスナーへの伝播を完全遮断
+  window.addEventListener("click", function(e) {
+    if (!e.target || !e.target.closest) return;
+    const meanEl = e.target.closest(".wb-row-meaning.wi-wb-masked-meaning");
+    if (!meanEl) return;
+
+    e.preventDefault();
+    e.__wiAllowFinalStop = true;
+    e.__wiMasterFinalStop = true;
+    if (typeof e.stopImmediatePropagation === "function") {
+      e.stopImmediatePropagation();
+    }
+    e.stopPropagation();
+
+    meanEl.classList.toggle("revealed");
+  }, true);
+})();
