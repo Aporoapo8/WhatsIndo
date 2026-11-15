@@ -146435,3 +146435,359 @@ window.wiAddPack({
     setTimeout(restoreSimpleFamilyChips, 100);
   }
 })();
+/* =====================================================================
+   WhatsIndo 語彙追加パック（permen / tema / dapil）
+   ===================================================================== */
+(function() {
+  const d = window.WHATSINDO_EXTERNAL_DATA;
+  if (!d) return;
+
+  const PACK = {
+    vocab: [
+      {
+        p: "n", w: "permen", r: "permen", topicCat: "🍽️ 食・料理",
+        m: "①飴、キャンディ ②大臣令、省令（Peraturan Menteri の合成略語）",
+        ex: "Ibu memberikan beberapa butir permen rasa buah kepada anak-anak yang sedang bermain di halaman.",
+        tr: "母は庭で遊んでいる子どもたちにフルーツ味の飴を数粒あげた。",
+        note: [
+          "■ 【主な表現（飴）】：\n・permen karet：チューインガム（mengunyah permen karet＝ガムを噛む）\n・permen pelega tenggorokan：のど飴\n・kembang gula：飴、キャンディ（改まった表現）",
+          "■ 【行政略語（Permen）】：PERaturan（規則・令）+ MENteri（大臣）の合成略語。各省の大臣が発令する「大臣令・省令」を指す（例：Permendag＝商業大臣令、Permenkes＝保健大臣令）。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "tema", r: "tema", topicCat: "🎓 教育・学術・IT",
+        m: "テーマ、主題、題目",
+        ex: "Pameran seni rupa tahun ini mengangkat tema pelestarian lingkungan hidup dan hutan tropis.",
+        tr: "今年の美術展は、自然環境と熱帯林の保全というテーマを取り上げている。",
+        note: [
+          "■ 【コロケーション】：\n・mengangkat / mengusung tema ~：〜というテーマを取り上げる／掲げる\n・tema utama / tema sentral：主要テーマ、中心主題\n・lagu tema：テーマ曲、主題歌",
+          "■ 【派生語】：\n・bertema / bertemakan（自動詞）：〜をテーマにしている（acara yang bertema budaya lokal＝地元文化をテーマにした催し）\n・tematik（形容詞）：テーマ別の、主題に沿った（taman tematik＝テーマパーク）"
+        ].join("\n")
+      },
+      {
+        p: "singkatan", w: "dapil", r: "Daerah Pemilihan", alts: ["daerah pemilihan"], topicCat: "⚖️ 政治・法律・社会",
+        m: "選挙区",
+        ex: "Para calon anggota legislatif mulai mengunjungi warga di dapil masing-masing menjelang masa kampanye.",
+        tr: "議員候補者たちは選挙運動期間を前に、それぞれの選挙区の住民を訪問し始めた。",
+        note: [
+          "■ 【語構成】：DAerah（地域・区）+ pemILihan（選挙）の合成略語（アクロニム）。",
+          "■ 【用法】：総選挙（Pemilu）において国会議員（DPR）や地方議会議員（DPRD）を選出する区割り（例：dapil Jawa Barat I＝西ジャワ第1選挙区）。"
+        ].join("\n")
+      }
+    ],
+    acro: [
+      {
+        acro: "dapil",
+        full: "daerah pemilihan",
+        alts: [],
+        topicCat: "⚖️ 政治・法律・社会",
+        tr: "選挙区",
+        exp: "■ 【語構成】：DAerah（地域・区）+ pemILihan（選挙）の合成略語（アクロニム）。\n■ 【用法】：総選挙（Pemilu）において国会議員（DPR）や地方議会議員（DPRD）を選出する区割り（例：dapil Jawa Barat I＝西ジャワ第1選挙区）。"
+      }
+    ]
+  };
+
+  if (Array.isArray(d.singkatan)) {
+    d.singkatan.push(PACK.vocab[2]);
+  }
+  if (typeof window.wiAddPack === "function") {
+    window.wiAddPack(PACK);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 「Kompas連動」未収録除外単語リスト表示バグ修正パッチ
+   - 邪魔になっていた「単語帳ヒット語 & 重要複合語 ▼開く」バーを完全撤去
+   - 「未収録除外単語リスト」ボタンを押した際、専用の一覧画面が確実に開くよう修正
+   ===================================================================== */
+(function() {
+  const KP_IGNORE_META_KEY  = "wi_kompas_ignored_meta_v1";
+  const KP_IGNORE_WORDS_KEY = "wi_kompas_ignored_words_v2";
+
+  function escHtml(str) {
+    return String(str || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  // 1. 下部の古いボードと「▼開く」ボタンを常時完全非表示にし、専用ビューのスタイルを定義
+  if (!document.getElementById("wi-kp-fix-ignored-view-style")) {
+    const st = document.createElement("style");
+    st.id = "wi-kp-fix-ignored-view-style";
+    st.textContent = `
+      /* 古い下部ボードと開閉バーは一切表示しない */
+      #wi-kompas-modal-v5 #wi-kp-board-box,
+      #wi-kompas-modal-v5 #wi-kp-single-drawer-btn,
+      #wi-kompas-modal-v5 #wi-kp-open-ignored-top {
+        display: none !important;
+      }
+
+      /* 未収録除外単語リスト表示中は、他の画面要素を隠して専用リスト画面だけを表示 */
+      #wi-kompas-modal-v5.wi-kp-showing-ignored .wi-kp-ctrl-bar,
+      #wi-kompas-modal-v5.wi-kp-showing-ignored #wi-kp-annot-toolbar,
+      #wi-kompas-modal-v5.wi-kp-showing-ignored #wi-kp-main-area > *:not(#wi-kp-ignored-dedicated-view) {
+        display: none !important;
+      }
+
+      #wi-kp-ignored-dedicated-view {
+        display: none;
+        flex-direction: column;
+        gap: 12px;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 16px 18px;
+      }
+      #wi-kompas-modal-v5.wi-kp-showing-ignored #wi-kp-ignored-dedicated-view {
+        display: flex !important;
+      }
+    `;
+    document.head.appendChild(st);
+  }
+
+  let ignoredSearchQuery = "";
+  let isShowingIgnored   = false;
+
+  function loadIgnoredMap() {
+    const map = {};
+    try {
+      const rawMeta = JSON.parse(localStorage.getItem(KP_IGNORE_META_KEY) || "null");
+      if (rawMeta && typeof rawMeta === "object") {
+        Object.keys(rawMeta).forEach(function(k) {
+          if (rawMeta[k] && rawMeta[k].w) {
+            map[k.toLowerCase()] = rawMeta[k];
+          }
+        });
+      }
+    } catch (e) {}
+
+    ["wi_kompas_ignored_words_v2", "wi_kompas_ignored_words_v1"].forEach(function(oldKey) {
+      try {
+        const arr = JSON.parse(localStorage.getItem(oldKey) || "[]");
+        if (Array.isArray(arr)) {
+          arr.forEach(function(w) {
+            const clean = String(w || "").trim();
+            const low = clean.toLowerCase();
+            if (low && !map[low]) {
+              map[low] = { w: clean, low: low, sentence: "", addedAt: Date.now() };
+            }
+          });
+        }
+      } catch (e) {}
+    });
+    return map;
+  }
+
+  function saveIgnoredMap(map) {
+    try {
+      localStorage.setItem(KP_IGNORE_META_KEY, JSON.stringify(map));
+      localStorage.setItem(KP_IGNORE_WORDS_KEY, JSON.stringify(Object.keys(map)));
+    } catch (e) {}
+  }
+
+  function updateIgnoredTopButtonCount() {
+    const btn = document.getElementById("wi-kp-tab-ignored-top");
+    if (!btn) return;
+    const cnt = Object.keys(loadIgnoredMap()).length;
+    btn.textContent = `未収録除外単語リスト (${cnt})`;
+    btn.classList.toggle("active", isShowingIgnored);
+  }
+
+  function renderDedicatedIgnoredView() {
+    const modal    = document.getElementById("wi-kompas-modal-v5");
+    const mainArea = document.getElementById("wi-kp-main-area");
+    if (!modal || !mainArea) return;
+
+    let viewEl = document.getElementById("wi-kp-ignored-dedicated-view");
+    if (!viewEl) {
+      viewEl = document.createElement("div");
+      viewEl.id = "wi-kp-ignored-dedicated-view";
+      mainArea.appendChild(viewEl);
+    }
+
+    const map = loadIgnoredMap();
+    const entries = Object.keys(map).map(k => map[k]).sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
+    updateIgnoredTopButtonCount();
+
+    const q = (ignoredSearchQuery || "").trim().toLowerCase();
+    const filtered = q
+      ? entries.filter(it => it.w.toLowerCase().includes(q) || (it.sentence && it.sentence.toLowerCase().includes(q)))
+      : entries;
+
+    const rowsHtml = filtered.length
+      ? filtered.map(function(it) {
+          return `
+            <div class="wi-kp-item-row" style="display:flex;flex-direction:column;gap:5px;padding:10px 14px;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+                <div>
+                  <strong style="font-size:0.98rem;color:#0f172a;">${escHtml(it.w)}</strong>
+                  <span style="font-size:0.73rem;color:#64748b;margin-left:6px;">（未収録語から除外中）</span>
+                </div>
+                <button type="button" class="wi-kp-restore-btn" data-restore-low="${escHtml(it.low)}">↩ 復活させる</button>
+              </div>
+              ${it.sentence ? `<div style="font-size:0.8rem;color:#475569;line-height:1.5;">除外時の文: ${escHtml(it.sentence)}</div>` : ""}
+            </div>
+          `;
+        }).join("")
+      : `<div style="padding:28px 14px;text-align:center;color:#64748b;font-size:0.86rem;">
+          ${entries.length === 0 ? "現在、未収録除外単語リストに登録されている単語はありません。" : "検索条件に一致する除外単語がありません。"}
+        </div>`;
+
+    viewEl.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding-bottom:10px;border-bottom:1px solid #e2e8f0;">
+        <div>
+          <div style="font-size:0.92rem;font-weight:800;color:#0f172a;">未収録除外単語リスト（全 ${entries.length} 語）</div>
+          <div style="font-size:0.74rem;color:#64748b;margin-top:2px;">ここに登録された固有名詞や英単語等は、今後の記事でも未収録語として検出されません。「↩ 復活させる」でいつでも元に戻せます。</div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+          <input type="text" id="wi-kp-ded-ign-search" value="${escHtml(ignoredSearchQuery)}" placeholder="除外単語を検索..." style="border:1px solid #cbd5e1;border-radius:6px;padding:5px 9px;font-size:0.78rem;outline:none;width:145px;" />
+          <input type="text" id="wi-kp-ded-ign-add-in" placeholder="除外する単語を追加..." style="border:1px solid #cbd5e1;border-radius:6px;padding:5px 9px;font-size:0.78rem;outline:none;width:150px;" />
+          <button type="button" class="wi-kp-btn" id="wi-kp-ded-ign-add-btn">＋ 除外登録</button>
+          ${entries.length > 0 ? `<button type="button" class="wi-kp-btn" id="wi-kp-ded-ign-clear-all" style="color:#b91c1c;border-color:#fecaca;background:#fff1f2;">すべて復活</button>` : ""}
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:7px;">
+        ${rowsHtml}
+      </div>
+    `;
+
+    const sIn = viewEl.querySelector("#wi-kp-ded-ign-search");
+    if (sIn) {
+      sIn.oninput = function() {
+        ignoredSearchQuery = sIn.value;
+        renderDedicatedIgnoredView();
+        const nf = document.getElementById("wi-kp-ded-ign-search");
+        if (nf) { nf.focus(); nf.setSelectionRange(nf.value.length, nf.value.length); }
+      };
+    }
+
+    const addIn  = viewEl.querySelector("#wi-kp-ded-ign-add-in");
+    const addBtn = viewEl.querySelector("#wi-kp-ded-ign-add-btn");
+    function addManualWord() {
+      if (!addIn) return;
+      const clean = addIn.value.replace(/^[^a-zA-Z0-9\-]+|[^a-zA-Z0-9\-]+$/g, "").trim();
+      const low = clean.toLowerCase();
+      if (!low) return;
+      const curMap = loadIgnoredMap();
+      curMap[low] = { w: clean, low: low, sentence: "", addedAt: Date.now() };
+      saveIgnoredMap(curMap);
+      renderDedicatedIgnoredView();
+    }
+    if (addBtn) addBtn.onclick = addManualWord;
+    if (addIn) {
+      addIn.onkeydown = function(ev) {
+        if (ev.isComposing || ev.keyCode === 229) return;
+        if (ev.key === "Enter") {
+          ev.preventDefault();
+          addManualWord();
+        }
+      };
+    }
+
+    const clearAllBtn = viewEl.querySelector("#wi-kp-ded-ign-clear-all");
+    if (clearAllBtn) {
+      clearAllBtn.onclick = function() {
+        if (!confirm(`未収録除外単語リスト（全 ${entries.length} 語）をすべて未収録語へ復活させますか？`)) return;
+        saveIgnoredMap({});
+        renderDedicatedIgnoredView();
+      };
+    }
+
+    viewEl.querySelectorAll("[data-restore-low]").forEach(function(btn) {
+      btn.onclick = function() {
+        const low = btn.getAttribute("data-restore-low");
+        const curMap = loadIgnoredMap();
+        delete curMap[low];
+        saveIgnoredMap(curMap);
+        renderDedicatedIgnoredView();
+      };
+    });
+  }
+
+  function bindIgnoredTabEvents() {
+    const modal = document.getElementById("wi-kompas-modal-v5");
+    const inner = document.getElementById("wi-kp-box-inner-v5");
+    if (!modal || !inner) return;
+
+    const hdrBtns     = inner.querySelector(".wi-kp-hdr-btns");
+    const openSiteBtn = inner.querySelector("#wi-kp-open-site");
+    const tabReader   = inner.querySelector("#wi-kp-tab-reader");
+    const tabInput    = inner.querySelector("#wi-kp-tab-input");
+    const tabSaved    = inner.querySelector("#wi-kp-tab-saved");
+
+    let ignTopBtn = inner.querySelector("#wi-kp-tab-ignored-top");
+    if (!ignTopBtn && hdrBtns && openSiteBtn) {
+      ignTopBtn = document.createElement("button");
+      ignTopBtn.type = "button";
+      ignTopBtn.className = "wi-kp-btn";
+      ignTopBtn.id = "wi-kp-tab-ignored-top";
+      hdrBtns.insertBefore(ignTopBtn, openSiteBtn);
+    }
+
+    if (ignTopBtn) {
+      updateIgnoredTopButtonCount();
+
+      // 古いイベントリスナーを上書きするため clone でクリーン化
+      if (!ignTopBtn.__wiDedicatedBound) {
+        const cleanBtn = ignTopBtn.cloneNode(true);
+        cleanBtn.__wiDedicatedBound = true;
+        ignTopBtn.parentNode.replaceChild(cleanBtn, ignTopBtn);
+        ignTopBtn = cleanBtn;
+
+        ignTopBtn.addEventListener("click", function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          isShowingIgnored = true;
+          modal.classList.remove("kp-top-ignored-mode", "kp-ignored-fullview");
+          modal.classList.add("wi-kp-showing-ignored");
+
+          [tabReader, tabInput, tabSaved].forEach(b => { if (b) b.classList.remove("active"); });
+          ignTopBtn.classList.add("active");
+          renderDedicatedIgnoredView();
+        });
+      }
+    }
+
+    // 他のタブ（記事リーダー / 記事入力 / 保存記事リスト）が押されたら専用リスト画面を閉じて元の画面へ戻す
+    [tabReader, tabInput, tabSaved].forEach(function(tabBtn) {
+      if (tabBtn && !tabBtn.__wiExitIgnoredBound) {
+        tabBtn.__wiExitIgnoredBound = true;
+        tabBtn.addEventListener("click", function() {
+          if (isShowingIgnored) {
+            isShowingIgnored = false;
+            modal.classList.remove("wi-kp-showing-ignored", "kp-top-ignored-mode", "kp-ignored-fullview");
+            if (ignTopBtn) ignTopBtn.classList.remove("active");
+          }
+        }, true);
+      }
+    });
+
+    if (isShowingIgnored) {
+      modal.classList.add("wi-kp-showing-ignored");
+      [tabReader, tabInput, tabSaved].forEach(b => { if (b) b.classList.remove("active"); });
+      if (ignTopBtn) ignTopBtn.classList.add("active");
+      if (!document.getElementById("wi-kp-ignored-dedicated-view")) {
+        renderDedicatedIgnoredView();
+      }
+    }
+  }
+
+  function attachFixObserver() {
+    const modal = document.getElementById("wi-kompas-modal-v5");
+    if (!modal) return;
+    if (!modal.__wiDedIgnObs) {
+      modal.__wiDedIgnObs = true;
+      new MutationObserver(function() {
+        bindIgnoredTabEvents();
+      }).observe(modal, { childList: true, subtree: true });
+    }
+    bindIgnoredTabEvents();
+  }
+
+  if (document.body && !document.body.__wiDedIgnBodyObs) {
+    document.body.__wiDedIgnBodyObs = true;
+    new MutationObserver(attachFixObserver).observe(document.body, { childList: true });
+  }
+  attachFixObserver();
+})();
