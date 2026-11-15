@@ -140843,3 +140843,5595 @@ window.wiAddPack = function(pack) {
     setTimeout(bootFinalThreeFixes, 25);
   }
 })();
+/* =====================================================================
+   WhatsIndo 新基準・純粋データ追加パック（19語：3ブロック構造化解説・ゼロ負荷登録）
+   - メタ文言ゼロ、対象明示の意味、重要コロケーション例文、語幹ファミリー完全連結
+   ===================================================================== */
+window.wiAddPack = function(pack) {
+  const d = window.WHATSINDO_EXTERNAL_DATA;
+  if (!d || !pack) return;
+
+  if (!window.__wiMasterVocabMap) {
+    window.__wiMasterVocabMap = new Map();
+    for (let i = 0; i < d.vocab.length; i++) {
+      const it = d.vocab[i];
+      if (it && it.w) window.__wiMasterVocabMap.set(it.w.trim().toLowerCase(), it);
+    }
+  }
+  const vMap = window.__wiMasterVocabMap;
+  const catMap = window.__WI_V5_VCAT || (window.__WI_V5_VCAT = new Map());
+
+  function injectVocabItems() {
+    if (!Array.isArray(pack.vocab)) return;
+    for (let i = 0; i < pack.vocab.length; i++) {
+      const item = pack.vocab[i];
+      if (!item || !item.w) continue;
+      const key = item.w.trim().toLowerCase();
+      if (item.topicCat) catMap.set(key, item.topicCat);
+
+      let found = false;
+      for (let j = 0; j < d.vocab.length; j++) {
+        if (d.vocab[j] && d.vocab[j].w && d.vocab[j].w.trim().toLowerCase() === key) {
+          Object.assign(d.vocab[j], item);
+          vMap.set(key, d.vocab[j]);
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        const cloned = Object.assign({}, item);
+        Array.prototype.push.call(d.vocab, cloned);
+        vMap.set(key, cloned);
+      }
+    }
+  }
+
+  injectVocabItems();
+
+  const modes = ["slang", "trans", "listening", "contextJa", "conj", "prep", "error", "sinonim", "idiom", "proverb", "debate", "acro"];
+  for (let m = 0; m < modes.length; m++) {
+    const k = modes[m];
+    if (Array.isArray(pack[k]) && Array.isArray(d[k])) {
+      d[k].push(...pack[k]);
+    }
+  }
+
+  function triggerBatchReload() {
+    injectVocabItems();
+    window.__wiDataRevision = (window.__wiDataRevision || 0) + 1;
+    if (typeof window.__reloadWhatsIndo === "function") {
+      try { window.__reloadWhatsIndo(); } catch (e) {}
+    }
+  }
+
+  if (!window.__wiReloadQueued) {
+    window.__wiReloadQueued = true;
+    queueMicrotask(function() {
+      window.__wiReloadQueued = false;
+      triggerBatchReload();
+    });
+    setTimeout(triggerBatchReload, 160);
+  }
+};
+
+window.wiAddPack({
+  vocab: [
+    {
+      p: "v", w: "menyangka", r: "sangka", topicCat: "❤️ 感情・性格・人間関係",
+      m: "①（〜だと）思う、推測する、見なす ②（〜ではないかと）疑う、嫌疑をかける",
+      ex: "Saya sama sekali tidak menyangka bahwa pertemuan singkat itu akan mengubah jalan hidup saya.",
+      tr: "その短い出会いが自分の人生の進路を変えることになるとは、私は全く思ってもみなかった。",
+      note: [
+        "■ 【語構成・派生】：meN- + sangka（推測・疑い：s が鼻音化して ny）。受動態 disangka / tersangka（思われる / 容疑者）、名詞 sangkaan（嫌疑・推測）、prasangka（偏見・先入観）。",
+        "■ 【コロケーション】：\n・tidak menyangka bahwa ~：〜だとは思いもしない、予想外である\n・salah menyangka：思い違いをする、誤解する\n・tanpa disangka-sangka：思いがけず、予想に反して",
+        "■ 【使い分け・類義・対義】：\n・類義語：mengira（〜だと思う・推測する）、menduga（推測する・疑う）"
+      ].join("\n")
+    },
+    {
+      p: "n", w: "kembang", r: "kembang", topicCat: "🌿 自然・天気・動植物",
+      m: "①花（＝bunga） ②（比喩的に）最も美しい存在、華",
+      ex: "Halaman rumah nenek tampak sangat asri karena ditanami berbagai jenis kembang warna-warni.",
+      tr: "祖母の家の庭は色とりどりの様々な種類の花が植えられているため、とても緑豊かで美しく見える。",
+      note: [
+        "■ 【語構成・派生】：語幹 kembang。自動詞 berkembang（花が咲く・発展する）、他動詞 mengembangkan（広げる・開発する）、名詞 perkembangan（発展・推移）、pengembangan（開発・育成）。",
+        "■ 【コロケーション】：\n・kembang api：花火\n・kembang gula：飴、キャンディ（＝permen）\n・kembang desa：村一番の美女\n・kembang kempis：（激しい呼吸などで胸や鼻孔が）大きく膨らんだり縮んだりする",
+        "■ 【使い分け・類義・対義】：\n・類義語：bunga（花・利子）\n・対義語：kuncup（つぼみ・閉じる）"
+      ].join("\n")
+    },
+    {
+      p: "n", w: "poros", r: "poros", topicCat: "💻 科学・IT・インフラ",
+      m: "①（車輪や機械の）車軸、回転軸、シャフト ②（政治・外交・交通網などの）中心軸、中枢、枢軸",
+      ex: "Pembangunan pelabuhan terpadu itu bertujuan memperkuat posisi Indonesia sebagai poros maritim dunia.",
+      tr: "その統合港湾の建設は、世界の海洋の中心軸（ハブ）としてのインドネシアの地位を強化することを目的としている。",
+      note: [
+        "■ 【語構成・派生】：語幹 poros。自動詞 berporos pada ~（〜を軸として回る・〜を中心とする）。",
+        "■ 【コロケーション】：\n・poros roda：車輪の軸、車軸\n・poros maritim：海洋の中心軸（海洋枢軸）\n・jalan poros：主要幹線道路、基幹道路\n・berporos pada ~：〜を中心軸とする",
+        "■ 【使い分け・類義・対義】：\n・類義語：sumbu（軸・芯）、pusat（中心・中枢）"
+      ].join("\n")
+    },
+    {
+      p: "n", w: "jenama", r: "jenama", topicCat: "💰 経済・ビジネス・労働",
+      m: "ブランド、銘柄、商標",
+      ex: "Banyak jenama pakaian lokal buatan anak muda Indonesia yang kini berhasil menembus pasar internasional.",
+      tr: "インドネシアの若者が立ち上げた多くの地元アパレルブランドが、現在、国際市場への進出に成功している。",
+      note: [
+        "■ 【語構成・派生】：語幹 jenama（brand に対応する標準語）。他動詞 menjenamai（ブランド名をつける）、名詞 penjenamaan（ブランディング・ブランド構築）。",
+        "■ 【コロケーション】：\n・jenama lokal：地元ブランド、国内ブランド\n・citra jenama：ブランドイメージ\n・duta jenama：ブランドアンバサダー\n・penjenamaan ulang：リブランディング",
+        "■ 【使い分け・類義・対義】：\n・類義語：merek（商標・メーカー名）"
+      ].join("\n")
+    },
+    {
+      p: "n", w: "pretensi", r: "pretensi", topicCat: "❤️ 感情・性格・人間関係",
+      m: "①見せかけ、気取り、虚飾（実力以上に良く見せようとする態度や下心） ②不当な要求、うぬぼれた主張",
+      ex: "Pidato yang disampaikannya terasa tulus dan jujur tanpa pretensi untuk menyombongkan diri.",
+      tr: "彼が行った演説は、自分を誇示しようとする虚飾（気取り・下心）がなく、誠実で率直に感じられた。",
+      note: [
+        "■ 【語構成・派生】：語幹 pretensi。形容詞形 pretensius（気取った・見栄っ張りな）。",
+        "■ 【コロケーション】：\n・tanpa pretensi：気取りのない、虚飾や下心のない\n・penuh pretensi：見栄や気取りに満ちた",
+        "■ 【使い分け・類義・対義】：\n・類義語：kepura-puraan（見せかけ・ふり）\n・対義語：ketulusan（誠実さ・純粋さ）、kesederhanaan（飾らなさ・質素）"
+      ].join("\n")
+    },
+    {
+      p: "a", w: "pretensius", r: "pretensi", topicCat: "❤️ 感情・性格・人間関係",
+      m: "気取った、見栄っ張りな、もったいぶった（実際以上に知的・立派・重要に見せかけようとするさま）",
+      ex: "Gaya bahasa dalam ulasan film itu dinilai terlalu pretensius sehingga sulit dipahami oleh pembaca umum.",
+      tr: "その映画批評の文体はあまりに気取っていると評価され、一般の読者には理解しにくかった。",
+      note: [
+        "■ 【語構成・派生】：名詞 pretensi（虚飾・気取り）の形容詞形。",
+        "■ 【コロケーション】：\n・sikap yang pretensius：気取った態度、見栄っ張りな振る舞い\n・terkesan pretensius：もったいぶった印象を与える\n・gaya bicara pretensius：知ったかぶりで気取った話し方",
+        "■ 【使い分け・類義・対義】：\n・類義語：angkuh（高慢な）、sombong（傲慢な）\n・対義語：rendah hati（謙虚な）、sederhana（簡潔な・飾らない）"
+      ].join("\n")
+    },
+    {
+      p: "a", w: "submisif", r: "submisif", topicCat: "❤️ 感情・性格・人間関係",
+      m: "従順な、服従的な、言いなりになりやすい（他者の権威や要求に逆らわず従うさま）",
+      ex: "Lingkungan kerja yang terlalu otoriter cenderung membentuk karyawan yang pasif dan submisif.",
+      tr: "あまりに権威主義的な職場環境は、受動的で従順な（言いなりになる）従業員を生み出しやすい。",
+      note: [
+        "■ 【語構成・派生】：語幹 submisif。",
+        "■ 【コロケーション】：\n・sikap submisif：従順な態度、服従的な姿勢\n・perilaku submisif：相手の言いなりになる行動\n・cenderung submisif terhadap atasan：上司に対して言いなりになりがちである",
+        "■ 【使い分け・類義・対義】：\n・類義語：patuh（従順な・規則を守る）、penurut（素直に従う）\n・対義語：dominan（支配的な）、asertif（自己主張がしっかりできる）、pembangkang（反抗的な）"
+      ].join("\n")
+    },
+    {
+      p: "a", w: "sayup", r: "sayup", topicCat: "🌿 自然・天気・動植物",
+      m: "①（遠くの音や声・視界などが）かすかな、おぼろげな ②（目標・基準・寸法などが）ほんの少し足りない",
+      ex: "Dari kejauhan terdengar suara alunan musik gamelan yang sayup terbawa angin malam.",
+      tr: "遠くから、夜風に乗ってかすかに響くガムラン音楽の調べが聞こえてきた。",
+      note: [
+        "■ 【語構成・派生】：語幹 sayup。重複形 sayup-sayup（かすかに・うっすらと）の形で副詞的にも用いられる。",
+        "■ 【コロケーション】：\n・terdengar sayup-sayup：かすかに聞こえる\n・sayup-sayup sampai：（音や声が）今にも消えそうなほどかすかに届く\n・mata yang sayup：（眠気や疲労で）トロンと閉じかけた目",
+        "■ 【使い分け・類義・対義】：\n・類義語：samar（ぼんやりした・かすかな）、lirih（声が小さく穏やかな）\n・対義語：nyaring（音が大きく澄んで響く）、lantang（声が大きく明瞭な）、jelas（明確な）"
+      ].join("\n")
+    },
+    {
+      p: "n", w: "cakrawala", r: "cakrawala", topicCat: "🌿 自然・天気・動植物",
+      m: "①地平線、水平線 ②大空、天球 ③（知識・思考・経験の）視野、見識",
+      ex: "Membaca berbagai buku sejarah dan sastra dunia akan membuka cakrawala berpikir kita menjadi lebih luas.",
+      tr: "世界の様々な歴史書や文学書を読むことは、私たちの思考の視野（見識）をより広く開いてくれる。",
+      note: [
+        "■ 【語構成・派生】：語幹 cakrawala。自然風景の「地平線・空」と、抽象的な「思考の視野」の両方で用いられる。",
+        "■ 【コロケーション】：\n・membuka cakrawala baru：新しい視野（地平）を切り開く\n・memperluas cakrawala berpikir：思考の視野を広げる\n・di batas cakrawala：地平線（水平線）の彼方に",
+        "■ 【使い分け・類義・対義】：\n・類義語（地平線）：ufuk、kaki langit\n・類義語（視野・見識）：wawasan、pandangan"
+      ].join("\n")
+    },
+    {
+      p: "v", w: "berembus", r: "embus", topicCat: "🌿 自然・天気・動植物",
+      m: "①（風・空気・息などが）吹く ②（噂や情報などが）流れる、広まる",
+      ex: "Angin laut berembus cukup kencang pada sore hari sehingga membuat udara di tepi pantai terasa sejuk.",
+      tr: "夕方には海風がかなり強く吹くため、海岸沿いの空気は涼しく感じられる。",
+      note: [
+        "■ 【語構成・派生】：ber- + embus（吹く：標準語綴りは h のない berembus）。他動詞 mengembuskan（息や風を吹き出す：mengembuskan napas terakhir＝息を引き取る）、名詞 embusan（ひと吹き：embusan angin）。",
+        "■ 【コロケーション】：\n・angin berembus sepoi-sepoi：風がそよそよと心地よく吹く\n・angin berembus kencang：風が強く吹く\n・kabar burung mulai berembus：根拠のない噂が流れ始める",
+        "■ 【使い分け・類義・対義】：\n・類義語：bertiup（風が吹く）"
+      ].join("\n")
+    },
+    {
+      p: "v", w: "membiakkan", r: "biak", topicCat: "🌿 自然・天気・動植物",
+      m: "（動物・植物・微生物などを）繁殖させる、増殖させる、養殖・栽培して増やす",
+      ex: "Balai penelitian itu berhasil membiakkan bibit tanaman unggul yang tahan terhadap cuaca kering.",
+      tr: "その研究所は、乾燥した気候に強い優良植物の苗を繁殖させる（増やす）ことに成功した。",
+      note: [
+        "■ 【語構成・派生】：meN- + biak（増える）+ -kan。自動詞 berkembang biak（繁殖する・増える）、名詞 pembiakan（繁殖・増殖・養殖）。",
+        "■ 【コロケーション】：\n・membiakkan ternak：家畜を繁殖させる\n・membiakkan bakteri di laboratorium：実験室で細菌を培養（増殖）させる\n・membiakkan ikan air tawar：淡水魚を養殖して増やす",
+        "■ 【使い分け・類義・対義】：\n・使い分け：membiakkan（動植物・細胞などを広く「繁殖・増殖させる」） vs menangkarkan（希少種や野生動植物を「保護施設等で管理して繁殖させる」）\n・類義語：membudidayakan（栽培・養殖する）、mengembangbiakkan（繁殖させる）"
+      ].join("\n")
+    },
+    {
+      p: "n", w: "pembiakan", r: "biak", topicCat: "🌿 自然・天気・動植物",
+      m: "（動植物・細胞などの人為的な）繁殖、増殖、培養、ブリーディング",
+      ex: "Suhu air yang stabil sangat diperlukan dalam proses pembiakan ikan hias di akuarium khusus itu.",
+      tr: "その専用水槽における観賞魚の繁殖プロセスには、安定した水温が不可欠である。",
+      note: [
+        "■ 【語構成・派生】：peN- + biak + -an（他動詞 membiakkan「繁殖させる」に対応する行為名詞）。自動詞 berkembang biak に対応する名詞は perkembangbiakan（生物の自然な繁殖・生殖）。",
+        "■ 【コロケーション】：\n・pembiakan tanaman secara vegetatif：植物の栄養繁殖（挿し木・株分けなど）\n・pusat pembiakan bibit：種苗の繁殖センター\n・musim pembiakan：繁殖期（＝musim kawin / musim pemijahan）",
+        "■ 【使い分け・類義・対義】：\n・使い分け：pembiakan（人為的に繁殖・増殖させること） vs perkembangbiakan（生物が自然に繁殖して増えること）\n・類義語：penangkaran（希少動植物の保護繁殖）、pembudidayaan（栽培・養殖）"
+      ].join("\n")
+    },
+    {
+      p: "v", w: "menangkarkan", r: "tangkar", topicCat: "🌿 自然・天気・動植物",
+      m: "（絶滅危惧種・野生動植物などを保護管理された環境で）飼育して繁殖させる、人工繁殖させる",
+      ex: "Taman nasional tersebut bekerja sama dengan para ahli untuk menangkarkan burung jalak bali agar terhindar dari kepunahan.",
+      tr: "その国立公園は、カンムリシロムクを絶滅から守るため、専門家と協力して保護繁殖させている。",
+      note: [
+        "■ 【語構成・派生】：meN- + tangkar + -kan。名詞 penangkaran（保護繁殖・人工繁殖施設）、penangkar（繁殖業者・ブリーダー）。",
+        "■ 【コロケーション】：\n・menangkarkan satwa langka：希少動物を保護繁殖させる\n・menangkarkan penyu di tepi pantai：海岸でウミガメを保護孵化・繁殖させる\n・balai penangkaran flora dan fauna：動植物保護繁殖センター",
+        "■ 【使い分け・類義・対義】：\n・使い分け：menangkarkan（野生・希少動植物を管理下で保護し繁殖させる） vs memelihara（ペットや家畜を単に飼う・世話する）\n・類義語：mengembangbiakkan（繁殖させる）、melestarikan（保護・保全する）"
+      ].join("\n")
+    },
+    {
+      p: "other", w: "sekadarnya", r: "kadar", topicCat: "🏠 日常・生活・移動",
+      m: "①ありあわせで、質素に、簡素に（無理をせず手元にある範囲で） ②必要最小限の分だけ、ほどほどに",
+      ex: "Acara syukuran kelulusan itu dirayakan secara sederhana dengan hidangan sekadarnya bersama keluarga dekat.",
+      tr: "その卒業祝いの集まりは、近親者とともにささやかな（ありあわせの）料理で質素に祝われた。",
+      note: [
+        "■ 【語構成・派生】：se- + kadar（程度・分量）+ -nya（標準語綴りは a を用いる sekadarnya）。同根語に sekadar（単なる〜・〜のためだけに）。",
+        "■ 【コロケーション】：\n・hidangan sekadarnya：ありあわせの簡素な料理\n・makan sekadarnya：軽く（腹ごしらえ程度に）食べる\n・memberi bantuan sekadarnya：分相応のささやかな支援をする\n・berpakaian sekadarnya：飾らない普段着を着る",
+        "■ 【使い分け・類義・対義】：\n・類義語：ala kadarnya（ありあわせで・分相応に）、seadanya（手元にあるものだけで）\n・対義語：secara mewah（豪華に）、berlebihan（過度に・大げさに）"
+      ].join("\n")
+    },
+    {
+      p: "v", w: "menyelubungi", r: "selubung", topicCat: "🌿 自然・天気・動植物",
+      m: "①（霧・煙・布・ベールなどが〜を）すっぽり覆う、包む ②（謎・秘密・悲しみなどが〜を）覆い隠す、包む",
+      ex: "Kabut tebal masih menyelubungi puncak gunung berapi itu sehingga jarak pandang menjadi sangat terbatas.",
+      tr: "濃い霧がその火山の山頂をまだすっぽりと覆っているため、視界が非常に限られている。",
+      note: [
+        "■ 【語構成・派生】：meN- + selubung（覆い・ベール）+ -i（s が鼻音化して ny）。受動態 diselubungi / terselubung（覆われている / 隠れた・偽装された）。",
+        "■ 【コロケーション】：\n・kabut menyelubungi lembah：霧が谷をすっぽり覆う\n・misteri yang menyelubungi kasus itu：その事件を包む謎\n・pengangguran terselubung：潜在的失業（表面上は就業しているが実質的に仕事がない状態）\n・kampanye terselubung：事実上の事前選挙運動（隠れたキャンペーン）",
+        "■ 【使い分け・類義・対義】：\n・類義語：menyelimuti（毛布のように覆う・包む）、menutupi（覆い隠す）\n・対義語：menyingkap（覆いやベールをめくって暴く）"
+      ].join("\n")
+    },
+    {
+      p: "v", w: "meleburkan", r: "lebur", topicCat: "💻 科学・IT・インフラ",
+      m: "①（金属・鉱石などを高熱で）溶かす、精錬・溶解する ②（複数の組織・政党・文化などを）統合する、1つに融合させる",
+      ex: "Pemerintah berencana meleburkan beberapa lembaga riset menjadi satu badan penelitian nasional yang terpadu.",
+      tr: "政府は複数の研究機関を1つの統合された国立研究機関へと統合する（融合させる）計画だ。",
+      note: [
+        "■ 【語構成・派生】：me- + lebur（溶ける・消滅する）+ -kan。自動詞・他動詞 melebur（溶ける・自ら合流する）、名詞 peleburan（金属の精錬・組織の統合：pabrik peleburan logam＝製錬所）。",
+        "■ 【コロケーション】：\n・meleburkan bijih logam：金属鉱石を溶解・精錬する\n・meleburkan diri ke dalam masyarakat：地域社会の中に自ら溶け込む\n・meleburkan dua departemen：2つの部門を1つに統合する",
+        "■ 【使い分け・類義・対義】：\n・類義語（統合）：menggabungkan（合併・結合する）、menyatukan（統一する）\n・類義語（溶解）：mencairkan（液体状に溶かす）\n・対義語：memisahkan（分離する）、memecah（分割する）"
+      ].join("\n")
+    },
+    {
+      p: "n", w: "peraga", r: "raga", topicCat: "📚 教育・学術・文化",
+      m: "①（教育や説明で視覚化・実演に用いる）教材器具、模型、標本（alat peraga） ②（衣装などを）披露する人、モデル",
+      ex: "Guru biologi itu menggunakan alat peraga kerangka manusia agar siswa lebih mudah memahami struktur tulang.",
+      tr: "その生物の教師は、生徒が骨格の構造をより理解しやすいよう、人体骨格の模型（視覚教材）を使用した。",
+      note: [
+        "■ 【語構成・派生】：pe- + raga（身体・形を見せて披露する）。他動詞 memperagakan（実演する・披露する）、名詞 peragaan（実演・ファッションショー）、peragawan / peragawati（男性モデル / 女性モデル）。",
+        "■ 【コロケーション】：\n・alat peraga pendidikan：教育用の視覚教材、実演器具（模型・標本・図表など）\n・alat peraga kampanye：選挙運動用の掲示物（横断幕・ポスターなど）",
+        "■ 【使い分け・類義・対義】：\n・関連語：memperagakan（実演して見せる）、peragaan（実演・披露）"
+      ].join("\n")
+    },
+    {
+      p: "n", w: "peragaan", r: "raga", topicCat: "📚 教育・学術・文化",
+      m: "①（衣装・芸術などの）披露、ファッションショー ②（手順や機器の使い方の）実演、デモンストレーション",
+      ex: "Acara puncak festival budaya itu dimeriahkan dengan peragaan busana batik tradisional dari berbagai daerah.",
+      tr: "その文化祭のメインイベントは、各地の伝統的なバティック衣装のファッションショー（披露）で華やかに盛り上がった。",
+      note: [
+        "■ 【語構成・派生】：pe- + raga + -an（他動詞 memperagakan「実演・披露する」に対応する名詞形）。",
+        "■ 【コロケーション】：\n・peragaan busana：ファッションショー\n・peragaan alat keselamatan：救命器具（安全設備）の実演・デモンストレーション\n・peragaan jurus bela diri：武術の型の演武・実演",
+        "■ 【使い分け・類義・対義】：\n・類義語：pertunjukan（公演・ショー）、pameran（展示会）、demonstrasi（実演）"
+      ].join("\n")
+    },
+    {
+      p: "n", w: "pencakar langit", r: "cakar", topicCat: "💻 科学・IT・インフラ",
+      m: "超高層ビル、摩天楼（直訳：空をひっかくもの）",
+      ex: "Kawasan pusat bisnis di jantung ibu kota dipenuhi oleh deretan gedung pencakar langit yang modern.",
+      tr: "首都の中心部にあるビジネス街は、近代的な超高層ビル（摩天楼）の並びで埋め尽くされている。",
+      note: [
+        "■ 【語構成・派生】：pencakar（peN- + cakar：ひっかくもの）+ langit（空）。単独または gedung pencakar langit の形で用いられる。",
+        "■ 【コロケーション】：\n・gedung pencakar langit：超高層ビル、摩天楼\n・deretan pencakar langit：超高層ビル群の立ち並ぶ景観\n・konstruksi tahan gempa untuk pencakar langit：超高層ビル向けの耐震構造",
+        "■ 【使い分け・類義・対義】：\n・類義語：gedung bertingkat tinggi（高層ビル）、menara（タワー）"
+      ].join("\n")
+    }
+  ]
+});
+/* =====================================================================
+   WhatsIndo 左Shiftキー辞書検索フォーカス ＆ ヒント機能完全廃止パッチ
+   1. 左Shiftキー(ShiftLeft)でマウスを使わず辞書検索バー(#dict-input等)へ即フォーカス
+   2. 全モードでヘッダーのヒントボタン・問題内ヒント枠・設定画面のヒント項目・Hキーを完全廃止
+   3. リスニングモードの「スクリプト: 表示/非表示」「選択肢文字: 表示/非表示」はそのまま維持
+   ===================================================================== */
+(function() {
+  // -------------------------------------------------------------------
+  // 1. ヒント関連UIの完全非表示 ＆ 検索バーフォーカス時の視覚スタイル
+  // -------------------------------------------------------------------
+  if (!document.getElementById("wi-no-hint-and-lshift-style")) {
+    const st = document.createElement("style");
+    st.id = "wi-no-hint-and-lshift-style";
+    st.textContent = `
+      /* 全モードでヒントボタン・問題内のヒント枠・設定画面のヒント切替を完全非表示 */
+      #btn-hint-toggle,
+      .dynamic-hint-box,
+      .dynamic-hint-reveal,
+      .hint-reveal-btn,
+      .setting-group:has(#seg-hint-mode) {
+        display: none !important;
+      }
+
+      /* 左Shiftで辞書検索バーにフォーカスした際、入力状態がひと目でわかる枠線強調 */
+      .wa-search-bar:has(#dict-input:focus) {
+        box-shadow: 0 0 0 2px #008069 !important;
+        background: #ffffff !important;
+      }
+    `;
+    document.head.appendChild(st);
+  }
+
+  function disableHintElementsAndCleanSettings() {
+    // 設定モーダル内の「ヒント表示」グループを非表示化（DOM自体は残してエラーを防止）
+    const segHint = document.getElementById("seg-hint-mode");
+    if (segHint) {
+      const grp = segHint.closest(".setting-group");
+      if (grp) grp.style.display = "none";
+    }
+
+    // 設定モーダル内のキーボード操作説明から「H：ヒント切替」を消し、「左Shift：辞書検索」を記載
+    const sModal = document.getElementById("settings-modal");
+    if (sModal) {
+      sModal.querySelectorAll(".setting-group div").forEach(function(div) {
+        if (div.innerHTML && div.innerHTML.indexOf("ヒント切替") !== -1) {
+          div.innerHTML = div.innerHTML
+            .replace(/\s*／\s*<span class="kbd-tag">H<\/span>\s*：ヒント切替/g, "")
+            .replace(/<span class="kbd-tag">R<\/span>\s*：音声再生/, '<span class="kbd-tag">R</span> ：音声再生 ／ <span class="kbd-tag">左Shift</span> ：辞書検索へ移動');
+        }
+      });
+    }
+
+    // 検索バーのプレースホルダーに [左Shift] の案内を追加
+    const dIn = document.getElementById("dict-input");
+    if (dIn && dIn.placeholder.indexOf("Shift") === -1) {
+      dIn.placeholder = "単語・意味・語幹で検索 (左Shift)...";
+    }
+  }
+
+  // -------------------------------------------------------------------
+  // 2. キーボード制御（Hキーの完全無効化 ＆ 左Shiftで辞書検索バーへ即フォーカス）
+  // -------------------------------------------------------------------
+  function isCurrentlyTypingInInput(el) {
+    if (!el) return false;
+    if (el.isContentEditable) return true;
+    const tag = (el.tagName || "").toUpperCase();
+    if (tag === "TEXTAREA") return true;
+    if (tag === "INPUT") {
+      // 下部回答バー(#wa-input-field)にフォーカスがあっても、文字が空で選択肢カードが出ている4択状態ならタイピング中とみなさない
+      if (el.id === "wa-input-field") {
+        const choicesGrid = document.getElementById("wa-choices-grid");
+        const hasChoices = Boolean(choicesGrid && choicesGrid.children.length > 0);
+        if (hasChoices && !el.value) return false;
+      }
+      return true;
+    }
+    return false;
+  }
+
+  function focusBestSearchInput() {
+    // 1. A〜Z辞書モーダルが開いている場合はその検索窓へフォーカス
+    const azModal = document.getElementById("az-dict-modal");
+    if (azModal && azModal.classList.contains("open")) {
+      const azIn = document.getElementById("az-filter-input");
+      if (azIn) {
+        azIn.focus();
+        azIn.select();
+        return;
+      }
+    }
+
+    // 2. マイ単語帳モーダルが開いている場合はその絞り込み窓へフォーカス
+    const wbModal = document.getElementById("wi-wordbook-modal-vfast");
+    if (wbModal && wbModal.classList.contains("open")) {
+      const wbIn = document.getElementById("wb-vfast-filter");
+      if (wbIn) {
+        wbIn.focus();
+        wbIn.select();
+        return;
+      }
+    }
+
+    // 3. 通常のクイズ画面では左上のメイン辞書検索バー(#dict-input)へフォーカス
+    const dIn = document.getElementById("dict-input");
+    if (dIn) {
+      dIn.focus();
+      dIn.select();
+      if (dIn.value.trim()) {
+        dIn.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    }
+  }
+
+  window.addEventListener("keydown", function(e) {
+    const activeEl = document.activeElement;
+    const keyLower = (e.key || "").toLowerCase();
+
+    // (A) 辞書検索バー(#dict-input)フォーカス中の便利操作（Enterで先頭候補を開く / Escで閉じて問題へ戻る）
+    if (activeEl && activeEl.id === "dict-input") {
+      if (e.isComposing || e.keyCode === 229) return;
+      const dDrop = document.getElementById("dict-dropdown");
+
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+        if (dDrop) dDrop.style.display = "none";
+        activeEl.blur();
+        return;
+      }
+
+      if (e.key === "Enter") {
+        e.preventDefault();
+        e.stopPropagation();
+        if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+        if (dDrop && dDrop.style.display !== "none") {
+          const firstItem = dDrop.querySelector(".dict-item");
+          if (firstItem) {
+            firstItem.click();
+            dDrop.style.display = "none";
+            activeEl.blur();
+          }
+        }
+        return;
+      }
+      return;
+    }
+
+    // (B) テキスト入力中でない場合、H キー（ヒント切替）を完全遮断して無反応にする
+    if (!isCurrentlyTypingInInput(activeEl) && keyLower === "h" && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+      return;
+    }
+
+    // (C) 左Shiftキー（ShiftLeft）単体押下で辞書検索バーへ即フォーカス
+    if (e.code === "ShiftLeft" && !e.repeat && !e.ctrlKey && !e.altKey && !e.metaKey) {
+      if (isCurrentlyTypingInInput(activeEl)) return;
+      e.preventDefault();
+      focusBestSearchInput();
+    }
+  }, true);
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function() {
+      disableHintElementsAndCleanSettings();
+      setTimeout(disableHintElementsAndCleanSettings, 100);
+    });
+  } else {
+    disableHintElementsAndCleanSettings();
+    setTimeout(disableHintElementsAndCleanSettings, 100);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 「Kompas連動」完全統合版（これ1つで全機能が動作します）
+   - 記事のワンクリック保存 ＆「保存記事リスト（検索・タイトル変更・語彙数表示・即呼出）」搭載
+   - 未知語クリック時の文字縮小バグ完全解消 ＆ フォルダ選択ポップアップへの例文挿入/除外ボタン常時表示
+   - 「未収録除外単語リスト」搭載（次回以降の記事でも自動除外 ＆ いつでも1クリック復活）
+   - 受動態(diolah➔mengolah等)・-nya・重複語のみを厳密照合（sepulang➔memulangkan等の誤爆ゼロ）
+   - 本文中の複合語・慣用句の自動連結 ＆ ワンクリック/ダブルクリックで辞書カードを最前面表示
+   - 1文ハイライト追従リスニング再生（1倍速） ＆ Ctrl+V 即時読込（クリップボード許可ダイアログ完全ゼロ）
+   ===================================================================== */
+(function() {
+  const d = window.WHATSINDO_EXTERNAL_DATA;
+  if (!d) return;
+
+  const WB_STORAGE_KEY        = "wi_custom_wordbooks_v1";
+  const KP_LAST_TEXT_KEY      = "wi_kompas_last_article_v5";
+  const KP_SAVED_ARTICLES_KEY = "wi_kompas_saved_articles_v1";
+  const KP_IGNORE_WORDS_KEY   = "wi_kompas_ignored_words_v2";
+  const KP_IGNORE_META_KEY    = "wi_kompas_ignored_meta_v1";
+
+  function escHtml(str) {
+    return String(str || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  // 万一古いモーダル要素や古いスタイルが残っていれば自動クリーンアップ
+  ["wi-kompas-modal", "wi-kompas-modal-v4", "wi-kompas-system-style", "wi-kompas-v2-style", "wi-kompas-v3-style", "wi-kompas-v4-style"].forEach(function(id) {
+    const el = document.getElementById(id);
+    if (el) el.remove();
+  });
+
+  // -------------------------------------------------------------------
+  // 0. 報道頻出の重要4語（sepulang / selaku / melawat / sosok）を辞書へ補完登録
+  //    ＋ d.idiom の慣用句もすべて辞書カード(#dict-detail-modal)で開けるように統合
+  // -------------------------------------------------------------------
+  const KOMPAS_ESSENTIAL_VOCAB = [
+    {
+      p: "other", w: "sepulang", r: "pulang", topicCat: "🏠 日常・生活・移動",
+      m: "〜から帰った後で、〜からの帰途に、帰国・帰宅するやいなや",
+      ex: "Sepulang dari lawatan luar negeri, presiden langsung memimpin rapat terbatas di istana.",
+      tr: "海外訪問から帰国するやいなや、大統領は直ちに宮殿で限定閣議を主宰した。",
+      note: [
+        "■ 【語構成・派生】：se-（〜した後で・〜するやいなや）+ pulang（帰る）。自動詞 pulang、他動詞 memulangkan（帰らせる・送還する）、名詞 kepulangan（帰還・帰国）。",
+        "■ 【コロケーション】：\n・sepulang dari ~：〜から帰った後で\n・sepulang sekolah / kerja：学校／仕事から帰った後に\n・sepulangnya ke tanah air：祖国へ帰国した後に",
+        "■ 【使い分け・類義・対義】：\n・使い分け：sepulang（自分が〜から帰った後で） vs memulangkan（他者を故郷や本国へ帰らせる・送還する）"
+      ].join("\n")
+    },
+    {
+      p: "other", w: "selaku", r: "laku", topicCat: "🏛️ 政治・法律・行政",
+      m: "〜として、〜の立場（資格・役職）において",
+      ex: "Beliau menyampaikan sambutan pembukaan selaku ketua panitia penyelenggara konferensi tersebut.",
+      tr: "彼は同会議の実行委員長として開会の挨拶を述べた。",
+      note: [
+        "■ 【語構成・派生】：se- + laku（行動・役割）。特定の役職や資格・立場にあることを示す前置詞的表現。",
+        "■ 【コロケーション】：\n・selaku kepala negara：国家元首として\n・selaku pemimpin koalisi：連立のリーダーとして\n・bertindak selaku wali：保護者（代理人）として行動する",
+        "■ 【使い分け・類義・対義】：\n・類義語：sebagai（〜として）\n・注意：memberlakukan（法律や規則を施行する）とは語幹 laku を共有するが意味・用法は全く異なる"
+      ].join("\n")
+    },
+    {
+      p: "v", w: "melawat", r: "lawat", topicCat: "🏛️ 政治・法律・行政",
+      m: "①（外国や他地域へ）公式訪問する、視察旅行をする ②（故人の遺族を）弔問する、お悔やみに行く",
+      ex: "Perdana menteri dijadwalkan akan melawat ke beberapa negara anggota ASEAN pada bulan depan.",
+      tr: "首相は来月、いくつかのASEAN加盟国を公式訪問する予定だ。",
+      note: [
+        "■ 【語構成・派生】：me- + lawat。名詞形 lawatan（外国訪問・親善訪問・視察旅行）、pelawat（訪問者・弔問客）。",
+        "■ 【コロケーション】：\n・melawat ke luar negeri：外国を公式訪問する\n・melawat ke rumah duka：喪家を弔問する\n・lawatan kenegaraan：国賓訪問、公式訪問",
+        "■ 【使い分け・類義・対義】：\n・類義語（訪問）：berkunjung（訪問する）\n・類義語（弔問）：melayat（弔問する・葬儀に参列する）"
+      ].join("\n")
+    },
+    {
+      p: "n", w: "sosok", r: "sosok", topicCat: "❤️ 感情・性格・人間関係",
+      m: "①人物像、存在、人物 ②（人・建物などの）姿、輪郭、シルエット",
+      ex: "Masyarakat membutuhkan sosok pemimpin yang tegas, jujur, dan mau mendengarkan aspirasi warga.",
+      tr: "社会は毅然として誠実で、市民の要望に耳を傾けようとするリーダーの人物像（存在）を必要としている。",
+      note: [
+        "■ 【語構成・派生】：語幹 sosok。",
+        "■ 【コロケーション】：\n・sosok pemimpin：指導者の人物像（存在）\n・sosok yang inspiratif：周囲に刺激を与える人物\n・mencari sosok pengganti：後任となる人物を探す\n・sosok tubuh：体つき、姿形",
+        "■ 【使い分け・類義・対義】：\n・類義語：tokoh（人物・有力者）、figur（人物像・フィギュア）"
+      ].join("\n")
+    }
+  ];
+
+  if (typeof window.wiAddPack === "function") {
+    window.wiAddPack({ vocab: KOMPAS_ESSENTIAL_VOCAB });
+  } else if (Array.isArray(d.vocab)) {
+    KOMPAS_ESSENTIAL_VOCAB.forEach(function(item) {
+      if (!d.vocab.some(v => v && v.w && v.w.trim().toLowerCase() === item.w.toLowerCase())) {
+        d.vocab.push(item);
+      }
+    });
+  }
+
+  if (Array.isArray(d.idiom) && Array.isArray(d.vocab)) {
+    const existingV = new Set(d.vocab.map(v => (v && v.w ? v.w.trim().toLowerCase() : "")));
+    d.idiom.forEach(function(idIt) {
+      if (!idIt || !idIt.a) return;
+      const key = idIt.a.trim().toLowerCase();
+      if (!existingV.has(key)) {
+        const cleanM = (idIt.q || "").replace(/を表す.*$/, "").replace(/^[「『]|[」』]$/g, "").trim();
+        d.vocab.push({
+          p: "other",
+          w: idIt.a.trim(),
+          r: idIt.a.trim().split(/\s+/)[0],
+          m: cleanM || idIt.a.trim(),
+          ex: (idIt.s || "").replace(/___+/g, idIt.a.trim()),
+          tr: "",
+          note: idIt.exp || ""
+        });
+        existingV.add(key);
+      }
+    });
+    if (typeof window.__reloadWhatsIndo === "function") {
+      try { window.__reloadWhatsIndo(); } catch (e) {}
+    }
+  }
+
+  // -------------------------------------------------------------------
+  // 1. スタイル定義（全UI要素・文字縮小防止・保存記事リスト・トースト通知を完全網羅）
+  // -------------------------------------------------------------------
+  if (!document.getElementById("wi-kompas-complete-style")) {
+    const st = document.createElement("style");
+    st.id = "wi-kompas-complete-style";
+    st.textContent = `
+      /* モーダル重なり順：Kompas連動(960) < いつもの辞書カード(1400) < 保存先フォルダ選択(最前面) */
+      #wi-kompas-modal-v5 {
+        z-index: 960 !important;
+      }
+      #dict-detail-modal {
+        z-index: 1400 !important;
+      }
+      #wi-wb-popover-v5 {
+        z-index: 2147483647 !important;
+      }
+
+      .wi-kp-box {
+        max-width: 940px !important;
+        width: 96% !important;
+        height: 90vh !important;
+        display: flex !important;
+        flex-direction: column !important;
+        padding: 15px 20px !important;
+        overflow: hidden !important;
+        background: #ffffff !important;
+        border-radius: 12px !important;
+      }
+      .wi-kp-hdr {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #e2e8f0;
+        flex-shrink: 0;
+        flex-wrap: wrap;
+      }
+      .wi-kp-title {
+        font-size: 1.03rem;
+        font-weight: 800;
+        color: #0f172a;
+      }
+      .wi-kp-hdr-btns {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .wi-kp-btn {
+        background: #f8fafc;
+        border: 1px solid #cbd5e1;
+        color: #334155;
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 5px 11px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.12s;
+        white-space: nowrap;
+      }
+      .wi-kp-btn:hover {
+        background: #f1f5f9;
+        border-color: #94a3b8;
+      }
+      .wi-kp-btn.active {
+        background: #008069;
+        color: #ffffff;
+        border-color: #008069;
+      }
+      .wi-kp-btn.toggle-unknown.active {
+        background: #b45309;
+        color: #ffffff;
+        border-color: #b45309;
+      }
+      .wi-kp-btn.toggle-unmem.active {
+        background: #be123c;
+        color: #ffffff;
+        border-color: #be123c;
+      }
+      .wi-kp-btn.toggle-phrase.active {
+        background: #0f766e;
+        color: #ffffff;
+        border-color: #0f766e;
+      }
+      .wi-kp-btn.ignored-list-btn.active {
+        background: #475569;
+        color: #ffffff;
+        border-color: #475569;
+      }
+      .wi-kp-btn.listen-btn {
+        background: #f0fdf4;
+        border-color: #86efac;
+        color: #065f46;
+        font-weight: 700;
+      }
+      .wi-kp-btn.listen-btn.playing {
+        background: #dc2626;
+        border-color: #dc2626;
+        color: #ffffff;
+      }
+      .wi-kp-btn.save-art-btn {
+        background: #eff6ff;
+        border-color: #93c5fd;
+        color: #1d4ed8;
+        font-weight: 700;
+      }
+      .wi-kp-btn.save-art-btn:hover {
+        background: #dbeafe;
+      }
+      .wi-kp-btn.save-art-btn.is-saved {
+        background: #e0e7ff;
+        border-color: #6366f1;
+        color: #3730a3;
+      }
+
+      /* 上部コントロールバー */
+      .wi-kp-ctrl-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 8px 0;
+        border-bottom: 1px solid #e2e8f0;
+        flex-shrink: 0;
+        flex-wrap: wrap;
+      }
+      .wi-kp-ctrl-group {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .wi-kp-ctrl-label {
+        font-size: 0.73rem;
+        font-weight: 700;
+        color: #64748b;
+      }
+
+      /* メインスクロール領域 */
+      .wi-kp-main {
+        flex: 1;
+        overflow-y: auto;
+        padding: 12px 4px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      /* 記事入力テキストエリア */
+      .wi-kp-input-wrap {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        height: 100%;
+      }
+      .wi-kp-textarea {
+        flex: 1;
+        width: 100%;
+        min-height: 240px;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        padding: 12px 14px;
+        font-size: 0.93rem;
+        line-height: 1.7;
+        color: #0f172a;
+        outline: none;
+        resize: none;
+        font-family: inherit;
+      }
+      .wi-kp-textarea:focus {
+        border-color: #008069;
+      }
+
+      /* 記事リーダービュー（初期状態は完全な色なしプレーン表示） */
+      .wi-kp-article-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 16px 18px;
+      }
+      .wi-kp-article-view {
+        font-size: 1.02rem;
+        line-height: 1.98;
+        color: #111b21;
+      }
+      .wi-kp-para {
+        margin-bottom: 14px;
+      }
+      .wi-kp-para:last-child {
+        margin-bottom: 0;
+      }
+      .wi-kp-sent {
+        display: inline;
+        border-radius: 5px;
+        padding: 2px 1px;
+        transition: background 0.15s;
+      }
+      .wi-kp-sent.playing-now {
+        background: #dcfce7;
+        box-shadow: 0 0 0 2px #86efac;
+      }
+      .wi-kp-sent-play {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 19px;
+        height: 19px;
+        border-radius: 50%;
+        border: 1px solid #cbd5e1;
+        background: #f8fafc;
+        color: #0f766e;
+        font-size: 0.6rem;
+        cursor: pointer;
+        vertical-align: middle;
+        margin-right: 4px;
+        padding: 0;
+        line-height: 1;
+        user-select: none;
+      }
+      .wi-kp-sent-play:hover {
+        background: #008069;
+        color: #ffffff;
+        border-color: #008069;
+      }
+      .wi-kp-sent.playing-now .wi-kp-sent-play {
+        background: #dc2626;
+        color: #ffffff;
+        border-color: #dc2626;
+      }
+
+      /* 記事内の単語が絶対に小さくボタン化しないように完全固定 */
+      #wi-kompas-modal-v5 .wi-kp-word {
+        display: inline !important;
+        font-size: inherit !important;
+        line-height: inherit !important;
+        font-weight: inherit !important;
+        color: inherit !important;
+        background: transparent !important;
+        border: none !important;
+        border-radius: 3px !important;
+        padding: 1px 1px !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+        cursor: pointer !important;
+        transition: background 0.08s;
+      }
+      #wi-kompas-modal-v5 .wi-kp-word:hover {
+        background: #e2e8f0 !important;
+      }
+
+      /* 色分けトグルON時のみ発火するハイライト */
+      #wi-kompas-modal-v5 .wi-kp-article-view.kp-hl-unknown .wi-kp-word[data-kp-status="unknown"] {
+        background: #fef9c3 !important;
+        border-bottom: 1.5px dashed #d97706 !important;
+        color: #78350f !important;
+      }
+      #wi-kompas-modal-v5 .wi-kp-article-view.kp-hl-unmem .wi-kp-word[data-kp-unmem="1"] {
+        background: #ffe4e6 !important;
+        color: #9f1239 !important;
+        border-bottom: 1.5px solid #f43f5e !important;
+        font-weight: 600 !important;
+      }
+      #wi-kompas-modal-v5 .wi-kp-article-view.kp-hl-phrase .wi-kp-word[data-kp-phrase="1"] {
+        background: #ecfdf5 !important;
+        border-bottom: 2px solid #0d9488 !important;
+        color: #065f46 !important;
+        font-weight: 600 !important;
+        padding: 1px 3px !important;
+      }
+
+      /* 下部ボード */
+      .wi-kp-board {
+        background: #f8fafc;
+        border: 1px solid #cbd5e1;
+        border-radius: 10px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        flex-shrink: 0;
+      }
+      .wi-kp-board-tabs {
+        display: flex;
+        background: #f1f5f9;
+        border-bottom: 1px solid #cbd5e1;
+        overflow-x: auto;
+      }
+      .wi-kp-board-tab {
+        border: none;
+        background: transparent;
+        color: #475569;
+        font-size: 0.78rem;
+        font-weight: 700;
+        padding: 9px 14px;
+        cursor: pointer;
+        border-bottom: 2.5px solid transparent;
+        white-space: nowrap;
+      }
+      .wi-kp-board-tab:hover {
+        color: #0f172a;
+        background: #e2e8f0;
+      }
+      .wi-kp-board-tab.active {
+        color: #008069;
+        border-bottom-color: #008069;
+        background: #ffffff;
+      }
+      .wi-kp-board-body {
+        padding: 12px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .wi-kp-item-row {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 9px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .wi-kp-dict-link {
+        color: #075e54;
+        font-weight: 800;
+        cursor: pointer;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+      .wi-kp-dict-link:hover {
+        color: #008069;
+      }
+      .wi-kp-phrase-chip {
+        background: #ffffff;
+        border: 1px solid #cbd5e1;
+        border-radius: 7px;
+        padding: 5px 10px;
+        font-size: 0.8rem;
+        cursor: pointer;
+        transition: all 0.1s;
+        text-align: left;
+      }
+      .wi-kp-phrase-chip:hover {
+        background: #f0fdf4;
+        border-color: #008069;
+      }
+
+      /* 保存記事リストのカードUI */
+      .wi-kp-saved-card {
+        background: #ffffff;
+        border: 1px solid #cbd5e1;
+        border-radius: 10px;
+        padding: 12px 15px;
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+        transition: border-color 0.12s, box-shadow 0.12s;
+      }
+      .wi-kp-saved-card:hover {
+        border-color: #008069;
+        box-shadow: 0 2px 10px rgba(0, 128, 105, 0.08);
+      }
+      .wi-kp-saved-card.current-art {
+        border-left: 4px solid #008069;
+        background: #f8fdfb;
+      }
+      .wi-kp-saved-title {
+        font-size: 0.96rem;
+        font-weight: 800;
+        color: #0f172a;
+        cursor: pointer;
+      }
+      .wi-kp-saved-title:hover {
+        color: #008069;
+        text-decoration: underline;
+      }
+      .wi-kp-saved-meta {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        font-size: 0.73rem;
+        color: #64748b;
+      }
+      .wi-kp-stat-pill {
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 0.71rem;
+        font-weight: 700;
+      }
+      .wi-kp-stat-pill.unmem {
+        background: #ffe4e6;
+        color: #be123c;
+      }
+      .wi-kp-stat-pill.wbhit {
+        background: #e6f4ea;
+        color: #008069;
+      }
+      .wi-kp-stat-pill.unk {
+        background: #fef3c7;
+        color: #92400e;
+      }
+      .wi-kp-saved-preview {
+        font-size: 0.82rem;
+        color: #475569;
+        line-height: 1.55;
+        background: #f8fafc;
+        padding: 6px 10px;
+        border-radius: 6px;
+        border-left: 2.5px solid #cbd5e1;
+      }
+
+      /* 復活ボタン ＆ トースト通知 */
+      .wi-kp-restore-btn {
+        background: #f0fdf4;
+        border: 1px solid #86efac;
+        color: #065f46;
+        font-size: 0.74rem;
+        font-weight: 700;
+        padding: 4px 11px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.12s;
+        white-space: nowrap;
+      }
+      .wi-kp-restore-btn:hover {
+        background: #dcfce7;
+        border-color: #16a34a;
+      }
+      #wi-kp-ignore-toast {
+        position: fixed;
+        bottom: 22px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 2147483647;
+        background: #0f172a;
+        color: #ffffff;
+        padding: 8px 15px;
+        border-radius: 999px;
+        font-size: 0.79rem;
+        font-weight: 600;
+        display: none;
+        align-items: center;
+        gap: 10px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+      }
+      #wi-kp-ignore-toast.show {
+        display: inline-flex;
+      }
+      #wi-kp-ignore-toast button {
+        background: #10b981;
+        color: #ffffff;
+        border: none;
+        border-radius: 999px;
+        padding: 3px 10px;
+        font-size: 0.73rem;
+        font-weight: 700;
+        cursor: pointer;
+      }
+    `;
+    document.head.appendChild(st);
+  }
+
+  // -------------------------------------------------------------------
+  // 2. トースト通知 ＆『未収録除外単語リスト』の永続管理
+  // -------------------------------------------------------------------
+  let kpToastTimer = null;
+  function showKpToast(msgText, actionLabel, onActionClick) {
+    let tEl = document.getElementById("wi-kp-ignore-toast");
+    if (!tEl) {
+      tEl = document.createElement("div");
+      tEl.id = "wi-kp-ignore-toast";
+      document.body.appendChild(tEl);
+    }
+    if (kpToastTimer) clearTimeout(kpToastTimer);
+    tEl.innerHTML = `
+      <span>${escHtml(msgText)}</span>
+      ${actionLabel ? `<button type="button" id="wi-kp-toast-act-btn">${escHtml(actionLabel)}</button>` : ""}
+    `;
+    tEl.classList.add("show");
+    const aBtn = tEl.querySelector("#wi-kp-toast-act-btn");
+    if (aBtn && typeof onActionClick === "function") {
+      aBtn.onclick = function(e) {
+        e.stopPropagation();
+        tEl.classList.remove("show");
+        onActionClick();
+      };
+    }
+    kpToastTimer = setTimeout(function() {
+      if (tEl) tEl.classList.remove("show");
+    }, 3200);
+  }
+
+  function loadIgnoredMetaMap() {
+    const map = {};
+    try {
+      const rawMeta = JSON.parse(localStorage.getItem(KP_IGNORE_META_KEY) || "null");
+      if (rawMeta && typeof rawMeta === "object") {
+        Object.keys(rawMeta).forEach(function(k) {
+          if (rawMeta[k] && rawMeta[k].w) {
+            map[k.toLowerCase()] = rawMeta[k];
+          }
+        });
+      }
+    } catch (e) {}
+
+    ["wi_kompas_ignored_words_v2", "wi_kompas_ignored_words_v1"].forEach(function(oldKey) {
+      try {
+        const arr = JSON.parse(localStorage.getItem(oldKey) || "[]");
+        if (Array.isArray(arr)) {
+          arr.forEach(function(w) {
+            const clean = String(w || "").trim();
+            const low = clean.toLowerCase();
+            if (low && !map[low]) {
+              map[low] = { w: clean, low: low, sentence: "", addedAt: Date.now() };
+            }
+          });
+        }
+      } catch (e) {}
+    });
+    return map;
+  }
+
+  function saveIgnoredMetaMap(map) {
+    try {
+      localStorage.setItem(KP_IGNORE_META_KEY, JSON.stringify(map));
+      localStorage.setItem(KP_IGNORE_WORDS_KEY, JSON.stringify(Object.keys(map)));
+    } catch (e) {}
+  }
+
+  function isWordInIgnoredList(wLow) {
+    if (!wLow) return false;
+    const map = loadIgnoredMetaMap();
+    return Boolean(map[String(wLow).toLowerCase()]);
+  }
+
+  function addWordToIgnoredList(rawWord, sentenceText) {
+    const clean = String(rawWord || "").replace(/^[^a-zA-Z0-9\-]+|[^a-zA-Z0-9\-]+$/g, "").trim();
+    const low = clean.toLowerCase();
+    if (!low) return;
+    const map = loadIgnoredMetaMap();
+    map[low] = {
+      w: clean,
+      low: low,
+      sentence: sentenceText || (map[low] && map[low].sentence) || "",
+      addedAt: Date.now()
+    };
+    saveIgnoredMetaMap(map);
+    showKpToast(`「${clean}」を未収録除外単語リストに追加しました`, "↩ 元に戻す（復活）", function() {
+      restoreIgnoredWord(low);
+    });
+    renderKompasModal(true);
+  }
+
+  function restoreIgnoredWord(wLow) {
+    const low = String(wLow || "").trim().toLowerCase();
+    if (!low) return;
+    const map = loadIgnoredMetaMap();
+    const origW = (map[low] && map[low].w) || low;
+    delete map[low];
+    saveIgnoredMetaMap(map);
+    showKpToast(`「${origW}」を未収録語に復活させました`, "", null);
+    renderKompasModal(true);
+  }
+
+  // -------------------------------------------------------------------
+  // 3. 『保存記事リスト（アーカイブ）』の永続管理（保存・一覧・名前変更・削除）
+  // -------------------------------------------------------------------
+  function loadSavedArticlesList() {
+    try {
+      const list = JSON.parse(localStorage.getItem(KP_SAVED_ARTICLES_KEY) || "[]");
+      if (Array.isArray(list)) return list;
+    } catch (e) {}
+    return [];
+  }
+
+  function saveSavedArticlesList(list) {
+    try {
+      localStorage.setItem(KP_SAVED_ARTICLES_KEY, JSON.stringify(list));
+    } catch (e) {}
+  }
+
+  function extractDefaultArticleTitle(rawText) {
+    const lines = String(rawText || "").split(/\n+/).map(s => s.trim()).filter(Boolean);
+    if (!lines.length) return "無題の記事";
+    let first = lines[0].replace(/^JAKARTA,\s*KOMPAS\s*[—\-–]\s*/i, "").trim();
+    if (!first) first = lines[0];
+    return first.length > 52 ? first.slice(0, 52) + "…" : first;
+  }
+
+  function formatDateTimeJP(ts) {
+    const dObj = new Date(ts || Date.now());
+    const y = dObj.getFullYear();
+    const m = String(dObj.getMonth() + 1).padStart(2, "0");
+    const day = String(dObj.getDate()).padStart(2, "0");
+    const hh = String(dObj.getHours()).padStart(2, "0");
+    const mm = String(dObj.getMinutes()).padStart(2, "0");
+    return `${y}/${m}/${day} ${hh}:${mm}`;
+  }
+
+  function findSavedArticleByText(rawText) {
+    const norm = String(rawText || "").trim();
+    if (!norm) return null;
+    const list = loadSavedArticlesList();
+    return list.find(item => item && String(item.text || "").trim() === norm) || null;
+  }
+
+  function saveCurrentArticleToList(rawText) {
+    const norm = String(rawText || "").trim();
+    if (!norm) return;
+    const list = loadSavedArticlesList();
+    const existing = list.find(item => item && String(item.text || "").trim() === norm);
+
+    if (existing) {
+      // すでに保存済みの場合は「保存記事リスト」画面を直接開いて確認できるようにする
+      kpState.viewMode = "saved";
+      renderKompasModal(false);
+      return;
+    }
+
+    const defaultTitle = extractDefaultArticleTitle(norm);
+    const newItem = {
+      id: "art_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+      title: defaultTitle,
+      text: norm,
+      savedAt: Date.now()
+    };
+    list.unshift(newItem);
+    saveSavedArticlesList(list);
+    renderKompasModal(true);
+
+    showKpToast(`記事を保存しました：「${defaultTitle}」`, "保存記事リストを見る", function() {
+      kpState.viewMode = "saved";
+      renderKompasModal(false);
+    });
+  }
+
+  // -------------------------------------------------------------------
+  // 4. 厳格な辞書照合インデックス（誤爆を100%ゼロにする4条件のみの厳密照合）
+  // -------------------------------------------------------------------
+  const kpExactMap         = new Map();
+  const kpStrictVariantMap = new Map();
+  let kpMultiWordPhrases   = [];
+  let kpIndexedCount       = -1;
+
+  const BASIC_FUNCTION_WORDS = new Set([
+    "yang", "dan", "di", "ke", "dari", "untuk", "dengan", "pada", "dalam", "atau",
+    "ini", "itu", "tidak", "bukan", "belum", "akan", "telah", "sudah", "sedang",
+    "masih", "harus", "dapat", "bisa", "adalah", "merupakan", "menjadi", "oleh",
+    "sebagai", "karena", "jika", "bila", "apabila", "saat", "ketika", "sejak",
+    "hingga", "sampai", "juga", "lebih", "paling", "sangat", "cukup", "para",
+    "sebuah", "seorang", "sejumlah", "beberapa", "seluruh", "semua", "setiap",
+    "tersebut", "ia", "dia", "mereka", "kita", "kami", "saya", "anda", "nya",
+    "hal", "tahun", "bulan", "hari", "pekan", "minggu", "jam", "menit", "detik",
+    "persen", "rupiah", "dolar", "ribu", "juta", "miliar", "triliun",
+    "satu", "dua", "tiga", "empat", "lima", "enam", "tujuh", "delapan", "sembilan", "sepuluh",
+    "belas", "puluh", "ratus", "pertama", "kedua", "ketiga",
+    "indonesia", "jakarta", "kompas", "negara", "kota", "daerah", "provinsi",
+    "pak", "bu", "bapak", "ibu", "kak", "pun", "lah", "kah", "tak", "tanpa",
+    "antara", "melalui", "terhadap", "tentang", "mengenai", "menurut", "sekitar",
+    "atas", "bawah", "depan", "belakang", "luar", "tengah", "sisi", "bagian",
+    "agar", "supaya", "namun", "tetapi", "sedangkan", "meskipun", "walaupun", "sehingga", "serta",
+    "lalu", "kemudian", "yakni", "yaitu", "maupun", "baik", "pula", "lagi", "kali"
+  ]);
+
+  function buildDirectPassiveFormsForVerb(wLow, rLow) {
+    const passives = [];
+    if (!wLow || !rLow || wLow.indexOf(" ") !== -1) return passives;
+    if (wLow === "mempelajari") return ["dipelajari", "dipelajarinya"];
+    if (wLow.startsWith("memper") && wLow.length > 6) {
+      const p = "diper" + wLow.slice(6);
+      return [p, p + "nya"];
+    }
+    if (wLow.startsWith("member") && !rLow.startsWith("b") && wLow.length > 6) {
+      const p = "diber" + wLow.slice(6);
+      return [p, p + "nya"];
+    }
+    if (/^(meng|meny|mem|men|menge|me)/.test(wLow) && wLow !== rLow) {
+      let suf = "";
+      if (wLow.endsWith("kan") && !rLow.endsWith("kan")) suf = "kan";
+      else if (wLow.endsWith("i") && !rLow.endsWith("i")) suf = "i";
+      const stemCheck = rLow.length > 1 ? rLow.slice(1) + suf : rLow + suf;
+      if (wLow.endsWith(stemCheck)) {
+        const p = "di" + rLow + suf;
+        passives.push(p, p + "nya");
+      }
+    }
+    return passives;
+  }
+
+  function ensureStrictKompasIndex() {
+    const vArr = d.vocab || [];
+    const aArr = d.acro || [];
+    const total = vArr.length + aArr.length;
+    if (kpExactMap.size > 0 && kpIndexedCount === total) return;
+    kpIndexedCount = total;
+
+    kpExactMap.clear();
+    kpStrictVariantMap.clear();
+    const phrases = [];
+
+    for (let i = 0; i < vArr.length; i++) {
+      const it = vArr[i];
+      if (!it || !it.w) continue;
+      const w = it.w.trim();
+      const wLow = w.toLowerCase();
+      const r = (it.r || w).trim();
+      const rLow = r.toLowerCase();
+      const entry = {
+        w: w,
+        wLow: wLow,
+        r: r,
+        rLow: rLow,
+        p: it.p || "other",
+        m: (it.fullM || it.m || "").trim(),
+        ex: (it.ex || "").trim(),
+        tr: (it.tr || "").trim(),
+        note: (it.note || "").trim()
+      };
+      kpExactMap.set(wLow, entry);
+      kpStrictVariantMap.set(wLow + "nya", entry);
+
+      const passives = buildDirectPassiveFormsForVerb(wLow, rLow);
+      for (let p = 0; p < passives.length; p++) {
+        if (!kpExactMap.has(passives[p])) {
+          kpStrictVariantMap.set(passives[p], entry);
+        }
+      }
+
+      if (wLow.indexOf(" ") !== -1 && wLow.length >= 6) {
+        phrases.push({
+          phraseLow: wLow,
+          wordsCount: wLow.split(/\s+/).length,
+          entry: entry
+        });
+      }
+    }
+
+    for (let i = 0; i < aArr.length; i++) {
+      const it = aArr[i];
+      if (!it || !it.acro) continue;
+      const w = it.acro.trim();
+      const wLow = w.toLowerCase();
+      if (!kpExactMap.has(wLow)) {
+        const r = (it.full || w).trim();
+        const entry = {
+          w: w,
+          wLow: wLow,
+          r: r,
+          rLow: r.toLowerCase(),
+          p: "singkatan",
+          m: (it.tr || "").trim(),
+          ex: "",
+          tr: "",
+          note: (it.exp || "").trim()
+        };
+        kpExactMap.set(wLow, entry);
+        kpStrictVariantMap.set(wLow + "nya", entry);
+      }
+    }
+
+    phrases.sort(function(a, b) {
+      if (b.wordsCount !== a.wordsCount) return b.wordsCount - a.wordsCount;
+      return b.phraseLow.length - a.phraseLow.length;
+    });
+    kpMultiWordPhrases = phrases;
+  }
+
+  function resolveSingleTokenStrict(rawToken) {
+    ensureStrictKompasIndex();
+    const cleaned = String(rawToken || "").replace(/^[^a-zA-Z0-9\-]+|[^a-zA-Z0-9\-]+$/g, "").trim();
+    const low = cleaned.toLowerCase();
+    if (!low || /^[0-9.,%\/\-]+$/.test(low)) return null;
+
+    if (kpExactMap.has(low)) {
+      return { raw: cleaned, low: low, status: "known", entry: kpExactMap.get(low) };
+    }
+    if (kpStrictVariantMap.has(low)) {
+      return { raw: cleaned, low: low, status: "known", entry: kpStrictVariantMap.get(low) };
+    }
+    if (low.indexOf("-") !== -1) {
+      const parts = low.split("-");
+      if (parts.length === 2) {
+        const p1 = parts[0];
+        const p2 = parts[1].replace(/nya$/, "");
+        if (p1 === p2 && (kpExactMap.has(p1) || kpStrictVariantMap.has(p1))) {
+          const hit = kpExactMap.get(p1) || kpStrictVariantMap.get(p1);
+          return { raw: cleaned, low: low, status: "known", entry: hit };
+        }
+      }
+    }
+
+    if (isWordInIgnoredList(low)) {
+      return { raw: cleaned, low: low, status: "ignored", entry: null };
+    }
+
+    if (BASIC_FUNCTION_WORDS.has(low) || low.length <= 2) {
+      return { raw: cleaned, low: low, status: "function", entry: null };
+    }
+
+    return { raw: cleaned, low: low, status: "unknown", entry: null };
+  }
+
+  // 保存記事リスト用の高速語彙カウント関数（その記事内の単語帳ヒット数・未暗記数・未収録語数を瞬時に算出）
+  function quickCountArticleStats(rawText, wbItems, unmemSet) {
+    ensureStrictKompasIndex();
+    const unkSet = new Set();
+    const wbHitSet = new Set();
+    const unmemHitSet = new Set();
+
+    const tokens = String(rawText || "").split(/[\s.,!?;:"'()\[\]—–“”‘’\/]+/);
+    for (let i = 0; i < tokens.length; i++) {
+      const tk = tokens[i];
+      if (!tk) continue;
+      const info = resolveSingleTokenStrict(tk);
+      if (!info) continue;
+      const dictKey = info.entry ? info.entry.wLow : info.low;
+      if (info.status === "unknown") {
+        unkSet.add(info.low);
+      }
+      const wbRec = wbItems[dictKey] || wbItems[info.low];
+      const usedKey = wbItems[dictKey] ? dictKey : info.low;
+      if (wbRec && Array.isArray(wbRec.fIds) && wbRec.fIds.length > 0) {
+        wbHitSet.add(usedKey);
+        if (unmemSet.has(usedKey)) unmemHitSet.add(usedKey);
+      }
+    }
+    return {
+      unkCount: unkSet.size,
+      wbHitCount: wbHitSet.size,
+      unmemCount: unmemHitSet.size
+    };
+  }
+
+  // -------------------------------------------------------------------
+  // 5. 辞書カード(#dict-detail-modal)直結 ＆ 保存先ポップアップ(#wi-wb-popover-v5)常時連動
+  // -------------------------------------------------------------------
+  const kpWordContextMap = new Map();
+  let activeKpPopContext = { word: "", low: "", sentence: "", isUnknown: false };
+
+  function openDictCardOnTop(targetWord, sentenceContext) {
+    if (!targetWord) return false;
+    ensureStrictKompasIndex();
+    const resolved = resolveSingleTokenStrict(targetWord);
+    const dictWord = (resolved && resolved.entry) ? resolved.entry.w : String(targetWord).trim();
+    const targetLower = dictWord.toLowerCase();
+    const entryObj = kpExactMap.get(targetLower);
+
+    activeKpPopContext = {
+      word: dictWord,
+      low: targetLower,
+      sentence: String(sentenceContext || (kpWordContextMap.get(targetLower) && kpWordContextMap.get(targetLower).sentence) || "").trim(),
+      isUnknown: false
+    };
+
+    const dIn   = document.getElementById("dict-input");
+    const dDrop = document.getElementById("dict-dropdown");
+    const dClr  = document.getElementById("dict-clear");
+    if (!dIn || !dDrop) return false;
+
+    const prevVal = dIn.value;
+    let opened = false;
+
+    try {
+      dIn.value = dictWord;
+      dIn.dispatchEvent(new Event("input"));
+
+      let rows = dDrop.querySelectorAll(".dict-item");
+      for (let i = 0; i < rows.length; i++) {
+        const st = rows[i].querySelector("strong");
+        if (st && st.textContent.trim().toLowerCase() === targetLower) {
+          rows[i].click();
+          opened = true;
+          break;
+        }
+      }
+
+      if (!opened && entryObj && entryObj.ex && entryObj.ex.length > 8) {
+        dIn.value = entryObj.ex.slice(0, 42);
+        dIn.dispatchEvent(new Event("input"));
+        rows = dDrop.querySelectorAll(".dict-item");
+        for (let i = 0; i < rows.length; i++) {
+          const st = rows[i].querySelector("strong");
+          if (st && st.textContent.trim().toLowerCase() === targetLower) {
+            rows[i].click();
+            opened = true;
+            break;
+          }
+        }
+      }
+
+      if (!opened && rows.length > 0) {
+        rows[0].click();
+        opened = true;
+      }
+    } finally {
+      dIn.value = prevVal;
+      dDrop.style.display = "none";
+      if (dClr) dClr.style.display = prevVal ? "block" : "none";
+      try { dIn.blur(); } catch (e) {}
+    }
+    return opened;
+  }
+
+  // 記事内の単語には一切クラスを付けず、透明な中継プロキシで保存先ポップアップを開く
+  function openWbPopoverViaHiddenProxy(wordStr, anchorEl, sentenceText, isUnknownWord) {
+    if (!wordStr || !anchorEl) return;
+    const cleanW = String(wordStr).trim();
+    const low = cleanW.toLowerCase();
+
+    activeKpPopContext = {
+      word: cleanW,
+      low: low,
+      sentence: String(sentenceText || (kpWordContextMap.get(low) && kpWordContextMap.get(low).sentence) || "").trim(),
+      isUnknown: Boolean(isUnknownWord)
+    };
+
+    let proxy = document.getElementById("wi-kp-hidden-wb-proxy");
+    if (!proxy) {
+      proxy = document.createElement("button");
+      proxy.type = "button";
+      proxy.id = "wi-kp-hidden-wb-proxy";
+      proxy.className = "wi-wb-trigger-btn";
+      proxy.style.cssText = "position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;z-index:-1;";
+      document.body.appendChild(proxy);
+    }
+
+    const r = anchorEl.getBoundingClientRect();
+    proxy.style.left   = Math.round(r.left) + "px";
+    proxy.style.top    = Math.round(r.top) + "px";
+    proxy.style.width  = Math.max(10, Math.round(r.width)) + "px";
+    proxy.style.height = Math.max(10, Math.round(r.height)) + "px";
+    proxy.setAttribute("data-wb-word", cleanW);
+
+    const pop = document.getElementById("wi-wb-popover-v5");
+    if (pop) pop.classList.remove("open");
+
+    proxy.click();
+    injectKompasControlsIntoWbPopover();
+  }
+
+  function injectKompasControlsIntoWbPopover() {
+    const pop = document.getElementById("wi-wb-popover-v5");
+    if (!pop) return;
+    const kpModal = document.getElementById("wi-kompas-modal-v5");
+    if (!kpModal || !kpModal.classList.contains("open")) return;
+
+    const memoIn  = pop.querySelector("#wi-fpop-memo-in");
+    const memoBtn = pop.querySelector("#wi-fpop-memo-btn");
+    if (!memoIn || !memoIn.parentElement) return;
+    if (pop.querySelector("#wi-kp-memo-helper-bar")) return;
+
+    const titleText = pop.textContent || "";
+    const mTitle = titleText.match(/「([^」]+)」の保存先/);
+    const popWord = mTitle ? mTitle[1].trim() : activeKpPopContext.word;
+    const popLow  = (popWord || "").toLowerCase();
+    const mapCtx  = kpWordContextMap.get(popLow);
+
+    const sentTxt   = (activeKpPopContext.low === popLow && activeKpPopContext.sentence)
+      ? activeKpPopContext.sentence
+      : (mapCtx ? mapCtx.sentence : activeKpPopContext.sentence);
+    const isUnkWord = (activeKpPopContext.low === popLow)
+      ? activeKpPopContext.isUnknown
+      : Boolean(mapCtx && mapCtx.isUnknown);
+
+    const memoRow = memoIn.parentElement;
+    const helperBar = document.createElement("div");
+    helperBar.id = "wi-kp-memo-helper-bar";
+    helperBar.style.cssText = "display:flex;flex-direction:column;gap:5px;padding-top:6px;border-top:1px dashed #e2e8f0;";
+
+    helperBar.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:5px;flex-wrap:wrap;">
+        ${sentTxt ? `<button type="button" id="wi-kp-insert-sent-btn" style="background:#f0fdf4;border:1px solid #86efac;color:#008069;border-radius:5px;padding:4px 8px;font-size:0.72rem;font-weight:700;cursor:pointer;flex:1;text-align:center;">＋ 記事のこの1文をメモ欄に入れる</button>` : ""}
+        ${isUnkWord && popWord ? `<button type="button" id="wi-kp-ignore-unk-btn" style="background:#fff1f2;border:1px solid #fecdd3;color:#be123c;border-radius:5px;padding:4px 8px;font-size:0.72rem;font-weight:700;cursor:pointer;white-space:nowrap;">✕ 未収録除外リストへ入れる</button>` : ""}
+      </div>
+    `;
+
+    memoRow.style.borderTop = "none";
+    memoRow.style.paddingTop = "2px";
+    memoRow.insertAdjacentElement("beforebegin", helperBar);
+
+    const insBtn = helperBar.querySelector("#wi-kp-insert-sent-btn");
+    if (insBtn) {
+      insBtn.onclick = function(e) {
+        e.stopPropagation();
+        memoIn.value = sentTxt;
+        memoIn.focus();
+        insBtn.textContent = "✓ メモ欄に入れました（右の「保存」で確定）";
+      };
+    }
+
+    const ignBtn = helperBar.querySelector("#wi-kp-ignore-unk-btn");
+    if (ignBtn && popWord) {
+      ignBtn.onclick = function(e) {
+        e.stopPropagation();
+        const closeBtn = pop.querySelector("#wi-fpop-close");
+        if (closeBtn) closeBtn.click();
+        else pop.classList.remove("open");
+        addWordToIgnoredList(popWord, sentTxt);
+      };
+    }
+
+    pop.querySelectorAll("[data-fpop-id]").forEach(function(fItem) {
+      if (!fItem.__kpSyncBound) {
+        fItem.__kpSyncBound = true;
+        fItem.addEventListener("click", function() {
+          setTimeout(() => renderKompasModal(true), 25);
+        });
+      }
+    });
+    if (memoBtn && !memoBtn.__kpSyncBound) {
+      memoBtn.__kpSyncBound = true;
+      memoBtn.addEventListener("click", function() {
+        setTimeout(() => renderKompasModal(true), 25);
+      });
+    }
+  }
+
+  function setupWbPopoverObserver() {
+    const pop = document.getElementById("wi-wb-popover-v5");
+    if (pop && !pop.__wiKpV5ObsBound) {
+      pop.__wiKpV5ObsBound = true;
+      new MutationObserver(function() {
+        injectKompasControlsIntoWbPopover();
+      }).observe(pop, { childList: true });
+    }
+  }
+  setupWbPopoverObserver();
+
+  window.addEventListener("click", function(e) {
+    if (!e.target) return;
+    const dictWbBtn = e.target.closest("#btn-dict-modal-wordbook");
+    if (dictWbBtn) {
+      const kpModal = document.getElementById("wi-kompas-modal-v5");
+      if (kpModal && kpModal.classList.contains("open")) {
+        setTimeout(function() {
+          setupWbPopoverObserver();
+          injectKompasControlsIntoWbPopover();
+        }, 15);
+      }
+    }
+  }, true);
+
+  // -------------------------------------------------------------------
+  // 6. 1文追従・新聞リスニング再生エンジン（1倍速固定）
+  // -------------------------------------------------------------------
+  let kpListenState = {
+    playing: false,
+    currentIdx: -1,
+    sentences: [],
+    singleMode: false,
+    sessionToken: 0
+  };
+
+  function pickIndonesianVoiceForKp() {
+    if (!window.speechSynthesis) return null;
+    const voices = window.speechSynthesis.getVoices() || [];
+    const idVoices = voices.filter(v => /^id([-_]|$)/i.test(v.lang) || /indones/i.test(v.name));
+    if (!idVoices.length) return null;
+    return idVoices.find(v => /Google/i.test(v.name)) || idVoices[0];
+  }
+
+  function stopKompasListening() {
+    kpListenState.sessionToken++;
+    kpListenState.playing = false;
+    kpListenState.currentIdx = -1;
+    try {
+      if (window.speechSynthesis) window.speechSynthesis.cancel();
+    } catch (e) {}
+    syncKompasListeningUI();
+  }
+
+  function syncKompasListeningUI() {
+    const allPlayBtn = document.getElementById("wi-kp-btn-listen-all");
+    if (allPlayBtn) {
+      allPlayBtn.classList.toggle("playing", kpListenState.playing);
+      allPlayBtn.textContent = kpListenState.playing ? "■ 再生停止" : "▶ 全文を再生";
+    }
+    const viewEl = document.getElementById("wi-kp-article-view");
+    if (!viewEl) return;
+    viewEl.querySelectorAll(".wi-kp-sent").forEach(function(sentEl) {
+      const idx = parseInt(sentEl.getAttribute("data-sent-idx"), 10);
+      const isNow = kpListenState.playing && idx === kpListenState.currentIdx;
+      sentEl.classList.toggle("playing-now", isNow);
+      const pBtn = sentEl.querySelector(".wi-kp-sent-play");
+      if (pBtn) pBtn.textContent = isNow ? "■" : "▶";
+    });
+  }
+
+  function playKompasSentenceAt(idx, singleOnly) {
+    if (!window.speechSynthesis) return;
+    const sents = kpListenState.sentences;
+    if (idx < 0 || idx >= sents.length) {
+      stopKompasListening();
+      return;
+    }
+
+    kpListenState.sessionToken++;
+    const myToken = kpListenState.sessionToken;
+    kpListenState.playing = true;
+    kpListenState.currentIdx = idx;
+    kpListenState.singleMode = Boolean(singleOnly);
+    syncKompasListeningUI();
+
+    const viewEl = document.getElementById("wi-kp-article-view");
+    if (viewEl) {
+      const activeSentEl = viewEl.querySelector(`.wi-kp-sent[data-sent-idx="${idx}"]`);
+      if (activeSentEl) activeSentEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(sents[idx]);
+    u.lang = "id-ID";
+    u.rate = 1.0;
+    const v = pickIndonesianVoiceForKp();
+    if (v) u.voice = v;
+
+    u.onend = function() {
+      if (myToken !== kpListenState.sessionToken || !kpListenState.playing) return;
+      if (kpListenState.singleMode) stopKompasListening();
+      else if (idx + 1 < sents.length) playKompasSentenceAt(idx + 1, false);
+      else stopKompasListening();
+    };
+    u.onerror = function() {
+      if (myToken !== kpListenState.sessionToken) return;
+      stopKompasListening();
+    };
+    window.speechSynthesis.speak(u);
+  }
+
+  // -------------------------------------------------------------------
+  // 7. 記事解析 ＆ 複合語自動連結 ＆ トークン描画
+  // -------------------------------------------------------------------
+  const DEFAULT_SAMPLE_ARTICLE = [
+    "JAKARTA, KOMPAS — Presiden Prabowo Subianto, sepulang dari lawatan kenegaraannya ke Filipina dan China, akan segera mencari sosok wakil presiden pengganti Gibran Rakabuming Raka.",
+    "Sejauh ini jajaran partai politik pendukung pemerintah akan mengikuti pilihan Prabowo selaku pemimpin koalisi. Selain itu, berbagai kebijakan strategis terus ditempuh guna menjaga daya beli masyarakat serta memperluas lapangan kerja di dalam negeri."
+  ].join("\n\n");
+
+  const kpState = {
+    viewMode: "reader",   // "reader" | "input" | "saved"
+    boardTab: "wbhits",   // "wbhits" | "unknown" | "ignored"
+    ignoredSearch: "",
+    savedSearch: "",
+    articleText: localStorage.getItem(KP_LAST_TEXT_KEY) || localStorage.getItem("wi_kompas_last_article_v3") || "",
+    hlUnknown: false,
+    hlUnmem: false,
+    hlPhrase: false,
+    lastScan: {
+      unknownList: [],
+      wbHitList: [],
+      phraseHits: []
+    }
+  };
+
+  function loadWbData() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(WB_STORAGE_KEY) || "null");
+      if (raw && Array.isArray(raw.folders) && raw.folders.length > 0 && raw.items) {
+        return raw;
+      }
+    } catch (e) {}
+    return { folders: [{ id: "folder_1", name: "インドネシア語検定用", createdAt: 1 }], items: {} };
+  }
+
+  function saveWbData(wbData) {
+    try {
+      localStorage.setItem(WB_STORAGE_KEY, JSON.stringify(wbData));
+    } catch (e) {}
+    const badge = document.getElementById("badge-wordbook-count");
+    if (badge && wbData && wbData.items) {
+      let cnt = 0;
+      Object.keys(wbData.items).forEach(function(k) {
+        const rec = wbData.items[k];
+        if (rec && Array.isArray(rec.fIds) && rec.fIds.length > 0) cnt++;
+      });
+      badge.textContent = String(cnt);
+    }
+  }
+
+  function tokenizeSentenceWithPhrases(sentenceStr, unmemSet, wbItems, unknownMap, wbHitMap, phraseHitMap) {
+    const sTrim = sentenceStr.trim();
+    const rawParts = sentenceStr.split(/(\s+|[.,!?;:"'()\[\]—–“”‘’\/]+)/);
+
+    const wordIndices = [];
+    for (let i = 0; i < rawParts.length; i++) {
+      const p = rawParts[i];
+      if (p && !/^(\s+|[.,!?;:"'()\[\]—–“”‘’\/]+)$/.test(p)) {
+        wordIndices.push({ partIdx: i, raw: p, low: p.toLowerCase() });
+      }
+    }
+
+    const phraseSpanByStartPart = new Map();
+    const skipPartIndices = new Set();
+
+    for (let wIdx = 0; wIdx < wordIndices.length; wIdx++) {
+      if (skipPartIndices.has(wordIndices[wIdx].partIdx)) continue;
+
+      for (let p = 0; p < kpMultiWordPhrases.length; p++) {
+        const ph = kpMultiWordPhrases[p];
+        const pWords = ph.phraseLow.split(/\s+/);
+        const len = pWords.length;
+        if (wIdx + len > wordIndices.length) continue;
+
+        let match = true;
+        for (let k = 0; k < len; k++) {
+          const curW = wordIndices[wIdx + k];
+          const wCompare = (k === len - 1) ? curW.low.replace(/nya$/, "") : curW.low;
+          if (wCompare !== pWords[k]) {
+            match = false;
+            break;
+          }
+          if (k > 0) {
+            const prevPartIdx = wordIndices[wIdx + k - 1].partIdx;
+            for (let mid = prevPartIdx + 1; mid < curW.partIdx; mid++) {
+              if (!/^\s+$/.test(rawParts[mid])) {
+                match = false;
+                break;
+              }
+            }
+          }
+          if (!match) break;
+        }
+
+        if (match) {
+          const startPart = wordIndices[wIdx].partIdx;
+          const endPart   = wordIndices[wIdx + len - 1].partIdx;
+          const originalText = rawParts.slice(startPart, endPart + 1).join("");
+          phraseSpanByStartPart.set(startPart, {
+            endPart: endPart,
+            text: originalText,
+            entry: ph.entry
+          });
+          for (let s = startPart + 1; s <= endPart; s++) {
+            skipPartIndices.add(s);
+          }
+          break;
+        }
+      }
+    }
+
+    const htmlOut = [];
+    for (let i = 0; i < rawParts.length; i++) {
+      if (skipPartIndices.has(i)) continue;
+
+      if (phraseSpanByStartPart.has(i)) {
+        const phInfo = phraseSpanByStartPart.get(i);
+        const entry = phInfo.entry;
+        const isUnmem = unmemSet.has(entry.wLow) ? "1" : "0";
+
+        if (!kpWordContextMap.has(entry.wLow)) {
+          kpWordContextMap.set(entry.wLow, { raw: entry.w, sentence: sTrim, isUnknown: false });
+        }
+
+        if (!phraseHitMap.has(entry.wLow)) {
+          phraseHitMap.set(entry.wLow, { w: entry.w, m: entry.m, sentence: sTrim });
+        }
+
+        const wbRec = wbItems[entry.wLow];
+        if (wbRec && Array.isArray(wbRec.fIds) && wbRec.fIds.length > 0 && !wbHitMap.has(entry.wLow)) {
+          wbHitMap.set(entry.wLow, {
+            key: entry.wLow,
+            w: entry.w,
+            r: entry.r,
+            m: entry.m,
+            status: wbRec.status || wbRec.lv || 1,
+            sentence: sTrim
+          });
+        }
+
+        htmlOut.push(
+          `<span class="wi-kp-word" data-kp-word="${escHtml(entry.w)}" data-kp-dict="${escHtml(entry.w)}" data-kp-status="known" data-kp-phrase="1" data-kp-unmem="${isUnmem}">${escHtml(phInfo.text)}</span>`
+        );
+        continue;
+      }
+
+      const tk = rawParts[i];
+      if (!tk || /^(\s+|[.,!?;:"'()\[\]—–“”‘’\/]+)$/.test(tk)) {
+        htmlOut.push(escHtml(tk));
+        continue;
+      }
+
+      const info = resolveSingleTokenStrict(tk);
+      if (!info) {
+        htmlOut.push(escHtml(tk));
+        continue;
+      }
+
+      const dictKey  = info.entry ? info.entry.wLow : info.low;
+      const dictWord = info.entry ? info.entry.w : info.raw;
+      const isUnmem  = (unmemSet.has(dictKey) || unmemSet.has(info.low)) ? "1" : "0";
+
+      if (!kpWordContextMap.has(dictKey)) {
+        kpWordContextMap.set(dictKey, {
+          raw: dictWord,
+          sentence: sTrim,
+          isUnknown: info.status === "unknown"
+        });
+      }
+      if (!kpWordContextMap.has(info.low)) {
+        kpWordContextMap.set(info.low, {
+          raw: info.raw,
+          sentence: sTrim,
+          isUnknown: info.status === "unknown"
+        });
+      }
+
+      if (info.status === "unknown" && !unknownMap.has(info.low)) {
+        unknownMap.set(info.low, {
+          w: info.raw,
+          low: info.low,
+          sentence: sTrim
+        });
+      }
+
+      const wbRec = wbItems[dictKey] || wbItems[info.low];
+      const wbKeyUsed = wbItems[dictKey] ? dictKey : info.low;
+      if (wbRec && Array.isArray(wbRec.fIds) && wbRec.fIds.length > 0 && !wbHitMap.has(wbKeyUsed)) {
+        wbHitMap.set(wbKeyUsed, {
+          key: wbKeyUsed,
+          w: info.entry ? info.entry.w : (wbRec.w || info.raw),
+          r: info.entry ? info.entry.r : (wbRec.w || info.raw),
+          m: info.entry ? info.entry.m : (wbRec.memo || "（マイ単語帳登録語）"),
+          status: wbRec.status || wbRec.lv || 1,
+          sentence: sTrim
+        });
+      }
+
+      htmlOut.push(
+        `<span class="wi-kp-word" data-kp-word="${escHtml(info.raw)}" ${info.entry ? `data-kp-dict="${escHtml(dictWord)}"` : ""} data-kp-status="${info.status}" data-kp-unmem="${isUnmem}">${escHtml(tk)}</span>`
+      );
+    }
+
+    return htmlOut.join("");
+  }
+
+  function analyzeAndRenderArticle(rawArticle) {
+    ensureStrictKompasIndex();
+    kpWordContextMap.clear();
+
+    const wbData = loadWbData();
+    const wbItems = wbData.items || {};
+    const unmemSet = new Set();
+
+    Object.keys(wbItems).forEach(function(k) {
+      const rec = wbItems[k];
+      if (rec && Array.isArray(rec.fIds) && rec.fIds.length > 0) {
+        const st = rec.status || rec.lv || 1;
+        if (st === 1 || st === 2) unmemSet.add(k.toLowerCase());
+      }
+    });
+
+    const unknownMap   = new Map();
+    const wbHitMap     = new Map();
+    const phraseHitMap = new Map();
+    const allSentences = [];
+
+    const paras = String(rawArticle || "").split(/\n+/).map(p => p.trim()).filter(Boolean);
+
+    const articleHtml = paras.map(function(para) {
+      const sents = para.match(/[^.!?]+[.!?]+|\s*[^.!?]+$/g) || [para];
+      const sentsHtml = sents.map(function(s) {
+        const sTrim = s.trim();
+        if (!sTrim) return "";
+        const sIdx = allSentences.length;
+        allSentences.push(sTrim);
+
+        const tokensHtml = tokenizeSentenceWithPhrases(s, unmemSet, wbItems, unknownMap, wbHitMap, phraseHitMap);
+        return `<span class="wi-kp-sent" data-sent-idx="${sIdx}" data-kp-sent="${escHtml(sTrim)}"><button type="button" class="wi-kp-sent-play" data-play-idx="${sIdx}" title="この1文を再生">▶</button>${tokensHtml}</span> `;
+      }).join("");
+
+      return `<p class="wi-kp-para">${sentsHtml}</p>`;
+    }).join("");
+
+    kpListenState.sentences = allSentences;
+    kpState.lastScan = {
+      unknownList: Array.from(unknownMap.values()),
+      wbHitList: Array.from(wbHitMap.values()),
+      phraseHits: Array.from(phraseHitMap.values())
+    };
+
+    return articleHtml;
+  }
+
+  // -------------------------------------------------------------------
+  // 8. モーダル描画（記事リーダー ／ 記事入力 ／ 保存記事リスト ／ 下部3タブ）
+  // -------------------------------------------------------------------
+  function syncDummyWbOpenForShortcuts(isOpen) {
+    let oldModal = document.getElementById("wi-wordbook-modal");
+    if (!oldModal) {
+      oldModal = document.createElement("div");
+      oldModal.id = "wi-wordbook-modal";
+      oldModal.style.display = "none";
+      document.body.appendChild(oldModal);
+    }
+    oldModal.classList.toggle("open", Boolean(isOpen));
+  }
+
+  function closeKompasModal() {
+    stopKompasListening();
+    const pop = document.getElementById("wi-wb-popover-v5");
+    if (pop) pop.classList.remove("open");
+    const modal = document.getElementById("wi-kompas-modal-v5");
+    if (modal) modal.classList.remove("open");
+    syncDummyWbOpenForShortcuts(false);
+  }
+
+  function openKompasModal() {
+    ensureStrictKompasIndex();
+    setupWbPopoverObserver();
+    syncDummyWbOpenForShortcuts(true);
+
+    let modal = document.getElementById("wi-kompas-modal-v5");
+    if (!modal) {
+      modal = document.createElement("div");
+      modal.className = "modal-overlay";
+      modal.id = "wi-kompas-modal-v5";
+      modal.innerHTML = `<div class="modal-box wi-kp-box" id="wi-kp-box-inner-v5"></div>`;
+      document.body.appendChild(modal);
+      modal.addEventListener("click", function(e) {
+        if (e.target === modal) closeKompasModal();
+      });
+    }
+    if (!kpState.articleText.trim() && kpState.viewMode === "reader") {
+      const savedList = loadSavedArticlesList();
+      kpState.viewMode = savedList.length > 0 ? "saved" : "input";
+    }
+    modal.classList.add("open");
+    renderKompasModal(false);
+  }
+
+  function applyHighlightClasses() {
+    const viewEl = document.getElementById("wi-kp-article-view");
+    if (!viewEl) return;
+    viewEl.classList.toggle("kp-hl-unknown", kpState.hlUnknown);
+    viewEl.classList.toggle("kp-hl-unmem", kpState.hlUnmem);
+    viewEl.classList.toggle("kp-hl-phrase", kpState.hlPhrase);
+  }
+
+  function buildSavedArticlesViewHtml(savedList) {
+    const wbData = loadWbData();
+    const wbItems = wbData.items || {};
+    const unmemSet = new Set();
+    Object.keys(wbItems).forEach(function(k) {
+      const rec = wbItems[k];
+      if (rec && Array.isArray(rec.fIds) && rec.fIds.length > 0) {
+        const st = rec.status || rec.lv || 1;
+        if (st === 1 || st === 2) unmemSet.add(k.toLowerCase());
+      }
+    });
+
+    const q = (kpState.savedSearch || "").trim().toLowerCase();
+    const filtered = q
+      ? savedList.filter(a => (a.title && a.title.toLowerCase().includes(q)) || (a.text && a.text.toLowerCase().includes(q)))
+      : savedList;
+
+    const currentNorm = kpState.articleText.trim();
+
+    const cardsHtml = filtered.length
+      ? filtered.map(function(art) {
+          const isCurrent = currentNorm && String(art.text || "").trim() === currentNorm;
+          const stats = quickCountArticleStats(art.text || "", wbItems, unmemSet);
+          const preview = String(art.text || "").replace(/\s+/g, " ").trim().slice(0, 145) + (String(art.text || "").length > 145 ? "…" : "");
+
+          return `
+            <div class="wi-kp-saved-card ${isCurrent ? 'current-art' : ''}" data-art-id="${escHtml(art.id)}">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;">
+                <div style="flex:1;min-width:200px;">
+                  <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;">
+                    ${isCurrent ? `<span style="background:#008069;color:#fff;font-size:0.68rem;font-weight:700;padding:1px 7px;border-radius:4px;">現在表示中</span>` : ""}
+                    <span class="wi-kp-saved-title kp-saved-open-btn" data-art-id="${escHtml(art.id)}">${escHtml(art.title || "無題の記事")}</span>
+                  </div>
+                  <div class="wi-kp-saved-meta" style="margin-top:4px;">
+                    <span>保存日時: ${formatDateTimeJP(art.savedAt)}</span>
+                    <span class="wi-kp-stat-pill wbhit">単語帳ヒット: ${stats.wbHitCount}語</span>
+                    <span class="wi-kp-stat-pill unmem">うち未暗記: ${stats.unmemCount}語</span>
+                    <span class="wi-kp-stat-pill unk">未収録語: ${stats.unkCount}語</span>
+                  </div>
+                </div>
+                <div style="display:flex;gap:5px;align-items:center;flex-shrink:0;">
+                  <button type="button" class="wi-kp-btn active kp-saved-open-btn" data-art-id="${escHtml(art.id)}" style="padding:5px 12px;">この記事を開く</button>
+                  <button type="button" class="wi-kp-btn kp-saved-rename-btn" data-art-id="${escHtml(art.id)}" style="padding:5px 9px;">名前変更</button>
+                  <button type="button" class="wi-kp-btn kp-saved-delete-btn" data-art-id="${escHtml(art.id)}" style="padding:5px 9px;color:#b91c1c;border-color:#fecaca;background:#fff1f2;">削除</button>
+                </div>
+              </div>
+              <div class="wi-kp-saved-preview">${escHtml(preview)}</div>
+            </div>
+          `;
+        }).join("")
+      : `<div style="padding:36px 16px;text-align:center;color:#64748b;font-size:0.86rem;line-height:1.7;">
+          ${savedList.length === 0
+            ? "まだ保存された記事はありません。<br>記事リーダー上部の「＋ この記事を保存」ボタンを押すと、ここに記事がストックされていつでも読み返せます。"
+            : "検索条件に一致する記事が見つかりませんでした。"}
+        </div>`;
+
+    return `
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:#f8fafc;border:1px solid #e2e8f0;padding:10px 14px;border-radius:10px;">
+          <div>
+            <div style="font-size:0.9rem;font-weight:800;color:#0f172a;">保存したKompas記事リスト（全 ${savedList.length} 件）</div>
+            <div style="font-size:0.74rem;color:#64748b;">保存した記事はいつでもワンクリックで呼び出して、読解・辞書引き・リスニングができます。</div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <input type="text" id="wi-kp-saved-search-in" value="${escHtml(kpState.savedSearch)}" placeholder="タイトルや本文で検索..." style="border:1px solid #cbd5e1;border-radius:7px;padding:5px 10px;font-size:0.8rem;outline:none;width:190px;background:#fff;" />
+            ${kpState.articleText.trim() ? `<button type="button" class="wi-kp-btn" id="wi-kp-saved-back-reader">リーダーへ戻る</button>` : ""}
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          ${cardsHtml}
+        </div>
+      </div>
+    `;
+  }
+
+  function buildBoardBodyHtml(ignoredEntries) {
+    const scan = kpState.lastScan;
+
+    // タブ1：単語帳ヒット語 ＆ 重要複合語
+    if (kpState.boardTab === "wbhits") {
+      const wbRows = scan.wbHitList.length
+        ? scan.wbHitList.map(function(it) {
+            const stText = it.status === 1 ? "未暗記" : it.status === 2 ? "うろ覚え" : "済";
+            const stColor = it.status === 1 ? "#be123c" : it.status === 2 ? "#b45309" : "#008069";
+            return `
+              <div class="wi-kp-item-row">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+                  <div>
+                    <strong class="wi-kp-dict-link kp-open-dict-direct" data-dictw="${escHtml(it.w)}" data-sent="${escHtml(it.sentence)}" style="font-size:0.96rem;">${escHtml(it.w)}</strong>
+                    <span style="font-size:0.74rem;color:#64748b;margin-left:5px;">[${escHtml(it.r)}]</span>
+                    <span style="font-size:0.84rem;color:#0f172a;font-weight:700;margin-left:8px;">${escHtml(it.m)}</span>
+                  </div>
+                  <div style="display:flex;gap:5px;align-items:center;">
+                    <button type="button" class="wi-kp-btn kp-board-cycle-st" data-wbkey="${escHtml(it.key)}" style="font-size:0.72rem;padding:2px 9px;color:${stColor};border-color:${stColor};">
+                      ステータス: ${stText}
+                    </button>
+                    <button type="button" class="wi-kp-btn kp-board-folder-pop" data-w="${escHtml(it.w)}" data-sent="${escHtml(it.sentence)}" style="font-size:0.72rem;padding:2px 8px;">メモ・移動</button>
+                  </div>
+                </div>
+                <div class="wi-kp-row-sent-text" data-raw-sent="${escHtml(it.sentence)}" style="font-size:0.8rem;color:#475569;line-height:1.5;">記事内の文: ${escHtml(it.sentence)}</div>
+              </div>
+            `;
+          }).join("")
+        : `<div style="padding:10px;color:#64748b;font-size:0.82rem;">この記事内にマイ単語帳の登録語は登場していません。</div>`;
+
+      const phRows = scan.phraseHits.length
+        ? `<div style="margin-top:6px;font-size:0.8rem;font-weight:700;color:#334155;">記事内で検出された重要複合語・慣用表現（ワンクリックで辞書カードが開きます）：</div>` +
+          `<div style="display:flex;flex-wrap:wrap;gap:6px;">` +
+          scan.phraseHits.map(p => `
+            <button type="button" class="wi-kp-phrase-chip kp-open-dict-direct" data-dictw="${escHtml(p.w)}" data-sent="${escHtml(p.sentence)}">
+              <strong style="color:#075e54;text-decoration:underline;">${escHtml(p.w)}</strong> ： ${escHtml(p.m)}
+            </button>
+          `).join("") +
+          `</div>`
+        : "";
+
+      return `
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+          <span style="font-size:0.8rem;color:#334155;font-weight:700;">この記事に登場した「あなたのマイ単語帳」の単語（${scan.wbHitList.length} 語）：</span>
+          <span style="font-size:0.72rem;color:#64748b;">見出し語はワンクリック、「記事内の文」の単語はダブルクリックで辞書が開きます</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;max-height:240px;overflow-y:auto;">${wbRows}</div>
+        ${phRows}
+      `;
+    }
+
+    // タブ2：未収録語リスト
+    if (kpState.boardTab === "unknown") {
+      if (!scan.unknownList.length) {
+        return `<div style="padding:18px;text-align:center;color:#64748b;font-size:0.84rem;">この記事内に辞書未収録の単語はありません。</div>`;
+      }
+      const unkRows = scan.unknownList.map(function(it) {
+        return `
+          <div class="wi-kp-item-row">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+              <strong style="font-size:0.95rem;color:#78350f;">${escHtml(it.w)}</strong>
+              <div style="display:flex;gap:5px;">
+                <button type="button" class="wi-kp-btn kp-board-folder-pop" data-w="${escHtml(it.w)}" data-sent="${escHtml(it.sentence)}" data-unk="1" style="font-size:0.72rem;padding:3px 9px;">＋ 単語帳に追加</button>
+                <button type="button" class="wi-kp-btn kp-board-ignore" data-w="${escHtml(it.w)}" data-sent="${escHtml(it.sentence)}" style="font-size:0.72rem;padding:3px 9px;color:#be123c;border-color:#fecdd3;background:#fff1f2;">✕ 除外（固有名詞等）</button>
+              </div>
+            </div>
+            <div class="wi-kp-row-sent-text" data-raw-sent="${escHtml(it.sentence)}" style="font-size:0.8rem;color:#475569;line-height:1.5;">記事内の文: ${escHtml(it.sentence)}</div>
+          </div>
+        `;
+      }).join("");
+
+      return `
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span style="font-size:0.8rem;color:#334155;font-weight:700;">記事から検出された辞書未収録語（全 ${scan.unknownList.length} 語）：</span>
+          <span style="font-size:0.72rem;color:#64748b;">「✕ 除外」を押した単語は未収録除外単語リストへ移動し、次回以降も未収録語として出なくなります</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;max-height:250px;overflow-y:auto;">
+          ${unkRows}
+        </div>
+      `;
+    }
+
+    // タブ3：未収録除外単語リスト
+    const q = (kpState.ignoredSearch || "").trim().toLowerCase();
+    const filteredIgnored = q
+      ? ignoredEntries.filter(it => it.w.toLowerCase().includes(q) || (it.sentence && it.sentence.toLowerCase().includes(q)))
+      : ignoredEntries;
+
+    const ignListHtml = filteredIgnored.length
+      ? filteredIgnored.map(function(it) {
+          return `
+            <div class="wi-kp-item-row">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+                <div>
+                  <strong style="font-size:0.95rem;color:#334155;">${escHtml(it.w)}</strong>
+                  <span style="font-size:0.72rem;color:#64748b;margin-left:6px;">（未収録語から除外中）</span>
+                </div>
+                <button type="button" class="wi-kp-restore-btn kp-board-restore-ignored" data-low="${escHtml(it.low)}">↩ 復活させる</button>
+              </div>
+              ${it.sentence ? `<div class="wi-kp-row-sent-text" data-raw-sent="${escHtml(it.sentence)}" style="font-size:0.78rem;color:#64748b;line-height:1.45;">除外時の文: ${escHtml(it.sentence)}</div>` : ""}
+            </div>
+          `;
+        }).join("")
+      : `<div style="padding:20px;text-align:center;color:#64748b;font-size:0.84rem;">${ignoredEntries.length === 0 ? "現在、未収録除外単語リストに登録されている単語はありません。" : "検索条件に一致する除外単語がありません。"}</div>`;
+
+    return `
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <div>
+          <div style="font-size:0.82rem;color:#0f172a;font-weight:700;">未収録除外単語リスト（全 ${ignoredEntries.length} 語）</div>
+          <div style="font-size:0.72rem;color:#64748b;">ここに登録された固有名詞や英単語等は、今後の記事でも未収録語として検出されません。「↩ 復活させる」でいつでも元に戻せます。</div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+          <input type="text" id="wi-kp-ignored-search-in" value="${escHtml(kpState.ignoredSearch)}" placeholder="除外単語を検索..." style="border:1px solid #cbd5e1;border-radius:6px;padding:4px 8px;font-size:0.76rem;outline:none;width:135px;" />
+          <input type="text" id="wi-kp-ignored-manual-in" placeholder="除外する単語を追加..." style="border:1px solid #cbd5e1;border-radius:6px;padding:4px 8px;font-size:0.76rem;outline:none;width:140px;" />
+          <button type="button" class="wi-kp-btn" id="wi-kp-ignored-manual-btn" style="padding:4px 9px;font-size:0.73rem;">＋ 除外登録</button>
+          ${ignoredEntries.length > 0 ? `<button type="button" class="wi-kp-btn" id="wi-kp-ignored-restore-all" style="padding:4px 9px;font-size:0.73rem;color:#b91c1c;">すべて復活</button>` : ""}
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;max-height:250px;overflow-y:auto;">
+        ${ignListHtml}
+      </div>
+    `;
+  }
+
+  function renderKompasModal(preserveScroll) {
+    const inner = document.getElementById("wi-kp-box-inner-v5");
+    if (!inner) return;
+
+    const prevMain = document.getElementById("wi-kp-main-area");
+    const prevScroll = (preserveScroll && prevMain) ? prevMain.scrollTop : 0;
+
+    const ignoredMap     = loadIgnoredMetaMap();
+    const ignoredEntries = Object.keys(ignoredMap).map(k => ignoredMap[k]).sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
+    const savedList      = loadSavedArticlesList();
+    const savedCurrent   = findSavedArticleByText(kpState.articleText);
+
+    const isReader = kpState.viewMode === "reader";
+    const isSaved  = kpState.viewMode === "saved";
+    const articleHtml = isReader ? analyzeAndRenderArticle(kpState.articleText) : "";
+    const scan = kpState.lastScan;
+
+    let mainAreaContent = "";
+    if (isReader) {
+      mainAreaContent = `
+        <div class="wi-kp-article-card">
+          ${savedCurrent ? `<div style="font-size:0.75rem;color:#008069;font-weight:700;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;"><span>保存記事：${escHtml(savedCurrent.title)}</span><button type="button" class="wi-kp-btn" id="wi-kp-rename-cur-art" style="font-size:0.7rem;padding:2px 8px;">タイトル変更</button></div>` : ""}
+          <div class="wi-kp-article-view" id="wi-kp-article-view">${articleHtml}</div>
+        </div>
+
+        <div class="wi-kp-board" id="wi-kp-board-box">
+          <div class="wi-kp-board-tabs">
+            <button type="button" class="wi-kp-board-tab ${kpState.boardTab === 'wbhits' ? 'active' : ''}" data-bdt="wbhits">
+              単語帳ヒット語 (${scan.wbHitList.length}) ＆ 重要複合語 (${scan.phraseHits.length})
+            </button>
+            <button type="button" class="wi-kp-board-tab ${kpState.boardTab === 'unknown' ? 'active' : ''}" data-bdt="unknown">
+              未収録語リスト (${scan.unknownList.length})
+            </button>
+            <button type="button" class="wi-kp-board-tab ${kpState.boardTab === 'ignored' ? 'active' : ''}" data-bdt="ignored">
+              未収録除外単語リスト (${ignoredEntries.length})
+            </button>
+          </div>
+          <div class="wi-kp-board-body" id="wi-kp-board-body">
+            ${buildBoardBodyHtml(ignoredEntries)}
+          </div>
+        </div>
+      `;
+    } else if (isSaved) {
+      mainAreaContent = buildSavedArticlesViewHtml(savedList);
+    } else {
+      mainAreaContent = `
+        <div class="wi-kp-input-wrap">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span style="font-size:0.82rem;color:#475569;font-weight:600;">kompas.id 等の記事をコピーして、そのまま Ctrl+V で貼り付けてください：</span>
+            <button type="button" class="wi-kp-btn" id="wi-kp-btn-sample">サンプル記事を読込</button>
+          </div>
+          <textarea class="wi-kp-textarea" id="wi-kp-input-ta" placeholder="ここに記事テキストを Ctrl+V で貼り付けて「記事を読み込む」を押してください...">${escHtml(kpState.articleText)}</textarea>
+          <div style="display:flex;justify-content:flex-end;gap:8px;">
+            ${kpState.articleText.trim() ? `<button type="button" class="wi-kp-btn" id="wi-kp-btn-back-reader">リーダーへ戻る</button>` : ""}
+            <button type="button" class="wi-kp-btn active" id="wi-kp-btn-apply" style="padding:7px 18px;font-size:0.82rem;">記事を読み込む</button>
+          </div>
+        </div>
+      `;
+    }
+
+    inner.innerHTML = `
+      <div class="wi-kp-hdr">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <span class="wi-kp-title">Kompas連動リーダー</span>
+          <span style="font-size:0.74rem;color:#64748b;">Ctrl+V で記事を即読込 ／ 単語ワンクリックで辞書・単語帳登録</span>
+        </div>
+        <div class="wi-kp-hdr-btns">
+          <button type="button" class="wi-kp-btn ${kpState.viewMode === 'reader' ? 'active' : ''}" id="wi-kp-tab-reader">記事リーダー</button>
+          <button type="button" class="wi-kp-btn ${kpState.viewMode === 'input' ? 'active' : ''}" id="wi-kp-tab-input">記事入力・貼付</button>
+          <button type="button" class="wi-kp-btn ${kpState.viewMode === 'saved' ? 'active' : ''}" id="wi-kp-tab-saved">保存記事リスト (${savedList.length})</button>
+          <button type="button" class="wi-kp-btn" id="wi-kp-open-site">kompas.id を開く</button>
+          <button type="button" class="wi-kp-btn" id="wi-kp-close-modal">✕ 閉じる</button>
+        </div>
+      </div>
+
+      ${isReader ? `
+        <div class="wi-kp-ctrl-bar">
+          <div class="wi-kp-ctrl-group">
+            <span class="wi-kp-ctrl-label">色分け表示:</span>
+            <button type="button" class="wi-kp-btn toggle-unknown ${kpState.hlUnknown ? 'active' : ''}" id="wi-kp-tog-unknown">
+              未収録語 (${scan.unknownList.length})
+            </button>
+            <button type="button" class="wi-kp-btn toggle-unmem ${kpState.hlUnmem ? 'active' : ''}" id="wi-kp-tog-unmem">
+              単語帳の未暗記語 (${scan.wbHitList.filter(x => x.status !== 3).length})
+            </button>
+            <button type="button" class="wi-kp-btn toggle-phrase ${kpState.hlPhrase ? 'active' : ''}" id="wi-kp-tog-phrase">
+              複合語・慣用句 (${scan.phraseHits.length})
+            </button>
+            <button type="button" class="wi-kp-btn ignored-list-btn ${kpState.boardTab === 'ignored' ? 'active' : ''}" id="wi-kp-open-ignored-top">
+              未収録除外単語リスト (${ignoredEntries.length})
+            </button>
+          </div>
+          <div class="wi-kp-ctrl-group">
+            <button type="button" class="wi-kp-btn save-art-btn ${savedCurrent ? 'is-saved' : ''}" id="wi-kp-btn-save-article" title="${savedCurrent ? 'クリックすると保存記事リストを開きます' : 'この記事を保存記事リストにストックします'}">
+              ${savedCurrent ? "✓ 保存済の記事（一覧を見る）" : "＋ この記事を保存"}
+            </button>
+            <button type="button" class="wi-kp-btn listen-btn ${kpListenState.playing ? 'playing' : ''}" id="wi-kp-btn-listen-all">
+              ${kpListenState.playing ? "■ 再生停止" : "▶ 全文を再生"}
+            </button>
+            <button type="button" class="wi-kp-btn" id="wi-kp-btn-clear">記事クリア</button>
+          </div>
+        </div>
+      ` : ""}
+
+      <div class="wi-kp-main" id="wi-kp-main-area">${mainAreaContent}</div>
+    `;
+
+    applyHighlightClasses();
+    syncKompasListeningUI();
+
+    if (prevScroll > 0) {
+      const mEl = document.getElementById("wi-kp-main-area");
+      if (mEl) mEl.scrollTop = prevScroll;
+    }
+
+    // ヘッダーボタン結線
+    inner.querySelector("#wi-kp-close-modal").onclick = closeKompasModal;
+    inner.querySelector("#wi-kp-open-site").onclick = function() {
+      window.open("https://www.kompas.id/", "_blank", "noopener");
+    };
+    inner.querySelector("#wi-kp-tab-reader").onclick = function() {
+      if (!kpState.articleText.trim()) kpState.viewMode = "input";
+      else kpState.viewMode = "reader";
+      renderKompasModal(false);
+    };
+    inner.querySelector("#wi-kp-tab-input").onclick = function() {
+      stopKompasListening();
+      kpState.viewMode = "input";
+      renderKompasModal(false);
+    };
+    inner.querySelector("#wi-kp-tab-saved").onclick = function() {
+      stopKompasListening();
+      kpState.viewMode = "saved";
+      renderKompasModal(false);
+    };
+
+    // --- 保存記事リスト画面のイベント結線 ---
+    if (isSaved) {
+      const sIn = inner.querySelector("#wi-kp-saved-search-in");
+      if (sIn) {
+        sIn.oninput = function() {
+          kpState.savedSearch = sIn.value;
+          renderKompasModal(true);
+          const nf = document.getElementById("wi-kp-saved-search-in");
+          if (nf) { nf.focus(); nf.setSelectionRange(nf.value.length, nf.value.length); }
+        };
+      }
+      const backBtn = inner.querySelector("#wi-kp-saved-back-reader");
+      if (backBtn) {
+        backBtn.onclick = function() {
+          kpState.viewMode = "reader";
+          renderKompasModal(false);
+        };
+      }
+
+      inner.querySelectorAll(".kp-saved-open-btn").forEach(function(btn) {
+        btn.onclick = function() {
+          const artId = btn.getAttribute("data-art-id");
+          const list = loadSavedArticlesList();
+          const target = list.find(a => a.id === artId);
+          if (!target) return;
+          stopKompasListening();
+          kpState.articleText = target.text;
+          try { localStorage.setItem(KP_LAST_TEXT_KEY, target.text); } catch (e) {}
+          kpState.viewMode = "reader";
+          renderKompasModal(false);
+        };
+      });
+
+      inner.querySelectorAll(".kp-saved-rename-btn").forEach(function(btn) {
+        btn.onclick = function() {
+          const artId = btn.getAttribute("data-art-id");
+          const list = loadSavedArticlesList();
+          const target = list.find(a => a.id === artId);
+          if (!target) return;
+          const nextTitle = prompt("記事のタイトルを入力してください：", target.title || "");
+          if (nextTitle === null || !nextTitle.trim()) return;
+          target.title = nextTitle.trim();
+          saveSavedArticlesList(list);
+          renderKompasModal(true);
+        };
+      });
+
+      inner.querySelectorAll(".kp-saved-delete-btn").forEach(function(btn) {
+        btn.onclick = function() {
+          const artId = btn.getAttribute("data-art-id");
+          const list = loadSavedArticlesList();
+          const target = list.find(a => a.id === artId);
+          if (!target) return;
+          if (!confirm(`保存記事「${target.title}」をリストから削除しますか？`)) return;
+          const nextList = list.filter(a => a.id !== artId);
+          saveSavedArticlesList(nextList);
+          renderKompasModal(true);
+        };
+      });
+      return;
+    }
+
+    // --- 記事入力画面のイベント結線 ---
+    if (!isReader) {
+      const ta = inner.querySelector("#wi-kp-input-ta");
+      const applyBtn = inner.querySelector("#wi-kp-btn-apply");
+      const sampleBtn = inner.querySelector("#wi-kp-btn-sample");
+      const backBtn = inner.querySelector("#wi-kp-btn-back-reader");
+      if (ta) setTimeout(() => ta.focus(), 20);
+      if (applyBtn && ta) {
+        applyBtn.onclick = function() {
+          const val = ta.value.trim();
+          if (!val) return;
+          kpState.articleText = val;
+          try { localStorage.setItem(KP_LAST_TEXT_KEY, val); } catch (e) {}
+          kpState.viewMode = "reader";
+          renderKompasModal(false);
+        };
+      }
+      if (sampleBtn) {
+        sampleBtn.onclick = function() {
+          kpState.articleText = DEFAULT_SAMPLE_ARTICLE;
+          try { localStorage.setItem(KP_LAST_TEXT_KEY, DEFAULT_SAMPLE_ARTICLE); } catch (e) {}
+          kpState.viewMode = "reader";
+          renderKompasModal(false);
+        };
+      }
+      if (backBtn) {
+        backBtn.onclick = function() {
+          kpState.viewMode = "reader";
+          renderKompasModal(false);
+        };
+      }
+      return;
+    }
+
+    // --- 記事リーダー画面のイベント結線 ---
+    inner.querySelector("#wi-kp-tog-unknown").onclick = function(e) {
+      kpState.hlUnknown = !kpState.hlUnknown;
+      e.currentTarget.classList.toggle("active", kpState.hlUnknown);
+      applyHighlightClasses();
+    };
+    inner.querySelector("#wi-kp-tog-unmem").onclick = function(e) {
+      kpState.hlUnmem = !kpState.hlUnmem;
+      e.currentTarget.classList.toggle("active", kpState.hlUnmem);
+      applyHighlightClasses();
+    };
+    inner.querySelector("#wi-kp-tog-phrase").onclick = function(e) {
+      kpState.hlPhrase = !kpState.hlPhrase;
+      e.currentTarget.classList.toggle("active", kpState.hlPhrase);
+      applyHighlightClasses();
+    };
+    inner.querySelector("#wi-kp-open-ignored-top").onclick = function() {
+      kpState.boardTab = "ignored";
+      renderKompasModal(true);
+      const boardBox = document.getElementById("wi-kp-board-box");
+      if (boardBox) boardBox.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    };
+    inner.querySelector("#wi-kp-btn-save-article").onclick = function() {
+      saveCurrentArticleToList(kpState.articleText);
+    };
+    const renCurBtn = inner.querySelector("#wi-kp-rename-cur-art");
+    if (renCurBtn && savedCurrent) {
+      renCurBtn.onclick = function() {
+        const list = loadSavedArticlesList();
+        const target = list.find(a => a.id === savedCurrent.id);
+        if (!target) return;
+        const nextTitle = prompt("記事のタイトルを変更：", target.title || "");
+        if (nextTitle === null || !nextTitle.trim()) return;
+        target.title = nextTitle.trim();
+        saveSavedArticlesList(list);
+        renderKompasModal(true);
+      };
+    }
+    inner.querySelector("#wi-kp-btn-listen-all").onclick = function() {
+      if (kpListenState.playing) stopKompasListening();
+      else playKompasSentenceAt(0, false);
+    };
+    inner.querySelector("#wi-kp-btn-clear").onclick = function() {
+      stopKompasListening();
+      kpState.articleText = "";
+      try { localStorage.removeItem(KP_LAST_TEXT_KEY); } catch (e) {}
+      kpState.viewMode = "input";
+      renderKompasModal(false);
+    };
+
+    const viewEl = inner.querySelector("#wi-kp-article-view");
+    if (viewEl) {
+      viewEl.onclick = function(e) {
+        const playBtn = e.target.closest(".wi-kp-sent-play");
+        if (playBtn) {
+          e.stopPropagation();
+          const idx = parseInt(playBtn.getAttribute("data-play-idx"), 10);
+          if (kpListenState.playing && kpListenState.currentIdx === idx) stopKompasListening();
+          else playKompasSentenceAt(idx, true);
+          return;
+        }
+
+        const wEl = e.target.closest(".wi-kp-word");
+        if (!wEl) return;
+        e.stopPropagation();
+
+        const sentEl  = wEl.closest(".wi-kp-sent");
+        const sentTxt = sentEl ? sentEl.getAttribute("data-kp-sent") : "";
+        const dictW   = wEl.getAttribute("data-kp-dict");
+        const rawW    = wEl.getAttribute("data-kp-word");
+        const status  = wEl.getAttribute("data-kp-status");
+
+        if (dictW) {
+          openDictCardOnTop(dictW, sentTxt);
+        } else if (status === "unknown" && rawW) {
+          openWbPopoverViaHiddenProxy(rawW, wEl, sentTxt, true);
+        }
+      };
+    }
+
+    // 下部ボードのタブ切替・ボタン結線
+    inner.querySelectorAll("[data-bdt]").forEach(function(tabBtn) {
+      tabBtn.onclick = function() {
+        kpState.boardTab = tabBtn.getAttribute("data-bdt");
+        renderKompasModal(true);
+      };
+    });
+
+    inner.querySelectorAll(".kp-open-dict-direct").forEach(function(el) {
+      el.onclick = function(e) {
+        e.stopPropagation();
+        const dw = el.getAttribute("data-dictw");
+        const st = el.getAttribute("data-sent") || "";
+        if (dw) openDictCardOnTop(dw, st);
+      };
+    });
+
+    inner.querySelectorAll(".kp-board-folder-pop").forEach(function(btn) {
+      btn.onclick = function(e) {
+        e.stopPropagation();
+        const w = btn.getAttribute("data-w");
+        const sent = btn.getAttribute("data-sent") || "";
+        const isUnk = btn.getAttribute("data-unk") === "1";
+        openWbPopoverViaHiddenProxy(w, btn, sent, isUnk);
+      };
+    });
+
+    inner.querySelectorAll(".kp-board-cycle-st").forEach(function(btn) {
+      btn.onclick = function() {
+        const k = btn.getAttribute("data-wbkey");
+        const latest = loadWbData();
+        if (latest.items && latest.items[k]) {
+          const cur = latest.items[k].status || latest.items[k].lv || 1;
+          latest.items[k].status = cur === 1 ? 2 : cur === 2 ? 3 : 1;
+          saveWbData(latest);
+          renderKompasModal(true);
+        }
+      };
+    });
+
+    inner.querySelectorAll(".kp-board-ignore").forEach(function(btn) {
+      btn.onclick = function() {
+        const w = btn.getAttribute("data-w");
+        const sent = btn.getAttribute("data-sent") || "";
+        addWordToIgnoredList(w, sent);
+      };
+    });
+
+    // 未収録除外単語リスト内の操作
+    const ignSearchIn = inner.querySelector("#wi-kp-ignored-search-in");
+    if (ignSearchIn) {
+      ignSearchIn.oninput = function() {
+        kpState.ignoredSearch = ignSearchIn.value;
+        renderKompasModal(true);
+        const nf = document.getElementById("wi-kp-ignored-search-in");
+        if (nf) { nf.focus(); nf.setSelectionRange(nf.value.length, nf.value.length); }
+      };
+    }
+
+    const ignManualIn  = inner.querySelector("#wi-kp-ignored-manual-in");
+    const ignManualBtn = inner.querySelector("#wi-kp-ignored-manual-btn");
+    function handleManualIgnoreAdd() {
+      if (!ignManualIn) return;
+      const val = ignManualIn.value.trim();
+      if (!val) return;
+      addWordToIgnoredList(val, "");
+    }
+    if (ignManualBtn) ignManualBtn.onclick = handleManualIgnoreAdd;
+    if (ignManualIn) {
+      ignManualIn.onkeydown = function(ev) {
+        if (ev.isComposing || ev.keyCode === 229) return;
+        if (ev.key === "Enter") {
+          ev.preventDefault();
+          handleManualIgnoreAdd();
+        }
+      };
+    }
+
+    const resAllBtn = inner.querySelector("#wi-kp-ignored-restore-all");
+    if (resAllBtn) {
+      resAllBtn.onclick = function() {
+        if (!confirm(`未収録除外単語リスト（全 ${ignoredEntries.length} 語）をすべて未収録語へ復活させますか？`)) return;
+        saveIgnoredMetaMap({});
+        showKpToast("すべての除外単語を復活させました", "", null);
+        renderKompasModal(true);
+      };
+    }
+
+    inner.querySelectorAll(".kp-board-restore-ignored").forEach(function(btn) {
+      btn.onclick = function() {
+        restoreIgnoredWord(btn.getAttribute("data-low"));
+      };
+    });
+  }
+
+  // -------------------------------------------------------------------
+  // 9. ダブルクリック辞書検索・Ctrl+V 記事読込・Escキー制御・起動ボタン配置
+  // -------------------------------------------------------------------
+  document.addEventListener("dblclick", function(e) {
+    const kpModal = document.getElementById("wi-kompas-modal-v5");
+    if (!kpModal || !kpModal.classList.contains("open")) return;
+    if (e.target.closest("button, input, textarea")) return;
+
+    const sel = window.getSelection ? window.getSelection() : null;
+    const rawSel = sel ? sel.toString().trim() : "";
+    if (!rawSel || rawSel.length > 40) return;
+
+    const resolved = resolveSingleTokenStrict(rawSel);
+    if (resolved && resolved.entry) {
+      e.stopImmediatePropagation();
+      e.preventDefault();
+      const sentContainer = e.target.closest("[data-kp-sent]");
+      const rowContainer  = e.target.closest(".wi-kp-item-row");
+      let ctxSent = "";
+      if (sentContainer) ctxSent = sentContainer.getAttribute("data-kp-sent") || "";
+      else if (rowContainer) {
+        const sentDiv = rowContainer.querySelector(".wi-kp-row-sent-text");
+        if (sentDiv) ctxSent = sentDiv.getAttribute("data-raw-sent") || sentDiv.textContent || "";
+      }
+      try { sel.removeAllRanges(); } catch (err) {}
+      openDictCardOnTop(resolved.entry.w, ctxSent);
+    }
+  }, true);
+
+  document.addEventListener("paste", function(e) {
+    const modal = document.getElementById("wi-kompas-modal-v5");
+    if (!modal || !modal.classList.contains("open")) return;
+    const dModal = document.getElementById("dict-detail-modal");
+    if (dModal && dModal.classList.contains("open")) return;
+    const activeEl = document.activeElement;
+    if (activeEl && (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA")) return;
+
+    const pasted = (e.clipboardData || window.clipboardData).getData("text");
+    if (pasted && pasted.trim().length > 10) {
+      e.preventDefault();
+      stopKompasListening();
+      kpState.articleText = pasted.trim();
+      try { localStorage.setItem(KP_LAST_TEXT_KEY, kpState.articleText); } catch (err) {}
+      kpState.viewMode = "reader";
+      renderKompasModal(false);
+    }
+  });
+
+  window.addEventListener("keydown", function(e) {
+    const modal = document.getElementById("wi-kompas-modal-v5");
+    if (!modal || !modal.classList.contains("open")) return;
+
+    const dModal = document.getElementById("dict-detail-modal");
+    const pop    = document.getElementById("wi-wb-popover-v5");
+    if ((dModal && dModal.classList.contains("open")) || (pop && pop.classList.contains("open"))) {
+      return;
+    }
+
+    if (e.key === "Escape") {
+      e.preventDefault();
+      e.stopPropagation();
+      closeKompasModal();
+      return;
+    }
+
+    const activeEl = document.activeElement;
+    const isInput = activeEl && (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA");
+    if (!isInput && !e.ctrlKey && !e.metaKey) {
+      e.__wiAllowFinalStop = true;
+      e.__wiMasterFinalStop = true;
+      if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+      e.stopPropagation();
+    }
+  }, true);
+
+  function injectKompasTopButtonV5() {
+    const actionsBar = document.querySelector(".sidebar-actions");
+    if (!actionsBar) return;
+    let btn = document.getElementById("btn-kompas-top");
+    if (!btn) {
+      btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "top-action-btn";
+      btn.id = "btn-kompas-top";
+      btn.textContent = "Kompas連動";
+      actionsBar.appendChild(btn);
+    }
+    btn.onclick = function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      openKompasModal();
+    };
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function() {
+      injectKompasTopButtonV5();
+      setTimeout(injectKompasTopButtonV5, 180);
+    });
+  } else {
+    injectKompasTopButtonV5();
+    setTimeout(injectKompasTopButtonV5, 180);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 辞書機能 3大進化パッチ（案① スマート逆引き・案② ↑↓キー選択＆Enter非干渉オープン・案⑤ 語幹一族マトリックス）
+   1. [案①] 受動態(di-/diper-/diber-)・-nya・重複語(X-X)から原形見出し語を即座に逆引き＆7段階の厳格優先度ソート
+   2. [案②] 検索候補を ↑ / ↓ キーで選択し Enter で即オープン（裏の「次の問題へ」ボタン等への貫通・干渉を100%遮断）
+   3. [案⑤] 辞書カード内の同語幹ファミリーを「基本語・形容詞」「動詞」「名詞」＋接辞役割バッジ付きマトリックスで整理表示
+   ===================================================================== */
+(function() {
+  const d = window.WHATSINDO_EXTERNAL_DATA;
+  if (!d) return;
+
+  function escHtml(str) {
+    return String(str || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  // -------------------------------------------------------------------
+  // 1. スタイル定義（↑↓キー選択ハイライト・逆引きバッジ・語幹一族マトリックス）
+  // -------------------------------------------------------------------
+  if (!document.getElementById("wi-dict-upgrade-v6-style")) {
+    const st = document.createElement("style");
+    st.id = "wi-dict-upgrade-v6-style";
+    st.textContent = `
+      /* 案②：検索ドロップダウン内のキーボード選択ハイライト */
+      #dict-dropdown .dict-item.wi-kb-selected {
+        background: #dcfce7 !important;
+        outline: 2px solid #008069 !important;
+        outline-offset: -2px !important;
+      }
+      .wi-inflect-match-badge {
+        display: inline-block;
+        background: #fef3c7;
+        color: #92400e;
+        border: 1px solid #fde68a;
+        font-size: 0.69rem;
+        font-weight: 700;
+        padding: 1px 6px;
+        border-radius: 4px;
+        margin-left: 4px;
+      }
+      .wi-dict-kb-hint-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 4px 8px 6px 8px;
+        margin-bottom: 4px;
+        border-bottom: 1px solid #e2e8f0;
+        font-size: 0.7rem;
+        color: #64748b;
+        background: #f8fafc;
+        border-radius: 6px 6px 0 0;
+        user-select: none;
+      }
+
+      /* 案⑤：語幹一族マトリックス表示 */
+      .wi-family-matrix {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 6px;
+      }
+      .wi-fmat-group {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 7px 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .wi-fmat-group-hdr {
+        font-size: 0.72rem;
+        font-weight: 800;
+        color: #475569;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        border-bottom: 1px dashed #e2e8f0;
+        padding-bottom: 3px;
+      }
+      .wi-fmat-group-hdr .wi-fmat-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        display: inline-block;
+      }
+      .wi-fmat-list {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .wi-fmat-row-btn {
+        display: flex !important;
+        align-items: baseline !important;
+        justify-content: flex-start !important;
+        gap: 6px !important;
+        width: 100% !important;
+        text-align: left !important;
+        background: #f8fafc !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 6px !important;
+        padding: 5px 9px !important;
+        font-size: 0.81rem !important;
+        color: #1e293b !important;
+        cursor: pointer !important;
+        transition: all 0.1s !important;
+        flex-wrap: wrap !important;
+      }
+      .wi-fmat-row-btn:hover {
+        background: #f0fdf4 !important;
+        border-color: #008069 !important;
+      }
+      .wi-fmat-role-tag {
+        font-size: 0.68rem;
+        font-weight: 700;
+        padding: 1px 6px;
+        border-radius: 4px;
+        background: #e2e8f0;
+        color: #334155;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      .wi-fmat-role-tag.verb {
+        background: #dcfce7;
+        color: #166534;
+      }
+      .wi-fmat-role-tag.noun {
+        background: #e0e7ff;
+        color: #3730a3;
+      }
+      .wi-fmat-role-tag.adj {
+        background: #fef3c7;
+        color: #92400e;
+      }
+    `;
+    document.head.appendChild(st);
+  }
+
+  // -------------------------------------------------------------------
+  // 2. 【案①】スマート逆引きインデックス構築（受動態・-nya・重複語 ➔ 見出し語）
+  // -------------------------------------------------------------------
+  const exactWordMap      = new Map(); // wLow -> item
+  const rootToWordsMap    = new Map(); // rLow -> [item, ...]
+  const inflectionMap     = new Map(); // inflectedLow -> { targetLow, label }
+  let lastDictIndexedSize = -1;
+
+  function buildPassiveFormsForVerb(wLow, rLow) {
+    const res = [];
+    if (!wLow || !rLow || wLow.indexOf(" ") !== -1) return res;
+    if (wLow === "mempelajari") {
+      return [
+        { form: "dipelajari", label: "受動態 di-" },
+        { form: "dipelajarinya", label: "受動態 di- + -nya" }
+      ];
+    }
+    if (wLow.startsWith("memper") && wLow.length > 6) {
+      const p = "diper" + wLow.slice(6);
+      return [
+        { form: p, label: "受動態 diper-" },
+        { form: p + "nya", label: "受動態 diper- + -nya" }
+      ];
+    }
+    if (wLow.startsWith("member") && !rLow.startsWith("b") && wLow.length > 6) {
+      const p = "diber" + wLow.slice(6);
+      return [
+        { form: p, label: "受動態 diber-" },
+        { form: p + "nya", label: "受動態 diber- + -nya" }
+      ];
+    }
+    if (/^(meng|meny|mem|men|menge|me)/.test(wLow) && wLow !== rLow) {
+      let suf = "";
+      if (wLow.endsWith("kan") && !rLow.endsWith("kan")) suf = "kan";
+      else if (wLow.endsWith("i") && !rLow.endsWith("i")) suf = "i";
+      const stemCheck = rLow.length > 1 ? rLow.slice(1) + suf : rLow + suf;
+      if (wLow.endsWith(stemCheck)) {
+        const p = "di" + rLow + suf;
+        res.push(
+          { form: p, label: "受動態 di-" },
+          { form: p + "nya", label: "受動態 di- + -nya" }
+        );
+      }
+    }
+    return res;
+  }
+
+  function ensureSmartDictIndex() {
+    const listV = Array.isArray(d.vocab) ? d.vocab : [];
+    const listA = Array.isArray(d.acro) ? d.acro : [];
+    if (lastDictIndexedSize === listV.length + listA.length && exactWordMap.size > 0) return;
+    lastDictIndexedSize = listV.length + listA.length;
+
+    exactWordMap.clear();
+    rootToWordsMap.clear();
+    inflectionMap.clear();
+
+    function addRootGroup(rKey, itemObj) {
+      if (!rKey) return;
+      let arr = rootToWordsMap.get(rKey);
+      if (!arr) {
+        arr = [];
+        rootToWordsMap.set(rKey, arr);
+      }
+      if (!arr.some(x => x.wLow === itemObj.wLow)) {
+        arr.push(itemObj);
+      }
+    }
+
+    for (let i = 0; i < listV.length; i++) {
+      const it = listV[i];
+      if (!it || !it.w) continue;
+      const w = it.w.trim();
+      const wLow = w.toLowerCase();
+      const r = (it.r || w).trim();
+      const rLow = r.toLowerCase();
+      const entry = {
+        w: w,
+        wLow: wLow,
+        r: r,
+        rLow: rLow,
+        p: it.p || "other",
+        m: (it.fullM || it.m || "").trim(),
+        ex: (it.ex || "").trim(),
+        tr: (it.tr || "").trim(),
+        note: (it.note || "").trim()
+      };
+      exactWordMap.set(wLow, entry);
+      addRootGroup(rLow, entry);
+
+      // -nya 付き
+      if (!inflectionMap.has(wLow + "nya")) {
+        inflectionMap.set(wLow + "nya", { targetLow: wLow, label: "-nya 付き" });
+      }
+
+      // 受動態 di- / diper- / diber-
+      const passives = buildPassiveFormsForVerb(wLow, rLow);
+      for (let p = 0; p < passives.length; p++) {
+        const pf = passives[p];
+        if (!exactWordMap.has(pf.form)) {
+          inflectionMap.set(pf.form, { targetLow: wLow, label: pf.label });
+        }
+      }
+    }
+
+    for (let i = 0; i < listA.length; i++) {
+      const it = listA[i];
+      if (!it || !it.acro) continue;
+      const w = it.acro.trim();
+      const wLow = w.toLowerCase();
+      if (!exactWordMap.has(wLow)) {
+        const r = (it.full || w).trim();
+        const entry = {
+          w: w,
+          wLow: wLow,
+          r: r,
+          rLow: r.toLowerCase(),
+          p: "singkatan",
+          m: (it.tr || "").trim(),
+          ex: "",
+          tr: "",
+          note: (it.exp || "").trim()
+        };
+        exactWordMap.set(wLow, entry);
+        inflectionMap.set(wLow + "nya", { targetLow: wLow, label: "-nya 付き" });
+      }
+    }
+  }
+
+  // クエリ文字列 q から逆引き対象の見出し語・語幹を特定する
+  function analyzeQueryInflection(qLower) {
+    ensureSmartDictIndex();
+    const q = String(qLower || "").trim().toLowerCase();
+    if (!q || q.length < 3) return { directTargetLow: "", targetRootLow: "", reasonLabel: "" };
+
+    // 1. 直接登録された受動態や -nya に完全一致する場合
+    if (inflectionMap.has(q)) {
+      const hit = inflectionMap.get(q);
+      const entry = exactWordMap.get(hit.targetLow);
+      return {
+        directTargetLow: hit.targetLow,
+        targetRootLow: entry ? entry.rLow : "",
+        reasonLabel: `${q} の原形`
+      };
+    }
+
+    // 2. 入力途中の受動態前方一致（例: "diola" ➔ "diolah" ➔ "mengolah"）
+    if (q.startsWith("di") && q.length >= 4 && !exactWordMap.has(q)) {
+      for (const [infForm, info] of inflectionMap.entries()) {
+        if (infForm.startsWith(q)) {
+          const entry = exactWordMap.get(info.targetLow);
+          return {
+            directTargetLow: info.targetLow,
+            targetRootLow: entry ? entry.rLow : "",
+            reasonLabel: `${infForm} の原形`
+          };
+        }
+      }
+    }
+
+    // 3. 接尾辞 (-nya / -lah / -kah / -pun) を剥がした形が辞書または逆引きマップにある場合
+    const encMatch = q.match(/^(.{3,}?)(nya|lah|kah|pun)$/);
+    if (encMatch) {
+      const stem = encMatch[1];
+      if (exactWordMap.has(stem)) {
+        const entry = exactWordMap.get(stem);
+        return {
+          directTargetLow: stem,
+          targetRootLow: entry ? entry.rLow : stem,
+          reasonLabel: `${q} の原形`
+        };
+      }
+      if (inflectionMap.has(stem)) {
+        const hit = inflectionMap.get(stem);
+        const entry = exactWordMap.get(hit.targetLow);
+        return {
+          directTargetLow: hit.targetLow,
+          targetRootLow: entry ? entry.rLow : "",
+          reasonLabel: `${q} の原形`
+        };
+      }
+    }
+
+    // 4. 完全重複語 X-X（例: negara-negara, aturan-aturan）
+    if (q.indexOf("-") !== -1) {
+      const parts = q.split("-");
+      if (parts.length === 2) {
+        const p1 = parts[0];
+        const p2 = parts[1].replace(/(nya|lah|kah)$/, "");
+        if (p1 === p2 || (p2.length >= 2 && p1.startsWith(p2))) {
+          if (exactWordMap.has(p1)) {
+            const entry = exactWordMap.get(p1);
+            return {
+              directTargetLow: p1,
+              targetRootLow: entry ? entry.rLow : p1,
+              reasonLabel: `重複語 ${q} の基本形`
+            };
+          }
+          if (inflectionMap.has(p1)) {
+            const hit = inflectionMap.get(p1);
+            const entry = exactWordMap.get(hit.targetLow);
+            return {
+              directTargetLow: hit.targetLow,
+              targetRootLow: entry ? entry.rLow : "",
+              reasonLabel: `重複語 ${q} の基本形`
+            };
+          }
+        }
+      }
+    }
+
+    // 5. 見出し語そのものが辞書にある場合はその語幹を返す
+    if (exactWordMap.has(q)) {
+      return {
+        directTargetLow: "",
+        targetRootLow: exactWordMap.get(q).rLow,
+        reasonLabel: ""
+      };
+    }
+
+    return { directTargetLow: "", targetRootLow: "", reasonLabel: "" };
+  }
+
+  // 既存の Array.prototype.filter フックを拡張し、逆引きヒット＆厳格7段階スコアソートを適用
+  const baseFilter = Array.prototype.filter;
+  const baseSort   = Array.prototype.sort;
+  let lastInflectReasonByWord = new Map();
+
+  function prepFastItemProps(v) {
+    if (v._cReadyV6 && v._cSrcW === v.w && v._cSrcM === v.m) return;
+    ensureSmartDictIndex();
+    v._cSrcW = v.w;
+    v._cSrcM = v.m;
+    v._wl  = (v.w || "").trim().toLowerCase();
+    const mapped = exactWordMap.get(v._wl);
+    v._rl  = (v.r || (mapped ? mapped.rLow : v._wl)).trim().toLowerCase();
+    v._ml  = (v.fullM || v.m || "").toLowerCase();
+    v._exl = (v.ex || "").toLowerCase();
+    v._trl = (v.tr || "").toLowerCase();
+    v._nl  = (v.note || (mapped ? mapped.note : "") || "").toLowerCase();
+    v._cReadyV6 = true;
+  }
+
+  function calcStrictPriorityScore(v, q, infInfo) {
+    const wl = v._wl;
+    const rl = v._rl;
+    // 0: 見出し語完全一致
+    if (wl === q) return 0;
+    // 0.5: 活用形・受動態・-nya・重複語の直接の原形見出し語
+    if (infInfo.directTargetLow && wl === infInfo.directTargetLow) return 0.5;
+    // 1: 見出し語の前方一致
+    if (wl.startsWith(q)) return 1;
+    // 2: 見出し語の部分一致
+    if (wl.indexOf(q) !== -1) return 2;
+    // 3: 語幹完全一致 または 逆引き語幹と一致
+    if (rl === q || (infInfo.targetRootLow && rl === infInfo.targetRootLow)) return 3;
+    // 3.5: 語幹の前方一致（3文字以上）
+    if (q.length >= 3 && rl.startsWith(q)) return 3.5;
+    // 4: 日本語の意味に一致
+    if (v._ml.indexOf(q) !== -1) return 4;
+    // 5: 解説または例文に一致
+    return 5;
+  }
+
+  Array.prototype.filter = function(callback, thisArg) {
+    if (this.length > 0 && typeof callback === "function" && this[0] && typeof this[0] === "object" && "w" in this[0]) {
+      const fnStr = Function.prototype.toString.call(callback);
+
+      // 左上クイック検索バー (#dict-input) または A-Z辞書検索窓 (#az-filter-input)
+      const isQuickDictSearch = fnStr.indexOf("v.fullM && v.fullM.toLowerCase()") !== -1;
+      const isAzDictSearch    = fnStr.indexOf("v.fullM || v.m") !== -1 && fnStr.indexOf("v.ex") !== -1;
+
+      if (isQuickDictSearch || isAzDictSearch) {
+        const inpEl = isQuickDictSearch ? document.getElementById("dict-input") : document.getElementById("az-filter-input");
+        const q = inpEl ? inpEl.value.trim().toLowerCase() : "";
+        if (q) {
+          ensureSmartDictIndex();
+          const infInfo = analyzeQueryInflection(q);
+          if (isQuickDictSearch) {
+            lastInflectReasonByWord.clear();
+            if (infInfo.directTargetLow && infInfo.reasonLabel) {
+              lastInflectReasonByWord.set(infInfo.directTargetLow, infInfo.reasonLabel);
+            }
+          }
+
+          const hits = [];
+          for (let i = 0; i < this.length; i++) {
+            const v = this[i];
+            if (!v || !v.w) continue;
+            prepFastItemProps(v);
+
+            const isMatched =
+              v._wl.indexOf(q) !== -1 ||
+              (infInfo.directTargetLow && v._wl === infInfo.directTargetLow) ||
+              v._rl.indexOf(q) !== -1 ||
+              (infInfo.targetRootLow && v._rl === infInfo.targetRootLow) ||
+              v._ml.indexOf(q) !== -1 ||
+              (q.length >= 2 && v._nl.indexOf(q) !== -1) ||
+              v._exl.indexOf(q) !== -1 ||
+              (isAzDictSearch && q.length >= 2 && v._trl.indexOf(q) !== -1);
+
+            if (isMatched) {
+              v._qScore = calcStrictPriorityScore(v, q, infInfo);
+              v._qStr   = q;
+              hits.push(v);
+            }
+          }
+
+          baseSort.call(hits, function(a, b) {
+            if (a._qScore !== b._qScore) return a._qScore - b._qScore;
+            if (a._wl.length !== b._wl.length && a._qScore <= 2) return a._wl.length - b._wl.length;
+            return a._wl < b._wl ? -1 : a._wl > b._wl ? 1 : 0;
+          });
+          return hits;
+        }
+      }
+    }
+    return baseFilter.call(this, callback, thisArg);
+  };
+
+  // -------------------------------------------------------------------
+  // 3. 【案②】矢印キー（↑ / ↓）での検索候補選択 ＆ Enter即オープン（裏の「次の問題へ」と100%非干渉）
+  // -------------------------------------------------------------------
+  let kbSelectedIdx = 0;
+
+  function updateDropdownKbSelection(newIdx, scrollIntoViewFlag) {
+    const dDrop = document.getElementById("dict-dropdown");
+    if (!dDrop || dDrop.style.display === "none") return;
+    const items = Array.from(dDrop.querySelectorAll(".dict-item"));
+    if (!items.length) return;
+
+    if (newIdx < 0) newIdx = items.length - 1;
+    if (newIdx >= items.length) newIdx = 0;
+    kbSelectedIdx = newIdx;
+
+    items.forEach(function(el, idx) {
+      const active = idx === kbSelectedIdx;
+      el.classList.toggle("wi-kb-selected", active);
+      if (active && scrollIntoViewFlag) {
+        el.scrollIntoView({ block: "nearest" });
+      }
+    });
+  }
+
+  function decorateDictDropdownOnRender() {
+    const dDrop = document.getElementById("dict-dropdown");
+    if (!dDrop) return;
+
+    // 前回の左Shiftパッチ等が dDrop.querySelector(".dict-item") を呼んだ際、
+    // 必ず現在 ↑ / ↓ キーで選択中の項目 (.dict-item.wi-kb-selected) を返すように拡張！
+    if (!dDrop.__wiQuerySelectorHooked) {
+      dDrop.__wiQuerySelectorHooked = true;
+      const origQS = dDrop.querySelector.bind(dDrop);
+      dDrop.querySelector = function(sel) {
+        if (sel === ".dict-item") {
+          const selected = origQS(".dict-item.wi-kb-selected");
+          if (selected) return selected;
+        }
+        return origQS(sel);
+      };
+    }
+
+    const items = Array.from(dDrop.querySelectorAll(".dict-item"));
+    if (!items.length) return;
+
+    // 操作ガイドバーを先頭に表示
+    if (!dDrop.querySelector(".wi-dict-kb-hint-bar")) {
+      const hintBar = document.createElement("div");
+      hintBar.className = "wi-dict-kb-hint-bar";
+      hintBar.innerHTML = `<span><strong>↑↓</strong> 候補選択 ／ <strong>Enter</strong> 辞書を開く ／ <strong>Esc</strong> 閉じる</span><span>${items.length}件</span>`;
+      dDrop.insertBefore(hintBar, dDrop.firstChild);
+    }
+
+    // 逆引きヒット（例: diolah ➔ mengolah）の場合はバッジを付与
+    items.forEach(function(row, idx) {
+      const st = row.querySelector("strong");
+      if (st) {
+        const wLow = st.textContent.trim().toLowerCase();
+        if (lastInflectReasonByWord.has(wLow) && !row.querySelector(".wi-inflect-match-badge")) {
+          const badge = document.createElement("span");
+          badge.className = "wi-inflect-match-badge";
+          badge.textContent = `← ${lastInflectReasonByWord.get(wLow)}`;
+          st.insertAdjacentElement("afterend", badge);
+        }
+      }
+      row.addEventListener("mouseenter", function() {
+        updateDropdownKbSelection(idx, false);
+      });
+    });
+
+    kbSelectedIdx = 0;
+    updateDropdownKbSelection(0, false);
+  }
+
+  function setupDictDropdownObserver() {
+    const dDrop = document.getElementById("dict-dropdown");
+    if (!dDrop || dDrop.__wiV6DropObs) return;
+    dDrop.__wiV6DropObs = true;
+    new MutationObserver(function() {
+      decorateDictDropdownOnRender();
+    }).observe(dDrop, { childList: true });
+  }
+
+  // ★核心：検索バーでの ↑ / ↓ / Enter / Esc キー制御（裏の「次の問題へ」ボタン等への貫通を100%完全遮断！）
+  function handleDictInputKeydown(e) {
+    const dIn   = document.getElementById("dict-input");
+    const dDrop = document.getElementById("dict-dropdown");
+    if (!dIn) return;
+
+    const isFocusedInDict = (document.activeElement === dIn);
+    if (!isFocusedInDict) return;
+    if (e.isComposing || e.keyCode === 229) return;
+
+    const isDropOpen = Boolean(dDrop && dDrop.style.display !== "none" && dDrop.querySelectorAll(".dict-item").length > 0);
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      e.__wiAllowFinalStop = true;
+      e.__wiMasterFinalStop = true;
+      if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+      e.stopPropagation();
+
+      if (!isDropOpen && dIn.value.trim()) {
+        dIn.dispatchEvent(new Event("input", { bubbles: true }));
+      } else {
+        updateDropdownKbSelection(kbSelectedIdx + 1, true);
+      }
+      return;
+    }
+
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      e.__wiAllowFinalStop = true;
+      e.__wiMasterFinalStop = true;
+      if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+      e.stopPropagation();
+
+      if (isDropOpen) {
+        updateDropdownKbSelection(kbSelectedIdx - 1, true);
+      }
+      return;
+    }
+
+    if (e.key === "Enter") {
+      // ★最重要：裏の「次の問題へ進む (Enter)」や「送信ボタン」へ絶対に届かせないよう完全遮断！
+      e.preventDefault();
+      e.__wiAllowFinalStop = true;
+      e.__wiMasterFinalStop = true;
+      if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+      e.stopPropagation();
+
+      if (!dDrop) return;
+      if (dDrop.style.display === "none" && dIn.value.trim()) {
+        dIn.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+      const items = Array.from(dDrop.querySelectorAll(".dict-item"));
+      const targetItem = items[kbSelectedIdx] || items[0];
+      if (targetItem) {
+        // 先に項目をクリックして辞書詳細モーダル(#dict-detail-modal.open)を開き、その後にドロップダウンを閉じて blur する
+        targetItem.click();
+        dDrop.style.display = "none";
+        setTimeout(function() {
+          try { dIn.blur(); } catch (err) {}
+        }, 10);
+      }
+      return;
+    }
+
+    if (e.key === "Escape") {
+      e.preventDefault();
+      e.__wiAllowFinalStop = true;
+      e.__wiMasterFinalStop = true;
+      if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+      e.stopPropagation();
+
+      if (dDrop) dDrop.style.display = "none";
+      try { dIn.blur(); } catch (err) {}
+      return;
+    }
+  }
+
+  // input要素自身と window キャプチャフェーズの両方でガード
+  window.addEventListener("keydown", handleDictInputKeydown, true);
+
+  // -------------------------------------------------------------------
+  // 4. 【案⑤】同じ語幹の関連語を「品詞・文法役割別」に整理する『語幹一族マトリックス』
+  // -------------------------------------------------------------------
+  function classifyFamilyMemberRole(item) {
+    const w = (item.w || "").trim().toLowerCase();
+    const r = (item.r || w).trim().toLowerCase();
+    const p = item.p || "other";
+
+    // 1. 基本語・形容詞・副詞・他
+    if (w === r) {
+      const pLbl = p === "v" ? "基本動詞" : p === "a" ? "基本形容詞" : p === "n" ? "基本名詞" : "基本語";
+      return { group: "base", badge: pLbl, badgeCls: "adj", order: 1 };
+    }
+    if (p === "a" || p === "other") {
+      if (w.startsWith("se")) return { group: "base", badge: "se- (同等・一括)", badgeCls: "adj", order: 2 };
+      if (w.startsWith("ter")) return { group: "base", badge: "ter- (状態・最上)", badgeCls: "adj", order: 3 };
+      if (w.startsWith("ber")) return { group: "base", badge: "ber- (状態)", badgeCls: "adj", order: 4 };
+      return { group: "base", badge: p === "a" ? "形容詞" : "副詞・接続表現", badgeCls: "adj", order: 5 };
+    }
+
+    // 2. 動詞グループ (v)
+    if (p === "v" || /^(me|mem|men|meng|meny|menge|ber|ter|di)/.test(w)) {
+      if (w.startsWith("memper") && w.endsWith("kan")) return { group: "verb", badge: "memper-kan (使役・強化)", badgeCls: "verb", order: 14 };
+      if (w.startsWith("memper") && w.endsWith("i"))   return { group: "verb", badge: "memper-i (対象への働きかけ)", badgeCls: "verb", order: 15 };
+      if (w.startsWith("memper"))                      return { group: "verb", badge: "memper- (より〜にする)", badgeCls: "verb", order: 13 };
+      if (/^(me|mem|men|meng|meny|menge)/.test(w) && w.endsWith("kan")) return { group: "verb", badge: "meN-kan (他動詞・使役/受益)", badgeCls: "verb", order: 11 };
+      if (/^(me|mem|men|meng|meny|menge)/.test(w) && w.endsWith("i"))   return { group: "verb", badge: "meN-i (他動詞・場所/対象)", badgeCls: "verb", order: 12 };
+      if (/^(me|mem|men|meng|meny|menge)/.test(w))                      return { group: "verb", badge: "meN- (能動動詞)", badgeCls: "verb", order: 10 };
+      if (w.startsWith("ber") && w.endsWith("an")) return { group: "verb", badge: "ber-an (相互・継続自動詞)", badgeCls: "verb", order: 17 };
+      if (w.startsWith("ber") || w === "belajar" || w === "bekerja") return { group: "verb", badge: "ber- (自動詞)", badgeCls: "verb", order: 16 };
+      if (w.startsWith("ter")) return { group: "verb", badge: "ter- (非意図受動・完了・可能)", badgeCls: "verb", order: 18 };
+      if (w.startsWith("di"))  return { group: "verb", badge: "di- (受動態)", badgeCls: "verb", order: 19 };
+      return { group: "verb", badge: "動詞", badgeCls: "verb", order: 20 };
+    }
+
+    // 3. 名詞グループ (n)
+    if (/^(pe|pem|pen|peng|peny|penge)/.test(w) && w.endsWith("an")) {
+      return { group: "noun", badge: "peN-an (行為・プロセス)", badgeCls: "noun", order: 30 };
+    }
+    if ((w.startsWith("per") || w === "pelajaran" || w === "pekerjaan") && w.endsWith("an")) {
+      return { group: "noun", badge: "per-an (状態・推移・事業)", badgeCls: "noun", order: 31 };
+    }
+    if (w.startsWith("ke") && w.endsWith("an")) {
+      return { group: "noun", badge: "ke-an (抽象名詞・状態)", badgeCls: "noun", order: 32 };
+    }
+    if (w.endsWith("an")) {
+      return { group: "noun", badge: "-an (結果・対象物の名詞)", badgeCls: "noun", order: 33 };
+    }
+    if (/^(pe|pem|pen|peng|peny|penge)/.test(w)) {
+      return { group: "noun", badge: "peN- (動作主・手段)", badgeCls: "noun", order: 34 };
+    }
+    return { group: "noun", badge: "名詞・複合語", badgeCls: "noun", order: 35 };
+  }
+
+  function buildRootFamilyMatrixHtml(rootStr, currentWordStr) {
+    ensureSmartDictIndex();
+    const rLow = String(rootStr || "").trim().toLowerCase();
+    const curLow = String(currentWordStr || "").trim().toLowerCase();
+    if (!rLow || !rootToWordsMap.has(rLow)) return "";
+
+    const allMembers = rootToWordsMap.get(rLow).filter(it => it.wLow !== curLow);
+    if (!allMembers.length) return "";
+
+    const groups = { base: [], verb: [], noun: [] };
+    allMembers.forEach(function(it) {
+      const role = classifyFamilyMemberRole(it);
+      groups[role.group].push({ item: it, role: role });
+    });
+
+    ["base", "verb", "noun"].forEach(function(gKey) {
+      groups[gKey].sort(function(a, b) {
+        if (a.role.order !== b.role.order) return a.role.order - b.role.order;
+        return a.item.wLow.localeCompare(b.item.wLow);
+      });
+    });
+
+    const groupDefs = [
+      { key: "base", title: "基本語・形容詞・副詞", color: "#d97706" },
+      { key: "verb", title: "動詞（能動 meN- / -kan / -i ・ 自動 ber- ・ 受動 ter-/di-）", color: "#008069" },
+      { key: "noun", title: "名詞（行為 peN-an ・ 状態 per-an ・ 抽象 ke-an ・ 結果 -an）", color: "#4338ca" }
+    ];
+
+    const blocksHtml = groupDefs.map(function(gDef) {
+      const list = groups[gDef.key];
+      if (!list || !list.length) return "";
+      const rowsHtml = list.map(function(entry) {
+        const it = entry.item;
+        const rl = entry.role;
+        const shortM = String(it.m || "").replace(/\[cite:\s*[\d,\s]+\]/gi, "").trim();
+        return `
+          <button type="button" class="v35-jump-chip exp-fam-chip wi-fmat-row-btn" data-jword="${encodeURIComponent(it.w)}" data-fword="${encodeURIComponent(it.w)}">
+            <span class="wi-fmat-role-tag ${rl.badgeCls}">${escHtml(rl.badge)}</span>
+            <strong style="color:#075e54;font-size:0.88rem;">${escHtml(it.w)}</strong>
+            <span style="color:#64748b;">：</span>
+            <span style="flex:1;min-width:140px;color:#0f172a;">${escHtml(shortM)}</span>
+          </button>
+        `;
+      }).join("");
+
+      return `
+        <div class="wi-fmat-group">
+          <div class="wi-fmat-group-hdr">
+            <span class="wi-fmat-dot" style="background:${gDef.color};"></span>
+            <span>${escHtml(gDef.title)}（${list.length}語）</span>
+          </div>
+          <div class="wi-fmat-list">${rowsHtml}</div>
+        </div>
+      `;
+    }).filter(Boolean).join("");
+
+    if (!blocksHtml) return "";
+    return `<div class="wi-family-matrix" data-fmat-built="1">${blocksHtml}</div>`;
+  }
+
+  // 辞書詳細モーダル (#dict-detail-box) が開いた際、既存の同語幹ファミリー欄を『語幹一族マトリックス』にアップグレード
+  function upgradeDictModalFamilyToMatrix() {
+    const dBox = document.getElementById("dict-detail-box");
+    if (!dBox) return;
+    const titleSp = dBox.querySelector("span");
+    if (!titleSp) return;
+    const hwText = titleSp.textContent.trim();
+    const hwLow  = hwText.toLowerCase();
+    if (!hwLow) return;
+
+    ensureSmartDictIndex();
+    const entry = exactWordMap.get(hwLow);
+    if (!entry || !entry.rLow) return;
+
+    // すでにこの単語のマトリックスが構築済みならスキップ
+    if (dBox.getAttribute("data-fmat-word") === hwLow && dBox.querySelector(".wi-family-matrix")) return;
+
+    const matrixHtml = buildRootFamilyMatrixHtml(entry.rLow, hwText);
+    if (!matrixHtml) return;
+
+    // V35の統合カード内、または標準の関連語カード内の「同じ語幹...」セクションを探してマトリックスに置換
+    let replaced = false;
+    dBox.querySelectorAll(".v35-rel-sec").forEach(function(sec) {
+      const tEl = sec.querySelector(".v35-rel-sec-title");
+      if (tEl && tEl.textContent.indexOf("同じ語幹") !== -1) {
+        const totalCnt = (rootToWordsMap.get(entry.rLow) || []).filter(x => x.wLow !== hwLow).length;
+        tEl.textContent = `🌳 同じ語幹「${entry.r}」の語幹一族マトリックス（全 ${totalCnt} 語）`;
+        const chipList = sec.querySelector(".v35-chip-list");
+        if (chipList) {
+          chipList.outerHTML = matrixHtml;
+          replaced = true;
+        }
+      }
+    });
+
+    if (!replaced) {
+      dBox.querySelectorAll(".exp-sec-card").forEach(function(card) {
+        const lbl = card.querySelector(".exp-sec-label");
+        if (lbl && lbl.textContent.indexOf("同じ語幹") !== -1) {
+          const totalCnt = (rootToWordsMap.get(entry.rLow) || []).filter(x => x.wLow !== hwLow).length;
+          lbl.innerHTML = `<span>🌳 同じ語幹「${escHtml(entry.r)}」の語幹一族マトリックス（全 ${totalCnt} 語）</span>`;
+          const chips = card.querySelector(".exp-family-chips");
+          if (chips) {
+            chips.outerHTML = matrixHtml;
+            replaced = true;
+          }
+        }
+      });
+    }
+
+    if (replaced) {
+      dBox.setAttribute("data-fmat-word", hwLow);
+    }
+  }
+
+  function setupDictModalMatrixObserver() {
+    const dBox = document.getElementById("dict-detail-box");
+    if (!dBox || dBox.__wiV6MatrixObs) return;
+    dBox.__wiV6MatrixObs = true;
+    new MutationObserver(function() {
+      upgradeDictModalFamilyToMatrix();
+    }).observe(dBox, { childList: true, subtree: true });
+  }
+
+  function bootDictUpgradesV6() {
+    ensureSmartDictIndex();
+    setupDictDropdownObserver();
+    setupDictModalMatrixObserver();
+    const dIn = document.getElementById("dict-input");
+    if (dIn && !dIn.__wiV6KeyBound) {
+      dIn.__wiV6KeyBound = true;
+      dIn.addEventListener("keydown", handleDictInputKeydown, true);
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function() {
+      bootDictUpgradesV6();
+      setTimeout(bootDictUpgradesV6, 120);
+    });
+  } else {
+    bootDictUpgradesV6();
+    setTimeout(bootDictUpgradesV6, 120);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 「Kompas連動」UIスリム化・配色統一・下部ボード開閉式化パッチ
+   - 「保存記事リスト」「未収録除外単語リスト」を最上部の「記事リーダー」の列に統一
+   - 2段目のバーを1行にスッキリ収め、黒いフォーカス太枠や派手な青紫色を解消
+   - 下部パネルの不要タブを廃止し、「単語帳ヒット語＆重要複合語」1ボタンのみの開閉式（初期は閉じた状態）に変更
+   ===================================================================== */
+(function() {
+  // 1. スタイル修正（黒太枠の除去・落ち着いた色合いへの統一・1行バー整理・開閉ボタン）
+  if (!document.getElementById("wi-kompas-ui-slim-style")) {
+    const st = document.createElement("style");
+    st.id = "wi-kompas-ui-slim-style";
+    st.textContent = `
+      /* クリック後の黒い太枠（フォーカスリング）を完全除去 */
+      #wi-kompas-modal-v5 button:focus,
+      #wi-kompas-modal-v5 button:focus-visible {
+        outline: none !important;
+        box-shadow: none !important;
+      }
+
+      /* 上部バー・ボタンのサイズと色合いを落ち着かせて1行に綺麗に収める */
+      #wi-kompas-modal-v5 .wi-kp-hdr {
+        padding-bottom: 8px !important;
+        gap: 8px !important;
+      }
+      #wi-kompas-modal-v5 .wi-kp-btn {
+        font-size: 0.74rem !important;
+        padding: 5px 10px !important;
+        border-radius: 6px !important;
+        background: #f8fafc !important;
+        border: 1px solid #cbd5e1 !important;
+        color: #334155 !important;
+        font-weight: 600 !important;
+      }
+      #wi-kompas-modal-v5 .wi-kp-btn:hover {
+        background: #f1f5f9 !important;
+        border-color: #94a3b8 !important;
+      }
+      #wi-kompas-modal-v5 .wi-kp-btn.active {
+        background: #008069 !important;
+        border-color: #008069 !important;
+        color: #ffffff !important;
+      }
+
+      /* 色分けトグルON時の上品なアクセント色 */
+      #wi-kompas-modal-v5 .wi-kp-btn.toggle-unknown.active {
+        background: #d97706 !important;
+        border-color: #d97706 !important;
+        color: #ffffff !important;
+      }
+      #wi-kompas-modal-v5 .wi-kp-btn.toggle-unmem.active {
+        background: #e11d48 !important;
+        border-color: #e11d48 !important;
+        color: #ffffff !important;
+      }
+      #wi-kompas-modal-v5 .wi-kp-btn.toggle-phrase.active {
+        background: #0d9488 !important;
+        border-color: #0d9488 !important;
+        color: #ffffff !important;
+      }
+
+      /* 保存ボタン・再生ボタンの落ち着いた配色（派手な青紫を廃止） */
+      #wi-kompas-modal-v5 .wi-kp-btn.save-art-btn {
+        background: #f8fafc !important;
+        border-color: #cbd5e1 !important;
+        color: #0f766e !important;
+      }
+      #wi-kompas-modal-v5 .wi-kp-btn.save-art-btn.is-saved {
+        background: #f0fdf4 !important;
+        border-color: #86efac !important;
+        color: #065f46 !important;
+      }
+      #wi-kompas-modal-v5 .wi-kp-btn.listen-btn {
+        background: #f0fdf4 !important;
+        border-color: #86efac !important;
+        color: #065f46 !important;
+      }
+      #wi-kompas-modal-v5 .wi-kp-btn.listen-btn.playing {
+        background: #dc2626 !important;
+        border-color: #dc2626 !important;
+        color: #ffffff !important;
+      }
+
+      /* 2段目のコントロールバーからは重複する除外リストボタンを隠し、1行にスッキリ配置 */
+      #wi-kompas-modal-v5 #wi-kp-open-ignored-top {
+        display: none !important;
+      }
+      #wi-kompas-modal-v5 .wi-kp-ctrl-bar {
+        padding: 7px 0 !important;
+        gap: 6px !important;
+      }
+
+      /* 下部の3タブバーは廃止し、1つのスリムな開閉ボタンのみにする */
+      #wi-kompas-modal-v5 .wi-kp-board-tabs {
+        display: none !important;
+      }
+      #wi-kompas-modal-v5 .wi-kp-board {
+        background: transparent !important;
+        border: none !important;
+        border-radius: 0 !important;
+      }
+      .wi-kp-single-drawer-btn {
+        width: 100%;
+        background: #f8fafc;
+        border: 1px solid #cbd5e1;
+        color: #0f766e;
+        font-size: 0.8rem;
+        font-weight: 700;
+        padding: 8px 14px;
+        border-radius: 8px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        transition: background 0.12s, border-color 0.12s;
+      }
+      .wi-kp-single-drawer-btn:hover {
+        background: #f0fdf4;
+        border-color: #008069;
+      }
+      .wi-kp-single-drawer-btn.open {
+        background: #f0fdf4;
+        border-color: #86efac;
+        border-radius: 8px 8px 0 0;
+      }
+      #wi-kompas-modal-v5 #wi-kp-board-body {
+        background: #f8fafc;
+        border: 1px solid #cbd5e1;
+        border-top: none;
+        border-radius: 0 0 8px 8px;
+        padding: 10px 12px !important;
+      }
+
+      /* ヘッダーの「未収録除外単語リスト」を開いている時は、記事本文と2段目バーを隠してリスト画面として表示 */
+      #wi-kompas-modal-v5.kp-top-ignored-mode .wi-kp-ctrl-bar,
+      #wi-kompas-modal-v5.kp-top-ignored-mode .wi-kp-article-card,
+      #wi-kompas-modal-v5.kp-top-ignored-mode .wi-kp-single-drawer-btn {
+        display: none !important;
+      }
+      #wi-kompas-modal-v5.kp-top-ignored-mode #wi-kp-board-body {
+        display: flex !important;
+        background: #ffffff !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 10px !important;
+        padding: 14px !important;
+      }
+    `;
+    document.head.appendChild(st);
+  }
+
+  let isBottomDrawerOpen = false;
+  let isTopIgnoredView   = false;
+  let isAdjustingDom     = false;
+
+  function applySlimKompasLayout() {
+    if (isAdjustingDom) return;
+    const modal = document.getElementById("wi-kompas-modal-v5");
+    const inner = document.getElementById("wi-kp-box-inner-v5");
+    if (!modal || !inner) return;
+
+    isAdjustingDom = true;
+    try {
+      const hdrBtns      = inner.querySelector(".wi-kp-hdr-btns");
+      const tabReader    = inner.querySelector("#wi-kp-tab-reader");
+      const tabInput     = inner.querySelector("#wi-kp-tab-input");
+      const tabSaved     = inner.querySelector("#wi-kp-tab-saved");
+      const openSiteBtn  = inner.querySelector("#wi-kp-open-site");
+      const oldIgnTopBtn = inner.querySelector("#wi-kp-open-ignored-top");
+
+      // ① 除外単語数を取得し、最上部の「記事リーダー」の列（保存記事リストの隣）に「未収録除外単語リスト」ボタンを配置
+      let ignCount = 0;
+      try {
+        const meta = JSON.parse(localStorage.getItem("wi_kompas_ignored_meta_v1") || "{}");
+        ignCount = Object.keys(meta).length;
+      } catch (e) {}
+
+      if (hdrBtns && openSiteBtn && !inner.querySelector("#wi-kp-tab-ignored-top")) {
+        const ignTabBtn = document.createElement("button");
+        ignTabBtn.type = "button";
+        ignTabBtn.className = "wi-kp-btn";
+        ignTabBtn.id = "wi-kp-tab-ignored-top";
+        ignTabBtn.textContent = `未収録除外単語リスト (${ignCount})`;
+        hdrBtns.insertBefore(ignTabBtn, openSiteBtn);
+
+        ignTabBtn.addEventListener("click", function(e) {
+          e.stopPropagation();
+          isTopIgnoredView = true;
+          modal.classList.add("kp-top-ignored-mode");
+          // 記事リーダー状態で未収録除外タブを描画させる
+          const ignTabInBoard = inner.querySelector('[data-bdt="ignored"]');
+          if (ignTabInBoard) {
+            ignTabInBoard.click();
+          } else if (tabReader) {
+            tabReader.click();
+            setTimeout(function() {
+              const retryIgn = inner.querySelector('[data-bdt="ignored"]');
+              if (retryIgn) retryIgn.click();
+            }, 10);
+          }
+        });
+      }
+
+      // 他の上部タブ（記事リーダー / 記事入力 / 保存記事リスト）が押されたら除外リスト表示モードを解除
+      [tabReader, tabInput, tabSaved].forEach(function(btn) {
+        if (btn && !btn.__wiSlimHooked) {
+          btn.__wiSlimHooked = true;
+          btn.addEventListener("click", function() {
+            const wasIgnoredView = isTopIgnoredView;
+            isTopIgnoredView = false;
+            modal.classList.remove("kp-top-ignored-mode");
+            if (btn === tabReader && wasIgnoredView) {
+              setTimeout(function() {
+                const wbTab = inner.querySelector('[data-bdt="wbhits"]');
+                if (wbTab) wbTab.click();
+              }, 10);
+            }
+          }, true);
+        }
+      });
+
+      const ignTabBtn = inner.querySelector("#wi-kp-tab-ignored-top");
+      if (ignTabBtn) {
+        ignTabBtn.textContent = `未収録除外単語リスト (${ignCount})`;
+        ignTabBtn.classList.toggle("active", isTopIgnoredView);
+      }
+      if (isTopIgnoredView && tabReader) {
+        tabReader.classList.remove("active");
+      }
+      modal.classList.toggle("kp-top-ignored-mode", isTopIgnoredView);
+
+      // ② 2段目の「保存済の記事（一覧を見る）」の文言を短くスッキリさせて1行に収める
+      const saveBtn = inner.querySelector("#wi-kp-btn-save-article");
+      if (saveBtn) {
+        if (saveBtn.classList.contains("is-saved")) {
+          saveBtn.textContent = "✓ 保存済";
+        } else {
+          saveBtn.textContent = "＋ 記事を保存";
+        }
+      }
+
+      // ③ 下部ボードを「単語帳ヒット語 ＆ 重要複合語」1ボタンのみの開閉式（初期は閉じた状態）にする
+      const boardBox  = inner.querySelector("#wi-kp-board-box");
+      const boardBody = inner.querySelector("#wi-kp-board-body");
+      if (boardBox && boardBody && !isTopIgnoredView) {
+        // もし内部タブが wbhits 以外になっていたら wbhits に戻す
+        const wbTab = boardBox.querySelector('[data-bdt="wbhits"]');
+        if (wbTab && !wbTab.classList.contains("active")) {
+          wbTab.click();
+          return;
+        }
+
+        const labelText = wbTab ? wbTab.textContent.trim() : "単語帳ヒット語 ＆ 重要複合語";
+        let drawerBtn = boardBox.querySelector("#wi-kp-single-drawer-btn");
+        if (!drawerBtn) {
+          drawerBtn = document.createElement("button");
+          drawerBtn.type = "button";
+          drawerBtn.id = "wi-kp-single-drawer-btn";
+          drawerBtn.className = "wi-kp-single-drawer-btn";
+          boardBox.insertBefore(drawerBtn, boardBody);
+
+          drawerBtn.addEventListener("click", function() {
+            isBottomDrawerOpen = !isBottomDrawerOpen;
+            syncBottomDrawerState(drawerBtn, boardBody, labelText);
+          });
+        }
+        syncBottomDrawerState(drawerBtn, boardBody, labelText);
+      }
+    } finally {
+      isAdjustingDom = false;
+    }
+  }
+
+  function syncBottomDrawerState(drawerBtn, boardBody, labelText) {
+    if (!drawerBtn || !boardBody) return;
+    drawerBtn.classList.toggle("open", isBottomDrawerOpen);
+    drawerBtn.innerHTML = `
+      <span>${labelText}</span>
+      <span style="font-size:0.74rem;color:#008069;">${isBottomDrawerOpen ? "▲ 閉じる" : "▼ 開く"}</span>
+    `;
+    boardBody.style.display = isBottomDrawerOpen ? "flex" : "none";
+  }
+
+  function bootSlimKompasObserver() {
+    const modal = document.getElementById("wi-kompas-modal-v5");
+    if (!modal) return;
+    if (!modal.__wiSlimObsBound) {
+      modal.__wiSlimObsBound = true;
+      new MutationObserver(function() {
+        applySlimKompasLayout();
+      }).observe(modal, { childList: true, subtree: true });
+    }
+    applySlimKompasLayout();
+  }
+
+  window.addEventListener("click", function(e) {
+    if (e.target && e.target.closest && e.target.closest("#btn-kompas-top")) {
+      setTimeout(bootSlimKompasObserver, 10);
+    }
+  }, true);
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function() {
+      setTimeout(bootSlimKompasObserver, 200);
+    });
+  } else {
+    setTimeout(bootSlimKompasObserver, 200);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 辞書検索・完全快適化パッチ（チラつきゼロ・スクロール暴れ根治・語幹ファミリー最優先ソート）
+   1. 入力中の緑背景ハイライトとマウスホバー連動を廃止し、目の疲れ・チラつきを100%解消
+   2. 検索文字が変わるたびにドロップダウンの scrollTop を必ず 0（最上部）へリセットし、スクロールバーの暴れを根治
+   3. 「語幹(r)の一致・派生語一族」を単なる部分一致（ajarに対するfajar/wajar等）より常に上位へ優先配置
+   ===================================================================== */
+(function() {
+  const d = window.WHATSINDO_EXTERNAL_DATA;
+  if (!d) return;
+
+  // -------------------------------------------------------------------
+  // 1. 目に優しいスタイル定義（緑背景の点滅を完全廃止・落ち着いた選択表示）
+  // -------------------------------------------------------------------
+  const oldStyle = document.getElementById("wi-dict-upgrade-v6-style");
+  if (oldStyle) oldStyle.remove();
+
+  if (!document.getElementById("wi-dict-calm-v7-style")) {
+    const st = document.createElement("style");
+    st.id = "wi-dict-calm-v7-style";
+    st.textContent = `
+      /* 検索候補の通常時・マウスホバー時は緑色にせず、目に優しい落ち着いた白〜極薄グレーにする */
+      #dict-dropdown .dict-item {
+        background: #ffffff !important;
+        border-left: 3px solid transparent !important;
+        outline: none !important;
+        transition: none !important;
+      }
+      #dict-dropdown .dict-item:hover {
+        background: #f8fafc !important;
+      }
+
+      /* ↑ / ↓ キーを実際に押して選択した時だけ、目に優しいスレート色で静かに示す */
+      #dict-dropdown .dict-item.wi-kb-selected {
+        background: #f1f5f9 !important;
+        border-left: 3.5px solid #008069 !important;
+        outline: none !important;
+      }
+
+      /* ドロップダウンの位置ズレを起こしていた上部ガイドバーは非表示 */
+      .wi-dict-kb-hint-bar {
+        display: none !important;
+      }
+
+      .wi-inflect-match-badge {
+        display: inline-block;
+        background: #f8fafc;
+        color: #0f766e;
+        border: 1px solid #99f6e4;
+        font-size: 0.69rem;
+        font-weight: 700;
+        padding: 1px 6px;
+        border-radius: 4px;
+        margin-left: 4px;
+      }
+
+      /* 語幹一族マトリックス表示（辞書詳細モーダル内） */
+      .wi-family-matrix {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 6px;
+      }
+      .wi-fmat-group {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 7px 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .wi-fmat-group-hdr {
+        font-size: 0.72rem;
+        font-weight: 800;
+        color: #475569;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        border-bottom: 1px dashed #e2e8f0;
+        padding-bottom: 3px;
+      }
+      .wi-fmat-group-hdr .wi-fmat-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        display: inline-block;
+      }
+      .wi-fmat-list {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .wi-fmat-row-btn {
+        display: flex !important;
+        align-items: baseline !important;
+        justify-content: flex-start !important;
+        gap: 6px !important;
+        width: 100% !important;
+        text-align: left !important;
+        background: #f8fafc !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 6px !important;
+        padding: 5px 9px !important;
+        font-size: 0.81rem !important;
+        color: #1e293b !important;
+        cursor: pointer !important;
+        transition: background 0.1s !important;
+        flex-wrap: wrap !important;
+      }
+      .wi-fmat-row-btn:hover {
+        background: #f1f5f9 !important;
+        border-color: #008069 !important;
+      }
+      .wi-fmat-role-tag {
+        font-size: 0.68rem;
+        font-weight: 700;
+        padding: 1px 6px;
+        border-radius: 4px;
+        background: #e2e8f0;
+        color: #334155;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      .wi-fmat-role-tag.verb {
+        background: #dcfce7;
+        color: #166534;
+      }
+      .wi-fmat-role-tag.noun {
+        background: #e0e7ff;
+        color: #3730a3;
+      }
+      .wi-fmat-role-tag.adj {
+        background: #fef3c7;
+        color: #92400e;
+      }
+    `;
+    document.head.appendChild(st);
+  }
+
+  // -------------------------------------------------------------------
+  // 2. 語幹優先インデックス ＆ スマート逆引きエンジン
+  // -------------------------------------------------------------------
+  const exactWordMap      = new Map(); // wLow -> entry
+  const rootToWordsMap    = new Map(); // rLow -> [entry, ...]
+  const inflectionMap     = new Map(); // inflectedLow -> { targetLow, label }
+  let allEntriesCache     = [];
+  let lastDictIndexedSize = -1;
+
+  function buildPassiveFormsForVerb(wLow, rLow) {
+    const res = [];
+    if (!wLow || !rLow || wLow.indexOf(" ") !== -1) return res;
+    if (wLow === "mempelajari") {
+      return [
+        { form: "dipelajari", label: "受動態 di-" },
+        { form: "dipelajarinya", label: "受動態 di- + -nya" }
+      ];
+    }
+    if (wLow.startsWith("memper") && wLow.length > 6) {
+      const p = "diper" + wLow.slice(6);
+      return [
+        { form: p, label: "受動態 diper-" },
+        { form: p + "nya", label: "受動態 diper- + -nya" }
+      ];
+    }
+    if (wLow.startsWith("member") && !rLow.startsWith("b") && wLow.length > 6) {
+      const p = "diber" + wLow.slice(6);
+      return [
+        { form: p, label: "受動態 diber-" },
+        { form: p + "nya", label: "受動態 diber- + -nya" }
+      ];
+    }
+    if (/^(meng|meny|mem|men|menge|me)/.test(wLow) && wLow !== rLow) {
+      let suf = "";
+      if (wLow.endsWith("kan") && !rLow.endsWith("kan")) suf = "kan";
+      else if (wLow.endsWith("i") && !rLow.endsWith("i")) suf = "i";
+      const stemCheck = rLow.length > 1 ? rLow.slice(1) + suf : rLow + suf;
+      if (wLow.endsWith(stemCheck)) {
+        const p = "di" + rLow + suf;
+        res.push(
+          { form: p, label: "受動態 di-" },
+          { form: p + "nya", label: "受動態 di- + -nya" }
+        );
+      }
+    }
+    return res;
+  }
+
+  function ensureSmartDictIndex() {
+    const listV = Array.isArray(d.vocab) ? d.vocab : [];
+    const listA = Array.isArray(d.acro) ? d.acro : [];
+    if (lastDictIndexedSize === listV.length + listA.length && exactWordMap.size > 0) return;
+    lastDictIndexedSize = listV.length + listA.length;
+
+    exactWordMap.clear();
+    rootToWordsMap.clear();
+    inflectionMap.clear();
+    allEntriesCache = [];
+
+    function addRootGroup(rKey, itemObj) {
+      if (!rKey) return;
+      let arr = rootToWordsMap.get(rKey);
+      if (!arr) {
+        arr = [];
+        rootToWordsMap.set(rKey, arr);
+      }
+      if (!arr.some(x => x.wLow === itemObj.wLow)) {
+        arr.push(itemObj);
+      }
+    }
+
+    for (let i = 0; i < listV.length; i++) {
+      const it = listV[i];
+      if (!it || !it.w) continue;
+      const w = it.w.trim();
+      const wLow = w.toLowerCase();
+      const r = (it.r || w).trim();
+      const rLow = r.toLowerCase();
+      const entry = {
+        w: w,
+        wLow: wLow,
+        r: r,
+        rLow: rLow,
+        p: it.p || "other",
+        m: (it.fullM || it.m || "").trim(),
+        ex: (it.ex || "").trim(),
+        tr: (it.tr || "").trim(),
+        note: (it.note || "").trim()
+      };
+      exactWordMap.set(wLow, entry);
+      addRootGroup(rLow, entry);
+      allEntriesCache.push(entry);
+
+      if (!inflectionMap.has(wLow + "nya")) {
+        inflectionMap.set(wLow + "nya", { targetLow: wLow, label: "-nya 付き" });
+      }
+
+      const passives = buildPassiveFormsForVerb(wLow, rLow);
+      for (let p = 0; p < passives.length; p++) {
+        const pf = passives[p];
+        if (!exactWordMap.has(pf.form)) {
+          inflectionMap.set(pf.form, { targetLow: wLow, label: pf.label });
+        }
+      }
+    }
+
+    for (let i = 0; i < listA.length; i++) {
+      const it = listA[i];
+      if (!it || !it.acro) continue;
+      const w = it.acro.trim();
+      const wLow = w.toLowerCase();
+      if (!exactWordMap.has(wLow)) {
+        const r = (it.full || w).trim();
+        const entry = {
+          w: w,
+          wLow: wLow,
+          r: r,
+          rLow: r.toLowerCase(),
+          p: "singkatan",
+          m: (it.tr || "").trim(),
+          ex: "",
+          tr: "",
+          note: (it.exp || "").trim()
+        };
+        exactWordMap.set(wLow, entry);
+        allEntriesCache.push(entry);
+        inflectionMap.set(wLow + "nya", { targetLow: wLow, label: "-nya 付き" });
+      }
+    }
+  }
+
+  // 入力文字列 q から「逆引き原形」と「優先すべき語幹」を特定
+  function analyzeQueryRootAndInflection(qLower) {
+    ensureSmartDictIndex();
+    const q = String(qLower || "").trim().toLowerCase();
+    if (!q || q.length < 2) return { directTargetLow: "", targetRootLow: "", reasonLabel: "" };
+
+    // 1. 語幹そのものが辞書に存在する場合（例: "ajar", "usaha", "kembang", "olah"）
+    if (rootToWordsMap.has(q)) {
+      return {
+        directTargetLow: exactWordMap.has(q) ? q : "",
+        targetRootLow: q,
+        reasonLabel: ""
+      };
+    }
+
+    // 2. 見出し語として完全一致する場合（例: "belajar" ➔ 語幹 "ajar"）
+    if (exactWordMap.has(q)) {
+      return {
+        directTargetLow: q,
+        targetRootLow: exactWordMap.get(q).rLow,
+        reasonLabel: ""
+      };
+    }
+
+    // 3. 受動態や -nya に完全一致する場合（例: "diolah" ➔ "mengolah"）
+    if (inflectionMap.has(q)) {
+      const hit = inflectionMap.get(q);
+      const entry = exactWordMap.get(hit.targetLow);
+      return {
+        directTargetLow: hit.targetLow,
+        targetRootLow: entry ? entry.rLow : "",
+        reasonLabel: `${q} の原形`
+      };
+    }
+
+    // 4. 接尾辞 (-nya / -lah / -kah / -pun) を剥がした形が一致する場合
+    if (q.length >= 4) {
+      const encMatch = q.match(/^(.{3,}?)(nya|lah|kah|pun)$/);
+      if (encMatch) {
+        const stem = encMatch[1];
+        if (exactWordMap.has(stem)) {
+          const entry = exactWordMap.get(stem);
+          return {
+            directTargetLow: stem,
+            targetRootLow: entry ? entry.rLow : stem,
+            reasonLabel: `${q} の原形`
+          };
+        }
+        if (inflectionMap.has(stem)) {
+          const hit = inflectionMap.get(stem);
+          const entry = exactWordMap.get(hit.targetLow);
+          return {
+            directTargetLow: hit.targetLow,
+            targetRootLow: entry ? entry.rLow : "",
+            reasonLabel: `${q} の原形`
+          };
+        }
+      }
+    }
+
+    // 5. 重複語 X-X（例: negara-negara）
+    if (q.indexOf("-") !== -1) {
+      const parts = q.split("-");
+      if (parts.length === 2) {
+        const p1 = parts[0];
+        const p2 = parts[1].replace(/(nya|lah|kah)$/, "");
+        if (p1 === p2 || (p2.length >= 2 && p1.startsWith(p2))) {
+          if (exactWordMap.has(p1)) {
+            const entry = exactWordMap.get(p1);
+            return {
+              directTargetLow: p1,
+              targetRootLow: entry ? entry.rLow : p1,
+              reasonLabel: `重複語 ${q} の基本形`
+            };
+          }
+        }
+      }
+    }
+
+    // 6. 入力途中の受動態（例: "diola" ➔ "diolah" ➔ "mengolah"）
+    if (q.startsWith("di") && q.length >= 4) {
+      for (const [infForm, info] of inflectionMap.entries()) {
+        if (infForm.startsWith(q)) {
+          const entry = exactWordMap.get(info.targetLow);
+          return {
+            directTargetLow: info.targetLow,
+            targetRootLow: entry ? entry.rLow : "",
+            reasonLabel: `${infForm} の原形`
+          };
+        }
+      }
+    }
+
+    // 7. 派生語をタイピング中の前方一致（例: "belaja" や "mempelajar" を入力中に語幹 "ajar" の一族を優先！）
+    if (q.length >= 4) {
+      let matchedRoot = "";
+      for (let i = 0; i < allEntriesCache.length; i++) {
+        const e = allEntriesCache[i];
+        if (e.wLow.startsWith(q)) {
+          if (!matchedRoot) {
+            matchedRoot = e.rLow;
+          } else if (matchedRoot !== e.rLow) {
+            matchedRoot = "";
+            break;
+          }
+        }
+      }
+      if (matchedRoot) {
+        return {
+          directTargetLow: "",
+          targetRootLow: matchedRoot,
+          reasonLabel: ""
+        };
+      }
+    }
+
+    return { directTargetLow: "", targetRootLow: "", reasonLabel: "" };
+  }
+
+  // -------------------------------------------------------------------
+  // 3. ★語幹最優先の9段階厳格スコアリング（ajar で fajar より belajar 等が必ず上に来る！）
+  // -------------------------------------------------------------------
+  let lastInflectReasonByWord = new Map();
+
+  function prepItemPropsV7(v) {
+    if (v._cReadyV7 && v._cSrcW === v.w && v._cSrcM === v.m) return;
+    ensureSmartDictIndex();
+    v._cSrcW = v.w;
+    v._cSrcM = v.m;
+    v._wl  = (v.w || "").trim().toLowerCase();
+    const mapped = exactWordMap.get(v._wl);
+    v._rl  = (v.r || (mapped ? mapped.rLow : v._wl)).trim().toLowerCase();
+    v._ml  = (v.fullM || v.m || "").toLowerCase();
+    v._exl = (v.ex || "").toLowerCase();
+    v._trl = (v.tr || "").toLowerCase();
+    v._nl  = (v.note || (mapped ? mapped.note : "") || "").toLowerCase();
+    v._cReadyV7 = true;
+  }
+
+  function hasStandaloneWordMatch(text, word) {
+    if (!text || !word || text.indexOf(word) === -1) return false;
+    const words = text.split(/[\s\-\/,.;:()\[\]"]+ /);
+    for (let i = 0; i < words.length; i++) {
+      if (words[i] === word) return true;
+    }
+    return new RegExp(`(?<![a-z])${word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![a-z])`, "i").test(text);
+  }
+
+  function calcRootFirstPriorityScore(v, q, infInfo) {
+    const wl = v._wl;
+    const rl = v._rl;
+    const isTargetRoot = (rl === q) || Boolean(infInfo.targetRootLow && rl === infInfo.targetRootLow);
+
+    // 第1優先 (0): 見出し語が完全一致（例: usaha ➔ usaha）
+    if (wl === q) return 0;
+
+    // 第2優先 (0.5): 入力された受動態・-nya・重複語の直接の原形見出し語（例: diolah ➔ mengolah）
+    if (infInfo.directTargetLow && wl === infInfo.directTargetLow) return 0.5;
+
+    // 第3優先 (1.0): 語幹が完全一致 かつ 見出し語が前方一致（例: ajar ➔ ajaran [語幹: ajar]）
+    if (isTargetRoot && wl.startsWith(q)) return 1.0;
+
+    // 第4優先 (1.5): 見出し語が前方一致 かつ 語幹も前方一致（例: aja ➔ ajaran, ajakan）
+    if (wl.startsWith(q) && rl.startsWith(q)) return 1.5;
+
+    // 第5優先 (2.0): ★語幹が完全一致する派生語ファミリーすべて！
+    // （例: ajar ➔ belajar, mempelajari, mengajar, mengajari, mengajarkan, pelajar, pelajaran, pembelajaran, pengajar, pengajaran, terpelajar）
+    // ※これが単なる部分一致（fajar, wajar, jajaran）より必ず上に来る！
+    if (isTargetRoot) return 2.0;
+
+    // 第6優先 (2.5): 見出し語が前方一致（例: terap に対する terapi 等）
+    if (wl.startsWith(q)) return 2.5;
+
+    // 第7優先 (3.0): 語幹が前方一致（3文字以上：例: aja に対する belajar [語幹: ajar] ➔ fajar [語幹: fajar] より上！）
+    if (q.length >= 3 && rl.startsWith(q)) return 3.0;
+
+    // 第8優先 (3.5): 複合語内の独立した単語として一致（例: ajar ➔ kurang ajar, tahun ajaran）
+    if (hasStandaloneWordMatch(wl, q) || hasStandaloneWordMatch(rl, q)) return 3.5;
+
+    // 第9優先 (4.0): 語幹が異なる見出し語・語幹の途中部分一致（例: ajar に対する fajar [r:fajar], wajar [r:wajar], jajaran [r:jajar]）
+    if (wl.indexOf(q) !== -1 || (q.length >= 3 && rl.indexOf(q) !== -1)) return 4.0;
+
+    // 第10優先 (5.0): 日本語の意味に一致
+    if (v._ml.indexOf(q) !== -1) return 5.0;
+
+    // 第11優先 (6.0): 解説または例文のみに一致
+    return 6.0;
+  }
+
+  // -------------------------------------------------------------------
+  // 4. クエリ変更時のスクロール位置リセット（バーが勝手に行ったり来たりするバグを根治！）
+  // -------------------------------------------------------------------
+  let lastSearchedQueryStr = "";
+  let kbSelectedIdx        = -1; // ★タイピング中は -1（どの行も緑色にしない！）
+
+  // Array.prototype.filter の最上流を引き継ぎ、新アルゴリズムで検索＆ソート
+  const prevArrayFilter = Array.prototype.filter;
+  const nativeArraySort = Array.prototype.sort;
+
+  Array.prototype.filter = function(callback, thisArg) {
+    if (this.length > 0 && typeof callback === "function" && this[0] && typeof this[0] === "object" && "w" in this[0]) {
+      const fnStr = Function.prototype.toString.call(callback);
+      const isQuickDictSearch = fnStr.indexOf("v.fullM && v.fullM.toLowerCase()") !== -1;
+      const isAzDictSearch    = fnStr.indexOf("v.fullM || v.m") !== -1 && fnStr.indexOf("v.ex") !== -1;
+
+      if (isQuickDictSearch || isAzDictSearch) {
+        const inpEl = isQuickDictSearch ? document.getElementById("dict-input") : document.getElementById("az-filter-input");
+        const q = inpEl ? inpEl.value.trim().toLowerCase() : "";
+        if (q) {
+          ensureSmartDictIndex();
+          const infInfo = analyzeQueryRootAndInflection(q);
+
+          if (isQuickDictSearch) {
+            lastInflectReasonByWord.clear();
+            if (infInfo.directTargetLow && infInfo.reasonLabel) {
+              lastInflectReasonByWord.set(infInfo.directTargetLow, infInfo.reasonLabel);
+            }
+            // ★検索ワードが変わっていたら、描画前にドロップダウンのスクロールを0へリセットし、選択も解除！
+            if (q !== lastSearchedQueryStr) {
+              kbSelectedIdx = -1;
+              const dDrop = document.getElementById("dict-dropdown");
+              if (dDrop) dDrop.scrollTop = 0;
+            }
+          }
+
+          const hits = [];
+          for (let i = 0; i < this.length; i++) {
+            const v = this[i];
+            if (!v || !v.w) continue;
+            prepItemPropsV7(v);
+
+            const isMatched =
+              v._wl.indexOf(q) !== -1 ||
+              (infInfo.directTargetLow && v._wl === infInfo.directTargetLow) ||
+              v._rl.indexOf(q) !== -1 ||
+              (infInfo.targetRootLow && v._rl === infInfo.targetRootLow) ||
+              v._ml.indexOf(q) !== -1 ||
+              (q.length >= 2 && v._nl.indexOf(q) !== -1) ||
+              v._exl.indexOf(q) !== -1 ||
+              (isAzDictSearch && q.length >= 2 && v._trl.indexOf(q) !== -1);
+
+            if (isMatched) {
+              v._qScore = calcRootFirstPriorityScore(v, q, infInfo);
+              v._qStr   = q;
+              hits.push(v);
+            }
+          }
+
+          nativeArraySort.call(hits, function(a, b) {
+            if (a._qScore !== b._qScore) return a._qScore - b._qScore;
+            // 同じ優先度内では、基本語（見出し語 === 語幹）を先頭に置き、次にアルファベット順で整然と並べる
+            const aIsRootSelf = a._wl === a._rl ? 0 : 1;
+            const bIsRootSelf = b._wl === b._rl ? 0 : 1;
+            if (aIsRootSelf !== bIsRootSelf) return aIsRootSelf - bIsRootSelf;
+            return a._wl < b._wl ? -1 : a._wl > b._wl ? 1 : 0;
+          });
+
+          return hits;
+        }
+      }
+    }
+    return prevArrayFilter.call(this, callback, thisArg);
+  };
+
+  // ドロップダウン描画直後の処理（チラつきゼロ・スクロール位置を最上部にピタッと固定）
+  function onDictDropdownRendered() {
+    const dIn   = document.getElementById("dict-input");
+    const dDrop = document.getElementById("dict-dropdown");
+    if (!dIn || !dDrop) return;
+
+    // V6が挿入していたガイドバーがあれば除去し、また今後挿入されないように無力化
+    const oldHintBar = dDrop.querySelector(".wi-dict-kb-hint-bar");
+    if (oldHintBar) oldHintBar.remove();
+
+    const q = dIn.value.trim().toLowerCase();
+    const isQueryChanged = (q !== lastSearchedQueryStr);
+    lastSearchedQueryStr = q;
+
+    const items = Array.from(dDrop.querySelectorAll(".dict-item"));
+    items.forEach(function(row) {
+      // タイピング直後はどの行にも wi-kb-selected を付けない（緑色チラつき完全防止）
+      row.classList.remove("wi-kb-selected");
+
+      // 逆引きヒット（例: diolah ➔ mengolah）の場合のみ控えめなバッジを付与
+      const st = row.querySelector("strong");
+      if (st) {
+        const wLow = st.textContent.trim().toLowerCase();
+        if (lastInflectReasonByWord.has(wLow) && !row.querySelector(".wi-inflect-match-badge")) {
+          const badge = document.createElement("span");
+          badge.className = "wi-inflect-match-badge";
+          badge.textContent = `← ${lastInflectReasonByWord.get(wLow)}`;
+          st.insertAdjacentElement("afterend", badge);
+        }
+      }
+    });
+
+    // ★検索文字が変わった時は、描画直後および次フレームで scrollTop = 0 を強制し、
+    //   前のスクロール位置が残ってバーが行ったり来たりする現象を100%防ぐ！
+    if (isQueryChanged) {
+      kbSelectedIdx = -1;
+      dDrop.scrollTop = 0;
+      requestAnimationFrame(function() {
+        if (dDrop.scrollTop !== 0 && kbSelectedIdx === -1) {
+          dDrop.scrollTop = 0;
+        }
+      });
+    } else if (kbSelectedIdx >= 0 && kbSelectedIdx < items.length) {
+      items[kbSelectedIdx].classList.add("wi-kb-selected");
+    }
+  }
+
+  function updateDropdownKbSelection(newIdx) {
+    const dDrop = document.getElementById("dict-dropdown");
+    if (!dDrop || dDrop.style.display === "none") return;
+    const items = Array.from(dDrop.querySelectorAll(".dict-item"));
+    if (!items.length) return;
+
+    if (newIdx < 0) newIdx = items.length - 1;
+    if (newIdx >= items.length) newIdx = 0;
+    kbSelectedIdx = newIdx;
+
+    items.forEach(function(el, idx) {
+      const active = idx === kbSelectedIdx;
+      el.classList.toggle("wi-kb-selected", active);
+      if (active) {
+        el.scrollIntoView({ block: "nearest" });
+      }
+    });
+  }
+
+  // -------------------------------------------------------------------
+  // 5. キーボード操作（↑ / ↓ を押した時だけ選択移動、Enter で非干渉オープン）
+  // -------------------------------------------------------------------
+  window.addEventListener("keydown", function(e) {
+    const dIn   = document.getElementById("dict-input");
+    const dDrop = document.getElementById("dict-dropdown");
+    if (!dIn || document.activeElement !== dIn) return;
+    if (e.isComposing || e.keyCode === 229) return;
+
+    const isDropOpen = Boolean(dDrop && dDrop.style.display !== "none" && dDrop.querySelectorAll(".dict-item").length > 0);
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      e.__wiAllowFinalStop = true;
+      e.__wiMasterFinalStop = true;
+      if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+      e.stopPropagation();
+
+      if (!isDropOpen && dIn.value.trim()) {
+        dIn.dispatchEvent(new Event("input", { bubbles: true }));
+      } else {
+        // まだ未選択(-1)なら 0番目（または1番目）を選択
+        const nextIdx = kbSelectedIdx < 0 ? 0 : kbSelectedIdx + 1;
+        updateDropdownKbSelection(nextIdx);
+      }
+      return;
+    }
+
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      e.__wiAllowFinalStop = true;
+      e.__wiMasterFinalStop = true;
+      if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+      e.stopPropagation();
+
+      if (isDropOpen) {
+        const items = dDrop.querySelectorAll(".dict-item");
+        const prevIdx = kbSelectedIdx < 0 ? items.length - 1 : kbSelectedIdx - 1;
+        updateDropdownKbSelection(prevIdx);
+      }
+      return;
+    }
+
+    if (e.key === "Enter") {
+      // 裏の「次の問題へ」ボタン等への貫通を100%遮断
+      e.preventDefault();
+      e.__wiAllowFinalStop = true;
+      e.__wiMasterFinalStop = true;
+      if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+      e.stopPropagation();
+
+      if (!dDrop) return;
+      if (dDrop.style.display === "none" && dIn.value.trim()) {
+        dIn.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+      const items = Array.from(dDrop.querySelectorAll(".dict-item"));
+      const targetIdx = (kbSelectedIdx >= 0 && kbSelectedIdx < items.length) ? kbSelectedIdx : 0;
+      const targetItem = items[targetIdx];
+      if (targetItem) {
+        targetItem.click();
+        dDrop.style.display = "none";
+        kbSelectedIdx = -1;
+        setTimeout(function() {
+          try { dIn.blur(); } catch (err) {}
+        }, 10);
+      }
+      return;
+    }
+
+    if (e.key === "Escape") {
+      e.preventDefault();
+      e.__wiAllowFinalStop = true;
+      e.__wiMasterFinalStop = true;
+      if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+      e.stopPropagation();
+
+      if (dDrop) dDrop.style.display = "none";
+      kbSelectedIdx = -1;
+      try { dIn.blur(); } catch (err) {}
+      return;
+    }
+  }, true);
+
+  function bootCalmDictSearchV7() {
+    ensureSmartDictIndex();
+    const dIn   = document.getElementById("dict-input");
+    const dDrop = document.getElementById("dict-dropdown");
+
+    if (dDrop && !dDrop.__wiCalmV7Obs) {
+      dDrop.__wiCalmV7Obs = true;
+      // dDrop.querySelector(".dict-item") が呼ばれた際、矢印キー選択中ならその項目、未選択なら先頭項目を返す
+      const origQS = Element.prototype.querySelector.bind(dDrop);
+      dDrop.querySelector = function(sel) {
+        if (sel === ".dict-item" && kbSelectedIdx >= 0) {
+          const all = dDrop.querySelectorAll(".dict-item");
+          if (all[kbSelectedIdx]) return all[kbSelectedIdx];
+        }
+        return origQS(sel);
+      };
+
+      new MutationObserver(function() {
+        onDictDropdownRendered();
+      }).observe(dDrop, { childList: true });
+    }
+
+    if (dIn && !dIn.__wiCalmV7InputBound) {
+      dIn.__wiCalmV7InputBound = true;
+      // 入力イベントの最上流でも scrollTop = 0 を即時保証
+      dIn.addEventListener("input", function() {
+        kbSelectedIdx = -1;
+        if (dDrop) dDrop.scrollTop = 0;
+      }, true);
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function() {
+      bootCalmDictSearchV7();
+      setTimeout(bootCalmDictSearchV7, 120);
+    });
+  } else {
+    bootCalmDictSearchV7();
+    setTimeout(bootCalmDictSearchV7, 120);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 「Kompas連動」スッキリ本文表示・Georgiaフォント・保存トグル・蛍光ペン/色ペン/文字入れパッチ
+   1. 最上部ヘッダー列に「未収録除外単語リスト」を統合（前回スキップされていた原因を根治）
+   2. 下部のマイ単語帳・複合語等の自動一覧エリアを完全撤廃し、本文の視認性を最大化
+   3. 記事本文フォントを Georgia に設定し、記事内の不要な「保存記事：...」ヘッダー行を撤去
+   4. 保存ボタンを「保存 ⇄ ✓ 保存済（もう一度押すと保存解除）」のトグル式に変更
+   5. 記事本文上に直接書ける「蛍光ペン・色ペン・テキスト入力（記事別自動保存）」を搭載
+   ===================================================================== */
+(function() {
+  const KP_SAVED_ARTICLES_KEY = "wi_kompas_saved_articles_v1";
+  const KP_IGNORE_META_KEY    = "wi_kompas_ignored_meta_v1";
+  const KP_IGNORE_WORDS_KEY   = "wi_kompas_ignored_words_v2";
+  const KP_ANNOT_STORAGE_KEY  = "wi_kompas_article_annots_v1";
+
+  function escHtml(str) {
+    return String(str || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  // 前回のスリム化スタイルがあれば置き換え
+  const oldSlimStyle = document.getElementById("wi-kompas-ui-slim-style");
+  if (oldSlimStyle) oldSlimStyle.remove();
+
+  // -------------------------------------------------------------------
+  // 1. スタイル定義（Georgiaフォント・下部一覧の完全非表示・ペン/テキストツール）
+  // -------------------------------------------------------------------
+  if (!document.getElementById("wi-kompas-clean-v8-style")) {
+    const st = document.createElement("style");
+    st.id = "wi-kompas-clean-v8-style";
+    st.textContent = `
+      /* ボタンクリック後の黒いフォーカス太枠を完全除去 */
+      #wi-kompas-modal-v5 button:focus,
+      #wi-kompas-modal-v5 button:focus-visible {
+        outline: none !important;
+        box-shadow: none !important;
+      }
+
+      /* 2段目の重複除外ボタン と 下部ボード（一覧エリア）を常時非表示にして本文を広く表示 */
+      #wi-kompas-modal-v5 #wi-kp-open-ignored-top,
+      #wi-kompas-modal-v5 #wi-kp-board-box,
+      #wi-kompas-modal-v5 #wi-kp-rename-cur-art {
+        display: none !important;
+      }
+
+      /* 記事本文カード内の「保存記事：...」の緑文字行を非表示 */
+      #wi-kompas-modal-v5 .wi-kp-article-card > div:first-child:not(#wi-kp-article-view):not(.wi-kp-annot-canvas):not(.wi-kp-annot-textlayer) {
+        display: none !important;
+      }
+
+      /* 記事本文カード・Georgiaフォント設定 */
+      #wi-kompas-modal-v5 .wi-kp-main {
+        padding: 10px 2px !important;
+        gap: 10px !important;
+      }
+      #wi-kompas-modal-v5 .wi-kp-article-card {
+        position: relative !important;
+        background: #ffffff !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 10px !important;
+        padding: 22px 26px !important;
+        min-height: 58vh !important;
+      }
+      #wi-kompas-modal-v5 .wi-kp-article-view {
+        font-family: Georgia, "Times New Roman", Times, serif !important;
+        font-size: 1.08rem !important;
+        line-height: 2.02 !important;
+        color: #111b21 !important;
+        letter-spacing: 0.01em !important;
+      }
+      #wi-kompas-modal-v5 .wi-kp-word {
+        font-family: Georgia, "Times New Roman", Times, serif !important;
+      }
+
+      /* 保存ボタン（未保存：シンプル白枠 ／ 保存済：落ち着いた薄緑） */
+      #wi-kompas-modal-v5 #wi-kp-btn-save-article {
+        background: #f8fafc !important;
+        border: 1px solid #cbd5e1 !important;
+        color: #334155 !important;
+        font-weight: 700 !important;
+      }
+      #wi-kompas-modal-v5 #wi-kp-btn-save-article:hover {
+        background: #f1f5f9 !important;
+        border-color: #94a3b8 !important;
+      }
+      #wi-kompas-modal-v5 #wi-kp-btn-save-article.is-saved {
+        background: #f0fdf4 !important;
+        border-color: #86efac !important;
+        color: #065f46 !important;
+      }
+
+      /* ペン・文字入れトグルボタン＆スリムツールバー */
+      #wi-kompas-modal-v5 #wi-kp-btn-annot-toggle {
+        background: #f8fafc !important;
+        border: 1px solid #cbd5e1 !important;
+        color: #334155 !important;
+        font-weight: 700 !important;
+      }
+      #wi-kompas-modal-v5 #wi-kp-btn-annot-toggle.has-annot {
+        background: #fffbeb !important;
+        border-color: #fcd34d !important;
+        color: #b45309 !important;
+      }
+      #wi-kompas-modal-v5 #wi-kp-btn-annot-toggle.open {
+        background: #075e54 !important;
+        border-color: #075e54 !important;
+        color: #ffffff !important;
+      }
+
+      #wi-kp-annot-toolbar {
+        display: none;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+        padding: 7px 12px;
+        background: #f8fafc;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        margin-top: 6px;
+        flex-shrink: 0;
+      }
+      #wi-kp-annot-toolbar.open {
+        display: flex;
+      }
+      .wi-kp-atool-btn {
+        background: #ffffff;
+        border: 1px solid #cbd5e1;
+        color: #334155;
+        font-size: 0.74rem;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .wi-kp-atool-btn:hover {
+        background: #f1f5f9;
+      }
+      .wi-kp-atool-btn.active {
+        background: #008069;
+        border-color: #008069;
+        color: #ffffff;
+      }
+      .wi-kp-aswatch {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        border: 2px solid #cbd5e1;
+        cursor: pointer;
+        padding: 0;
+        transition: transform 0.1s;
+      }
+      .wi-kp-aswatch.active {
+        border-color: #0f172a !important;
+        transform: scale(1.18);
+        box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.15);
+      }
+
+      /* 記事上の描画キャンバスとテキストレイヤー */
+      .wi-kp-annot-canvas {
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        z-index: 40 !important;
+        pointer-events: none !important;
+        mix-blend-mode: multiply;
+      }
+      .wi-kp-annot-canvas.active-draw {
+        pointer-events: auto !important;
+        touch-action: none !important;
+      }
+      .wi-kp-annot-textlayer {
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        z-index: 50 !important;
+        pointer-events: none !important;
+      }
+      .wi-kp-annot-textlayer.active-text-place {
+        pointer-events: auto !important;
+        cursor: crosshair !important;
+      }
+
+      /* 記事上の自由テキストボックス */
+      .wi-kp-free-textbox {
+        position: absolute !important;
+        pointer-events: auto !important;
+        display: inline-flex !important;
+        align-items: flex-start !important;
+        gap: 3px !important;
+        min-width: 80px !important;
+        max-width: 320px !important;
+        padding: 3px 7px 3px 4px !important;
+        border-radius: 6px !important;
+        border: 1.5px solid rgba(15, 23, 42, 0.22) !important;
+        background: rgba(255, 251, 235, 0.94) !important;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1) !important;
+        z-index: 55 !important;
+      }
+      .wi-kp-free-textbox:hover,
+      .wi-kp-free-textbox:focus-within {
+        border-color: #008069 !important;
+      }
+      .wi-kp-ft-grip {
+        cursor: grab !important;
+        color: #64748b !important;
+        font-size: 0.8rem !important;
+        line-height: 1.3 !important;
+        padding: 0 2px !important;
+        user-select: none !important;
+      }
+      .wi-kp-ft-ta {
+        border: none !important;
+        outline: none !important;
+        background: transparent !important;
+        resize: none !important;
+        overflow: hidden !important;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", sans-serif !important;
+        font-size: 0.82rem !important;
+        font-weight: 700 !important;
+        line-height: 1.4 !important;
+        min-width: 60px !important;
+        width: 120px;
+        min-height: 1.4em !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+      .wi-kp-ft-del {
+        position: absolute !important;
+        top: -8px !important;
+        right: -8px !important;
+        width: 17px !important;
+        height: 17px !important;
+        border-radius: 50% !important;
+        background: #ef4444 !important;
+        color: #ffffff !important;
+        border: none !important;
+        font-size: 0.65rem !important;
+        font-weight: 700 !important;
+        cursor: pointer !important;
+        display: none !important;
+        align-items: center !important;
+        justify-content: center !important;
+      }
+      .wi-kp-free-textbox:hover .wi-kp-ft-del,
+      .wi-kp-free-textbox:focus-within .wi-kp-ft-del {
+        display: inline-flex !important;
+      }
+
+      /* 未収録除外単語リストを開いている時の画面切替 */
+      #wi-kompas-modal-v5.kp-ignored-fullview .wi-kp-ctrl-bar,
+      #wi-kompas-modal-v5.kp-ignored-fullview #wi-kp-annot-toolbar,
+      #wi-kompas-modal-v5.kp-ignored-fullview .wi-kp-article-card {
+        display: none !important;
+      }
+      #wi-kompas-modal-v5.kp-ignored-fullview #wi-kp-board-box {
+        display: flex !important;
+        background: #ffffff !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 10px !important;
+      }
+      #wi-kompas-modal-v5.kp-ignored-fullview .wi-kp-board-tabs {
+        display: none !important;
+      }
+    `;
+    document.head.appendChild(st);
+  }
+
+  // -------------------------------------------------------------------
+  // 2. データヘルパー（保存記事のトグル保存/解除 ＆ 記事別ペン・テキスト保存）
+  // -------------------------------------------------------------------
+  function getCurrentArticleRawText() {
+    return (localStorage.getItem("wi_kompas_last_article_v5") || localStorage.getItem("wi_kompas_last_article_v3") || "").trim();
+  }
+
+  function loadSavedArticles() {
+    try {
+      const list = JSON.parse(localStorage.getItem(KP_SAVED_ARTICLES_KEY) || "[]");
+      if (Array.isArray(list)) return list;
+    } catch (e) {}
+    return [];
+  }
+
+  function saveSavedArticles(list) {
+    try {
+      localStorage.setItem(KP_SAVED_ARTICLES_KEY, JSON.stringify(list));
+    } catch (e) {}
+  }
+
+  function makeArticleTitle(rawText) {
+    const lines = String(rawText || "").split(/\n+/).map(s => s.trim()).filter(Boolean);
+    if (!lines.length) return "無題の記事";
+    let first = lines[0].replace(/^JAKARTA,\s*KOMPAS\s*[—\-–]\s*/i, "").trim();
+    if (!first) first = lines[0];
+    return first.length > 52 ? first.slice(0, 52) + "…" : first;
+  }
+
+  function getArticleHashKey(rawText) {
+    const s = String(rawText || "").trim();
+    if (!s) return "empty";
+    let h = 0;
+    for (let i = 0; i < s.length; i++) {
+      h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+    }
+    return "kp_" + Math.abs(h) + "_" + s.length;
+  }
+
+  function loadAllArticleAnnots() {
+    try {
+      const obj = JSON.parse(localStorage.getItem(KP_ANNOT_STORAGE_KEY) || "{}");
+      if (obj && typeof obj === "object") return obj;
+    } catch (e) {}
+    return {};
+  }
+
+  function saveArticleAnnot(artKey, data) {
+    const all = loadAllArticleAnnots();
+    if ((!data.strokes || data.strokes.length === 0) && (!data.texts || data.texts.length === 0)) {
+      delete all[artKey];
+    } else {
+      all[artKey] = data;
+    }
+    try {
+      localStorage.setItem(KP_ANNOT_STORAGE_KEY, JSON.stringify(all));
+    } catch (e) {}
+  }
+
+  function getIgnoredWordsCount() {
+    try {
+      const meta = JSON.parse(localStorage.getItem(KP_IGNORE_META_KEY) || "null");
+      if (meta && typeof meta === "object") return Object.keys(meta).length;
+      const arr = JSON.parse(localStorage.getItem(KP_IGNORE_WORDS_KEY) || "[]");
+      if (Array.isArray(arr)) return arr.length;
+    } catch (e) {}
+    return 0;
+  }
+
+  // -------------------------------------------------------------------
+  // 3. 記事本文への蛍光ペン・色ペン・テキスト入力マウント処理
+  // -------------------------------------------------------------------
+  const kpAnnotState = {
+    panelOpen: false,
+    mode: "marker", // "none" | "marker" | "pen" | "text" | "eraser"
+    markerColor: "#fde047",
+    penColor: "#dc2626",
+    textColor: "#b91c1c"
+  };
+
+  const KP_MARKER_SWATCHES = [
+    { code: "#fde047", name: "黄蛍光" },
+    { code: "#f9a8d4", name: "桃蛍光" },
+    { code: "#7dd3fc", name: "水蛍光" },
+    { code: "#86efac", name: "緑蛍光" }
+  ];
+  const KP_PEN_SWATCHES = [
+    { code: "#dc2626", name: "赤ペン" },
+    { code: "#2563eb", name: "青ペン" },
+    { code: "#15803d", name: "緑ペン" },
+    { code: "#111b21", name: "黒ペン" }
+  ];
+
+  function mountArticleAnnotationSystem(inner, ctrlBar, artCard) {
+    if (!inner || !ctrlBar || !artCard) return;
+    const rawArt = getCurrentArticleRawText();
+    const artKey = getArticleHashKey(rawArt);
+
+    if (artCard.getAttribute("data-annot-key") === artKey && artCard.querySelector(".wi-kp-annot-canvas")) {
+      return;
+    }
+    artCard.setAttribute("data-annot-key", artKey);
+
+    artCard.querySelectorAll(".wi-kp-annot-canvas, .wi-kp-annot-textlayer").forEach(el => el.remove());
+    const oldTb = inner.querySelector("#wi-kp-annot-toolbar");
+    if (oldTb) oldTb.remove();
+
+    const allAnnots = loadAllArticleAnnots();
+    const saved = allAnnots[artKey] || { strokes: [], texts: [] };
+    if (!Array.isArray(saved.strokes)) saved.strokes = [];
+    if (!Array.isArray(saved.texts)) saved.texts = [];
+
+    // 右側ボタングループの先頭に「ペン・文字入れ」ボタンを配置
+    const rightGroup = ctrlBar.children[1] || ctrlBar;
+    let toggleBtn = inner.querySelector("#wi-kp-btn-annot-toggle");
+    if (!toggleBtn) {
+      toggleBtn = document.createElement("button");
+      toggleBtn.type = "button";
+      toggleBtn.className = "wi-kp-btn";
+      toggleBtn.id = "wi-kp-btn-annot-toggle";
+      rightGroup.insertBefore(toggleBtn, rightGroup.firstChild);
+    }
+
+    const toolbar = document.createElement("div");
+    toolbar.id = "wi-kp-annot-toolbar";
+    toolbar.classList.toggle("open", kpAnnotState.panelOpen);
+    ctrlBar.insertAdjacentElement("afterend", toolbar);
+
+    const canvas = document.createElement("canvas");
+    canvas.className = "wi-kp-annot-canvas";
+    artCard.appendChild(canvas);
+
+    const textLayer = document.createElement("div");
+    textLayer.className = "wi-kp-annot-textlayer";
+    artCard.appendChild(textLayer);
+
+    const ctx = canvas.getContext("2d");
+
+    function updateToggleBtnAppearance() {
+      const hasData = saved.strokes.length > 0 || saved.texts.length > 0;
+      toggleBtn.textContent = kpAnnotState.panelOpen ? "ペン・文字入れを閉じる" : "ペン・文字入れ";
+      toggleBtn.classList.toggle("open", kpAnnotState.panelOpen);
+      toggleBtn.classList.toggle("has-annot", !kpAnnotState.panelOpen && hasData);
+    }
+
+    function drawStrokes(w, h, dpr) {
+      ctx.save();
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+
+      saved.strokes.forEach(function(st) {
+        if (!st.pts || !st.pts.length) return;
+        ctx.save();
+        if (st.tool === "eraser") {
+          ctx.globalCompositeOperation = "destination-out";
+          ctx.globalAlpha = 1.0;
+          ctx.lineWidth = st.size || 24;
+          ctx.strokeStyle = "rgba(0,0,0,1)";
+        } else if (st.tool === "marker") {
+          ctx.globalCompositeOperation = "source-over";
+          ctx.globalAlpha = 0.42;
+          ctx.lineWidth = st.size || 18;
+          ctx.strokeStyle = st.color || "#fde047";
+        } else {
+          ctx.globalCompositeOperation = "source-over";
+          ctx.globalAlpha = 1.0;
+          ctx.lineWidth = st.size || 2.6;
+          ctx.strokeStyle = st.color || "#dc2626";
+        }
+
+        ctx.beginPath();
+        const p0x = st.pts[0][0] * w;
+        const p0y = st.pts[0][1] * h;
+        ctx.moveTo(p0x, p0y);
+        if (st.pts.length === 1) {
+          ctx.lineTo(p0x + 0.5, p0y + 0.5);
+        } else {
+          for (let i = 1; i < st.pts.length; i++) {
+            ctx.lineTo(st.pts[i][0] * w, st.pts[i][1] * h);
+          }
+        }
+        ctx.stroke();
+        ctx.restore();
+      });
+      ctx.restore();
+    }
+
+    function syncCanvasSize() {
+      const w = Math.max(300, artCard.clientWidth || artCard.offsetWidth || 760);
+      const h = Math.max(220, artCard.clientHeight || artCard.offsetHeight || 420);
+      const dpr = window.devicePixelRatio || 1;
+      if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+        canvas.width  = Math.round(w * dpr);
+        canvas.height = Math.round(h * dpr);
+      }
+      drawStrokes(w, h, dpr);
+    }
+
+    function autoFitTa(ta) {
+      if (!ta) return;
+      ta.style.height = "auto";
+      ta.style.width  = "auto";
+      const lines = (ta.value || "").split("\n");
+      const maxLen = lines.reduce((acc, l) => Math.max(acc, l.length), 6);
+      ta.style.width  = Math.max(75, Math.min(280, maxLen * 13 + 16)) + "px";
+      ta.style.height = Math.max(22, ta.scrollHeight) + "px";
+    }
+
+    function renderFreeTexts() {
+      textLayer.innerHTML = "";
+      saved.texts.forEach(function(tObj) {
+        const box = document.createElement("div");
+        box.className = "wi-kp-free-textbox";
+        box.style.left = (tObj.xPct || 5) + "%";
+        box.style.top  = (tObj.yPct || 5) + "%";
+        box.innerHTML = `
+          <span class="wi-kp-ft-grip" title="ドラッグして移動">⠿</span>
+          <textarea class="wi-kp-ft-ta" rows="1" placeholder="メモ..." style="color:${escHtml(tObj.color || '#b91c1c')};"></textarea>
+          <button type="button" class="wi-kp-ft-del" title="削除">✕</button>
+        `;
+
+        const grip = box.querySelector(".wi-kp-ft-grip");
+        const ta   = box.querySelector(".wi-kp-ft-ta");
+        const del  = box.querySelector(".wi-kp-ft-del");
+
+        ta.value = tObj.text || "";
+        requestAnimationFrame(() => autoFitTa(ta));
+
+        ta.addEventListener("input", function() {
+          tObj.text = ta.value;
+          autoFitTa(ta);
+          saveArticleAnnot(artKey, saved);
+          updateToggleBtnAppearance();
+        });
+        ta.addEventListener("keydown", function(ev) {
+          if (ev.key === "Escape") {
+            ev.preventDefault();
+            ev.stopPropagation();
+            ta.blur();
+            return;
+          }
+          ev.stopPropagation();
+        });
+        ta.addEventListener("click", function(ev) {
+          ev.stopPropagation();
+        });
+        ta.addEventListener("mousedown", function(ev) {
+          if (kpAnnotState.panelOpen && kpAnnotState.mode === "eraser") {
+            ev.preventDefault();
+            ev.stopPropagation();
+            saved.texts = saved.texts.filter(x => x.id !== tObj.id);
+            saveArticleAnnot(artKey, saved);
+            renderFreeTexts();
+            updateToggleBtnAppearance();
+            return;
+          }
+          ev.stopPropagation();
+        });
+
+        del.addEventListener("click", function(ev) {
+          ev.preventDefault();
+          ev.stopPropagation();
+          saved.texts = saved.texts.filter(x => x.id !== tObj.id);
+          saveArticleAnnot(artKey, saved);
+          renderFreeTexts();
+          updateToggleBtnAppearance();
+        });
+
+        function startDrag(ev) {
+          if (ev.target === ta || ev.target === del) return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          const cx0 = ev.touches ? ev.touches[0].clientX : ev.clientX;
+          const cy0 = ev.touches ? ev.touches[0].clientY : ev.clientY;
+          const rect = artCard.getBoundingClientRect();
+          const sx = tObj.xPct || 5;
+          const sy = tObj.yPct || 5;
+
+          function onMove(mv) {
+            const cx = mv.touches ? mv.touches[0].clientX : mv.clientX;
+            const cy = mv.touches ? mv.touches[0].clientY : mv.clientY;
+            const dx = ((cx - cx0) / Math.max(1, rect.width)) * 100;
+            const dy = ((cy - cy0) / Math.max(1, rect.height)) * 100;
+            tObj.xPct = Math.max(0, Math.min(88, Math.round((sx + dx) * 10) / 10));
+            tObj.yPct = Math.max(0, Math.min(94, Math.round((sy + dy) * 10) / 10));
+            box.style.left = tObj.xPct + "%";
+            box.style.top  = tObj.yPct + "%";
+          }
+          function onUp() {
+            window.removeEventListener("mousemove", onMove);
+            window.removeEventListener("mouseup", onUp);
+            window.removeEventListener("touchmove", onMove);
+            window.removeEventListener("touchend", onUp);
+            saveArticleAnnot(artKey, saved);
+          }
+          window.addEventListener("mousemove", onMove);
+          window.addEventListener("mouseup", onUp);
+          window.addEventListener("touchmove", onMove, { passive: false });
+          window.addEventListener("touchend", onUp);
+        }
+
+        grip.addEventListener("mousedown", startDrag);
+        grip.addEventListener("touchstart", startDrag, { passive: false });
+        box.addEventListener("mousedown", startDrag);
+        textLayer.appendChild(box);
+      });
+    }
+
+    function syncPointerMode() {
+      const m = kpAnnotState.panelOpen ? kpAnnotState.mode : "none";
+      const isDraw = (m === "marker" || m === "pen" || m === "eraser");
+      canvas.classList.toggle("active-draw", isDraw);
+      canvas.style.cursor = m === "eraser" ? "cell" : (isDraw ? "crosshair" : "default");
+      textLayer.classList.toggle("active-text-place", m === "text");
+    }
+
+    function renderToolbar() {
+      const m = kpAnnotState.mode;
+      const swatches = m === "marker" ? KP_MARKER_SWATCHES : KP_PEN_SWATCHES;
+      const activeCol = m === "marker" ? kpAnnotState.markerColor : (m === "text" ? kpAnnotState.textColor : kpAnnotState.penColor);
+
+      const swatchesHtml = (m === "marker" || m === "pen" || m === "text")
+        ? swatches.map(function(sw) {
+            const isAct = sw.code.toLowerCase() === activeCol.toLowerCase();
+            return `<button type="button" class="wi-kp-aswatch ${isAct ? 'active' : ''}" data-kpcol="${sw.code}" style="background:${sw.code};" title="${sw.name}"></button>`;
+          }).join("")
+        : "";
+
+      toolbar.innerHTML = `
+        <button type="button" class="wi-kp-atool-btn ${m === 'none' ? 'active' : ''}" data-kptool="none">通常操作（辞書引き）</button>
+        <button type="button" class="wi-kp-atool-btn ${m === 'marker' ? 'active' : ''}" data-kptool="marker">蛍光ペン</button>
+        <button type="button" class="wi-kp-atool-btn ${m === 'pen' ? 'active' : ''}" data-kptool="pen">色ペン</button>
+        <button type="button" class="wi-kp-atool-btn ${m === 'text' ? 'active' : ''}" data-kptool="text">＋テキスト入力</button>
+        <button type="button" class="wi-kp-atool-btn ${m === 'eraser' ? 'active' : ''}" data-kptool="eraser">消しゴム</button>
+        ${swatchesHtml ? `<div style="display:inline-flex;gap:5px;align-items:center;margin:0 4px;">${swatchesHtml}</div>` : ""}
+        <button type="button" class="wi-kp-atool-btn" id="wi-kp-annot-undo" style="margin-left:auto;">1つ戻す</button>
+        <button type="button" class="wi-kp-atool-btn" id="wi-kp-annot-clear" style="color:#b91c1c;border-color:#fecaca;">全消去</button>
+      `;
+
+      toolbar.querySelectorAll("[data-kptool]").forEach(function(b) {
+        b.onclick = function(ev) {
+          ev.stopPropagation();
+          kpAnnotState.mode = b.getAttribute("data-kptool");
+          renderToolbar();
+          syncPointerMode();
+          syncCanvasSize();
+        };
+      });
+
+      toolbar.querySelectorAll("[data-kpcol]").forEach(function(sw) {
+        sw.onclick = function(ev) {
+          ev.stopPropagation();
+          const col = sw.getAttribute("data-kpcol");
+          if (kpAnnotState.mode === "marker") kpAnnotState.markerColor = col;
+          else if (kpAnnotState.mode === "text") kpAnnotState.textColor = col;
+          else kpAnnotState.penColor = col;
+          renderToolbar();
+        };
+      });
+
+      toolbar.querySelector("#wi-kp-annot-undo").onclick = function(ev) {
+        ev.stopPropagation();
+        if (saved.strokes.length > 0) {
+          saved.strokes.pop();
+          saveArticleAnnot(artKey, saved);
+          syncCanvasSize();
+          updateToggleBtnAppearance();
+        }
+      };
+
+      toolbar.querySelector("#wi-kp-annot-clear").onclick = function(ev) {
+        ev.stopPropagation();
+        if (!saved.strokes.length && !saved.texts.length) return;
+        if (!confirm("この記事のペン書き込みとテキストメモをすべて消去しますか？")) return;
+        saved.strokes = [];
+        saved.texts = [];
+        saveArticleAnnot(artKey, saved);
+        syncCanvasSize();
+        renderFreeTexts();
+        updateToggleBtnAppearance();
+      };
+    }
+
+    toggleBtn.onclick = function(ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      kpAnnotState.panelOpen = !kpAnnotState.panelOpen;
+      if (kpAnnotState.panelOpen && kpAnnotState.mode === "none") {
+        kpAnnotState.mode = "marker";
+      }
+      toolbar.classList.toggle("open", kpAnnotState.panelOpen);
+      updateToggleBtnAppearance();
+      renderToolbar();
+      syncPointerMode();
+      syncCanvasSize();
+    };
+
+    function startStroke(e) {
+      if (!kpAnnotState.panelOpen) return;
+      const m = kpAnnotState.mode;
+      if (m !== "marker" && m !== "pen" && m !== "eraser") return;
+      if (e.type === "mousedown" && e.button !== 0) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+      syncCanvasSize();
+
+      const rect = canvas.getBoundingClientRect();
+      const cx = e.touches ? e.touches[0].clientX : e.clientX;
+      const cy = e.touches ? e.touches[0].clientY : e.clientY;
+      const xPct = Math.max(0, Math.min(1, (cx - rect.left) / Math.max(1, rect.width)));
+      const yPct = Math.max(0, Math.min(1, (cy - rect.top) / Math.max(1, rect.height)));
+
+      const stroke = {
+        tool: m,
+        color: m === "marker" ? kpAnnotState.markerColor : kpAnnotState.penColor,
+        size: m === "marker" ? 18 : (m === "eraser" ? 24 : 2.6),
+        pts: [[xPct, yPct]]
+      };
+      saved.strokes.push(stroke);
+      const dpr = window.devicePixelRatio || 1;
+      drawStrokes(rect.width, rect.height, dpr);
+
+      function onMove(ev) {
+        if (ev.cancelable) ev.preventDefault();
+        const mx = ev.touches ? ev.touches[0].clientX : ev.clientX;
+        const my = ev.touches ? ev.touches[0].clientY : ev.clientY;
+        const nx = Math.max(0, Math.min(1, (mx - rect.left) / Math.max(1, rect.width)));
+        const ny = Math.max(0, Math.min(1, (my - rect.top) / Math.max(1, rect.height)));
+        stroke.pts.push([nx, ny]);
+        drawStrokes(rect.width, rect.height, dpr);
+      }
+
+      function onUp() {
+        window.removeEventListener("mousemove", onMove);
+        window.removeEventListener("mouseup", onUp);
+        window.removeEventListener("touchmove", onMove);
+        window.removeEventListener("touchend", onUp);
+        saveArticleAnnot(artKey, saved);
+        updateToggleBtnAppearance();
+      }
+
+      window.addEventListener("mousemove", onMove);
+      window.addEventListener("mouseup", onUp);
+      window.addEventListener("touchmove", onMove, { passive: false });
+      window.addEventListener("touchend", onUp);
+    }
+
+    canvas.addEventListener("mousedown", startStroke);
+    canvas.addEventListener("touchstart", startStroke, { passive: false });
+
+    textLayer.addEventListener("mousedown", function(e) {
+      if (!kpAnnotState.panelOpen || kpAnnotState.mode !== "text") return;
+      if (e.target.closest(".wi-kp-free-textbox")) return;
+      e.preventDefault();
+      e.stopPropagation();
+
+      const rect = textLayer.getBoundingClientRect();
+      const xPct = Math.max(1, Math.min(82, Math.round((((e.clientX - rect.left) / Math.max(1, rect.width)) * 100) * 10) / 10));
+      const yPct = Math.max(1, Math.min(92, Math.round((((e.clientY - rect.top) / Math.max(1, rect.height)) * 100) * 10) / 10));
+
+      const newObj = {
+        id: "kpt_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+        xPct: xPct,
+        yPct: yPct,
+        text: "",
+        color: kpAnnotState.textColor || "#b91c1c"
+      };
+      saved.texts.push(newObj);
+      saveArticleAnnot(artKey, saved);
+      renderFreeTexts();
+      updateToggleBtnAppearance();
+
+      const tas = textLayer.querySelectorAll(".wi-kp-ft-ta");
+      if (tas.length > 0) {
+        const lastTa = tas[tas.length - 1];
+        requestAnimationFrame(() => lastTa.focus());
+      }
+    });
+
+    updateToggleBtnAppearance();
+    renderToolbar();
+    syncPointerMode();
+    renderFreeTexts();
+    requestAnimationFrame(syncCanvasSize);
+  }
+
+  // -------------------------------------------------------------------
+  // 4. モーダル内ヘッダー・保存トグルボタン・除外単語リストの統合制御
+  // -------------------------------------------------------------------
+  let isIgnoredFullView = false;
+  let isPatchingDom     = false;
+
+  function applyCleanKompasUI() {
+    if (isPatchingDom) return;
+    const modal = document.getElementById("wi-kompas-modal-v5");
+    const inner = document.getElementById("wi-kp-box-inner-v5");
+    if (!modal || !inner) return;
+
+    isPatchingDom = true;
+    try {
+      const hdrBtns     = inner.querySelector(".wi-kp-hdr-btns");
+      const tabReader   = inner.querySelector("#wi-kp-tab-reader");
+      const tabInput    = inner.querySelector("#wi-kp-tab-input");
+      const tabSaved    = inner.querySelector("#wi-kp-tab-saved");
+      const openSiteBtn = inner.querySelector("#wi-kp-open-site");
+
+      // ① 最上部の「記事リーダー」の列に「未収録除外単語リスト (件数)」を常時配置
+      const ignCount = getIgnoredWordsCount();
+      let ignTopTab = inner.querySelector("#wi-kp-tab-ignored-top");
+      if (hdrBtns && openSiteBtn && !ignTopTab) {
+        ignTopTab = document.createElement("button");
+        ignTopTab.type = "button";
+        ignTopTab.className = "wi-kp-btn";
+        ignTopTab.id = "wi-kp-tab-ignored-top";
+        hdrBtns.insertBefore(ignTopTab, openSiteBtn);
+
+        ignTopTab.onclick = function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          isIgnoredFullView = true;
+          modal.classList.add("kp-ignored-fullview");
+
+          const ignBoardTab = inner.querySelector('[data-bdt="ignored"]');
+          if (ignBoardTab) {
+            ignBoardTab.click();
+          } else if (tabReader) {
+            tabReader.click();
+            requestAnimationFrame(function() {
+              const retryTab = inner.querySelector('[data-bdt="ignored"]');
+              if (retryTab) retryTab.click();
+            });
+          }
+        };
+      }
+      if (ignTopTab) {
+        ignTopTab.textContent = `未収録除外単語リスト (${ignCount})`;
+        ignTopTab.classList.toggle("active", isIgnoredFullView);
+      }
+
+      // 他の上部タブが押されたら「未収録除外単語リスト」表示を解除
+      [tabReader, tabInput, tabSaved].forEach(function(btn) {
+        if (btn && !btn.__wiV8TabHooked) {
+          btn.__wiV8TabHooked = true;
+          btn.addEventListener("click", function() {
+            isIgnoredFullView = false;
+            modal.classList.remove("kp-ignored-fullview");
+          }, true);
+        }
+      });
+
+      if (isIgnoredFullView && tabReader) {
+        tabReader.classList.remove("active");
+      }
+      modal.classList.toggle("kp-ignored-fullview", isIgnoredFullView);
+
+      // ② 保存ボタンを「保存 ⇄ ✓ 保存済（もう一度押すと保存解除）」のトグル式に上書き
+      const saveBtn = inner.querySelector("#wi-kp-btn-save-article");
+      if (saveBtn) {
+        const curArt = getCurrentArticleRawText();
+        const savedList = loadSavedArticles();
+        const savedIdx = savedList.findIndex(item => item && String(item.text || "").trim() === curArt);
+        const isCurrentlySaved = savedIdx !== -1;
+
+        saveBtn.classList.toggle("is-saved", isCurrentlySaved);
+        saveBtn.textContent = isCurrentlySaved ? "✓ 保存済" : "保存";
+        saveBtn.title = isCurrentlySaved ? "クリックするとこの記事の保存を解除します" : "この記事を保存記事リストに保存します";
+
+        if (tabSaved) {
+          tabSaved.textContent = `保存記事リスト (${savedList.length})`;
+        }
+
+        saveBtn.onclick = function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          const artNow = getCurrentArticleRawText();
+          if (!artNow) return;
+          const listNow = loadSavedArticles();
+          const idxNow = listNow.findIndex(item => item && String(item.text || "").trim() === artNow);
+
+          if (idxNow !== -1) {
+            // すでに保存済 ➔ 保存を解除（削除）して「保存」に戻す
+            listNow.splice(idxNow, 1);
+            saveSavedArticles(listNow);
+            saveBtn.classList.remove("is-saved");
+            saveBtn.textContent = "保存";
+            saveBtn.title = "この記事を保存記事リストに保存します";
+          } else {
+            // 未保存 ➔ 新規保存して「✓ 保存済」にする（画面遷移はしない）
+            listNow.unshift({
+              id: "art_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+              title: makeArticleTitle(artNow),
+              text: artNow,
+              savedAt: Date.now()
+            });
+            saveSavedArticles(listNow);
+            saveBtn.classList.add("is-saved");
+            saveBtn.textContent = "✓ 保存済";
+            saveBtn.title = "クリックするとこの記事の保存を解除します";
+          }
+
+          if (tabSaved) {
+            tabSaved.textContent = `保存記事リスト (${listNow.length})`;
+          }
+        };
+      }
+
+      // ③ 記事リーダー画面であれば、蛍光ペン・色ペン・テキスト入力システムをマウント
+      const ctrlBar = inner.querySelector(".wi-kp-ctrl-bar");
+      const artCard = inner.querySelector(".wi-kp-article-card");
+      if (ctrlBar && artCard && !isIgnoredFullView) {
+        mountArticleAnnotationSystem(inner, ctrlBar, artCard);
+      }
+    } finally {
+      isPatchingDom = false;
+    }
+  }
+
+  // -------------------------------------------------------------------
+  // 5. モーダル生成前でも100%確実に監視・適用するブートストラップ
+  // -------------------------------------------------------------------
+  function attachModalObserverIfReady() {
+    const modal = document.getElementById("wi-kompas-modal-v5");
+    if (!modal) return false;
+    if (!modal.__wiV8CleanObs) {
+      modal.__wiV8CleanObs = true;
+      new MutationObserver(function() {
+        applyCleanKompasUI();
+      }).observe(modal, { childList: true, subtree: true });
+    }
+    applyCleanKompasUI();
+    return true;
+  }
+
+  // body を監視し、#wi-kompas-modal-v5 が開かれた瞬間に0msで適用
+  if (document.body && !document.body.__wiKpV8BodyObs) {
+    document.body.__wiKpV8BodyObs = true;
+    new MutationObserver(function() {
+      attachModalObserverIfReady();
+    }).observe(document.body, { childList: true });
+  }
+
+  attachModalObserverIfReady();
+})();
+/* =====================================================================
+   WhatsIndo 辞書カード「同じ語幹の関連語ファミリー」シンプル表示復元パッチ
+   - カードが縦に長くなる「語幹一族マトリックス」を無効化し、従来のコンパクトで一覧しやすいチップ表示に戻します
+   ===================================================================== */
+(function() {
+  function compactMeaningSimple(rawM) {
+    if (!rawM) return "";
+    let s = String(rawM).replace(/（[^）]*）/g, "").replace(/\([^)]*\)/g, "").trim();
+    if (s.indexOf("①") !== -1) {
+      const parts = s.split(/(?=[①②③④])/).map(p => p.trim()).filter(Boolean);
+      s = parts.slice(0, 2).map(p => p.split(/[、，／]/).slice(0, 2).join("、")).join(" ");
+    } else {
+      s = s.split(/[、，／]/).map(p => p.trim()).filter(Boolean).slice(0, 2).join("、");
+    }
+    return s.length > 25 ? s.slice(0, 25) + "…" : s;
+  }
+
+  function restoreSimpleFamilyChips() {
+    const dBox = document.getElementById("dict-detail-box");
+    if (!dBox) return;
+
+    // 1. マトリックス化処理(upgradeDictModalFamilyToMatrix)を先頭行で即スキップさせて従来のチップ表示を維持
+    if (!dBox.__wiMatrixDisabled) {
+      dBox.__wiMatrixDisabled = true;
+      const origGetAttr = dBox.getAttribute.bind(dBox);
+      const origQS      = dBox.querySelector.bind(dBox);
+      const dummyNode   = document.createElement("span");
+
+      dBox.getAttribute = function(name) {
+        if (name === "data-fmat-word") {
+          const sp = origQS("span");
+          return sp ? sp.textContent.trim().toLowerCase() : "";
+        }
+        return origGetAttr(name);
+      };
+
+      dBox.querySelector = function(sel) {
+        if (sel === ".wi-family-matrix") {
+          return dummyNode;
+        }
+        return origQS(sel);
+      };
+    }
+
+    // 2. 万一すでにマトリックス表示になっている箇所があれば、従来のコンパクトなチップ表示へ即座に戻す
+    dBox.querySelectorAll(".wi-family-matrix").forEach(function(mat) {
+      const sec = mat.closest(".v35-rel-sec, .exp-sec-card");
+      if (sec) {
+        const titleEl = sec.querySelector(".v35-rel-sec-title, .exp-sec-label");
+        if (titleEl && titleEl.textContent.indexOf("語幹一族マトリックス") !== -1) {
+          titleEl.textContent = titleEl.textContent
+            .replace(/の語幹一族マトリックス（全\s*\d+\s*語）/, "の関連語ファミリー")
+            .replace("の語幹一族マトリックス", "の関連語ファミリー");
+        }
+      }
+
+      const chipWrap = document.createElement("div");
+      chipWrap.className = "v35-chip-list exp-family-chips";
+
+      mat.querySelectorAll(".wi-fmat-row-btn").forEach(function(btn) {
+        const st = btn.querySelector("strong");
+        if (!st) return;
+        const wTxt = st.textContent.trim();
+        const spans = btn.querySelectorAll("span");
+        const rawM = spans.length > 0 ? spans[spans.length - 1].textContent.trim() : "";
+        const shortM = compactMeaningSimple(rawM);
+
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "v35-jump-chip exp-fam-chip";
+        chip.setAttribute("data-jword", encodeURIComponent(wTxt));
+        chip.setAttribute("data-fword", encodeURIComponent(wTxt));
+        chip.innerHTML = `<strong></strong>：<span></span>`;
+        chip.querySelector("strong").textContent = wTxt;
+        chip.querySelector("span").textContent = shortM;
+        chipWrap.appendChild(chip);
+      });
+
+      mat.replaceWith(chipWrap);
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function() {
+      restoreSimpleFamilyChips();
+      setTimeout(restoreSimpleFamilyChips, 100);
+    });
+  } else {
+    restoreSimpleFamilyChips();
+    setTimeout(restoreSimpleFamilyChips, 100);
+  }
+})();
