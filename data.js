@@ -133112,7 +133112,7 @@ window.WHATSINDO_EXTERNAL_DATA = {
       m: "（新しい計画・運動・協力・議論などを）主導して始める、発案して立ち上げる（＝memprakarsai / mempelopori）",
       ex: "Kelompok pemuda itu menginisiasi gerakan pengumpulan sampah plastik untuk didaur ulang.",
       tr: "その若者グループは、リサイクルのためにプラスチックごみを回収する運動を発案して立ち上げた。",
-      note: "■ 関連語：inisiasi（開始・発회）、inisiatif（主導権・自発的行動・イニシアチブ：mengambil inisiatif）、inisiator（発起人・提唱者＝pemrakarsa）。"
+      note: "■ 関連語：inisiasi（開始・発案）、inisiatif（主導権・自発的行動・イニシアチブ：mengambil inisiatif）、inisiator（発起人・提唱者＝pemrakarsa）。"
     },
     {
       p: "v", w: "menginstruksikan", r: "instruksi", topicCat: "⚖️ 政治・法律・社会",
@@ -146950,4 +146950,2473 @@ window.wiAddPack({
 
     meanEl.classList.toggle("revealed");
   }, true);
+})();
+/* =====================================================================
+   WhatsIndo 語彙追加パック（membudidayakan ＋ 派生語 budi daya / pembudidayaan）
+   ===================================================================== */
+(function() {
+  const PACK = {
+    vocab: [
+      {
+        p: "v", w: "membudidayakan", r: "budi daya", topicCat: "🌿 自然・天気・動植物",
+        m: "（魚介類・家畜・農作物などを）養殖する、栽培する、飼育・育成する",
+        ex: "Kelompok nelayan di pesisir itu mulai membudidayakan rumput laut dan udang untuk meningkatkan pendapatan.",
+        tr: "その沿岸の漁師グループは、収入を増やすために海藻とエビの養殖を始めた。",
+        note: [
+          "■ 【語構成と綴りルール】：複合語幹『budi daya（2語に分かち書き）』に接頭辞と接尾辞の両方（meN- ... -kan）が付くため、全体が1語に結合して『membudidayakan』となる（受動態は dibudidayakan）。",
+          "■ 【コロケーション】：\n・membudidayakan ikan air tawar / udang：淡水魚／エビを養殖する\n・membudidayakan tanaman obat / anggrek：薬草／ランを栽培する",
+          "■ 【関連語】：\n・budi daya（名詞）：養殖、栽培、飼育\n・pembudidayaan（名詞）：養殖・栽培すること（プロセス）\n・pembudidaya（名詞）：養殖業者、栽培農家（pembudidaya ikan＝養殖漁家）"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "budi daya", r: "budi daya", topicCat: "🌿 自然・天気・動植物",
+        m: "（水産物・農作物・家畜などの）養殖、栽培、飼育",
+        ex: "Sektor perikanan budi daya memiliki potensi besar untuk menopang ketahanan pangan nasional.",
+        tr: "養殖漁業セクターは、国の食料安全保障を支える大きな潜在力を持っている。",
+        note: [
+          "■ 【綴りの注意】：接辞が付かない基本形は『budi daya』と2語に分けて綴る（1語の budidaya は非標準表記）。また、接頭辞だけが付く『pembudi daya（養殖業者）』も2語に分かち書きし、接頭辞と接尾辞の両方が付く『membudidayakan』『pembudidayaan』のみ1語に結合する。",
+          "■ 【コロケーション】：\n・perikanan budi daya：養殖漁業（⇔ perikanan tangkap＝漁獲漁業）\n・budi daya jamur / mutiara：キノコ栽培 ／ 真珠養殖"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "pembudidayaan", r: "budi daya", topicCat: "🌿 自然・天気・動植物",
+        m: "養殖（栽培・飼育）すること、養殖事業、育成プロセス",
+        ex: "Pemerintah daerah memberikan penyuluhan mengenai teknik pembudidayaan ikan nila yang ramah lingkungan.",
+        tr: "地方政府は環境に優しいティラピア（イズミダイ）の養殖技術に関する指導を行っている。",
+        note: [
+          "■ 【語構成】：peN- + budi daya + -an（他動詞 membudidayakan に対応する行為名詞）。",
+          "■ 【関連語】：\n・membudidayakan（他動詞）：〜を養殖する、栽培する\n・budi daya（名詞）：養殖、栽培"
+        ].join("\n")
+      }
+    ]
+  };
+
+  if (typeof window.wiAddPack === "function") {
+    window.wiAddPack(PACK);
+  }
+})();
+/* =====================================================================
+   WhatsIndo スター復習「単語 / ことわざ」タブ出題完全分離パッチ
+   - 「ことわざ」タブ選択時は100%ことわざのみ、「単語」タブ選択時は100%単語のみを出題
+   ===================================================================== */
+(function() {
+  const STAR_KEY = "wi_stars_v2";
+  let trueStarArrayRef = null;
+  let currentStarTab   = "word"; // "word" | "proverb"
+
+  function classifyStarItem(it) {
+    if (!it || typeof it !== "object") return null;
+    const eff = it.effectiveMode || "";
+    const qid = String(it.id || "");
+    const sdr = String(it.sender || "");
+    if (eff === "proverb" || qid.startsWith("pb::") || sdr.indexOf("ことわざ") !== -1) {
+      return "proverb";
+    }
+    if (
+      ["v", "a", "n", "other", "singkatan"].includes(eff) ||
+      /^(?:voc|voc_ja2id|abbr_ja|abbr_full|ctx::voc)::/i.test(qid) ||
+      /^(?:動詞|形容詞|名詞|副詞・接続詞他|略語)/.test(sdr)
+    ) {
+      return "word";
+    }
+    return null;
+  }
+
+  function readAllValidStars() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(STAR_KEY) || "[]");
+      if (!Array.isArray(raw)) return [];
+      const res = [];
+      const seen = new Set();
+      for (let i = 0; i < raw.length; i++) {
+        const it = raw[i];
+        if (!it || !it.id || !classifyStarItem(it)) continue;
+        if (seen.has(it.id)) continue;
+        seen.add(it.id);
+        res.push(it);
+      }
+      return res;
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // index.html の isStarred() が呼ぶ state.starItems.some() から本物の配列参照を確実に捕捉
+  const prevSome = Array.prototype.some;
+  Array.prototype.some = function(cb, thisArg) {
+    if (
+      !trueStarArrayRef &&
+      Array.isArray(this) &&
+      typeof cb === "function" &&
+      Function.prototype.toString.call(cb).indexOf("x.id === id") !== -1
+    ) {
+      trueStarArrayRef = this;
+    }
+    return prevSome.call(this, cb, thisArg);
+  };
+
+  function ensureTrueStarArrayCaptured() {
+    if (trueStarArrayRef) return;
+    const dIn = document.getElementById("dict-input");
+    const dDrop = document.getElementById("dict-dropdown");
+    const dClr = document.getElementById("dict-clear");
+    if (dIn && dDrop) {
+      const prev = dIn.value;
+      dIn.value = "a";
+      dIn.dispatchEvent(new Event("input"));
+      dIn.value = prev;
+      if (!prev) {
+        dDrop.style.display = "none";
+        if (dClr) dClr.style.display = "none";
+      }
+    }
+  }
+
+  function isStarModeActiveNow() {
+    const hdr = document.getElementById("hdr-name");
+    return Boolean(hdr && hdr.textContent.trim() === "スター復習");
+  }
+
+  function detectActiveTabFromDOM() {
+    const activeBtn = document.querySelector('#chat-subfilter-bar [data-stab].active');
+    if (activeBtn) {
+      const tab = activeBtn.getAttribute("data-stab");
+      if (tab === "word" || tab === "proverb") {
+        currentStarTab = tab;
+      }
+    }
+    return currentStarTab;
+  }
+
+  // 本物の state.starItems の中身を、現在のタブ（word または proverb）だけに厳密に同期
+  function enforceStarPoolForCurrentTab() {
+    ensureTrueStarArrayCaptured();
+    if (!trueStarArrayRef) return;
+
+    const all = readAllValidStars();
+    const targetList = isStarModeActiveNow()
+      ? all.filter(it => classifyStarItem(it) === currentStarTab)
+      : all;
+
+    trueStarArrayRef.length = 0;
+    for (let i = 0; i < targetList.length; i++) {
+      trueStarArrayRef.push(targetList[i]);
+    }
+  }
+
+  // 1. 上部バーの「単語」「ことわざ」ボタンクリックを最上流で捕捉して即座に切り替え
+  window.addEventListener("click", function(e) {
+    if (!e.target || !e.target.closest) return;
+
+    const stabBtn = e.target.closest('#chat-subfilter-bar [data-stab]');
+    if (stabBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.__wiAllowFinalStop = true;
+      e.__wiMasterFinalStop = true;
+      if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+
+      currentStarTab = stabBtn.getAttribute("data-stab") || "word";
+
+      const bar = document.getElementById("chat-subfilter-bar");
+      if (bar) {
+        bar.querySelectorAll("[data-stab]").forEach(function(b) {
+          b.classList.toggle("active", b.getAttribute("data-stab") === currentStarTab);
+        });
+      }
+
+      enforceStarPoolForCurrentTab();
+
+      const area = document.getElementById("chat-messages-area");
+      if (area) {
+        area.innerHTML = `<div class="wa-date-badge">TODAY — スター復習（${currentStarTab === 'proverb' ? 'ことわざ' : '単語'}）</div>`;
+      }
+
+      const skipBtn = document.getElementById("btn-skip-bottom");
+      if (skipBtn) skipBtn.click();
+      return;
+    }
+
+    // 「次へ」ボタンや左上「スター」ボタンが押される直前にも必ず現在のタブのプールを強制適用
+    if (isStarModeActiveNow() && e.target.closest("#btn-skip-bottom, #btn-send-main, .wa-next-inline-btn")) {
+      detectActiveTabFromDOM();
+      enforceStarPoolForCurrentTab();
+    }
+  }, true);
+
+  // 2. Enter / → キーで次の問題へ進む直前にも必ず現在のタブのプールを強制適用
+  window.addEventListener("keydown", function(e) {
+    if (!isStarModeActiveNow()) return;
+    if (e.key === "Enter" || e.key === "ArrowRight") {
+      detectActiveTabFromDOM();
+      enforceStarPoolForCurrentTab();
+    }
+  }, true);
+
+  // 3. サブフィルターバーが再描画された際にも選択タブのハイライトとプールを維持
+  function bootStarTabLock() {
+    ensureTrueStarArrayCaptured();
+    const bar = document.getElementById("chat-subfilter-bar");
+    if (bar && !bar.__wiStarTabLockObs) {
+      bar.__wiStarTabLockObs = true;
+      new MutationObserver(function() {
+        if (!isStarModeActiveNow()) return;
+        bar.querySelectorAll("[data-stab]").forEach(function(b) {
+          b.classList.toggle("active", b.getAttribute("data-stab") === currentStarTab);
+        });
+        enforceStarPoolForCurrentTab();
+      }).observe(bar, { childList: true });
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function() {
+      setTimeout(bootStarTabLock, 80);
+    });
+  } else {
+    setTimeout(bootStarTabLock, 80);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 裏側の出題/辞書専用制御エンジン ＆ 語彙追加パック（14語・すべて出題対象）
+   - 画面に tier 等の表示は一切出さず、裏側で「出題語」と「辞書専用語(dictOnly/tier:3)」を自動制御
+   - 辞書専用語のカードでは「スター復習に追加」「問題から排除」ボタンを自動で非表示化
+   - lantas / turut / penurut / telaah / penelaahan / coret / mencoret / pencoretan /
+     kepesertaan / menyertakan / memaksudkan / dimaksud / bermaksud / caleg を追加
+   ===================================================================== */
+(function() {
+  const d = window.WHATSINDO_EXTERNAL_DATA;
+  if (!d) return;
+
+  // -------------------------------------------------------------------
+  // 1. 裏側の「辞書専用（問題非出題）」管理エンジン（UIへのラベル表示なし）
+  // -------------------------------------------------------------------
+  const dictOnlySet = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+
+  function isWordDictOnly(wordStr) {
+    if (!wordStr) return false;
+    return dictOnlySet.has(String(wordStr).trim().toLowerCase());
+  }
+
+  function isQuizItemDictOnly(item) {
+    if (!item || typeof item !== "object") return false;
+    if (item.dictOnly === true || item.tier === 3) return true;
+    if (dictOnlySet.size === 0) return false;
+    const w = item.w || item.acro || "";
+    return w ? isWordDictOnly(w) : false;
+  }
+
+  // 全クイズモードのデッキ抽選 (.pop) 時に、辞書専用語が混ざっていれば裏で静かにスキップ
+  const prevPop = Array.prototype.pop;
+  Array.prototype.pop = function() {
+    if (this.length > 0 && dictOnlySet.size > 0) {
+      const top = this[this.length - 1];
+      if (top && typeof top === "object" && !Array.isArray(top) && ("w" in top || "acro" in top)) {
+        for (let i = this.length - 1; i >= 0; i--) {
+          if (this.length <= 1) break;
+          if (isQuizItemDictOnly(this[i])) {
+            this.splice(i, 1);
+          }
+        }
+      }
+    }
+    return prevPop.call(this);
+  };
+
+  // 辞書カード・検索一覧で、辞書専用語の場合のみ「スター復習に追加」「問題から排除」を非表示化
+  function syncDictOnlyButtonsVisibility() {
+    const dModal = document.getElementById("dict-detail-modal");
+    const dBox   = document.getElementById("dict-detail-box");
+    if (dModal && dModal.classList.contains("open") && dBox) {
+      const sp = dBox.querySelector("span");
+      const hw = sp ? sp.textContent.trim() : "";
+      const onlyDict = isWordDictOnly(hw);
+      dBox.setAttribute("data-wi-dict-only", onlyDict ? "1" : "0");
+
+      const starBtn = document.getElementById("btn-dict-modal-star");
+      const exBtn   = document.getElementById("btn-dict-modal-exclude");
+      if (starBtn) starBtn.style.display = onlyDict ? "none" : "";
+      if (exBtn)   exBtn.style.display   = onlyDict ? "none" : "";
+    }
+
+    const dDrop = document.getElementById("dict-dropdown");
+    if (dDrop && dDrop.style.display !== "none") {
+      dDrop.querySelectorAll(".dict-item").forEach(function(row) {
+        const st = row.querySelector("strong");
+        if (!st) return;
+        const onlyDict = isWordDictOnly(st.textContent);
+        const sBtn = row.querySelector(".dict-star-btn");
+        if (sBtn) sBtn.style.display = onlyDict ? "none" : "";
+      });
+    }
+
+    const azModal = document.getElementById("az-dict-modal");
+    const azList  = document.getElementById("az-list-container");
+    if (azModal && azModal.classList.contains("open") && azList) {
+      azList.querySelectorAll(".az-word-card").forEach(function(card) {
+        const st = card.querySelector("strong");
+        if (!st) return;
+        const onlyDict = isWordDictOnly(st.textContent);
+        const sBtn  = card.querySelector(".dict-star-btn");
+        const exBtn = card.querySelector(".wi-az-ex-btn");
+        if (sBtn)  sBtn.style.display  = onlyDict ? "none" : "";
+        if (exBtn) exBtn.style.display = onlyDict ? "none" : "";
+      });
+    }
+  }
+
+  // 辞書専用語のカードを開いている時は S キー（スター）と X キー（排除）を無効化
+  window.addEventListener("keydown", function(e) {
+    const dModal = document.getElementById("dict-detail-modal");
+    const dBox   = document.getElementById("dict-detail-box");
+    if (!dModal || !dModal.classList.contains("open") || !dBox) return;
+    if (dBox.getAttribute("data-wi-dict-only") === "1") {
+      const k = (e.key || "").toLowerCase();
+      if (k === "s" || k === "x") {
+        e.preventDefault();
+        e.__wiAllowFinalStop = true;
+        e.__wiMasterFinalStop = true;
+        if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+        e.stopPropagation();
+      }
+    }
+  }, true);
+
+  function setupDictOnlyObservers() {
+    const dBox = document.getElementById("dict-detail-box");
+    if (dBox && !dBox.__wiDictOnlyObs) {
+      dBox.__wiDictOnlyObs = true;
+      new MutationObserver(syncDictOnlyButtonsVisibility).observe(dBox, { childList: true, subtree: true });
+    }
+    const dDrop = document.getElementById("dict-dropdown");
+    if (dDrop && !dDrop.__wiDictOnlyObs) {
+      dDrop.__wiDictOnlyObs = true;
+      new MutationObserver(syncDictOnlyButtonsVisibility).observe(dDrop, { childList: true });
+    }
+    const azList = document.getElementById("az-list-container");
+    if (azList && !azList.__wiDictOnlyObs) {
+      azList.__wiDictOnlyObs = true;
+      new MutationObserver(syncDictOnlyButtonsVisibility).observe(azList, { childList: true });
+    }
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", setupDictOnlyObservers);
+  } else {
+    setupDictOnlyObservers();
+  }
+
+  // wiAddPack を拡張し、今後の追加パックでも tier / dictOnly を自動処理
+  const prevAddPack = window.wiAddPack;
+  window.wiAddPack = function(pack) {
+    if (pack && Array.isArray(pack.vocab)) {
+      for (let i = 0; i < pack.vocab.length; i++) {
+        const it = pack.vocab[i];
+        if (!it || !it.w) continue;
+        const key = it.w.trim().toLowerCase();
+        if (it.dictOnly === true || it.tier === 3) {
+          dictOnlySet.add(key);
+        } else {
+          dictOnlySet.delete(key);
+        }
+      }
+    }
+    if (typeof prevAddPack === "function") {
+      prevAddPack(pack);
+    }
+  };
+
+  // -------------------------------------------------------------------
+  // 2. 新規語彙・派生語パック（計14語・すべて出題対象 tier: 1〜2）
+  // -------------------------------------------------------------------
+  const PACK = {
+    vocab: [
+      {
+        p: "other", w: "lantas", r: "lantas", tier: 1, topicCat: "🏠 日常・生活・移動",
+        m: "①それから、するとすぐに、そこで（＝lalu / kemudian） ②だからといって〜か、じゃあどうしろと？（前の発言を受けて問い返す表現）",
+        ex: "Ia membaca pesan singkat itu dengan wajah serius, lantas segera menghubungi rekannya.",
+        tr: "彼は真剣な表情でそのショートメッセージを読み、するとすぐに同僚へ連絡を入れた。",
+        note: [
+          "■ 【用法①（順接・直後の行動）】：前の動作に続けて「それからすぐに〜した」を表す接続表現（＝lalu / kemudian）。",
+          "■ 【用法②（疑問・反박の導入）】：\n・Lantas, kita harus bagaimana?：じゃあ（それなら）、私たちはどうすればいいんだ？\n・tidak lantas ~：だからといってすぐに〜するわけではない（Gagal sekali tidak lantas membuat kita menyerah＝1回失敗したからといってすぐに諦めるわけではない）"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "turut", r: "turut", tier: 1, topicCat: "⚖️ 政治・法律・社会",
+        m: "①（他者と一緒に）加わる、参加する（＝ikut） ②（動詞の直前に置いて）ともに〜する、〜もまた…する",
+        ex: "Sejumlah tokoh masyarakat turut hadir dalam acara peresmian perpustakaan desa tersebut.",
+        tr: "多くの地域の有力者たちも、その村立図書館の開館式に同席（出席）した。",
+        note: [
+          "■ 【コロケーション】：\n・turut serta：参加する、参画する（＝ikut serta / berpartisipasi）\n・turut hadir / turut membantu：同席する ／ ともに手伝う\n・turut berduka cita (belasungkawa)：謹んでお悔やみ申し上げます（弔意の定型表現）\n・turut campur：干渉する、口出しする（＝campur tangan）",
+          "■ 【関連語】：\n・berturut-turut（副詞）：連続して、立て続けに（tiga tahun berturut-turut＝3年連続で）\n・menurut（前置詞・動詞）：〜によれば ／ 従う\n・menuruti（他動詞）：（言いつけや要望に）従う、聞き入れる\n・penurut（形容詞・名詞）：素直な、従順な（人）"
+        ].join("\n")
+      },
+      {
+        p: "a", w: "penurut", r: "turut", tier: 2, topicCat: "🏥 健康・身体・感情",
+        m: "素直な、言いつけによく従う、聞き分けのよい（⇔ pembangkang / bandel）",
+        ex: "Sejak kecil ia dikenal sebagai anak yang sopan dan penurut kepada kedua orang tuanya.",
+        tr: "幼い頃から、彼は両親に対して礼儀正しく素直な（言いつけをよく守る）子どもとして知られていた。",
+        note: [
+          "■ 【語構成】：peN- + turut（従う：t が鼻音化して n）。「いつも素直に従う性質を持つ人・様子」を表す。",
+          "■ 【対義語】：pembangkang（反抗する人）、bandel / keras kepala（言うことを聞かない・頑固な）。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "telaah", r: "telaah", tier: 2, topicCat: "🎓 教育・学術・IT",
+        m: "精査、詳細な調査・検討、研究、考察（＝kajian / analisis）",
+        ex: "Berdasarkan hasil telaah mendalam, proyek tersebut dinilai layak untuk dilanjutkan.",
+        tr: "詳細な検討（精査）の結果に基づき、そのプロジェクトは継続する価値があると評価された。",
+        note: [
+          "■ 【コロケーション】：\n・telaah pustaka：文献調査、先行研究レビュー（論文・卒論の基本用語＝tinjauan pustaka）\n・melakukan telaah kritis / mendalam：批判的な検討 ／ 深い精査を行う",
+          "■ 【関連語】：\n・menelaah（他動詞）：（文献・法案・問題などを注意深く）精査する、じっくり検討する\n・penelaahan（名詞）：精査すること、調査・検討のプロセス\n・penelaah（名詞）：調査官、審査担当者、研究者"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "penelaahan", r: "telaah", tier: 2, topicCat: "🎓 教育・学術・IT",
+        m: "精査すること、詳細な調査・検討のプロセス",
+        ex: "Penelaahan terhadap naskah perjanjian kerja sama itu memakan waktu hampir dua bulan.",
+        tr: "その協力協定の草案に対する精査（検討作業）には、ほぼ2ヶ月の時間を要した。",
+        note: [
+          "■ 【語構成】：peN- + telaah + -an（t が鼻音化して n）。他動詞 menelaah（精査する）に対応する行為名詞。",
+          "■ 【使い分け】：\n・penelaahan：精査・調査する「行為・プロセス」\n・telaah：精査した「結果・考察・レビューそのもの」"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "coret", r: "coret", tier: 1, topicCat: "🎓 教育・学術・IT",
+        m: "①（線を引いて文字や語句を）消す、抹消する（＝mencoret） ②取り消し線、横線",
+        ex: "Coret yang tidak perlu pada lembar formulir pendaftaran ini dengan menggunakan pena hitam.",
+        tr: "この申込用紙の不要な箇所を黒ペンを使って線で消しなさい。",
+        note: [
+          "■ 【定型表現】：\n・coret yang tidak perlu：不要なものを線で消せ（申込書や公的書類の選択欄「Laki-laki / Perempuan *coret yang tidak perlu」などで使われる決まり文句）\n・compang-camping / coret-moret：落書きだらけの、走り書きだらけの",
+          "■ 【関連語】：\n・mencoret（他動詞）：線で消す ／ 名簿や代表から外す\n・pencoretan（名詞）：抹消、名簿からの除外\n・coretan（名詞）：落書き、走り書き、線で消した跡"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "mencoret", r: "coret", tier: 1, topicCat: "⚖️ 政治・法律・社会",
+        m: "①（文字や名前を線を引いて）消す、抹消する ②（選手・候補者などを名簿や代表から）外す、除外する、失格にする ③落書きする（mencoret-coret）",
+        ex: "Pelatih terpaksa mencoret nama pemain depan itu dari daftar tim nasional karena cedera lutut.",
+        tr: "監督は膝の怪我のため、そのフォワード選手の名前を代表チームのリストから外さざるを得なかった。",
+        note: [
+          "■ 【語構成】：meN- + coret（c の前に鼻音 n が付く）。受動態は dicoret（消される・リストから外される）。",
+          "■ 【コロケーション】：\n・mencoret kata yang salah：間違った単語を線で消す\n・mencoret nama ~ dari daftar：名簿から〜の名前を外す（除外する）\n・mencoret-coret tembok：壁に落書きする"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "pencoretan", r: "coret", tier: 2, topicCat: "⚖️ 政治・法律・社会",
+        m: "（名簿・リスト・契約などからの）抹消、除外、削除",
+        ex: "Komisi Pemilihan Umum mengumumkan pencoretan sejumlah calon yang tidak memenuhi syarat administrasi.",
+        tr: "総選挙委員会は、行政要件を満たさなかった複数の候補者の名簿抹消（除外）を発表した。",
+        note: [
+          "■ 【語構成】：peN- + coret + -an（他動詞 mencoret に対応する行為名詞）。",
+          "■ 【使い分け】：\n・pencoretan：線で消すこと、名簿から除外・抹消する行為（pencoretan nama peserta）\n・coretan：壁の落書き、ノートの走り書き、消した線そのもの"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "kepesertaan", r: "serta", tier: 2, topicCat: "⚖️ 政治・法律・社会",
+        m: "（保険・年金・プログラム・大会などへの）加入資格、参加資格、会員ステータス",
+        ex: "Warga dapat memeriksa status kepesertaan jaminan kesehatan mereka melalui aplikasi ponsel.",
+        tr: "市民はスマホアプリを通じて、自分たちの健康保険の加入資格（ステータス）を確認することができる。",
+        note: [
+          "■ 【語構成】：ke- + peserta（参加者・加入者：語幹 serta）+ -an。",
+          "■ 【コロケーション】：\n・status kepesertaan BPJS：BPJS（社会保障）の加入ステータス\n・nomor / kartu kepesertaan：加入者番号 ／ 会員証・加入証\n・mengaktifkan kembali kepesertaan：加入資格を再有効化する",
+          "■ 【関連語】：\n・peserta（名詞）：参加者、出場者、受験者、加入者\n・serta（接続詞・動詞）：〜ならびに ／ 参加する（ikut serta）\n・menyertai（他動詞）：〜に同行する、伴う\n・menyertakan（他動詞）：（書類等を）同封・添付する ／（人を）参加させる"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "menyertakan", r: "serta", tier: 1, topicCat: "💼 仕事・経済・買い物",
+        m: "①（書類・写真・証明書などを）同封する、添付する（＝melampirkan） ②（人を活動や計画に）参加させる、加える（＝mengikutsertakan）",
+        ex: "Setiap pelamar kerja wajib menyertakan daftar riwayat hidup dan fotokopi ijazah terakhir.",
+        tr: "すべての求人応募者は、履歴書および最終学歴の卒業証書のコピーを添付（同封）しなければならない。",
+        note: [
+          "■ 【語構成】：meN- + serta + -kan（s が鼻音化して ny）。",
+          "■ 【menyertai と menyertakan の使い分け】：\n・menyertai（-i）：対象に「同行する・付き添う・伴う」（Semoga sukses menyertai Anda＝成功があなたと共にありますように）\n・menyertakan（-kan）：書類などを「一緒に添える・同封する」、または人を「参加させる」"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "memaksudkan", r: "maksud", tier: 2, topicCat: "🎓 教育・学術・IT",
+        m: "①（言葉や表現で〜を）意味する、指して言う ②〜を（特定の目的や対象に）意図する、充てる",
+        ex: "Penulis memaksudkan istilah tersebut untuk menggambarkan perubahan sosial yang terjadi secara cepat.",
+        tr: "著者は急速に起きている社会変化を描写するために、その用語を意図して用いている（その用語でそれを意味している）。",
+        note: [
+          "■ 【語構成】：meN- + maksud（意図・意味）+ -kan（m で始まる語幹のため接頭辞は me-）。",
+          "■ 【関連語】：\n・maksud（名詞）：意図、目的 ／ 意味、真意\n・bermaksud（自動詞）：〜するつもりである、〜しようと意図している\n・dimaksud / dimaksudkan（受動態）：意図された、上述の ／ 〜向けに意図されている"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "dimaksud", r: "maksud", tier: 1, topicCat: "⚖️ 政治・法律・社会",
+        m: "①（前述または特定の対象について）意図された、指し示された、該当する、上述の ②（dimaksudkan untuk ~）〜を目的として意図される、〜向けに設計される",
+        ex: "Bantuan modal usaha tersebut dimaksudkan untuk membantu para pedagang kecil agar bangkit kembali.",
+        tr: "その事業資金支援は、零細商人たちが再び立ち上がれるよう支援することを目的として意図されている。",
+        note: [
+          "■ 【頻出表現（yang dimaksud vs dimaksudkan）】：\n・yang dimaksud：指し示されている〜、当該の〜、上述の〜（Dokumen yang dimaksud harus diserahkan hari ini＝当該の書類は本日提出されなければならない ／ sebagaimana dimaksud dalam Pasal 5＝第5条に規定されている通り）\n・dimaksudkan untuk ~：〜するために（〜向けに）意図されている、目的とされている"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "bermaksud", r: "maksud", tier: 1, topicCat: "🏠 日常・生活・移動",
+        m: "〜するつもりである、〜しようと意図している（＝berniat）",
+        ex: "Saya sama sekali tidak bermaksud menyinggung perasaan Anda melalui ucapan tadi.",
+        tr: "私は先ほどの発言であなたの感情を害するつもり（意図）は全くありませんでした。",
+        note: [
+          "■ 【語構成】：ber- + maksud（意図・目的）。後ろに直接動詞を置いて「〜するつもりだ」を表す。",
+          "■ 【コロケーション】：\n・bermaksud baik：善意からである、良かれと思って意図する\n・tidak bermaksud buruk：悪気（悪意）はない"
+        ].join("\n")
+      },
+      {
+        p: "singkatan", w: "caleg", r: "Calon Legislatif", alts: ["calon legislatif", "calon anggota legislatif"], tier: 1, topicCat: "⚖️ 政治・法律・社会",
+        m: "議会議員候補者（国会 DPR や地方議会 DPRD の議員選挙への立候補者）",
+        ex: "Para caleg aktif menggelar pertemuan dengan warga di dapil masing-masing untuk menyampaikan visi dan misi.",
+        tr: "議員候補者たちはそれぞれの選挙区の住民と積極的に集会を開き、ビジョンと使命を伝えている。",
+        note: [
+          "■ 【語構成】：CAlon（候補者）+ LEGislatif（立法府・議会の）の合成略語（正式には calon anggota legislatif）。",
+          "■ 【選挙の候補者略語】：\n・capres / cawapres：大統領候補 ／ 副大統領候補\n・caleg：議会議員候補\n・cagub / cabup / cawalkot：州知事候補 ／ 県知事候補 ／ 市長候補"
+        ].join("\n")
+      }
+    ],
+    acro: [
+      {
+        acro: "caleg",
+        full: "calon legislatif",
+        alts: ["calon anggota legislatif"],
+        topicCat: "⚖️ 政治・法律・社会",
+        tr: "議会議員候補者（国会・地方議会の立候補者）",
+        exp: "■ 【語構成】：CAlon（候補者）+ LEGislatif（立法府・議会の）の合成略語（正式には calon anggota legislatif）。\n■ 【選挙の候補者略語】：capres（大統領候補）、cawapres（副大統領候補）、caleg（議員候補）。"
+      }
+    ]
+  };
+
+  if (Array.isArray(d.singkatan)) {
+    const calegItem = PACK.vocab[PACK.vocab.length - 1];
+    if (!d.singkatan.some(s => s && s.w && s.w.toLowerCase() === "caleg")) {
+      d.singkatan.push(calegItem);
+    }
+  }
+
+  // 既存の maksud も関連語ファミリーにすぐアクセスできるよう語幹・分野タグを整備
+  const vMap = window.__wiMasterVocabMap;
+  if (vMap && vMap.has("maksud")) {
+    const mk = vMap.get("maksud");
+    mk.topicCat = mk.topicCat || "🏠 日常・生活・移動";
+    mk.note = "■ 【コロケーション】：dengan maksud ~（〜という目的・意図で）、apa maksudnya?（どういう意味・つもりですか？）、maksud hati（心の中の本当の意図）。\n■ 【関連語】：bermaksud（〜するつもりだ）、memaksudkan（意味する・意図する）、dimaksud（当該の・意図された）。";
+  }
+
+  if (typeof window.wiAddPack === "function") {
+    window.wiAddPack(PACK);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 語彙追加・例文更新パック（dimaksud更新 ＋ ご指名語・派生語40語 ＆ 辞書専用語の完全非出題化）
+   ===================================================================== */
+(function() {
+  const d = window.WHATSINDO_EXTERNAL_DATA;
+  if (!d) return;
+
+  const dictOnlySet = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+
+  function isEntryDictOnly(item) {
+    if (!item || typeof item !== "object") return false;
+    if (item.dictOnly === true || item.tier === 3) return true;
+    const w = (item.w || item.acro || "").trim().toLowerCase();
+    return w ? dictOnlySet.has(w) : false;
+  }
+
+  // デッキ抽選時、通常問題が1つでもある限り辞書専用語(dictOnly)は最後の1個でも100%除去して出題させない
+  const basePop = Array.prototype.pop;
+  Array.prototype.pop = function() {
+    if (this.length > 0 && dictOnlySet.size > 0) {
+      const sample = this[this.length - 1];
+      if (sample && typeof sample === "object" && !Array.isArray(sample) && ("w" in sample || "acro" in sample)) {
+        const hasNormal = this.some(it => !isEntryDictOnly(it));
+        if (hasNormal) {
+          for (let i = this.length - 1; i >= 0; i--) {
+            if (isEntryDictOnly(this[i])) {
+              this.splice(i, 1);
+            }
+          }
+        }
+      }
+    }
+    return basePop.call(this);
+  };
+
+  const PACK = {
+    vocab: [
+      // -------------------- 1. 例文修正 (dimaksud) --------------------
+      {
+        p: "v", w: "dimaksud", r: "maksud", tier: 1, topicCat: "⚖️ 政治・法律・社会",
+        m: "①（前述または特定の対象について）当該の、上述の、指し示された、意図された ②（dimaksudkan untuk ~）〜を目的として意図される",
+        ex: "Putusan Mahkamah Konstitusi (MK) dimaksud dibacakan pada Senin (25/5/2026).",
+        tr: "当該の憲法裁判所（MK）の判決は、月曜日（2026年5月25日）に読み上げられた。",
+        note: [
+          "■ 【用法（名詞の直後に置く形容詞的用法）】：\n・Putusan / Dokumen / Pasal dimaksud：当該の（すでに言及されたその）判決／書類／条項（yang dimaksud の yang が省略された硬い公文書・報道表現）\n・sebagaimana dimaksud dalam Pasal ~：第〜条に規定されている（意図されている）通り",
+          "■ 【関連表現】：\n・dimaksudkan untuk ~：〜するために（〜向けに）意図されている、目的とされている\n・maksud（名詞）：意図、目的 ／ 意味\n・bermaksud（自動詞）：〜するつもりである\n・memaksudkan（他動詞）：〜を意味する、意図する"
+        ].join("\n")
+      },
+
+      // -------------------- 2. 出題対象の重要語・派生語 --------------------
+      {
+        p: "singkatan", w: "BRIN", r: "Badan Riset dan Inovasi Nasional", alts: ["badan riset dan inovasi nasional"], tier: 1, topicCat: "🎓 教育・学術・IT",
+        m: "国家研究イノベーション庁（インドネシアの国立研究機関を統合した政府研究機関）",
+        ex: "Peneliti BRIN tengah mengembangkan varietas padi unggul yang tahan terhadap cuaca ekstrem.",
+        tr: "国家研究イノベーション庁（BRIN）の研究者たちは、異常気象に強い優良な稲の品種を開発している。",
+        note: "■ 【正式名称】：Badan Riset（研究）dan Inovasi（イノベーション）Nasional（国家の）。"
+      },
+      {
+        p: "singkatan", w: "DPP", r: "Dewan Pimpinan Pusat", alts: ["dewan pimpinan pusat"], tier: 2, topicCat: "⚖️ 政治・法律・社会",
+        m: "（政党や全国規模の団体の）中央執行委員会、党本部、中央指導部",
+        ex: "Keputusan akhir mengenai rekomendasi calon kepala daerah ditetapkan melalui rapat DPP partai tersebut.",
+        tr: "地方首長候補の推薦に関する最終決定は、同党の中央執行委員会（党本部）の会議を通じて定められた。",
+        note: [
+          "■ 【正式名称】：Dewan（評議会・委員会）Pimpinan（指導部）Pusat（中央）。",
+          "■ 【政党・組織の階層略語】：\n・DPP (Dewan Pimpinan Pusat)：中央執行委員会（全国本部）\n・DPD (Dewan Pimpinan Daerah)：地方執行委員会（州レベル支部 ※国会の地方代表議会 DPD とは別）\n・DPC (Dewan Pimpinan Cabang)：支部執行委員会（市・県レベル支部）"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "ujar", r: "ujar", tier: 1, topicCat: "⚖️ 政治・法律・社会",
+        m: "①〜と述べた、〜と語った（直接話法の引用文の後ろに置く動詞：ujar beliau / ujarnya） ②言葉、発言",
+        ex: "\"Kepatuhan terhadap aturan hukum harus dimulai dari diri kita sendiri,\" ujar beliau kepada wartawan.",
+        tr: "「法規則の遵守は私たち自身から始めなければなりません」と、彼は記者団に語った。",
+        note: [
+          "■ 【語法】：ニュース記事で発言を直接引用した直後に『\"...,\" ujar [発言者]』または『\"...,\" ujarnya（〜と彼/彼女は述べた）』の形で使われる（＝kata / tutur / ungkap）。",
+          "■ 【関連語】：\n・ujaran（名詞）：発言、言説（ujaran kebencian＝ヘイトスピーチ・憎悪表現）\n・mengujarkan（他動詞）：（言葉や文を）口にする、発話する"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "substansi", r: "substansi", tier: 1, topicCat: "🎓 教育・学術・IT",
+        m: "①本質、実質、核心、中身（＝inti / pokok / hakikat） ②物質、成分",
+        ex: "Debat publik seharusnya berfokus pada substansi kebijakan, bukan sekadar menyerang pribadi lawan.",
+        tr: "公開討論は単に対戦相手の個人攻撃をするのではなく、政策の本質（中身）に焦点を当てるべきだ。",
+        note: [
+          "■ 【コロケーション】：\n・substansi masalah / perkara：問題の核心 ／ 事件の実質的内容\n・memahami substansi：本質（中身）を理解する",
+          "■ 【関連語】：\n・substansial（形容詞）：実質的な、本質的な、極めて大きな（kemajuan yang substansial）\n・substantif（形容詞）：実体的な、内容に関わる、実質を伴う"
+        ].join("\n")
+      },
+      {
+        p: "a", w: "substantif", r: "substansi", tier: 2, topicCat: "⚖️ 政治・法律・社会",
+        m: "実質的な、本質に関わる、表面上の形式だけでなく中身を伴った",
+        ex: "Perubahan aturan tersebut diharapkan mampu mendorong keterwakilan politik yang lebih substantif.",
+        tr: "その規則の改正は、より実質的な（中身を伴った）政治的代表性を促進できると期待されている。",
+        note: [
+          "■ 【コロケーション】：\n・demokrasi / keterwakilan yang substantif：実質的な民主主義 ／ 実質的な代表性（単なる数合わせや形式上だけではないこと）\n・materi / perubahan substantif：本質的な内容 ／ 実質的な変更",
+          "■ 【対比】：substantif（実質的・中身の伴う） ⇔ formalitas / simbolis（形式的・象徴的）。"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "berorientasi", r: "orientasi", tier: 1, topicCat: "💼 仕事・経済・買い物",
+        m: "〜を志向する、〜に重点・方向性を置く（berorientasi pada ~）",
+        ex: "Pemerintah memberikan insentif pajak bagi industri manufaktur yang berorientasi pada ekspor.",
+        tr: "政府は輸出志向の製造業に対して税制優遇措置を付与している。",
+        note: [
+          "■ 【語構成】：ber- + orientasi（方向付け・志向）。前置詞は主に pada（または ke）を伴う。",
+          "■ 【コロケーション】：\n・berorientasi pada ekspor / pasar：輸出志向の ／ 市場志向の\n・berorientasi pada hasil / masa depan：結果重視（志向）の ／ 未来志向の"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "tindak", r: "tindak", tier: 1, topicCat: "⚖️ 政治・法律・社会",
+        m: "①行動、措置、行為（主に複合語の先頭で用いられる） ②一歩、ステップ",
+        ex: "Pelaku tindak pidana pencucian uang tersebut dijatuhi hukuman penjara selama delapan tahun.",
+        tr: "その資金洗浄（マネーロンダリング）犯罪行為の実行犯には、懲役8年の判決が言い渡された。",
+        note: [
+          "■ 【重要複合語（tindak + 名詞）】：\n・tindak pidana：犯罪行為、刑事事件（Tindak Pidana Korupsi / Tipikor＝汚職犯罪）\n・tindak kekerasan：暴力行為\n・tindak lanjut：事後対応、フォローアップ（他動詞：menindaklanjuti）\n・tindak tanduk：立ち居振る舞い、言動、素行（＝gerak-gerik / perilaku）",
+          "■ 【関連語】：\n・tindakan（名詞）：措置、行動（mengambil tindakan tegas＝断固たる措置をとる）\n・bertindak（自動詞）：行動する、対処する\n・menindak（他動詞）：（違反者を）取り締まる、処罰する（menindak tegas）"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "mencontohkan", r: "contoh", tier: 1, topicCat: "🎓 教育・学術・IT",
+        m: "①〜を例として挙げる、具体例として示す ②（自らの行動で他者に）手本を示す、模範を示す",
+        ex: "Dalam kuliahnya, sang profesor mencontohkan beberapa negara yang berhasil beralih ke energi bersih.",
+        tr: "講義の中で、教授はクリーンエネルギーへの移行に成功したいくつかの国を例として挙げた。",
+        note: [
+          "■ 【語構成】：meN- + contoh（例・手本）+ -kan。",
+          "■ 【mencontoh と mencontohkan の使い分け】：\n・mencontoh（-kan なし）：他者の良い手本を「見習う・真似る」（Kita patut mencontoh sikap beliau＝私たちは彼の姿勢を見習うべきだ）\n・mencontohkan（-kan あり）：他者に対して「具体例を挙げる（例示する）」、または「手本を示す」",
+          "■ 【関連語】：contoh（例・手本）、percontohan（モデルケース：proyek percontohan＝モデル事業）。"
+        ].join("\n")
+      },
+      {
+        p: "a", w: "seksual", r: "seksual", tier: 1, topicCat: "⚖️ 政治・法律・社会",
+        m: "性的な、性の、性別に関する",
+        ex: "Kampus tersebut membentuk satuan tugas khusus untuk mencegah dan menangani kasus kekerasan seksual.",
+        tr: "その大学は性暴力事件を予防し対処するための特別対策チーム（タスクフォース）を設置した。",
+        note: [
+          "■ 【コロケーション】：\n・kekerasan seksual：性暴力（UU TPKS＝Tindak Pidana Kekerasan Seksual 性暴力犯罪法）\n・pelecehan seksual：セクシャルハラスメント（セクハラ）\n・kesehatan reproduksi dan seksual：性と生殖に関する健康"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "legislator", r: "legislatif", tier: 2, topicCat: "⚖️ 政治・法律・社会",
+        m: "立法者、議会議員（国会 DPR や地方議会 DPRD の議員＝anggota badan legislatif）",
+        ex: "Para legislator di Senayan tengah membahas revisi undang-undang pemilihan umum bersama pemerintah.",
+        tr: "スナヤン（国会議事堂）の議員たちは現在、政府とともに総選挙法の改正案を審議している。",
+        note: [
+          "■ 【関連語ファミリー】：\n・legislatif（形容詞・名詞）：立法の、立法府（lembaga legislatif ⇔ eksekutif［行政府］／ yudikatif［司法府］）\n・legislator（名詞）：立法者、国会議員・地方議会議員\n・legislasi（名詞）：立法、法律制定プロセス（fungsi legislasi＝議会の立法機能）"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "legislasi", r: "legislatif", tier: 2, topicCat: "⚖️ 政治・法律・社会",
+        m: "立法、法制化、法律の制定（pembuatan undang-undang）",
+        ex: "Dewan Perwakilan Rakyat memegang tiga fungsi utama, yaitu fungsi legislasi, anggaran, dan pengawasan.",
+        tr: "国民議会（国会）は「立法機能・予算機能・監督機能」という3つの主要機能を有している。",
+        note: [
+          "■ 【コロケーション】：\n・fungsi legislasi：立法機能\n・Program Legislasi Nasional (Prolegnas)：国家立法プログラム（国会で優先審議する法案の計画リスト）"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "simbol", r: "simbol", tier: 1, topicCat: "🎓 教育・学術・IT",
+        m: "象徴、シンボル、記号（＝lambang）",
+        ex: "Burung Garuda merupakan simbol negara Republik Indonesia yang melambangkan kekuatan dan keberanian.",
+        tr: "ガルーダ鳥は強さと勇気を象徴するインドネシア共和国の国家シンボルである。",
+        note: [
+          "■ 【関連語】：\n・simbolis（形容詞）：象徴的な（secara simbolis＝象徴的に）\n・menyimbolkan（他動詞）：〜を象徴する、表す（＝melambangkan）\n・simbolisme（名詞）：象徴主義"
+        ].join("\n")
+      },
+      {
+        p: "a", w: "simbolis", r: "simbol", tier: 2, topicCat: "⚖️ 政治・法律・社会",
+        m: "象徴的な、シンボルとしての（式典などで代表者に目録や鍵を手渡す際などの「象徴的な形式」を表す）",
+        ex: "Presiden menyerahkan bantuan bibit padi secara simbolis kepada perwakilan kelompok tani.",
+        tr: "大統領は農民グループの代表者に対して、稲の種籾の支援を象徴的に（目録・代表授与の形で）手渡した。",
+        note: [
+          "■ 【コロケーション】：\n・secara simbolis：象徴的に（式典で代表者1名に授与したり、テープカットや植樹を行ったりする際の定型表現）\n・penyerahan simbolis：象徴的な引き渡し（代表授与）\n・makna simbolis：象徴的な意味"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "penyerahan", r: "serah", tier: 1, topicCat: "💼 仕事・経済・買い物",
+        m: "①（書類・賞・支援物資・身柄などの）引き渡し、授与、提出 ②（権限・職務などの）委譲、移管",
+        ex: "Upacara penyerahan piala kepada tim pemenang berlangsung dengan sangat meriah di stadion utama.",
+        tr: "優勝チームへのトロフィー授与式は、メインスタジアムで非常に盛大に執り行われた。",
+        note: [
+          "■ 【語構成】：peN- + serah + -an（s が鼻音化して ny）。他動詞 menyerahkan（引き渡す・提出する・委ねる）に対応する行為名詞。",
+          "■ 【コロケーション】：\n・penyerahan penghargaan / piala：表彰状／トロフィーの授与\n・penyerahan berkas / dokumen：書類の提出\n・penyerahan wewenang / jabatan：権限の委譲 ／ 職務の引き継ぎ\n・penyerahan diri：自首、投降"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "mendaftarkan", r: "daftar", tier: 1, topicCat: "💼 仕事・経済・買い物",
+        m: "①（他者・候補者・子供・製品・知的財産などを名簿や機関に）登録する、届け出る ②（mendaftarkan diri）自ら申し込む、エントリーする",
+        ex: "Partai politik wajib mendaftarkan bakal calon anggota legislatif ke KPU sebelum batas waktu berakhir.",
+        tr: "政党は期限が切れる前に、議会議員の予定候補者を総選挙委員会（KPU）へ登録（届出）しなければならない。",
+        note: [
+          "■ 【語構成】：meN- + daftar（名簿・リスト）+ -kan。",
+          "■ 【mendaftar と mendaftarkan の使い分け】：\n・mendaftar（自動詞的）：自分自身が試験やイベントに「申し込む・エントリーする」（Ia mendaftar kuliah＝彼は大学に出願した）\n・mendaftarkan（他動詞）：目的語（子供・候補者・商標・製品・訴訟など）を機関へ「登録する・届け出る」（mendaftarkan anak ke sekolah＝子供を学校に入学登録する ／ mendaftarkan hak paten＝特許を登録出願する）"
+        ].join("\n")
+      },
+      {
+        p: "a", w: "terbaru", r: "baru", tier: 1, topicCat: "🏠 日常・生活・移動",
+        m: "最新の、最も新しい（＝mutakhir / terkini）",
+        ex: "Berdasarkan laporan terbaru dari BMKG, musim kemarau tahun ini diperkirakan datang lebih awal.",
+        tr: "気象庁（BMKG）からの最新報告によると、今年の乾季は例年より早く到来すると予測されている。",
+        note: [
+          "■ 【語構成】：ter-（最上級「最も〜」）+ baru（新しい）。",
+          "■ 【コロケーション】：\n・data / informasi / kabar terbaru：最新データ ／ 最新情報 ／ 最新ニュース\n・versi / edisi terbaru：最新バージョン ／ 最新版\n・rekor terbaru：新記録"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "jeratan", r: "jerat", tier: 2, topicCat: "⚖️ 政治・法律・社会",
+        m: "（罠・法律の処罰・高利貸し・悪習などの）網、束縛、絡め取られること",
+        ex: "Edukasi keuangan sangat penting agar masyarakat kecil terhindar dari jeratan rentenir dan pinjaman ilegal.",
+        tr: "庶民が高利貸しや違法融資の罠（束縛）から免れるためには、金融教育が非常に重要である。",
+        note: [
+          "■ 【語構成】：jerat（罠・わな紐）+ -an。動詞は menjerat（罠にかける・法で処罰する）、受動態は terjerat / dijerat。",
+          "■ 【コロケーション】：\n・jeratan hukum / pasal：法の網、法条項による処罰（lolos dari jeratan hukum＝法の網・処罰を逃れる）\n・jeratan utang / kemiskinan：借金地獄（負債の罠） ／ 貧困の連鎖"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "terulang", r: "ulang", tier: 1, topicCat: "⚖️ 政治・法律・社会",
+        m: "（過去の出来事・過ち・悲劇などが）繰り返される、再発する",
+        ex: "Tak terulang kembali parpol asal-asalan mendaftarkan perempuan yang masuk dalam daftar caleg sekadar agar memenuhi syarat kuota.",
+        tr: "政党が単にクオータ（割り当て）条件を満たすためだけに、議員候補者名簿に入る女性をいい加減に登録するようなことが二度と繰り返されないようにする。",
+        note: [
+          "■ 【語構成】：ter- + ulang（繰り返す）。主に否定語（tidak / tak / jangan sampai）を伴い、「（失敗・事故・不正などが）再び繰り返される・再発する」の文脈で用いられる。",
+          "■ 【コロケーション】：\n・agar tidak terulang kembali / lagi：二度と繰り返されない（再発しない）ように\n・kesalahan / tragedi yang sama terulang：同じ過ち／悲劇が繰り返される",
+          "■ 【関連語】：ulang（繰り返す・再〜）、mengulang / mengulangi（繰り返す・復習する）、berulang（たびたび起きる：berulang kali＝何度も）。"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "berulang", r: "ulang", tier: 1, topicCat: "🏠 日常・生活・移動",
+        m: "繰り返す、反復する、何度も起きる",
+        ex: "Meskipun sudah diperingatkan berulang kali oleh petugas, pelanggaran serupa masih saja terjadi.",
+        tr: "係員によって何度も繰り返し警告されているにもかかわらず、同様の違反が依然として起きている。",
+        note: [
+          "■ 【コロケーション】：\n・berulang kali / berulang-ulang：何度も繰り返し、再三にわたり（＝berkali-kali）\n・berulang tahun：誕生日（または創立記念日）を迎える"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "pemenangan", r: "menang", tier: 2, topicCat: "⚖️ 政治・法律・社会",
+        m: "勝利を収めさせること、（選挙や競技での）必勝・当選に向けた活動、勝利獲得プロセス",
+        ex: "Pasangan calon presiden tersebut resmi mengumumkan susunan tim pemenangan nasional untuk pemilu mendatang.",
+        tr: "その正副大統領候補ペアは、次期総選挙に向けた全国選挙対策（必勝）チームの陣容を正式に発表した。",
+        note: [
+          "■ 【語構成】：peN- + menang（勝つ）+ -an。他動詞 memenangkan（勝つ・勝たせる）に対応する行為名詞。",
+          "■ 【kemenangan と pemenangan の違い】：\n・kemenangan（ke- -an）：試合や選挙の「勝利（結果そのもの）」（meraih kemenangan＝勝利を収める）\n・pemenangan（peN- -an）：候補者やチームを「勝たせるための運動・取り組み」（tim pemenangan＝選挙対策陣営・選対本部 ／ strategi pemenangan＝必勝戦略）"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "struktur", r: "struktur", tier: 1, topicCat: "💼 仕事・経済・買い物",
+        m: "構造、仕組み、組織の編成・機構（＝susunan）",
+        ex: "Perusahaan itu merombak struktur organisasi guna mempercepat proses pengambilan keputusan.",
+        tr: "その企業は意思決定プロセスを迅速化するため、組織構造（機構）を刷新した。",
+        note: [
+          "■ 【コロケーション】：\n・struktur organisasi / kepengurusan：組織構造 ／ 役員編成（執行部体制）\n・struktur bangunan / tanah：建物の構造 ／ 土壌構造\n・struktur kalimat：文構造（構文）",
+          "■ 【関連語】：\n・terstruktur（形容詞）：構造化された、体系立った、組織的な\n・struktural（形容詞）：構造上の、役職階層の（pejabat struktural）\n・restrukturisasi（名詞）：再構築、組織・債務再編"
+        ].join("\n")
+      },
+      {
+        p: "a", w: "terstruktur", r: "struktur", tier: 2, topicCat: "🎓 教育・学術・IT",
+        m: "構造化された、体系立った、組織的に組み立てられた",
+        ex: "Pelatihan diberikan melalui kurikulum yang terstruktur agar peserta mudah memahami materi dari dasar.",
+        tr: "参加者が基礎から内容を容易に理解できるよう、研修は体系立った（構造化された）カリキュラムを通じて提供される。",
+        note: [
+          "■ 【語構成】：ter- + struktur（構造）。",
+          "■ 【定型表現】：\n・terstruktur, sistematis, dan masif (TSM)：組織的・体系的・大規模な（選挙不正や重大違反の性質を表す法務・報道用語）\n・wawancara terstruktur：構造化面接（あらかじめ質問項目が体系的に決められた面接・調査）"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "kontestasi", r: "kontestasi", tier: 2, topicCat: "⚖️ 政治・法律・社会",
+        m: "（選挙・政治・大会などにおける）競争、争い、選挙戦、覇権争い",
+        ex: "Seluruh pihak diimbau menjaga kerukunan warga selama berlangsungnya kontestasi pemilihan kepala daerah.",
+        tr: "地方首長選挙の選挙戦（競争）が行われている間、すべての当事者に住民の和を守るよう呼びかけがなされている。",
+        note: [
+          "■ 【コロケーション】：\n・kontestasi politik / kontestasi pemilu (pilpres)：政治的競争 ／ 総選挙（大統領選）の選挙戦\n・kontestasi gagasan：政策・アイデアの競い合い",
+          "■ 【関連語】：\n・kontes（名詞）：コンテスト、競技会\n・kontestan（名詞）：出場者、選挙の参加政党・候補者"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "berpolitik", r: "politik", tier: 2, topicCat: "⚖️ 政治・法律・社会",
+        m: "政治に関わる、政治活動を行う、政界に身を置く",
+        ex: "Pendidikan kewarganegaraan penting untuk menumbuhkan etika berpolitik yang sehat bagi generasi muda.",
+        tr: "公民教育は、若い世代に健全な政治活動の倫理を育むために重要である。",
+        note: [
+          "■ 【語構成】：ber- + politik（政治）。",
+          "■ 【コロケーション】：\n・hak berpolitik：政治参加の権利、参政権\n・etika / budaya berpolitik：政治を行う上での倫理 ／ 政治風土\n・terjun berpolitik：政界に入る、政治活動を始める",
+          "■ 【関連語】：politik（政治）、politikus / politisi（政治家）、politis（政治的な）。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "politikus", r: "politik", tier: 2, topicCat: "⚖️ 政治・法律・社会",
+        m: "政治家（＝politisi）",
+        ex: "Seorang politikus yang baik harus selalu mengutamakan kepentingan rakyat di atas kepentingan partai.",
+        tr: "良き政治家は、常に党の利益よりも国民の利益を最優先しなければならない。",
+        note: "■ 【類義語】：標準語としては『politikus』が推奨されるが、ニュースや日常では『politisi』も同義で広く使われる。"
+      },
+      {
+        p: "n", w: "urut", r: "urut", tier: 1, topicCat: "🏠 日常・生活・移動",
+        m: "①順番の、順序の（nomor urut＝整理番号・出席番号・選挙の届出番号） ②揉む、マッサージする（pijat urut / mengurut）",
+        ex: "Komisi Pemilihan Umum menggelar pengundian nomor urut bagi para pasangan calon peserta pemilu.",
+        tr: "総選挙委員会は、選挙に参加する正副候補者ペアの届出番号（順番）の抽選会を開催した。",
+        note: [
+          "■ 【2つの重要用法】：\n① 順序・番号：『nomor urut』（整理番号、通し番号、選挙の政党・候補者名簿の順位番号：nomor urut satu＝届出番号1番・名簿1位）\n② マッサージ：『pijat urut / tukang urut』（伝統マッサージ ／ マッサージ師・整体師）、『mengurut kaki yang keseleo』（捻挫した足を揉む）",
+          "■ 【関連語】：\n・urutan（名詞）：順序、順番、ランキング順位\n・berurutan（形容詞・動詞）：順番に並んだ、連続した\n・mengurutkan（他動詞）：順番に並べる、ソートする"
+        ].join("\n")
+      },
+      {
+        p: "a", w: "berurutan", r: "urut", tier: 2, topicCat: "🎓 教育・学術・IT",
+        m: "順番に並んだ、連続した、順を追った（＝berturut-turut）",
+        ex: "Susunlah dokumen-dokumen tersebut secara berurutan mulai dari tanggal yang paling lama hingga terbaru.",
+        tr: "それらの書類を最も古い日付から最新のものまで順番に（時系列順に）並べなさい。",
+        note: [
+          "■ 【語構成】：ber- + urut + -an。",
+          "■ 【コロケーション】：secara berurutan（順番に、連続して）、angka yang berurutan（連続した数字、連番）。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "pencalonan", r: "calon", tier: 1, topicCat: "⚖️ 政治・法律・社会",
+        m: "立候補、候補者の擁立・指名、立候補手続き",
+        ex: "Tahapan pendaftaran dan pencalonan kepala daerah akan dimulai secara serentak pada bulan Agustus.",
+        tr: "地方首長の登録および立候補（候補者擁立）手続きの段階は、8月に一斉に開始される予定だ。",
+        note: [
+          "■ 【語構成】：peN- + calon（候補者）+ -an。他動詞 mencalonkan（候補者として擁立・推薦する）に対応する行為名詞。",
+          "■ 【コロケーション】：\n・pencalonan diri：立候補\n・syarat / berkas pencalonan：立候補要件 ／ 立候補届出書類\n・membatalkan pencalonan：立候補（擁立）を取り消す"
+        ].join("\n")
+      },
+      {
+        p: "other", w: "meski", r: "meski", tier: 1, topicCat: "🏠 日常・生活・移動",
+        m: "〜にもかかわらず、たとえ〜であっても（譲歩を表す接続詞＝meskipun / walaupun / kendati）",
+        ex: "Para petani tetap turun ke sawah meski cuaca pagi ini tampak sangat mendung.",
+        tr: "今朝の天気はひどく曇っているにもかかわらず、農家たちは変わらず田んぼへ出た。",
+        note: [
+          "■ 【語法】：『meskipun』の短縮形だが、ニュースの見出しや論説文・日常会話のすべてで meskipun と全く同じ頻度で使われる。『meski demikian / meski begitu（そうは言っても・それにもかかわらず）』も定型表現。"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "berpotensi", r: "potensi", tier: 1, topicCat: "🌿 自然・天気・動植物",
+        m: "①〜の可能性がある、潜在力を持つ ②（悪天候・災害・問題などを）引き起こす恐れがある",
+        ex: "Hujan lebat yang mengguyur wilayah hulu berpotensi menyebabkan banjir kiriman di daerah hilir.",
+        tr: "上流地域に降り注ぐ豪雨は、下流地域において鉄砲水（上流からの洪水）を引き起こす恐れ（可能性）がある。",
+        note: [
+          "■ 【語構成】：ber- + potensi（潜在力・可能性）。直後に動詞または名詞を置く。",
+          "■ 【コロケーション】：\n・berpotensi besar (untuk) ~：〜する大きな可能性（潜在力）を秘めている\n・berpotensi menimbulkan / memicu ~：〜を引き起こす恐れがある（気象警報やリスク分析の定型表現）",
+          "■ 【関連語】：potensi（潜在力・可能性）、potensial（有望な・潜在的な）。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "sinkronisasi", r: "sinkron", tier: 2, topicCat: "⚖️ 政治・法律・社会",
+        m: "同期、すり合わせ、整合化、同時化（政策・規制・データなどの矛盾をなくして一致させること）",
+        ex: "Diperlukan sinkronisasi aturan antara pemerintah pusat dan daerah agar kebijakan berjalan efektif.",
+        tr: "政策が効果的に進むためには、中央政府と地方自治体の間での規則のすり合わせ（整合化）が必要である。",
+        note: [
+          "■ 【コロケーション】：\n・sinkronisasi data / kebijakan / regulasi：データの同期 ／ 政策・法規制のすり合わせ（整合化）\n・melakukan sinkronisasi：同期・すり合わせを行う",
+          "■ 【関連語】：\n・sinkron（形容詞）：同期した、整合性がとれた（belum sinkron＝まだ整合していない・食い違っている）\n・menyinkronkan（他動詞）：〜を同期させる、整合させる"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "berkontribusi", r: "kontribusi", tier: 1, topicCat: "💼 仕事・経済・買い物",
+        m: "貢献する、寄与する（＝menyumbang / berperan serta）",
+        ex: "Usaha mikro, kecil, dan menengah berkontribusi besar terhadap penyerapan tenaga kerja nasional.",
+        tr: "零細・中小企業（UMKM）は、国内の雇用吸収に対して大きく貢献している。",
+        note: [
+          "■ 【語構成】：ber- + kontribusi（貢献・寄与）。前置詞は terhadap / pada / dalam を伴う。",
+          "■ 【コロケーション】：\n・berkontribusi besar / positif terhadap ~：〜に対して大きく／前向きに貢献する\n・berkontribusi aktif dalam ~：〜において積極的に寄与する"
+        ].join("\n")
+      },
+      {
+        p: "a", w: "berdaya", r: "daya", tier: 1, topicCat: "💼 仕事・経済・買い物",
+        m: "力がある、能力を持つ、自立している（複合語や否定形 tak berdaya で多用される）",
+        ex: "Melalui pelatihan keterampilan ini, warga desa diharapkan menjadi lebih mandiri dan berdaya secara ekonomi.",
+        tr: "この技能研修を通じて、村の住民がより自立し、経済的に力を持つようになることが期待されている。",
+        note: [
+          "■ 【語構成】：ber- + daya（力・能力）。",
+          "■ 【重要コロケーション】：\n・berdaya saing (tinggi)：（高い）競争力のある（produk yang berdaya saing global）\n・berdaya guna：効率的な、実用的な（＝efisien）\n・tidak / tak berdaya：無力な、なす術がない、抵抗できない",
+          "■ 【関連語】：daya（力・能力）、memberdayakan（自立させる・活性化する）、pemberdayaan（自立支援・エンパワーメント）。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "saing", r: "saing", tier: 1, topicCat: "💼 仕事・経済・買い物",
+        m: "競争、対抗（主に daya saing や派生語 bersaing / persaingan / pesaing の語幹として用いられる）",
+        ex: "Peningkatan mutu pendidikan sangat penting untuk memperkuat daya saing generasi muda di pasar kerja.",
+        tr: "教育の質の向上は、労働市場における若い世代の競争力を強化するために極めて重要である。",
+        note: [
+          "■ 【最重要複合語】：\n・daya saing：競争力（meningkatkan daya saing nasional＝国際競争力を高める ／ berdaya saing＝競争力のある）\n・harga saing：競争価格",
+          "■ 【関連語ファミリー】：\n・bersaing（自動詞）：競争する、競い合う（bersaing ketat＝激しく競り合う）\n・persaingan（名詞）：競争（persaingan sehat＝健全な競争）\n・pesaing / saingan（名詞）：競争相手、ライバル、競合他社\n・menyaingi（他動詞）：〜に匹敵する、〜と張り合う"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "stok", r: "stok", tier: 1, topicCat: "💼 仕事・経済・買い物",
+        m: "在庫、備蓄、ストック（＝persediaan / cadangan）",
+        ex: "Pemerintah memastikan bahwa stok beras nasional di gudang Bulog sangat aman hingga akhir tahun.",
+        tr: "政府は、国家食糧調達庁（Bulog）の倉庫にある国の米の備蓄（在庫）が年末まで十分に安全（確保されている）であることを確認した。",
+        note: [
+          "■ 【コロケーション】：\n・stok pangan / stok beras：食料備蓄 ／ 米の在庫\n・stok barang habis / menipis：商品の在庫が切れる ／ 品薄になる\n・menjaga ketersediaan stok：在庫の供給量を維持する"
+        ].join("\n")
+      },
+
+      // -------------------- 3. 辞書専用語（問題には出さない：dictOnly: true, tier: 3） --------------------
+      {
+        p: "singkatan", w: "PKPU", r: "Peraturan Komisi Pemilihan Umum", alts: ["peraturan komisi pemilihan umum"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "総選挙委員会規則（※ビジネス・法務文脈では「債務支払猶予：Penundaan Kewajiban Pembayaran Utang」）",
+        ex: "KPU segera melakukan revisi terhadap PKPU mengenai pencalonan anggota legislatif pascaputusan MK.",
+        tr: "総選挙委員会（KPU）は憲法裁判所の判決を受け、議員の立候補に関する総選挙委員会規則（PKPU）の改正を直ちに行った。",
+        note: [
+          "■ 【選挙・政治文脈】：Peraturan（規則）Komisi Pemilihan Umum（総選挙委員会）。選挙の実施細則を定める規則。",
+          "■ 【経済・倒産法文脈】：Penundaan Kewajiban Pembayaran Utang（債務支払猶予＝民事再生手続きに相当）。"
+        ].join("\n")
+      },
+      {
+        p: "singkatan", w: "PKS", r: "Partai Keadilan Sejahtera", alts: ["partai keadilan sejahtera"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "福祉正義党（インドネシアのイスラム系主要政党のひとつ）",
+        ex: "Fraksi PKS di DPR menyampaikan pandangan resminya terkait rancangan undang-undang tersebut.",
+        tr: "国会の福祉正義党（PKS）会派は、その法案に関する公式見解を表明した。",
+        note: "■ 【正式名称】：Partai（党）Keadilan（正義）Sejahtera（福祉・繁栄）。"
+      },
+      {
+        p: "singkatan", w: "PKB", r: "Partai Kebangkitan Bangsa", alts: ["partai kebangkitan bangsa"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "民族覚醒党（インドネシアの最大イスラム組織ナフダトゥル・ウラマー［NU］を母体とする主要政党）",
+        ex: "DPP PKB menggelar rapat koordinasi nasional untuk menghadapi pemilihan kepala daerah serentak.",
+        tr: "民族覚醒党（PKB）の中央執行委員会は、統一地方首長選挙に臨むための全国調整会議を開催した。",
+        note: "■ 【正式名称】：Partai（党）Kebangkitan（覚醒・復興：語幹 bangkit）Bangsa（民族・国民）。第4代大統領アブドゥルラフマン・ワヒド（グス・ドゥル）らによって設立された政党。"
+      },
+      {
+        p: "n", w: "Partai Kebangkitan Bangsa", r: "Partai Kebangkitan Bangsa", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "民族覚醒党（略称：PKB）",
+        ex: "Partai Kebangkitan Bangsa (PKB) merupakan salah satu partai politik peserta pemilihan umum di Indonesia.",
+        tr: "民族覚醒党（PKB）はインドネシアの総選挙に参加している政党のひとつである。",
+        note: "■ 【略称】：PKB（Partai Kebangkitan Bangsa）。"
+      },
+      {
+        p: "a", w: "elektoral", r: "elektoral", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "選挙の、選挙に関する、有権者・得票に関わる",
+        ex: "Partai politik tidak boleh hanya mengejar keuntungan elektoral sesaat tanpa memikirkan pendidikan politik warga.",
+        tr: "政党は市民の政治教育を考えずに、目先の選挙上の（得票の）利益ばかりを追い求めてはならない。",
+        note: [
+          "■ 【コロケーション】：\n・dampak / insentif / efek elektoral：選挙（得票）上の影響 ／ インセンティブ ／ 効果\n・ambang batas elektoral：選挙阻止条項（議席獲得に必要な最低得票率＝parliamentary threshold）",
+          "■ 【関連語】：elektabilitas（支持率・当選可能性）。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "pencalegan", r: "caleg", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "議員候補者（caleg）の擁立、議員立候補の手続き・プロセス（＝pencalonan anggota legislatif）",
+        ex: "Aturan baru tersebut diharapkan mampu memperbaiki proses pencalegan di internal partai politik.",
+        tr: "その新しい規則は、政党内部における議員候補者擁立（立候補）プロセスを改善できると期待されている。",
+        note: [
+          "■ 【語構成】：peN- + caleg（calon legislatif＝議員候補者）+ -an。標準的なフォーマル表現は『pencalonan anggota legislatif』だが、政治報道や評論ではアクロニムから派生した『pencalegan』も多用される。"
+        ].join("\n")
+      },
+      {
+        p: "a", w: "sinkron", r: "sinkron", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "同期した、同時進行の、（データや方針の）整合性がとれた、一致した（＝selaras / sejalan）",
+        ex: "Data penerima bantuan di tingkat desa dan kabupaten harus sinkron agar tidak terjadi salah sasaran.",
+        tr: "対象違いが起きないよう、村レベルと県レベルの支援受給者データは整合性がとれていなければならない（一致していなければならない）。",
+        note: "■ 【関連語】：sinkronisasi（名詞：同期・すり合わせ・整合化）、menyinkronkan（他動詞：同期させる・整合させる）。"
+      }
+    ],
+    acro: [
+      {
+        acro: "BRIN",
+        full: "badan riset dan inovasi nasional",
+        alts: [],
+        topicCat: "🎓 教育・学術・IT",
+        tr: "国家研究イノベーション庁",
+        exp: "■ 【正式名称】：Badan Riset（研究）dan Inovasi（イノベーション）Nasional（国家の）。インドネシアの国立研究機関を統合した政府機関。"
+      },
+      {
+        acro: "DPP",
+        full: "dewan pimpinan pusat",
+        alts: [],
+        topicCat: "⚖️ 政治・法律・社会",
+        tr: "中央執行委員会、党本部（政党や全国組織の中央指導部）",
+        exp: "■ 【正式名称】：Dewan Pimpinan Pusat。\n■ 【関連略語】：DPD（Dewan Pimpinan Daerah＝州レベルの地方執行委員会）、DPC（Dewan Pimpinan Cabang＝市・県レベルの支部執行委員会）。"
+      },
+      {
+        acro: "PKPU",
+        full: "peraturan komisi pemilihan umum",
+        alts: ["penundaan kewajiban pembayaran utang"],
+        dictOnly: true,
+        tier: 3,
+        topicCat: "⚖️ 政治・法律・社会",
+        tr: "総選挙委員会規則（※経済・法務では「債務支払猶予」）",
+        exp: "■ 【選挙文脈】：Peraturan Komisi Pemilihan Umum（総選挙委員会規則）。\n■ 【経済法務文脈】：Penundaan Kewajiban Pembayaran Utang（債務支払猶予）。"
+      },
+      {
+        acro: "PKS",
+        full: "partai keadilan sejahtera",
+        alts: [],
+        dictOnly: true,
+        tier: 3,
+        topicCat: "⚖️ 政治・法律・社会",
+        tr: "福祉正義党",
+        exp: "■ 【正式名称】：Partai Keadilan Sejahtera（インドネシアのイスラム系政党）。"
+      },
+      {
+        acro: "PKB",
+        full: "partai kebangkitan bangsa",
+        alts: [],
+        dictOnly: true,
+        tier: 3,
+        topicCat: "⚖️ 政治・法律・社会",
+        tr: "民族覚醒党",
+        exp: "■ 【正式名称】：Partai Kebangkitan Bangsa（イスラム組織ナフダトゥル・ウラマー［NU］を母体とする政党）。"
+      }
+    ]
+  };
+
+  // 略語配列 (d.singkatan) への登録と、acro 側の dictOnly フラグ反映
+  if (Array.isArray(d.singkatan)) {
+    ["BRIN", "DPP", "PKPU", "PKS", "PKB"].forEach(function(code) {
+      const vObj = PACK.vocab.find(x => x.w.toUpperCase() === code);
+      if (vObj && !d.singkatan.some(s => s && s.w && s.w.toUpperCase() === code)) {
+        d.singkatan.push(vObj);
+      }
+    });
+  }
+  PACK.acro.forEach(function(a) {
+    if (a.dictOnly === true || a.tier === 3) {
+      dictOnlySet.add(a.acro.trim().toLowerCase());
+    }
+  });
+
+  // 既存の legislatif の語幹も連結確認、および maksud の解説アップデート
+  if (typeof window.wiAddPack === "function") {
+    window.wiAddPack(PACK);
+  }
+
+  // スペルゆれ・誤入力（peneyerahan / kontensasi / pencalengan）で検索した際も正規の見出し語が先頭に出るようケア
+  const dIn = document.getElementById("dict-input");
+  if (dIn && !dIn.__wiTypoAliasBound) {
+    dIn.__wiTypoAliasBound = true;
+    const TYPO_ALIAS = {
+      "peneyerahan": "penyerahan",
+      "kontensasi": "kontestasi",
+      "pencalengan": "pencalegan"
+    };
+    dIn.addEventListener("input", function() {
+      const valLow = dIn.value.trim().toLowerCase();
+      if (TYPO_ALIAS[valLow]) {
+        const pos = dIn.selectionStart;
+        dIn.value = TYPO_ALIAS[valLow];
+        try { dIn.setSelectionRange(pos, pos); } catch (e) {}
+      }
+    }, true);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 「Partai Kebangkitan Bangsa」重複見出し削除（PKBへ一本化）＆「BPKB」問題非出題化パッチ
+   ===================================================================== */
+(function() {
+  const d = window.WHATSINDO_EXTERNAL_DATA;
+  if (!d) return;
+
+  const dictOnlySet = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+  const vMap        = window.__wiMasterVocabMap;
+  const catMap      = window.__WI_V5_VCAT;
+
+  // 1. 重複していた「Partai Kebangkitan Bangsa」の見出しを削除し、「PKB」1つに一本化
+  if (Array.isArray(d.vocab)) {
+    for (let i = d.vocab.length - 1; i >= 0; i--) {
+      const it = d.vocab[i];
+      if (it && it.w && it.w.trim().toLowerCase() === "partai kebangkitan bangsa") {
+        d.vocab.splice(i, 1);
+      }
+    }
+  }
+  if (vMap) vMap.delete("partai kebangkitan bangsa");
+  if (catMap) catMap.delete("partai kebangkitan bangsa");
+  dictOnlySet.delete("partai kebangkitan bangsa");
+
+  // 2. 「BPKB」を辞書専用（問題非出題：☆スターボタン・排除ボタン非表示）に設定
+  dictOnlySet.add("bpkb");
+
+  if (Array.isArray(d.acro)) {
+    d.acro.forEach(function(it) {
+      if (it && it.acro && it.acro.trim().toLowerCase() === "bpkb") {
+        it.dictOnly = true;
+        it.tier = 3;
+      }
+    });
+  }
+  if (Array.isArray(d.singkatan)) {
+    d.singkatan.forEach(function(it) {
+      if (it && it.w && it.w.trim().toLowerCase() === "bpkb") {
+        it.dictOnly = true;
+        it.tier = 3;
+      }
+    });
+  }
+  if (vMap && vMap.has("bpkb")) {
+    vMap.get("bpkb").dictOnly = true;
+    vMap.get("bpkb").tier = 3;
+  }
+
+  window.__wiDataRevision = (window.__wiDataRevision || 0) + 1;
+  if (typeof window.__reloadWhatsIndo === "function") {
+    try { window.__reloadWhatsIndo(); } catch (e) {}
+  }
+})();
+/* =====================================================================
+   WhatsIndo 語彙追加パック（ご指名語＋重要派生語 ＆ 辞書専用語の自動振り分け）
+   ===================================================================== */
+(function() {
+  const dictOnlySet = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+
+  const PACK = {
+    vocab: [
+      // ==================== 1. 出題対象（問題＋辞書） ====================
+      {
+        p: "n", w: "agen", r: "agen", tier: 1, topicCat: "💼 仕事・経済・買い物",
+        m: "①代理店、エージェント、仲介業者 ②（情報機関や警察などの）捜査官、工作員 ③（変化などの）担い手、作用物質",
+        ex: "Kami memesan tiket pesawat dan kamar hotel melalui agen perjalanan resmi.",
+        tr: "私たちは公式の旅行代理店を通じて航空券とホテルの部屋を予約した。",
+        note: [
+          "■ 【コロケーション】：\n・agen perjalanan / agen wisata：旅行代理店（＝biro perjalanan）\n・agen tunggal：総代理店、独占販売代理店\n・agen properti / agen asuransi：不動産仲介業者 ／ 保険代理店\n・agen rahasia：秘密工作員、スパイ\n・agen perubahan：変革の担い手（agent of change）",
+          "■ 【派生語】：keagenan（名詞：代理店業務、エージェンシー制度）。"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "menyerukan", r: "seru", tier: 1, topicCat: "⚖️ 政治・法律・社会",
+        m: "（平和・団結・自制などを）強く呼びかける、訴える、アピールする（＝mengimbau）",
+        ex: "Perserikatan Bangsa-Bangsa menyerukan gencatan senjata segera di wilayah konflik tersebut.",
+        tr: "国際連合は、その紛争地域における即時停戦を強く呼びかけた。",
+        note: [
+          "■ 【語構成】：meN- + seru（呼ぶ・叫ぶ）+ -kan（s が鼻音化して ny）。",
+          "■ 【コロケーション】：\n・menyerukan perdamaian / persatuan：平和 ／ 団結を呼びかける\n・menyerukan kepada semua pihak agar ~：すべての当事者に対して〜するよう訴える\n・menyerukan boikot：ボイコットを呼びかける",
+          "■ 【関連語】：seruan（名詞：呼びかけ、アピール）、berseru（自動詞：叫ぶ、声を上げる）。※形容詞の seru（白熱した・すごく面白い）とは同綴りの別語源。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "perserikatan", r: "serikat", tier: 1, topicCat: "⚖️ 政治・法律・社会",
+        m: "連合、連盟、同盟、協会",
+        ex: "Indonesia secara resmi kembali menjadi anggota Perserikatan Bangsa-Bangsa pada tahun 1966.",
+        tr: "インドネシアは1966年に正式に国際連合の加盟国へ復帰した。",
+        note: [
+          "■ 【語構成】：per- + serikat（組合・同盟）+ -an。",
+          "■ 【重要表現】：\n・Perserikatan Bangsa-Bangsa (PBB)：国際連合（国連）\n・Perserikatan Sepak Bola Seluruh Indonesia (PSSI)：インドネシアサッカー協会",
+          "■ 【関連語】：\n・serikat（名詞）：組合、連盟（serikat pekerja / serikat buruh＝労働組合、Amerika Serikat＝アメリカ合衆国）\n・berserikat（自動詞）：組合・結社を作る、同盟を結ぶ"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "berserikat", r: "serikat", tier: 2, topicCat: "⚖️ 政治・法律・社会",
+        m: "結社を作る、組合を結成する、同盟・連合を組む",
+        ex: "Undang-Undang Dasar menjamin kemerdekaan setiap warga negara untuk berserikat dan berkumpul.",
+        tr: "憲法はすべての国民に対して、結社を作り集会を行う自由（結社・集会の自由）を保障している。",
+        note: "■ 【コロケーション】：kebebasan / kemerdekaan berserikat dan berkumpul（結社および集会の自由）。"
+      },
+      {
+        p: "v", w: "memenangi", r: "menang", tier: 1, topicCat: "🏥 健康・身体・感情",
+        m: "（試合・選挙・コンテスト・賞などに）勝つ、勝利を収める",
+        ex: "Pasangan ganda putra tersebut berhasil memenangi turnamen bulu tangkis tingkat Asia tahun ini.",
+        tr: "その男子ダブルスペアは、今年のアジアレベルのバドミントン大会で優勝する（勝利を収める）ことに成功した。",
+        note: [
+          "■ 【語構成】：meN- + menang（勝つ）+ -i。",
+          "■ 【memenangi と memenangkan の文法ポイント】：\n・memenangi（-i）：試合・選挙・大会などの「場・対象において勝つ」（memenangi pertandingan / memenangi pemilu）。標準文法（Bahasa Baku）では「試合に勝つ」にはこの memenangi が最も規範的とされる。\n・memenangkan（-kan）：本来は「（人やチームを）勝たせる」という使役他動詞だが、現代では memenangi と同義で「試合に勝つ」の意味でも広く使われる。"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "adu", r: "adu", tier: 1, topicCat: "⚖️ 政治・法律・社会",
+        m: "①競う、対決する、ぶつけ合う（adu cepat / adu argumen） ②競争、対決、勝負",
+        ex: "Babak perempat final berlangsung sangat menegangkan hingga harus ditentukan melalui adu penalti.",
+        tr: "準々決勝は非常に緊迫した展開となり、最終的にPK戦（ペナルティキック対決）で決着をつけなければならなかった。",
+        note: [
+          "■ 【重要複合表現（adu + 名詞/形容詞）】：\n・adu penalti：PK戦\n・adu mulut / adu lidah：口論、言い争い\n・adu argumen / adu gagasan：議論の応酬 ／ アイデアの競い合い\n・adu cepat / adu kuat：速さ比べ ／ 力比べ\n・adu domba（mengadu domba）：二者間をけしかけて対立させる、離間策をとる",
+          "■ 【関連語ファミリー】：\n・beradu（自動詞）：衝突する、ぶつかり合う、競い合う\n・mengadu（他動詞）：競わせる ／ 言いつける、告げ口する（mengadu nasib＝運試しをする）\n・mengadukan（他動詞）：（警察や窓口に被害・不正を）訴え出る、通報する\n・pengaduan / aduan（名詞）：通報、苦情申し立て、被害届"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "beradu", r: "adu", tier: 1, topicCat: "🏠 日常・生活・移動",
+        m: "①衝突する、ぶつかり合う ②（視線などが）合う ③競い合う、対決する",
+        ex: "Dua kendaraan bermotor beradu di persimpangan jalan akibat salah satu pengemudi menerobos lampu merah.",
+        tr: "一方の運転手が赤信号を無視したため、交差点で2台の車両が衝突した。",
+        note: [
+          "■ 【コロケーション】：\n・beradu pandang / beradu mata：視線がぶつかる、目が合う\n・beradu argumen / pendapat：議論を戦わせる\n・beradu fisik：肉体的に衝突する、つかみ合いになる"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "mengadukan", r: "adu", tier: 1, topicCat: "⚖️ 政治・法律・社会",
+        m: "（被害・不正・苦情などを警察や関係当局に）訴え出る、通報する、届け出る",
+        ex: "Para konsumen yang merasa dirugikan segera mengadukan kasus penipuan itu kepada pihak kepolisian.",
+        tr: "損害を被ったと感じた消費者たちは、直ちにその詐欺事件を警察当局へ訴え出た（通報した）。",
+        note: [
+          "■ 【mengadu と mengadukan の構文の区別】：\n・mengadu kepada [人]：（人に）不平を訴える、言いつける\n・mengadukan [事件・問題・犯人] kepada [当局]：（問題や相手を当局へ）通報する、告訴する\n・派生名詞：pengaduan / aduan（苦情申し立て・被害届）。"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "berhati-hati", r: "hati", tier: 1, topicCat: "🏠 日常・生活・移動",
+        m: "十分に注意する、用心する、慎重に行動する（＝hati-hati / waspada）",
+        ex: "Masyarakat diminta lebih berhati-hati terhadap penipuan daring yang mengatasnamakan pihak bank.",
+        tr: "市民は銀行側を名乗るオンライン詐欺に対して、より一層注意するよう求められている。",
+        note: [
+          "■ 【語構成】：ber- + hati-hati（語幹 hati）。",
+          "■ 【関連語】：\n・hati-hati（形容詞・感嘆詞）：注意深い、気をつけて！（Hati-hati di jalan!＝道中気をつけて！）\n・kehati-hatian（名詞）：慎重さ、用心深さ（prinsip kehati-hatian＝金融や行政における慎重原則）"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "kehati-hatian", r: "hati", tier: 2, topicCat: "💼 仕事・経済・買い物",
+        m: "慎重さ、用心深さ、細心の注意",
+        ex: "Bank wajib menerapkan prinsip kehati-hatian dalam menyalurkan kredit usaha kepada nasabah.",
+        tr: "銀行は顧客へ事業融資を行う際、慎重原則（プルーデンス原則）を適用する義務がある。",
+        note: "■ 【コロケーション】：prinsip kehati-hatian（慎重原則・リスク管理原則）、sikap kehati-hatian（慎重な姿勢）。"
+      },
+      {
+        p: "n", w: "petang", r: "petang", tier: 1, topicCat: "🏠 日常・生活・移動",
+        m: "夕方、夕暮れ時（おおよそ午後3時〜日没の18時頃＝sore）",
+        ex: "Museum nasional tersebut buka setiap hari mulai pukul sembilan pagi hingga pukul lima petang.",
+        tr: "その国立博物館は毎日、午前9時から午後5時（夕方5時）まで開館している。",
+        note: [
+          "■ 【コロケーション】：\n・pukul lima petang：午後（夕方）5時（＝pukul lima sore）\n・petang hari：夕暮れ時、夕方\n・dari pagi hingga petang：朝から晩（夕方）まで"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "melorot", r: "lorot", tier: 2, topicCat: "💼 仕事・経済・買い物",
+        m: "①（ズボン・靴下・布などが）ずり落ちる、滑り落ちる ②（順位・価格・支持率・業績などが）下落する、滑り落ちる（＝merosot / turun）",
+        ex: "Peringkat tim sepak bola itu melorot ke posisi sepuluh setelah menelan tiga kekalahan beruntun.",
+        tr: "そのサッカーチームの順位は、3連敗を喫した後に10位へと滑り落ちた（下落した）。",
+        note: [
+          "■ 【語構成】：meN- + lorot（滑り落ちる）。",
+          "■ 【2つの文脈】：\n① 具体的な物がずり落ちる：Celananya melorot karena terlalu longgar（ズボンが緩すぎてずり落ちた）\n② 数値や順位が下がる：Harga saham / elektabilitasnya melorot（株価／支持率が下落した）"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "tersisa", r: "sisa", tier: 1, topicCat: "🏠 日常・生活・移動",
+        m: "残っている、残存している、余っている",
+        ex: "Hanya tersisa waktu lima belas menit lagi bagi para peserta untuk menyelesaikan soal ujian.",
+        tr: "受験者たちが試験問題を解き終えるための時間は、あと15分しか残っていない。",
+        note: [
+          "■ 【語構成】：ter- + sisa（残り・余り）。",
+          "■ 【コロケーション】：\n・waktu / kuota yang tersisa：残された時間 ／ 残りの定員枠\n・tidak ada yang tersisa（tak tersisa）：何一つ残っていない、跡形もない",
+          "■ 【関連語】：sisa（残り・余り・廃棄物）、menyisakan（〜を残す・余らせる）。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "resor", r: "resor", tier: 2, topicCat: "🏠 日常・生活・移動",
+        m: "①リゾート、保養地、観光滞在施設（hotel resor / kawasan resor） ②（警察や行政の）管轄区域、管区",
+        ex: "Wisatawan mancanegara gemar menginap di resor tepi pantai yang menawarkan pemandangan matahari terbenam.",
+        tr: "外国人観光客は、夕日の景色を楽しめるビーチ沿いのリゾートに宿泊するのを好む。",
+        note: [
+          "■ 【2つの意味】：\n① 観光の「リゾート（英語 resort）」：resor pantai（ビーチリゾート）、resor pegunungan（高原リゾート）\n② 警察管区の「resor（オランダ語 ressort）」：Kepolisian Resor (Polres)＝県・市警察署（警察署長は Kapolres）。"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "mengacaukan", r: "kacau", tier: 1, topicCat: "⚖️ 政治・法律・社会",
+        m: "（秩序・計画・治安・集中力などを）乱す、混乱させる、台無しにする",
+        ex: "Hujan deras yang turun secara tiba-tiba sempat mengacaukan jadwal pertandingan olahraga di luar ruangan.",
+        tr: "突然降り出した激しい雨が、屋外スポーツ大会のスケジュールを一時混乱させた（狂わせた）。",
+        note: [
+          "■ 【語構成】：meN- + kacau（混乱した・バラバラな）+ -kan（k が鼻音化して ng）。",
+          "■ 【コロケーション】：\n・mengacaukan konsentrasi / jadwal / rencana：集中力 ／ スケジュール ／ 計画を乱す\n・mengacaukan keamanan：治安を乱す",
+          "■ 【関連語】：kacau（混乱した：kacau balau＝大混乱の）、kekacauan（混乱・騒乱）、pengacau（撹乱者・暴徒）。"
+        ].join("\n")
+      },
+      {
+        p: "a", w: "sunyi", r: "sunyi", tier: 1, topicCat: "🌿 自然・天気・動植物",
+        m: "（物音や人の気配が全くなく）静まり返った、ひっそりとした、寂しい（＝sepi / senyap）",
+        ex: "Saat lewat tengah malam, jalanan di desa pegunungan itu terasa sangat sunyi.",
+        tr: "真夜中を過ぎると、その山村の道は非常に静まり返っていた。",
+        note: [
+          "■ 【コロケーション】：\n・sunyi senyap：シーンと静まり返った、寂然とした\n・malam yang sunyi：静まり返った夜",
+          "■ 【派生語】：kesunyian（名詞：静寂、ひっそりとした静けさ、孤独）。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "kesunyian", r: "sunyi", tier: 1, topicCat: "🌿 自然・天気・動植物",
+        m: "静寂、静けさ、ひっそりとした孤独（＝keheningan / kesepian）",
+        ex: "Suara kicauan burung pagi memecah kesunyian di tengah hutan lindung tersebut.",
+        tr: "朝の鳥のさえずりが、その保護林の中の静寂を破った。",
+        note: [
+          "■ 【語構成】：ke- + sunyi（静まり返った）+ -an。",
+          "■ 【コロケーション】：memecah kesunyian（静寂を破る）、di tengah kesunyian malam（夜の静寂の中で）。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "tingkah", r: "tingkah", tier: 1, topicCat: "🏥 健康・身体・感情",
+        m: "立ち居振る舞い、行動、しぐさ、風変わりな言動（主に tingkah laku / bertingkah の形で用いられる）",
+        ex: "Orang tua perlu mengawasi tingkah laku anak-anak mereka dalam pergaulan sehari-hari.",
+        tr: "親は日常の交友関係における子どもたちの立ち居振る舞い（行動）を見守る必要がある。",
+        note: [
+          "■ 【コロケーション・派生語】：\n・tingkah laku / tingkah polah：立ち居振る舞い、行動、素行（＝perilaku / tindak tanduk）\n・bertingkah：風変わりな行動をとる、わがまま・生意気な態度をとる（banyak tingkah＝注文や気まぐれが多い）\n・meningkahi（文学表現）：（音や合いの手などで）伴奏する、彩りを添える、応じる"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "dedaunan", r: "daun", tier: 1, topicCat: "🌿 自然・天気・動植物",
+        m: "木々の葉、様々な葉（集合的な複数名詞＝daun-daunan）",
+        ex: "Angin musim gugur menggugurkan dedaunan kering hingga menutupi jalan setapak di taman.",
+        tr: "秋の風が枯れ葉（木々の葉）を散らし、公園の遊歩道を覆い尽くした。",
+        note: [
+          "■ 【語構成（語頭音節の重複＋-an）】：daun（葉）の先頭音節を重複させて母音を e に弱め、接尾辞 -an を付けた『de-daun-an』。「たくさんの多様な〜群」を表す集合名詞を作る重要パターン。",
+          "■ 【同じパターンの重要集合名詞】：\n・daun（葉）➔ dedaunan（木々の葉）\n・pohon（木）➔ pepohonan（木々、樹林）\n・rumput（草）➔ rerumputan（草むら、様々な草）\n・batu（石）➔ bebatuan（岩や石ころの群れ）"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "sambut", r: "sambut", tier: 1, topicCat: "🏠 日常・生活・移動",
+        m: "迎える、出迎える、歓迎する（能動形 menyambut ／ 受動形 disambut）",
+        ex: "Kedatangan tim juara dunia itu disambut dengan meriah oleh ribuan penggemar di bandara.",
+        tr: "その世界王者チームの到着は、空港で数千人のファンによって盛大に迎えられた。",
+        note: [
+          "■ 【関連語ファミリー】：\n・menyambut（他動詞）：迎える、歓迎する（menyambut baik＝好意的に受け止める・歓迎する）\n・disambut（受動態）：迎えられる、歓迎される\n・sambutan（名詞）：歓迎 ／ 式典での歓迎の挨拶・祝辞（kata sambutan）\n・sambut-menyambut（動詞）：互いに挨拶を交わす、次々と応酬し合う"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "merekah", r: "rekah", tier: 2, topicCat: "🌿 自然・天気・動植物",
+        m: "①（花のつぼみが）ほころびる、咲き始める、（笑顔や朝焼けが）パッと広がる ②（乾いた地面や壁などが）ひび割れる、裂ける",
+        ex: "Kuncup bunga mawar di taman itu mulai merekah indah saat terkena sinar matahari pagi.",
+        tr: "庭のバラのつぼみは、朝日の光を浴びて美しくほころび（咲き）始めた。",
+        note: [
+          "■ 【語構成】：meN- + rekah（割れる・開く）。",
+          "■ 【美しい比喩・コロケーション】：\n・bunga merekah：花がほころびて咲く\n・senyumnya merekah：笑顔がパッと咲く（ほころぶ）\n・fajar merekah：夜明けの光（曙光）が東の空に広がる\n・tanah / bibir yang merekah：ひび割れた大地 ／ 荒れて割れた唇"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "mendesain", r: "desain", tier: 1, topicCat: "🎓 教育・学術・IT",
+        m: "（建物・服・製品・システムなどを）デザインする、設計する（＝merancang）",
+        ex: "Arsitek muda itu ditunjuk untuk mendesain gedung perpustakaan baru yang hemat energi.",
+        tr: "その若手建築家は、省エネルギーな新図書館ビルを設計する（デザインする）ために指名された。",
+        note: [
+          "■ 【語構成】：meN- + desain（デザイン・設計）。",
+          "■ 【関連語】：desain（デザイン・設計）、desainer（デザイナー＝perancang）、berdesain（〜のデザインを持つ）。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "keesokan", r: "esok", tier: 1, topicCat: "🏠 日常・生活・移動",
+        m: "翌日、次の日（常に keesokan harinya / keesokan paginya の形で用いられる）",
+        ex: "Mereka tiba di penginapan larut malam, lalu keesokan harinya langsung mendaki gunung.",
+        tr: "彼らは夜遅くに宿へ到着し、そしてその翌日にすぐ山へ登った。",
+        note: [
+          "■ 【語構成】：ke- + esok（明日・翌日）+ -an。",
+          "■ 【定型表現】：\n・keesokan harinya：その翌日、次の日に（過去の出来事を語る文章で「その次の日」を表す必須表現）\n・keesokan paginya：その翌朝に"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "pembawaan", r: "bawa", tier: 2, topicCat: "🏥 健康・身体・感情",
+        m: "①生まれつきの性格、天性、気質、普段の物腰・雰囲気（＝watak / sifat bawaan） ②持参・納入すること",
+        ex: "Meskipun menjabat sebagai direktur utama, beliau memiliki pembawaan yang tenang dan rendah hati.",
+        tr: "代表取締役社長を務めているにもかかわらず、彼は穏やかで謙虚な物腰（気質）を持っている。",
+        note: [
+          "■ 【語構成】：peN- + bawa（持つ・運ぶ）+ -an。",
+          "■ 【bawaan と pembawaan の違い】：\n・pembawaan：その人が生まれつき備えている「気質・性格・立ち居振る舞いの雰囲気」（pembawaannya santai / ramah＝物腰が柔らかい・気さくだ）\n・barang bawaan：手荷物、持ち物 ／ sifat bawaan：先天的な性質（penyakit bawaan＝先天性疾患・基礎疾患）\n・pembawa acara：司会者（MC）"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "setelan", r: "setel", tier: 2, topicCat: "🏠 日常・生活・移動",
+        m: "①スーツ、上下揃いの服、セットアップ（setelan jas＝背広の上下） ②（機械・音量・時計などの）設定、調整具合",
+        ex: "Ia mengenakan setelan jas berwarna biru tua saat menghadiri acara pelantikan tersebut.",
+        tr: "彼はその就任式に出席する際、濃紺の背広スーツ（上下）を着用した。",
+        note: [
+          "■ 【語構成】：setel（合わせる・一揃いにする）+ -an。",
+          "■ 【コロケーション】：\n・setelan jas / setelan resmi：背広スーツ ／ フォーマルな上下服\n・setelan pabrik：工場出荷時の初期設定（スマートフォンやPCなどの設定リセット）",
+          "■ 【派生動詞】：menyetel（①機器や時計を合わせる・調整する ②音楽やラジオ・テレビをかける）。"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "menyetel", r: "setel", tier: 2, topicCat: "🏠 日常・生活・移動",
+        m: "①（ラジオ・音楽・エアコンなどを）かける、オンにする ②（時計の針・楽器の音程・機械のネジなどを）合わせる、調整する",
+        ex: "Ayah senang menyetel musik jazz klasik sambil membaca koran di teras rumah.",
+        tr: "父は家のテラスで新聞を読みながら、クラシックジャズの音楽をかけるのが好きだ。",
+        note: "■ 【語構成】：meN- + setel（s が鼻音化して ny）。"
+      },
+      {
+        p: "a", w: "modis", r: "mode", tier: 2, topicCat: "🏠 日常・生活・移動",
+        m: "ファッショナブルな、流行に乗った、おしゃれな",
+        ex: "Koleksi pakaian musim panas itu dirancang dengan gaya yang modis namun tetap nyaman dipakai.",
+        tr: "その夏物衣料コレクションは、おしゃれ（ファッショナブル）でありながら着心地の良いスタイルでデザインされている。",
+        note: "■ 【関連語】：mode（流行、ファッション：mode busana）。"
+      },
+      {
+        p: "v", w: "berkelok", r: "kelok", tier: 2, topicCat: "🏠 日常・生活・移動",
+        m: "（道や川などが）曲がる、カーブしている（＝berbelok / menikung）",
+        ex: "Jalan menuju desa di lereng bukit itu mulai menanjak dan berkelok tajam.",
+        tr: "丘の斜面にある村へと向かう道は、上り坂になり急激にカーブし始めた。",
+        note: [
+          "■ 【関連語】：\n・berkelok-kelok（動詞・形容詞）：くねくねと曲がりくねっている（＝berliku-liku）\n・kelokan（名詞）：カーブ、曲がり角（＝tikungan：Kelok Sembilan＝西スマトラの有名な九十九折り道路）"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "berkelok-kelok", r: "kelok", tier: 1, topicCat: "🏠 日常・生活・移動",
+        m: "（道路・川・列などが）くねくねと曲がりくねっている、蛇行している（＝berliku-liku）",
+        ex: "Pengemudi bus harus ekstra waspada saat melewati jalur pegunungan yang sempit dan berkelok-kelok.",
+        tr: "バスの運転手は、狭くて曲がりくねった山岳ルートを通過する際、ひときわ警戒しなければならない。",
+        note: "■ 【類義語】：berliku-liku（道が曲がりくねっている ／ 手続きや人生が複雑に入り組んでいる）。"
+      },
+      {
+        p: "v", w: "bercakap", r: "cakap", tier: 1, topicCat: "🏠 日常・生活・移動",
+        m: "話す、会話する、言葉を交わす（＝berbicara）",
+        ex: "Wisatawan asing itu sudah mampu bercakap dalam bahasa Indonesia dengan cukup lancar.",
+        tr: "その外国人観光客は、すでにインドネシア語でかなり流暢に会話することができる。",
+        note: [
+          "■ 【語幹 cakap の同音異義2系統】：\n① 会話の系統：bercakap / bercakap-cakap（会話する・おしゃべりする）、percakapan（会話・対話）\n② 能力の系統：cakap（有能な・巧みな）、kecakapan（能力・スキル）"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "berlokasi", r: "lokasi", tier: 1, topicCat: "💼 仕事・経済・買い物",
+        m: "（建物・工場・店舗などが〜に）位置している、立地している、所在する（＝terletak）",
+        ex: "Pabrik baru milik perusahaan otomotif tersebut berlokasi di kawasan industri Jawa Barat.",
+        tr: "その自動車メーカーの新しい工場は、西ジャワの工業団地に位置している（立地している）。",
+        note: [
+          "■ 【語構成】：ber- + lokasi（場所・位置・ロケーション）。前置詞 di を伴って『berlokasi di ~（〜に立地している）』の形で使われる。",
+          "■ 【関連語】：lokasi（場所・立地）、merelokasi（移転させる：relokasi＝移転）。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "gestur", r: "gestur", tier: 2, topicCat: "🏥 健康・身体・感情",
+        m: "身振り、手振り、ジェスチャー、態度による意思表示（＝gerak isyarat / bahasa tubuh）",
+        ex: "Dari gestur dan ekspresi wajahnya, terlihat jelas bahwa ia sangat menghormati tamunya.",
+        tr: "彼の身振り（立ち居振る舞い）と顔の表情から、彼が来客を深く敬っていることがはっきりと見て取れた。",
+        note: "■ 【コロケーション】：gestur tubuh（ボディランゲージ・身振り）、gestur politik（政治的なポーズ・姿勢表明）。"
+      },
+      {
+        p: "v", w: "berlalu", r: "lalu", tier: 1, topicCat: "🏠 日常・生活・移動",
+        m: "①（時間・季節・嵐・機会などが）過ぎ去る、経過する ②通り過ぎる、立ち去る",
+        ex: "Sepuluh tahun telah berlalu sejak peristiwa itu, namun kenangannya masih terasa sangat dekat.",
+        tr: "あの出来事からすでに10年が過ぎ去ったが、その思い出は今も非常に身近に感じられる。",
+        note: [
+          "■ 【語構成】：ber- + lalu（過ぎる・前の）。",
+          "■ 【コロケーション】：\n・waktu berlalu begitu cepat：時間が経つのは非常に早い\n・badai pasti berlalu：嵐は必ず過ぎ去る（苦難はいつか必ず終わるという格言・名作小説のタイトル）\n・angin lalu：通り過ぎる風 ➔ 聞き流される言葉",
+          "■ 【関連語】：lalu（前の：tahun lalu ／ それから）、melalui（〜を通じて・〜を通る）、terlalu（〜すぎる）、keterlaluan（あんまりだ・度が過ぎる）。"
+        ].join("\n")
+      },
+      {
+        p: "a", w: "natural", r: "natural", tier: 2, topicCat: "🌿 自然・天気・動植物",
+        m: "自然な、天然の、飾り気のない、ナチュラルな（＝alami / wajar）",
+        ex: "Aktor senior itu mendapat pujian karena aktingnya yang tampak sangat natural dan menyentuh hati.",
+        tr: "そのベテラン俳優は、非常に自然で心を打つ演技によって称賛を浴びた。",
+        note: "■ 【関連語】：alami / alamiah（自然の・天然の）、naturalisasi（帰化：pemain naturalisasi＝帰化選手）。"
+      },
+      {
+        p: "v", w: "membikin", r: "bikin", tier: 2, topicCat: "🏠 日常・生活・移動",
+        m: "①〜を作る、制作する（＝membuat） ②〜させる、〜な状態を引き起こす",
+        ex: "Para pengrajin di desa itu terampil membikin berbagai perabot rumah tangga dari rotan.",
+        tr: "その村の職人たちは、籐（ラタン）から様々な家庭用家具を巧みに作り出す。",
+        note: [
+          "■ 【語法】：口語動詞 bikin に接頭辞 meN- を付けた形。日常会話やエッセイ・小説の地の文で使われるが、公的な論文や法律文書では標準語の『membuat』を用いる。",
+          "■ 【関連語】：bikin（作る・〜させる）、bikinan（〜製、作られたもの＝buatan：kue bikinan sendiri＝手作りのお菓子）。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "kesopanan", r: "sopan", tier: 1, topicCat: "⚖️ 政治・法律・社会",
+        m: "礼儀正しさ、礼節、マナー、品位、エチケット",
+        ex: "Kita harus selalu menjaga kesopanan dalam bertutur kata maupun berpakaian saat berkunjung ke tempat ibadah.",
+        tr: "礼拝所を訪れる際は、言葉遣いにおいても服装においても常に礼儀正しさ（マナー）を守らなければならない。",
+        note: [
+          "■ 【語構成】：ke- + sopan（礼儀正しい）+ -an。",
+          "■ 【コロケーション】：\n・norma kesopanan：礼儀規範（道徳・宗教・法と並ぶ4大社会規範のひとつ）\n・batas-batas kesopanan：礼節（品位）の境界線\n・kesopanan berbahasa：言葉遣いの丁寧さ",
+          "■ 【関連語】：sopan（礼儀正しい）、sopan santun（礼儀作法）。"
+        ].join("\n")
+      },
+      {
+        p: "other", w: "kadang", r: "kadang", tier: 1, topicCat: "🏠 日常・生活・移動",
+        m: "時々、時には、たまには（＝kadang-kadang / terkadang / adakalanya）",
+        ex: "Cuaca di daerah pegunungan sulit ditebak; kadang cerah di pagi hari, tetapi tiba-tiba turun hujan di siang hari.",
+        tr: "山岳地帯の天気は予測しにくい。朝は晴れていることもあれば、昼に突然雨が降ることもある。",
+        note: [
+          "■ 【コロケーション】：\n・kadang ..., kadang ...：時には〜、また時には…\n・kadang kala / kadang-kadang / terkadang：時々、時には"
+        ].join("\n")
+      },
+      {
+        p: "a", w: "risih", r: "risih", tier: 2, topicCat: "🏥 健康・身体・感情",
+        m: "（周囲の視線・立ち入った質問・不潔な状態などに）居心地が悪い、気まずい、不快で落ち着かない",
+        ex: "Ia merasa agak risih ketika orang yang baru dikenalnya itu mulai menanyakan urusan pribadi.",
+        tr: "知り合ったばかりのその人物がプライベートな事情を尋ね始めたとき、彼は少し居心地の悪さ（不快感）を覚えた。",
+        note: [
+          "■ 【綴りと語法】：KBBIの見出し語は h のない『risi』だが、ニュース・小説・日常会話では『risih』の綴りが広く定着している。『merasa risih（気まずく・不快に感じる）』の形で多用される。"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "tergeletak", r: "geletak", tier: 1, topicCat: "🏠 日常・生活・移動",
+        m: "（床や地面などに力なく・無造作に）倒れている、横たわっている、転がっている",
+        ex: "Korban pingsan itu ditemukan tergeletak di lantai oleh petugas keamanan gedung.",
+        tr: "意識を失ったその被害者は、ビルの警備員によって床に倒れているところを発見された。",
+        note: [
+          "■ 【語構成】：ter- + geletak（横たわる）。自分の意思で寝転ぶ（berbaring / rebahan）のではなく、「意識を失って倒れている」「疲れ果てて伸びている」「物が無造作に放置されて転がっている」状態を表す。",
+          "■ 【他動詞形】：menggeletakkan（物を無造作にそこらへ放り出す・置く）。"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "terhidang", r: "hidang", tier: 1, topicCat: "🍽️ 食・料理",
+        m: "（料理や飲み物が食卓に）並べられている、用意されている、振る舞われている",
+        ex: "Berbagai macam masakan tradisional khas Padang telah terhidang rapi di atas meja makan.",
+        tr: "パダン名物の様々な伝統料理が、食卓の上にきれいに並べられていた。",
+        note: [
+          "■ 【語構成】：ter- + hidang（供する）＝ menyajikan の完了受動状態（＝tersaji）。",
+          "■ 【関連語】：menghidangkan（料理を振る舞う・食卓に出す）、hidangan（料理・メニュー：hidangan pembuka / utama / penutup＝前菜 ／ メインディッシュ ／ デザート）。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "lapis", r: "lapis", tier: 1, topicCat: "🏠 日常・生活・移動",
+        m: "①層、重なり、列 ②〜重、〜層（層を数える助数詞：dua lapis＝2重・2層）",
+        ex: "Saat musim dingin, ia mengenakan pakaian hingga tiga lapis untuk menahan udara beku.",
+        tr: "冬の間、彼は凍えるような空気を防ぐために服を3枚重ね（3層）まで着込んだ。",
+        note: [
+          "■ 【コロケーション】：\n・kue lapis：ラピス（何層にも重ねて蒸したインドネシアの伝統的な生菓子）\n・kaca dua lapis：二重ガラス\n・lapis baja：装甲（kendaraan lapis baja＝装甲車）",
+          "■ 【関連語ファミリー】：\n・berlapis（動詞・形容詞）：〜でコーティング・メッキされた ／ 多重の\n・berlapis-lapis（形容詞）：何層にも重なった\n・lapisan（名詞）：層、階層（seluruh lapisan masyarakat＝社会のあらゆる階層、lapisan ozon＝オゾン層）\n・melapisi（他動詞）：〜の表面を覆う、コーティングする"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "berlapis", r: "lapis", tier: 1, topicCat: "💼 仕事・経済・買い物",
+        m: "①（表面が金属・チョコ・塗料などで）覆われた、メッキ・コーティングされた ②多重の、何重もの（pengamanan berlapis）",
+        ex: "Aparat kepolisian menerapkan pengamanan berlapis di sekitar lokasi penyelenggaraan konferensi internasional.",
+        tr: "警察当局は国際会議の開催会場周辺において、幾重もの（多重の）警備体制を敷いた。",
+        note: [
+          "■ 【コロケーション】：\n・berlapis emas / berlapis cokelat：金メッキされた（金箔張りの） ／ チョコレートでコーティングされた\n・pengamanan / seleksi berlapis：多重警備 ／ 多段階の選考"
+        ].join("\n")
+      },
+      {
+        p: "a", w: "berlapis-lapis", r: "lapis", tier: 1, topicCat: "🏠 日常・生活・移動",
+        m: "何層にも重なった、幾重もの",
+        ex: "Kue tradisional tersebut memiliki tekstur yang lembut karena dibuat dari adonan yang berlapis-lapis.",
+        tr: "その伝統的なお菓子は何層にも重なった生地から作られているため、柔らかな食感を持っている。",
+        note: "■ 【語構成】：ber- + lapis-lapis（語幹 lapis の重複）。層が多数重なっている様子を強調する。"
+      },
+      {
+        p: "n", w: "pita", r: "pita", tier: 1, topicCat: "🏠 日常・生活・移動",
+        m: "①リボン、飾り紐、テープ ②（音声・通信・周波数などの）帯域、バンド（pita suara＝声帯）",
+        ex: "Gubernur menggunting pita sebagai tanda diresmikannya jembatan penghubung antarkabupaten tersebut.",
+        tr: "知事は県と県を結ぶその連絡橋の開通の印として、テープカット（リボンを切る儀式）を行った。",
+        note: [
+          "■ 【重要コロケーション】：\n・pengguntingan pita（menggunting pita）：（開通式・開店式などの）テープカット\n・pita suara：声帯\n・pita cukai：（タバコや酒の箱に貼られる）納税証紙テープ\n・pita lebar：ブロードバンド（高速通信帯域）"
+        ].join("\n")
+      },
+      {
+        p: "a", w: "legit", r: "legit", tier: 2, topicCat: "🍽️ 食・料理",
+        m: "（お菓子や熟した果物などが）濃厚で甘く、しっとり・ねっとりして美味しい",
+        ex: "Kue lapis legit khas Indonesia sangat terkenal dengan aroma rempah dan rasanya yang manis legit.",
+        tr: "インドネシア名物の「ラピス・ルギット（千層ケーキ）」は、スパイスの香りと濃厚でしっとりとした甘さで非常に有名だ。",
+        note: [
+          "■ 【コロケーション】：\n・manis legit：濃厚でコクのある甘さ（ドリアンやジャックフルーツ、伝統菓子などの甘さを褒める表現）\n・lapis legit：スパイスの効いたバター生地を18〜20層以上薄く焼き重ねたインドネシアの高級伝統ケーキ（オランダ語名 Spekkoek）"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "berhiaskan", r: "hias", tier: 2, topicCat: "🏠 日常・生活・移動",
+        m: "〜で飾られた、〜を装飾としてあしらった（＝berhias / dihiasi dengan）",
+        ex: "Ruang resepsi pernikahan itu tampak sangat megah dengan dinding yang berhiaskan ukiran kayu tradisional.",
+        tr: "その結婚披露宴会場は、伝統的な木彫りで飾られた壁によって非常に壮麗に見えた。",
+        note: [
+          "■ 【語構成】：ber- + hias（飾る）+ -kan。直後に装飾物の名詞をそのまま置いて「〜で飾られた」を表す（例：langit malam berhiaskan bintang＝星々で彩られた夜空）。",
+          "■ 【関連語】：menghias / menghiasi（飾る・彩る）、hiasan（飾り・装飾品）、perhiasan（宝飾品・ジュエリー）。"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "memilin", r: "pilin", tier: 2, topicCat: "🏠 日常・生活・移動",
+        m: "（糸・縄・針金・生地・髪などを）縒（よ）り合わせる、ねじる、ひねる",
+        ex: "Pengrajin itu dengan cekatan memilin serat daun pandan menjadi tali anyaman yang kuat.",
+        tr: "その職人は手際よくパンダンの葉の繊維を縒り合わせて、丈夫な編み紐にした。",
+        note: [
+          "■ 【語構成】：meN- + pilin（縒り・ねじり：p が鼻音化して m）。",
+          "■ 【慣用表現】：memilin-milin ujung baju（緊張や恥ずかしさで服の裾を指でくるくるいじる）、perut terasa memilin（お腹がキリキリとねじれるように痛む）。"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "melintir", r: "pelintir", tier: 2, topicCat: "⚖️ 政治・法律・社会",
+        m: "①ねじる、ひねる、回転を加える ②（他人の発言や事実を）ねじ曲げる、曲解する（＝memelintir）",
+        ex: "Jangan mudah percaya pada potongan video yang sengaja melintir pernyataan narasumber di luar konteks.",
+        tr: "発言者の言葉を文脈から切り離して意図的にねじ曲げている切り抜き動画に、簡単に騙されてはならない。",
+        note: [
+          "■ 【語構成】：語幹 lintir / pelintir（ひねる・ねじる）。標準語形は memelintir だが、報道や日常では melintir（受動態 dilintir / dipelintir）も広く使われる。",
+          "■ 【コロケーション】：melintir / memelintir pernyataan (fakta)：発言（事実）をねじ曲げる、曲解して伝える（pelintiran＝曲解・歪曲）。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "koleksi", r: "koleksi", tier: 1, topicCat: "🏠 日常・生活・移動",
+        m: "コレクション、収集品、所蔵品、（ファッションや美術の）作品群",
+        ex: "Museum tersebut memamerkan ratusan koleksi keramik kuno peninggalan masa kerajaan Majapahit.",
+        tr: "その博物館は、マジャパヒト王国時代の遺物である数百点の古代陶磁器コレクションを展示している。",
+        note: [
+          "■ 【関連語】：\n・mengoleksi（他動詞）：〜を収集する、コレクションする（k が鼻音化して ng）\n・kolektor（名詞）：収集家、コレクター"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "mengoleksi", r: "koleksi", tier: 2, topicCat: "🏠 日常・生活・移動",
+        m: "（切手・古書・美術品などを）収集する、コレクションする",
+        ex: "Sejak masih kuliah, paman gemar mengoleksi perangko langka dan uang kuno dari berbagai negara.",
+        tr: "大学生の頃から、叔父は様々な国の珍しい切手や古銭を収集するのを好んでいる。",
+        note: "■ 【語構成】：meN- + koleksi（頭文字 k が鼻音化して ng になる点に注意）。"
+      },
+      {
+        p: "v", w: "melebarkan", r: "lebar", tier: 1, topicCat: "💼 仕事・経済・買い物",
+        m: "①（幅・隙間・道などを）広げる、広くする ②（melebarkan sayap）事業や活動の分野・拠点を拡大する",
+        ex: "Setelah sukses di pasar domestik, perusahaan kuliner itu mulai melebarkan sayap ke Asia Tenggara.",
+        tr: "国内市場で成功を収めた後、その外食企業は東南アジアへと事業を拡大し（翼を広げ）始めた。",
+        note: [
+          "■ 【語構成】：meN- + lebar（幅が広い）+ -kan。",
+          "■ 【必須慣用コロケーション】：\n・melebarkan sayap：翼を広げる ➔ 事業・店舗網・活動領域を新たな市場や分野へ拡大する\n・melebarkan jalan：道路の幅を広げる（拡幅する）",
+          "■ 【関連語】：lebar（幅が広い）、memperlebar（さらに広げる・格差やリードを広げる）、pelebaran（拡幅：pelebaran jalan）。"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "memperlebar", r: "lebar", tier: 1, topicCat: "💼 仕事・経済・買い物",
+        m: "（すでに広い道幅・リード・格差などを）さらに広げる、より広くする",
+        ex: "Gol kedua pada babak tambahan waktu semakin memperlebar jarak keunggulan tim tuan rumah.",
+        tr: "ロスタイムでの2点目のゴールは、ホームチームのリード（優位の差）をさらに広げた。",
+        note: [
+          "■ 【語構成】：memper- + lebar（広い）。",
+          "■ 【コロケーション】：memperlebar jalan raya（幹線道路を拡幅する）、memperlebar jurang kesenjangan（格差の溝をさらに広げてしまう）。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "syuting", r: "syuting", tier: 2, topicCat: "🏠 日常・生活・移動",
+        m: "（映画・テレビ番組・動画などの）撮影、ロケ（＝pengambilan gambar）",
+        ex: "Proses syuting film sejarah itu dilakukan di beberapa candi kuno di Jawa Tengah.",
+        tr: "その歴史映画の撮影（ロケ）作業は、中部ジャワのいくつかの古代寺院で行われた。",
+        note: "■ 【コロケーション】：lokasi syuting（撮影現場、ロケ地）、menjalani syuting（撮影に臨む）。"
+      },
+
+      // ==================== 2. 辞書専用語（問題には出さない：dictOnly: true, tier: 3） ====================
+      {
+        p: "a", w: "pasai", r: "pasai", dictOnly: true, tier: 3, topicCat: "🏥 健康・身体・感情",
+        m: "飽き飽きした、うんざりした（＝jemu / bosan）",
+        ex: "Ia tidak pernah merasa pasai mendengarkan cerita masa lalu yang dikisahkan oleh kakeknya.",
+        tr: "彼は祖父が語る昔話を聞くのに飽き飽きした（うんざりした）ことは一度もなかった。",
+        note: "■ 【類義語】：jemu / bosan（飽きる）。なお、髪などがボサボサに乱れている様子を表す語は『masai（kusut masai）』。"
+      },
+      {
+        p: "a", w: "masai", r: "masai", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "（髪や糸などが）ひどく乱れた、もつれた、ボサボサの（主に kusut masai の形で用いられる）",
+        ex: "Rambutnya tampak kusut masai setelah berjalan menembus angin kencang di tepi pantai.",
+        tr: "海岸沿いの強風の中を歩いて抜けた後、彼の髪はボサボサに乱れて見えた。",
+        note: "■ 【コロケーション】：kusut masai（髪がボサボサに乱れている ／ 問題がひどくもつれて混乱している）。"
+      },
+      {
+        p: "v", w: "bergulung-gulung", r: "gulung", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "①（大波や黒雲などが）幾重にもうねりながら押し寄せる、渦巻く ②何巻にも巻かれている、転げ回る",
+        ex: "Ombak besar tampak bergulung-gulung menuju pantai saat angin musim barat bertiup kencang.",
+        tr: "西モンスーンの風が強く吹く中、大波が幾重にもうねりながら海岸へと押し寄せていた。",
+        note: [
+          "■ 【語構成】：ber- + gulung-gulung（語幹 gulung＝巻く・ロール）。",
+          "■ 【関連語】：menggulung（巻く：gulung tikar＝ござを巻く➔倒産する）、gulungan（巻いたもの・ロール）。"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "meningkahi", r: "tingkah", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "①（自然の音・BGM・合いの手などが静けさや歌に）添えられる、伴奏する、彩りを添える ②（人の言葉や行動に）応じる、異議を唱える",
+        ex: "Di ujung barat daya Pulau Bali ini, kesunyian hanya ditingkahi gemeresik dedaunan dan debur ombak yang sayup jauh di bawah.",
+        tr: "バリ島のこの南西端では、静寂はただ木々の葉のサラサラという音と、はるか眼下からかすかに響く波の音によって彩られている（伴奏されている）だけだ。",
+        note: [
+          "■ 【語構成】：meN- + tingkah + -i（t が鼻音化して n。受動態は ditingkahi）。",
+          "■ 【文学・記事での用法】：静寂や場面の中に「別の音（波音・風の音・笑い声・音楽など）が合いの手のように重なる・彩りを添える」という叙情的な表現としてルポルタージュや小説で好まれる。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "gemeresik", r: "gemeresik", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "（乾いた木の葉・紙・布などがこすれ合う）サラサラ、カサカサという音（擬音語・名詞・形容詞）",
+        ex: "Gemeresik dedaunan bambu yang tertiup angin sore menghadirkan suasana pedesaan yang menenangkan.",
+        tr: "夕風に吹かれる竹の葉のサラサラという音が、心を落ち着かせる農村の雰囲気をもたらしている。",
+        note: "■ 【語構成】：keresek / resik（カサカサ鳴る）に反復・持続の接中辞 -em- が入った文学的表現（gemeresik / gemerisik）。"
+      },
+      {
+        p: "n", w: "debur", r: "debur", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "（大波が岸や岩に打ち寄せる）ドーン、ザブーンという音（debur ombak / deburan ombak）",
+        ex: "Dari balkon penginapan, kami dapat mendengar debur ombak yang menghantam karang.",
+        tr: "宿のバルコニーから、私たちは岩礁に打ち寄せる波の音を聞くことができた。",
+        note: "■ 【派生語】：berdebur（波がザブーンと音を立てて打ち寄せる、胸が激しく高鳴る）、deburan ombak（波の音、打ち寄せる波）。"
+      },
+      {
+        p: "n", w: "khaki", r: "khaki", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "カーキ色、くすんだ黄褐色、ベージュがかった茶色（主に制服やチノパンなどの生地色）",
+        ex: "Ia memadukan kemeja putih lengan panjang dengan celana panjang berwarna khaki.",
+        tr: "彼は白い長袖シャツにカーキ色（ベージュ系）の長ズボンを合わせた。",
+        note: "■ 【綴り】：標準綴りは k のみの『kaki（warna kaki）』とも書かれるが、元の「足（kaki）」と区別するためファッションや記事では『khaki』と綴られることが多い。"
+      },
+      {
+        p: "other", w: "nan", r: "nan", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "〜な、〜である（関係代名詞 yang と同義の詩的・文語的表現）",
+        ex: "Hamparan sawah hijau nan luas di kaki gunung itu memanjakan mata setiap wisatawan.",
+        tr: "その山の麓に広がる広大で緑豊かな水田の風景は、すべての観光客の目を楽しませている。",
+        note: [
+          "■ 【用法】：ミナンカバウ語・マレー古典文学由来で、現代インドネシア語では『形容詞 + nan + 形容詞（例：indah nan elok＝美しく優雅な、luas nan asri＝広大で緑豊かな、jauh nan sepi＝遠く静かな）』のように叙情的な文章や観光記事で好んで使われる。"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "bercakap-cakap", r: "cakap", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "おしゃべりする、歓談する、楽しく会話する（＝mengobrol / berbincang-bincang）",
+        ex: "Kedua sahabat lama itu duduk bercakap-cakap di beranda rumah sambil menikmati teh hangat.",
+        tr: "その2人の旧友は温かいお茶を楽しみながら、家のベランダに座って歓談した（おしゃべりした）。",
+        note: "■ 【関連語】：bercakap（話す・会話する）、percakapan（会話・対話）。"
+      },
+      {
+        p: "other", w: "sesampai", r: "sampai", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "〜に到着するやいなや、〜に着いた時に（＝sesampainya / setibanya）",
+        ex: "Sesampai di bandara tujuan, para penumpang langsung diarahkan menuju ruang pemeriksaan imigrasi.",
+        tr: "目的地の空港に到着するやいなや（着くとすぐに）、乗客たちは直ちに入国審査場へと案内された。",
+        note: "■ 【語構成】：se-（〜するとすぐに）+ sampai（着く）。後ろに前置詞 di を伴い『sesampai di ~』または『sesampainya di ~』の形で使われる（＝setiba / setibanya di ~）。"
+      },
+      {
+        p: "a", w: "lajut", r: "lanjut", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "進んだ、続きの（※標準語形は lanjut）",
+        ex: "Untuk pembahasan lebih lanjut, silakan merujuk pada bab berikutnya.",
+        tr: "さらなる詳細な議論については、次の章を参照してください。",
+        note: "■ 【表記の注意】：標準語綴りは n の入った『lanjut』（tindak lanjut＝事後対応、lebih lanjut＝さらに詳しく、lanjut usia＝高齢）。記事内のタイポ（脱字）として lajut と書かれることがある。"
+      },
+      {
+        p: "v", w: "melajutkan", r: "lanjut", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "〜を続ける、再開する、進学する（※標準語形は melanjutkan）",
+        ex: "Setelah istirahat sejenak, mereka kembali melanjutkan perjalanan menuju puncak.",
+        tr: "少し休憩した後、彼らは再び頂上へ向けて旅を続けた。",
+        note: "■ 【表記の注意】：標準語綴りは n の入った『melanjutkan（語幹 lanjut）』。"
+      },
+      {
+        p: "v", w: "terpilin", r: "pilin", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "縒（よ）り合わされた、ねじれた、ツイストした",
+        ex: "Benang perak yang terpilin halus itu dijadikan hiasan pinggiran pada kain tenun tradisional.",
+        tr: "細かく縒り合わされたその銀糸は、伝統的な織物の縁飾りとして使われた。",
+        note: "■ 【語構成】：ter- + pilin（縒る・ねじる）。能動他動詞は memilin（縒り合わせる・ねじる）。"
+      },
+      {
+        p: "v", w: "mempopulerkan", r: "populer", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "〜を大衆に広める、人気にする、普及させる（KBBI標準綴りは memopulerkan）",
+        ex: "Media sosial berperan besar dalam mempopulerkan kembali lagu-lagu daerah di kalangan anak muda.",
+        tr: "SNSは若者の間で地方の民謡を再び人気にする（広める）上で大きな役割を果たしている。",
+        note: "■ 【鼻音化の注意】：語幹 populer（人気のある）+ meN- -kan。標準文法規則では頭文字 p が鼻音化して『memopulerkan』となるが、一般の新聞や書籍では p を残した『mempopulerkan』も非常に多く使われる。"
+      },
+      {
+        p: "n", w: "arloji", r: "arloji", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "腕時計、懐中時計（＝jam tangan / jam saku）",
+        ex: "Ayah menghadiahkan sebuah arloji buatan Swiss kepada kakak saat hari kelulusannya.",
+        tr: "父は兄の卒業の日に、スイス製の腕時計を1つプレゼントした。",
+        note: "■ 【語源】：オランダ語の horloge（時計）からの借用語。日常会話の jam tangan（腕時計）よりも少しクラシカル・高級な響きを持つ。"
+      },
+      {
+        p: "v", w: "berdesain", r: "desain", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "〜のデザインを持つ、〜調にデザインされた",
+        ex: "Butik tersebut memajang gaun malam berdesain minimalis yang elegan.",
+        tr: "そのブティックは、エレガントでミニマルなデザインのイブニングドレスを陳列している。",
+        note: "■ 【語構成】：ber- + desain（デザイン）。後ろに形容詞や名詞を伴って「〜なデザインの」を表す。"
+      },
+      {
+        p: "v", w: "bermaterial", r: "material", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "〜の素材（生地・材質）で作られた、〜の素材を用いた（＝berbahan）",
+        ex: "Kemeja santai bermaterial katun organik itu sangat sejuk saat dikenakan di daerah tropis.",
+        tr: "オーガニックコットン素材で作られたそのカジュアルシャツは、熱帯地域で着ると非常に涼しい。",
+        note: "■ 【語構成】：ber- + material（素材・材料・物質）＝ berbahan。"
+      },
+      {
+        p: "v", w: "bermata", r: "mata", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "①〜の目を持つ（bermata biru＝青い目をした） ②（指輪や宝飾品に〜の宝石が）はめ込まれた ③（刃物などが〜の）刃を持つ",
+        ex: "Ia mengenakan cincin emas bermata zamrud warisan neneknya pada acara resepsi tersebut.",
+        tr: "彼女はその披露宴で、祖母から受け継いだエメラルドの石がはめ込まれた金の指輪を身につけていた。",
+        note: [
+          "■ 【語構成】：ber- + mata（①目 ②指輪などの宝石部分・鶴嘴や刃物の先端）。",
+          "■ 【コロケーション】：\n・cincin bermata zamrud / berlian：エメラルド ／ ダイヤモンドの石がついた指輪\n・pisau bermata dua：諸刃（両刃）の剣（メリットとリスクの両方があることの比喩）"
+        ].join("\n")
+      },
+      {
+        p: "a", w: "generatif", r: "generatif", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "生成的な、新しいものを生み出す力を持つ（AI generatif＝生成AI）",
+        ex: "Perkembangan teknologi kecerdasan buatan generatif telah mengubah cara kerja di industri kreatif.",
+        tr: "生成AI（生成的人工知能）技術の発展は、クリエイティブ産業における働き方を変化させた。",
+        note: "■ 【コロケーション】：kecerdasan buatan generatif / AI generatif（生成AI）、perkembangbiakan generatif（植物・生物の有性生殖 ⇔ vegetatif＝無性生殖・栄養生殖）。"
+      },
+      {
+        p: "n", w: "semburat", r: "semburat", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "（朝焼け・夕焼けの光や頬の赤みなどが）パッと差すこと、ほのかに広がる輝き・色づき",
+        ex: "Semburat jingga di ufuk barat menandakan bahwa matahari akan segera terbenam.",
+        tr: "西の地平線に広がるオレンジ色の輝き（夕焼けの光）は、太陽がまもなく沈むことを告げていた。",
+        note: "■ 【コロケーション】：semburat merah / jingga di langit（空に広がる赤／オレンジ色の朝焼け・夕焼けの光）、semburat merah di pipi（頬に差すほのかな赤み）。"
+      },
+      {
+        p: "a", w: "kasual", r: "kasual", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "カジュアルな、普段着の、気取らない（＝santai / tidak resmi）",
+        ex: "Para karyawan diperbolehkan mengenakan busana kasual yang rapi setiap hari Jumat.",
+        tr: "従業員たちは毎週金曜日、きちんとしたカジュアルな服装（オフィスカジュアル）を着用することが許可されている。",
+        note: "■ 【コロケーション】：busana / pakaian kasual（カジュアルウェア、普段着 ⇔ pakaian resmi / formal＝礼服・フォーマルウェア）。"
+      },
+      {
+        p: "v", w: "geletak", r: "geletak", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "横たわる、倒れる（主に派生語 tergeletak「倒れている・転がっている」の語幹）",
+        ex: "Buku-buku yang belum sempat dirapikan tampak tergeletak begitu saja di atas meja.",
+        tr: "まだ片付けられていない本が、机の上にそのまま無造作に転がっていた。",
+        note: "■ 【関連語】：tergeletak（力なく倒れている・無造作に転がっている）、menggeletakkan（無造作に放り出す）。"
+      },
+      {
+        p: "n", w: "butik", r: "butik", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "ブティック、高級洋品店・専門店（hotel butik＝ブティックホテル）",
+        ex: "Desainer muda itu baru saja membuka butik pertamanya di pusat perbelanjaan ibu kota.",
+        tr: "その若手デザイナーは、首都のショッピングセンターに自身の最初のブティックをオープンさせたばかりだ。",
+        note: "■ 【コロケーション】：butik busana（ファッションブティック）、hotel butik（小規模で個性的な高級デザインホテル＝ブティックホテル）。"
+      }
+    ]
+  };
+
+  PACK.vocab.forEach(function(it) {
+    if (it.dictOnly === true || it.tier === 3) {
+      dictOnlySet.add(it.w.trim().toLowerCase());
+    }
+  });
+
+  if (typeof window.wiAddPack === "function") {
+    window.wiAddPack(PACK);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 語彙追加・更新パック（terhidang〜menjajah ＋ 関連派生語）
+   ===================================================================== */
+(function() {
+  const dictOnlySet = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+
+  const PACK = {
+    vocab: [
+      // ==================== 1. 出題対象（問題＋辞書） ====================
+      {
+        p: "v", w: "terhidang", r: "hidang", tier: 1, topicCat: "🍽️ 食・料理",
+        m: "（料理や飲み物が食卓に）並べられている、用意されている、振る舞われている",
+        ex: "Berbagai macam masakan tradisional khas Padang telah terhidang rapi di atas meja makan.",
+        tr: "パダン名物の様々な伝統料理が、食卓の上にきれいに並べられていた。",
+        note: [
+          "■ 【語構成】：ter- + hidang（供する）＝ menyajikan の完了状態（＝tersaji）。",
+          "■ 【関連語】：\n・menghidangkan（他動詞）：（料理を）振る舞う、食卓に出す\n・hidangan（名詞）：料理、メニュー（hidangan pembuka / utama / penutup＝前菜 ／ メインディッシュ ／ デザート）"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "lapis", r: "lapis", tier: 1, topicCat: "🏠 日常・生活・移動",
+        m: "①層、重なり、列 ②〜重、〜層（層を数える助数詞：dua lapis＝2重・2層）",
+        ex: "Saat musim dingin, ia mengenakan pakaian hingga tiga lapis untuk menahan udara beku.",
+        tr: "冬の間、彼は凍えるような空気を防ぐために服を3枚重ね（3層）まで着込んだ。",
+        note: [
+          "■ 【コロケーション】：\n・kue lapis：ラピス（何層にも重ねて蒸した伝統菓子）\n・kaca dua lapis：二重ガラス\n・kendaraan lapis baja：装甲車",
+          "■ 【関連語】：\n・berlapis（動詞・形容詞）：〜でコーティング・メッキされた ／ 多重の\n・berlapis-lapis（形容詞）：何層にも重なった\n・lapisan（名詞）：層、階層（seluruh lapisan masyarakat＝社会のあらゆる階層、lapisan ozon＝オゾン層）\n・melapisi（他動詞）：〜の表面を覆う、コーティングする"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "berlapis", r: "lapis", tier: 1, topicCat: "💼 仕事・経済・買い物",
+        m: "①（表面が金属・塗料・チョコなどで）覆われた、メッキ・コーティングされた ②多重の、幾重もの",
+        ex: "Aparat kepolisian menerapkan pengamanan berlapis di sekitar lokasi penyelenggaraan konferensi internasional.",
+        tr: "警察当局は国際会議の開催会場周辺において、幾重もの（多重の）警備体制を敷いた。",
+        note: [
+          "■ 【コロケーション】：\n・berlapis emas / berlapis cokelat：金メッキされた（金箔張りの） ／ チョコレートでコーティングされた\n・pengamanan / seleksi berlapis：多重警備 ／ 多段階の選考"
+        ].join("\n")
+      },
+      {
+        p: "a", w: "berlapis-lapis", r: "lapis", tier: 1, topicCat: "🏠 日常・生活・移動",
+        m: "何層にも重なった、幾重もの",
+        ex: "Kue tradisional tersebut memiliki tekstur yang lembut karena dibuat dari adonan yang berlapis-lapis.",
+        tr: "その伝統的なお菓子は何層にも重なった生地から作られているため、柔らかな食感を持っている。",
+        note: "■ 【語構成】：ber- + lapis-lapis（語幹 lapis の重複）。層が多数重なっている様子を表す。"
+      },
+      {
+        p: "v", w: "melapisi", r: "lapis", tier: 2, topicCat: "🏠 日常・生活・移動",
+        m: "（表面を別の素材や塗料などで）覆う、コーティングする、内張りする",
+        ex: "Pengrajin itu melapisi permukaan meja kayu dengan pernis agar tampak mengilap dan tahan air.",
+        tr: "その職人は艶を出して耐水性を持たせるため、木のテーブルの表面をニスでコーティングした。",
+        note: "■ 【語構成】：meN- + lapis（層）+ -i（対象の表面に層を付ける他動詞）。受動態は dilapisi。"
+      },
+      {
+        p: "n", w: "pita", r: "pita", tier: 1, topicCat: "🏠 日常・生活・移動",
+        m: "①リボン、飾り紐、テープ ②（音声・通信・周波数などの）帯域、バンド（pita suara＝声帯）",
+        ex: "Gubernur menggunting pita sebagai tanda diresmikannya jembatan penghubung antarkabupaten tersebut.",
+        tr: "知事は県と県を結ぶその連絡橋の開通の印として、テープカット（リボンを切る儀式）を行った。",
+        note: [
+          "■ 【コロケーション】：\n・pengguntingan pita（menggunting pita）：（開通式・開店式などの）テープカット\n・pita suara：声帯\n・pita cukai：（タバコや酒の箱に貼られる）納税証紙テープ\n・pita lebar：ブロードバンド（高速通信帯域）"
+        ].join("\n")
+      },
+      {
+        p: "a", w: "legit", r: "legit", tier: 2, topicCat: "🍽️ 食・料理",
+        m: "（お菓子や熟した果物などが）濃厚で甘く、しっとり・ねっとりして美味しい",
+        ex: "Kue lapis legit khas Indonesia sangat terkenal dengan aroma rempah dan rasanya yang manis legit.",
+        tr: "インドネシア名物の「ラピス・ルギット（千層ケーキ）」は、スパイスの香りと濃厚でしっとりとした甘さで非常に有名だ。",
+        note: [
+          "■ 【コロケーション】：\n・manis legit：濃厚でコクのある甘さ\n・lapis legit：スパイスの効いたバター生地を何層も薄く焼き重ねたインドネシアの伝統ケーキ"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "berhiaskan", r: "hias", tier: 2, topicCat: "🏠 日常・生活・移動",
+        m: "〜で飾られた、〜を装飾としてあしらった（＝berhias / dihiasi dengan）",
+        ex: "Ruang resepsi pernikahan itu tampak sangat megah dengan dinding yang berhiaskan ukiran kayu tradisional.",
+        tr: "その結婚披露宴会場は、伝統的な木彫りで飾られた壁によって非常に壮麗に見えた。",
+        note: [
+          "■ 【語構成】：ber- + hias（飾る）+ -kan。直後に装飾物の名詞を置いて「〜で飾られた」を表す。",
+          "■ 【関連語】：menghias / menghiasi（飾る・彩る）、hiasan（飾り・装飾品）、perhiasan（宝飾品・ジュエリー）。"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "memilin", r: "pilin", tier: 2, topicCat: "🏠 日常・生活・移動",
+        m: "（糸・縄・針金・生地・髪などを）縒（よ）り合わせる、ねじる、ひねる",
+        ex: "Pengrajin itu dengan cekatan memilin serat daun pandan menjadi tali anyaman yang kuat.",
+        tr: "その職人は手際よくパンダンの葉の繊維を縒り合わせて、丈夫な編み紐にした。",
+        note: [
+          "■ 【語構成】：meN- + pilin（縒り・ねじり：p が鼻音化して m）。",
+          "■ 【慣用表現】：memilin-milin ujung baju（緊張などで服の裾を指でくるくるいじる）、perut terasa memilin（お腹がキリキリとねじれるように痛む）。"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "melintir", r: "pelintir", tier: 2, topicCat: "⚖️ 政治・法律・社会",
+        m: "①ねじる、ひねる、回転を加える ②（他人の発言や事実を）ねじ曲げる、曲解する（＝memelintir）",
+        ex: "Jangan mudah percaya pada potongan video yang sengaja melintir pernyataan narasumber di luar konteks.",
+        tr: "発言者の言葉を文脈から切り離して意図的にねじ曲げている切り抜き動画に、簡単に騙されてはならない。",
+        note: [
+          "■ 【語構成】：語幹 lintir / pelintir（ひねる・ねじる）。標準語形は memelintir（受動態 dipelintir / dilintir）。",
+          "■ 【コロケーション】：melintir / memelintir pernyataan (fakta)：発言（事実）をねじ曲げる、曲解して伝える。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "koleksi", r: "koleksi", tier: 1, topicCat: "🏠 日常・生活・移動",
+        m: "コレクション、収集品、所蔵品、（ファッションや美術の）作品群",
+        ex: "Museum tersebut memamerkan ratusan koleksi keramik kuno peninggalan masa kerajaan Majapahit.",
+        tr: "その博物館は、マジャパヒト王国時代の遺物である数百点の古代陶磁器コレクションを展示している。",
+        note: [
+          "■ 【関連語】：\n・mengoleksi（他動詞）：〜を収集する、コレクションする（k が鼻音化して ng）\n・kolektor（名詞）：収集家、コレクター"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "mengoleksi", r: "koleksi", tier: 2, topicCat: "🏠 日常・生活・移動",
+        m: "（切手・古書・美術品などを）収集する、コレクションする",
+        ex: "Sejak masih kuliah, paman gemar mengoleksi perangko langka dan uang kuno dari berbagai negara.",
+        tr: "大学生の頃から、叔父は様々な国の珍しい切手や古銭を収集するのを好んでいる。",
+        note: "■ 【語構成】：meN- + koleksi（頭文字 k が鼻音化して ng になる点に注意）。"
+      },
+      {
+        p: "v", w: "melebarkan", r: "lebar", tier: 1, topicCat: "💼 仕事・経済・買い物",
+        m: "①（幅・隙間・道などを）広げる、広くする ②（melebarkan sayap）事業や活動の分野・拠点を拡大する",
+        ex: "Setelah sukses di pasar domestik, perusahaan kuliner itu mulai melebarkan sayap ke Asia Tenggara.",
+        tr: "国内市場で成功を収めた後、その外食企業は東南アジアへと事業を拡大し（翼を広げ）始めた。",
+        note: [
+          "■ 【語構成】：meN- + lebar（幅が広い）+ -kan。",
+          "■ 【コロケーション】：\n・melebarkan sayap：翼を広げる ➔ 事業・店舗網・活動領域を新たな市場や分野へ拡大する\n・melebarkan jalan：道路の幅を広げる（拡幅する）",
+          "■ 【関連語】：lebar（幅が広い）、memperlebar（さらに広げる）、pelebaran（拡幅：pelebaran jalan）。"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "memperlebar", r: "lebar", tier: 1, topicCat: "💼 仕事・経済・買い物",
+        m: "（すでに広い道幅・リード・格差などを）さらに広げる、より広くする",
+        ex: "Gol kedua pada babak tambahan waktu semakin memperlebar jarak keunggulan tim tuan rumah.",
+        tr: "ロスタイムでの2点目のゴールは、ホームチームのリード（優位の差）をさらに広げた。",
+        note: "■ 【語構成】：memper- + lebar（広い）。memperlebar jalan raya（幹線道路を拡幅する）、memperlebar jurang kesenjangan（格差の溝をさらに広げてしまう）。"
+      },
+      {
+        p: "n", w: "syuting", r: "syuting", tier: 2, topicCat: "🏠 日常・生活・移動",
+        m: "（映画・テレビ番組・動画などの）撮影、ロケ（＝pengambilan gambar）",
+        ex: "Proses syuting film sejarah itu dilakukan di beberapa candi kuno di Jawa Tengah.",
+        tr: "その歴史映画の撮影（ロケ）作業は、中部ジャワのいくつかの古代寺院で行われた。",
+        note: "■ 【コロケーション】：lokasi syuting（撮影現場、ロケ地）、menjalani syuting（撮影に臨む）。"
+      },
+      {
+        p: "v", w: "menjajah", r: "jajah", tier: 1, topicCat: "⚖️ 政治・法律・社会",
+        m: "（他国や領土を武力・経済力などで）植民地支配する、侵略して支配下に置く",
+        ex: "Kekuatan asing pernah menjajah wilayah kepulauan tersebut selama lebih dari tiga abad.",
+        tr: "外国勢力はかつて3世紀以上にわたってその群島地域を植民地支配していた。",
+        note: [
+          "■ 【語構成】：meN- + jajah（支配する）。受動態は dijajah（植民地支配される）。",
+          "■ 【関連語ファミリー】：\n・penjajahan（名詞）：植民地支配（masa penjajahan＝植民地時代）\n・penjajah（名詞）：植民地支配者、侵略国（negara penjajah）\n・jajahan（名詞）：植民地、属領（tanah / negara jajahan）\n・terjajah（形容詞・動詞）：植民地支配された、抑圧された"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "penjajah", r: "jajah", tier: 1, topicCat: "⚖️ 政治・法律・社会",
+        m: "植民地支配者、侵略者、宗主国（negara penjajah / kaum penjajah）",
+        ex: "Para pahlawan nasional berjuang mempertaruhkan nyawa untuk mengusir penjajah dari tanah air.",
+        tr: "国家の英雄たちは祖国から植民地支配者（侵略者）を追い払うため、命を懸けて戦った。",
+        note: "■ 【語構成】：peN- + jajah（植民地支配を行う主体・国）。"
+      },
+      {
+        p: "n", w: "jajahan", r: "jajah", tier: 2, topicCat: "⚖️ 政治・法律・社会",
+        m: "植民地、属領、支配地域（tanah jajahan / daerah jajahan / negara jajahan）",
+        ex: "Setelah berakhirnya Perang Dunia Kedua, banyak negara jajahan di Asia dan Afrika yang meraih kemerdekaan.",
+        tr: "第二次世界大戦の終結後、アジアやアフリカの多くの植民地（被支配国）が独立を果たした。",
+        note: "■ 【語構成】：jajah + -an（植民地支配されている対象・領土）。"
+      },
+
+      // ==================== 2. 辞書専用語（問題には出さない：dictOnly: true, tier: 3） ====================
+      {
+        p: "v", w: "terpilin", r: "pilin", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "縒（よ）り合わされた、ねじれた、ツイストした",
+        ex: "Benang perak yang terpilin halus itu dijadikan hiasan pinggiran pada kain tenun tradisional.",
+        tr: "細かく縒り合わされたその銀糸は、伝統的な織物の縁飾りとして使われた。",
+        note: "■ 【語構成】：ter- + pilin（縒る・ねじる）。能動他動詞は memilin（縒り合わせる・ねじる）。"
+      },
+      {
+        p: "v", w: "mempopulerkan", r: "populer", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "〜を大衆に広める、人気にする、普及させる（標準綴りは memopulerkan）",
+        ex: "Media sosial berperan besar dalam mempopulerkan kembali lagu-lagu daerah di kalangan anak muda.",
+        tr: "SNSは若者の間で地方の民謡を再び人気にする（広める）上で大きな役割を果たしている。",
+        note: "■ 【鼻音化の注意】：語幹 populer（人気のある）+ meN- -kan。標準文法規則では頭文字 p が鼻音化して『memopulerkan』となるが、一般の新聞や書籍では p を残した『mempopulerkan』も多く使われる。"
+      },
+      {
+        p: "n", w: "arloji", r: "arloji", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "腕時計、懐中時計（＝jam tangan / jam saku）",
+        ex: "Ayah menghadiahkan sebuah arloji buatan Swiss kepada kakak saat hari kelulusannya.",
+        tr: "父は兄の卒業の日に、スイス製の腕時計を1つプレゼントした。",
+        note: "■ 【語源】：オランダ語の horloge（時計）からの借用語。日常会話の jam tangan（腕時計）よりも少しクラシカルな響きを持つ。"
+      },
+      {
+        p: "v", w: "berdesain", r: "desain", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "〜のデザインを持つ、〜調にデザインされた",
+        ex: "Butik tersebut memajang gaun malam berdesain minimalis yang elegan.",
+        tr: "そのブティックは、エレガントでミニマルなデザインのイブニングドレスを陳列している。",
+        note: "■ 【語構成】：ber- + desain（デザイン）。後ろに形容詞や名詞を伴って「〜なデザインの」を表す。"
+      },
+      {
+        p: "v", w: "bermaterial", r: "material", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "〜の素材（生地・材質）で作られた、〜の素材を用いた（＝berbahan）",
+        ex: "Kemeja santai bermaterial katun organik itu sangat sejuk saat dikenakan di daerah tropis.",
+        tr: "オーガニックコットン素材で作られたそのカジュアルシャツは、熱帯地域で着ると非常に涼しい。",
+        note: "■ 【語構成】：ber- + material（素材・材料・物質）＝ berbahan。"
+      },
+      {
+        p: "v", w: "bermata", r: "mata", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "①〜の目を持つ（bermata biru＝青い目をした） ②（指輪や宝飾品に〜の宝石が）はめ込まれた ③（刃物などが〜の）刃を持つ",
+        ex: "Ia mengenakan cincin emas bermata zamrud warisan neneknya pada acara resepsi tersebut.",
+        tr: "彼女はその披露宴で、祖母から受け継いだエメラルドの石がはめ込まれた金の指輪を身につけていた。",
+        note: [
+          "■ 【語構成】：ber- + mata（①目 ②指輪などの宝石部分・刃物の先端）。",
+          "■ 【コロケーション】：\n・cincin bermata zamrud / berlian：エメラルド ／ ダイヤモンドの石がついた指輪\n・pisau bermata dua：諸刃（両刃）の剣"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "butik", r: "butik", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "ブティック、高級洋品店・専門店（hotel butik＝ブティックホテル）",
+        ex: "Desainer muda itu baru saja membuka butik pertamanya di pusat perbelanjaan ibu kota.",
+        tr: "その若手デザイナーは、首都のショッピングセンターに自身の最初のブティックをオープンさせたばかりだ。",
+        note: "■ 【コロケーション】：butik busana（ファッションブティック）、hotel butik（小規模で個性的な高級デザインホテル）。"
+      },
+      {
+        p: "v", w: "terjajah", r: "jajah", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "植民地支配された、従属させられた、自由を奪われた",
+        ex: "Bangsa yang pernah terjajah sangat memahami betapa berharganya arti sebuah kemerdekaan.",
+        tr: "かつて植民地支配されたことのある民族は、独立というものの意味がいかに尊いかを深く理解している。",
+        note: "■ 【語構成】：ter- + jajah（支配する）。bangsa yang terjajah（被支配民族）、mental terjajah（植民地根性・従属的なマインド）。"
+      }
+    ]
+  };
+
+  PACK.vocab.forEach(function(it) {
+    if (it.dictOnly === true || it.tier === 3) {
+      dictOnlySet.add(it.w.trim().toLowerCase());
+    } else {
+      dictOnlySet.delete(it.w.trim().toLowerCase());
+    }
+  });
+
+  if (typeof window.wiAddPack === "function") {
+    window.wiAddPack(PACK);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 語彙追加・再厳選パック（bernama / menyodot 修正 ＆ 辞書専用語27語・出題語18語）
+   ===================================================================== */
+(function() {
+  const d = window.WHATSINDO_EXTERNAL_DATA;
+  if (!d) return;
+
+  const dictOnlySet = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+  const vMap        = window.__wiMasterVocabMap;
+  const catMap      = window.__WI_V5_VCAT;
+
+  // 前回のタイポ「bernam」が残っていれば完全削除
+  if (Array.isArray(d.vocab)) {
+    for (let i = d.vocab.length - 1; i >= 0; i--) {
+      if (d.vocab[i] && d.vocab[i].w && d.vocab[i].w.trim().toLowerCase() === "bernam") {
+        d.vocab.splice(i, 1);
+      }
+    }
+  }
+  if (vMap) vMap.delete("bernam");
+  if (catMap) catMap.delete("bernam");
+  dictOnlySet.delete("bernam");
+
+  const PACK = {
+    vocab: [
+      // ==================== 1. 出題対象（問題＋辞書：厳選18語） ====================
+      {
+        p: "n", w: "asuhan", r: "asuh", tier: 1, topicCat: "🏠 日常・生活・移動",
+        m: "①養育、世話、指導、監督（di bawah asuhan ~＝〜の指導・指揮の下で） ②養育された子、教え子（anak asuhan）",
+        ex: "Tim sepak bola muda di bawah asuhan pelatih baru itu berhasil menembus babak final.",
+        tr: "新監督の指導（指揮）の下にあるその若手サッカーチームは、決勝進出を果たした。",
+        note: [
+          "■ 【語構成】：asuh（養育する・指導する）+ -an。",
+          "■ 【コロケーション】：\n・di bawah asuhan pelatih ~：〜監督（コーチ）の指導・指揮の下で\n・anak asuhan / tim asuhan：教え子、養育している子 ／ 率いているチーム\n・rubrik / acara asuhan ~：〜が担当（監修）するコラム／番組",
+          "■ 【関連語】：mengasuh（養育する・指導する）、pengasuh（養育者・ベビーシッター・指導者）、pola asuh（子育ての方針）。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "pengasuh", r: "asuh", tier: 1, topicCat: "🏠 日常・生活・移動",
+        m: "①養育者、ベビーシッター、保育者 ②（寄宿塾や番組・コラムなどの）指導者、担当者、主宰者",
+        ex: "Pasangan yang sibuk bekerja itu mempekerjakan seorang pengasuh anak yang berpengalaman.",
+        tr: "共働きで忙しいその夫婦は、経験豊富なベビーシッター（子どもの養育係）を雇った。",
+        note: "■ 【語構成】：peN- + asuh（養育する）。pengasuh anak（ベビーシッター・養育者）、pengasuh pondok pesantren（イスラム寄宿塾の指導者・塾長）。"
+      },
+      {
+        p: "v", w: "mencangkul", r: "cangkul", tier: 1, topicCat: "🌿 自然・天気・動植物",
+        m: "鍬（くわ）で土を掘る、鍬で耕す",
+        ex: "Sejak pagi buta, para petani sudah mulai mencangkul tanah di sawah sebelum menanam padi.",
+        tr: "夜明け前から、農家たちは稲を植える前に水田の土を鍬で耕し始めていた。",
+        note: "■ 【語構成】：meN- + cangkul（鍬：c の前に鼻音 n が付く）。"
+      },
+      {
+        p: "n", w: "kisah", r: "kisah", tier: 1, topicCat: "🎓 教育・学術・IT",
+        m: "物語、話、エピソード、実話、経緯（＝cerita / riwayat）",
+        ex: "Film pemenang penghargaan itu diangkat dari kisah nyata perjuangan seorang guru di pulau terpencil.",
+        tr: "その受賞映画は、離島の教師の奮闘を描いた実話（実際の物語）を基に制作された。",
+        note: [
+          "■ 【コロケーション】：\n・kisah nyata：実話\n・kisah sukses / kisah hidup：サクセスストーリー ／ 半生記・人生の物語",
+          "■ 【関連語】：mengisahkan（他動詞：物語る・〜の経緯を語る）、berkisah tentang ~（自動詞：〜について語る）。"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "mengisahkan", r: "kisah", tier: 1, topicCat: "🎓 教育・学術・IT",
+        m: "（出来事や人物の歩みを）物語る、語る、描写する（＝menceritakan）",
+        ex: "Novel sejarah tersebut mengisahkan kehidupan masyarakat pelabuhan pada abad keenam belas.",
+        tr: "その歴史小説は、16世紀における港町の人々の暮らしを物語っている。",
+        note: "■ 【語構成】：meN- + kisah（物語）+ -kan（k が鼻音化して ng）。受動態 dikisahkan（語られる・描かれる）。"
+      },
+      {
+        p: "v", w: "bergulir", r: "gulir", tier: 1, topicCat: "⚖️ 政治・法律・社会",
+        m: "①（ボールや車輪などが）転がる ②（議論・計画・事件の捜査・時間・リーグ戦などが）動き出す、進行する、展開する",
+        ex: "Wacana mengenai pemindahan kantor pemerintahan itu terus bergulir di kalangan anggota dewan.",
+        tr: "政府庁舎の移転に関する議論は、議会議員の間で引き続き進行している（活発に展開している）。",
+        note: [
+          "■ 【語構成】：ber- + gulir（転がる）。",
+          "■ 【コロケーション】：\n・wacana / isu yang terus bergulir：進行（展開）し続ける議論／問題\n・kompetisi kembali bergulir：リーグ戦（大会）が再び開幕・進行する\n・waktu terus bergulir：時が流れ続ける",
+          "■ 【関連語】：menggulirkan（他動詞：転がす ／ 政策や議論を打ち出す・始動させる）、gulir（転がる・画面をスクロールする）。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "kala", r: "kala", tier: 1, topicCat: "🏠 日常・生活・移動",
+        m: "時、頃、時代、時期（＝waktu / masa）",
+        ex: "Pada kala itu, transportasi antarpulau masih sepenuhnya mengandalkan kapal layar tradisional.",
+        tr: "その当時（時代）は、島と島を結ぶ交通はまだ完全に伝統的な帆船に頼っていた。",
+        note: [
+          "■ 【コロケーション】：\n・pada kala itu / kala itu：その時、当時\n・senjakala：夕暮れ時、黄昏時",
+          "■ 【関連語ファミリー】：\n・berkala（形容詞）：定期的な（secara berkala＝定期的に）\n・adakalanya / kadang kala（副詞）：時には、たまには\n・tatkala / manakala（接続詞）：〜した時、〜する際には"
+        ].join("\n")
+      },
+      {
+        p: "other", w: "tatkala", r: "kala", tier: 2, topicCat: "🎓 教育・学術・IT",
+        m: "〜した時、〜する折に（過去の時点を表す書き言葉の接続詞＝ketika / sewaktu）",
+        ex: "Semua hadirin berdiri memberikan tepuk tangan tatkala sang juara memasuki ruangan.",
+        tr: "チャンピオンが会場に入ってきた時、出席者全員が立ち上がって拍手を送った。",
+        note: "■ 【類義語】：ketika / sewaktu / saat（〜した時）、manakala（〜する時はいつでも・〜するならば）。"
+      },
+      {
+        p: "v", w: "memecah", r: "pecah", tier: 1, topicCat: "⚖️ 政治・法律・社会",
+        m: "①割る、砕く、分割する（memecah belah＝分断する・分裂させる） ②（静寂・沈黙・集中などを）破る、打ち破る",
+        ex: "Suara dering telepon di meja resepsionis tiba-tiba memecah keheningan ruang tunggu.",
+        tr: "受付デスクの電話のベル音が、突然待合室の静けさを破った。",
+        note: [
+          "■ 【memecah と memecahkan の使い分け】：\n・memecah（-kan なし）：①静寂や集中を「破る」（memecah kesunyian / memecah konsentrasi）、②組織や団結を「割る・分断する」（memecah belah persatuan）、③波が岸で「砕ける」（ombak memecah di pantai）\n・memecahkan（-kan あり）：①物を「粉々に割る」、②問題や謎を「解決する」（memecahkan masalah）、③記録を「破る・更新する」（memecahkan rekor）"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "memperbanyak", r: "banyak", tier: 1, topicCat: "💼 仕事・経済・買い物",
+        m: "①（量や回数を）さらに増やす、多くする ②（書類・資料などを）コピーする、複製・増刷する（＝menggandakan）",
+        ex: "Panitia sedang memperbanyak materi makalah seminar untuk dibagikan kepada seluruh peserta.",
+        tr: "委員会は全参加者に配布するため、セミナーの論文資料をコピー（増刷）している。",
+        note: [
+          "■ 【語構成】：memper- + banyak（多い）。",
+          "■ 【コロケーション】：memperbanyak dokumen（書類をコピー・複製する）、memperbanyak ruang terbuka hijau（緑地帯を増やす）。"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "berbaris", r: "baris", tier: 1, topicCat: "🏠 日常・生活・移動",
+        m: "①列を作る、整列する、行進する ②（木々や建物などが）一列に並ぶ、立ち並ぶ",
+        ex: "Pohon-pohon kelapa tampak berbaris rapi di sepanjang garis pantai berpasir putih itu.",
+        tr: "ヤシの木々が、その白い砂浜の海岸線に沿って整然と一列に並んでいる。",
+        note: [
+          "■ 【関連語ファミリー】：\n・baris（名詞）：列、行（baris pertama＝1行目・最前列）\n・barisan（名詞）：隊列、行列、陣営、戦線（barisan depan＝最前線）\n・baris-berbaris：整列行進（訓練）"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "baris", r: "baris", tier: 1, topicCat: "🎓 教育・学術・IT",
+        m: "①列、並び ②（文章や詩の）行、ライン",
+        ex: "Tulislah jawaban Anda secara singkat dalam tiga sampai lima baris kalimat.",
+        tr: "あなたの回答を3行から5行の文で簡潔に書きなさい。",
+        note: "■ 【コロケーション】：baris demi baris（1行ずつ）、baris baru（改行）。"
+      },
+      {
+        p: "n", w: "barisan", r: "baris", tier: 1, topicCat: "⚖️ 政治・法律・社会",
+        m: "①列、隊列、連なり（barisan pegunungan＝山脈の連なり） ②陣営、戦線、グループ",
+        ex: "Para tenaga medis berdiri di barisan paling depan saat menangani wabah penyakit menular.",
+        tr: "医療従事者たちは感染症の流行に対処する際、最前線（最前列）に立った。",
+        note: [
+          "■ 【コロケーション】：\n・di barisan depan / terdepan：最前列で、最前線で\n・merapatkan barisan：隊列を詰める ➔ 陣営の結束・団結を固める\n・Bukit Barisan：バリサン山脈（スマトラ島を縦断する山脈）"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "serat", r: "serat", tier: 1, topicCat: "🌿 自然・天気・動植物",
+        m: "①繊維、ファイバー、（木材などの）木目・筋 ②食物繊維（serat pangan）",
+        ex: "Mengonsumsi sayuran dan buah-buahan yang kaya akan serat sangat baik untuk kesehatan pencernaan.",
+        tr: "食物繊維が豊富な野菜や果物を摂取することは、消化器の健康にとって非常に良い。",
+        note: [
+          "■ 【コロケーション】：\n・kaya akan serat / tinggi serat：食物繊維が豊富な\n・serat alami / serat sintetis：天然繊維 ／ 合成繊維\n・serat kayu：木材の繊維、木目\n・serat optik：光ファイバー"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "pernak-pernik", r: "pernik", tier: 2, topicCat: "🏠 日常・生活・移動",
+        m: "①様々な飾り小物、アクセサリー、雑貨 ②細々とした事柄、あれこれの詳細",
+        ex: "Toko kerajinan itu menjual berbagai pernak-pernik hiasan rumah yang terbuat dari kerang dan kayu.",
+        tr: "その工芸品店は、貝殻や木で作られた様々な室内装飾用の小物を販売している。",
+        note: [
+          "■ 【2つの用法】：\n① 具体物：pernak-pernik hiasan（飾り付け小物・雑貨）\n② 抽象的：pernak-pernik kehidupan kampus（キャンパスライフのあれこれ・細かなエピソード）"
+        ].join("\n")
+      },
+      {
+        p: "a", w: "terawat", r: "rawat", tier: 1, topicCat: "🏠 日常・生活・移動",
+        m: "よく手入れされた、きちんと管理・整備された、保たれた（⇔ tidak terawat / terbengkalai）",
+        ex: "Taman kota itu tampak sangat asri dan bersih karena selalu terawat dengan baik oleh petugas.",
+        tr: "その都市公園は係員によって常に良く手入れされているため、非常に緑豊かで清潔に見える。",
+        note: [
+          "■ 【語構成】：ter- + rawat（手入れする・看護する：r が融合して terawat）。",
+          "■ 【関連語】：merawat（手入れする・看護する）、perawatan（手入れ・ケア・治療）、perawat（看護師）。"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "bertuliskan", r: "tulis", tier: 1, topicCat: "🎓 教育・学術・IT",
+        m: "〜と書かれた、〜という文字が記された（＝bertulis）",
+        ex: "Di depan pintu masuk taman terdapat sebuah papan kayu bertuliskan \"Jagalah Kebersihan Hutan\".",
+        tr: "公園の入口の前には、「森の清潔を守ろう」と書かれた木の看板が1つある。",
+        note: [
+          "■ 【語構成】：ber- + tulis（書く）+ -kan。直後に書かれている内容や文字をそのまま置いて、前の名詞（看板・服・標識・石碑など）を修飾する。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "pelat", r: "pelat", tier: 2, topicCat: "🏠 日常・生活・移動",
+        m: "①金属の薄板、プレート ②車両のナンバープレート（pelat nomor kendaraan）",
+        ex: "Petugas memeriksa masa berlaku pajak kendaraan melalui angka yang tertera pada pelat nomor.",
+        tr: "係員はナンバープレートに記載された数字を通じて、車両税の有効期限を確認した。",
+        note: [
+          "■ 【コロケーション】：\n・pelat nomor (kendaraan)：ナンバープレート（pelat merah＝公用車、pelat kuning＝営業車）\n・pelat baja / kuningan：鋼板 ／ 真鍮プレート（※口語や記事では e を省いた plat とも綴られる）"
+        ].join("\n")
+      },
+
+      // ==================== 2. 辞書専用語（問題には出さない：dictOnly: true, tier: 3） ====================
+      {
+        p: "v", w: "bernama", r: "nama", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "①〜という名前の、〜と名乗る ②名声のある、有名な（＝ternama）",
+        ex: "Resor indah di tepi tebing itu dirancang oleh seorang arsitek muda bernama Andi.",
+        tr: "崖っぷちにあるその美しいリゾートは、アンディという名前の若手建築家によって設計された。",
+        note: "■ 【語構成】：ber- + nama（名前）。直後に固有名詞を置いて「〜という名前の（人・店・場所など）」を表す。"
+      },
+      {
+        p: "v", w: "menyodot", r: "sodot", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "①（強い色や光・造形などが）目を突く、目に刺さるように悪目立ちする（menyodot mata） ②視線・注目を強く引きつける（※menyedot mata の表記ゆれとしても使われる）",
+        ex: "Bangunan vila itu dirancang menyatu dengan alam sekitar tanpa warna mencolok yang menyodot mata.",
+        tr: "そのヴィラの建物は、目を突く（目に刺さる）ような派手な色を排し、周囲の自然と溶け込むように設計されている。",
+        note: [
+          "■ 【表現】：『menyodot mata』は直訳すると「目を突く（語幹 sodot＝突く・押し出す）」で、建築やデザインの描写において「視覚的にギラついて目に刺さる・悪目立ちする」、あるいは『menyedot mata / perhatian（視線や注目をグッと吸い寄せる）』の意味で用いられる。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Ramayana", r: "Ramayana", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "『ラーマーヤナ』（古代インドの大叙事詩。ラーマ王子とシータ妃の物語で、ジャワやバリの伝統舞踊劇・ワヤンの代表的題材）",
+        ex: "Pertunjukan Sendratari Ramayana digelar dengan latar belakang Candi Prambanan yang megah.",
+        tr: "ラーマーヤナ舞踊劇の公演は、壮麗なプランバナン寺院を背景にして開催された。",
+        note: "■ 【文化背景】：『Mahabarata（マハーバーラタ）』と並ぶ古代インドの2大叙事詩（wiracarita / epos）のひとつ。"
+      },
+      {
+        p: "n", w: "Mahabarata", r: "Mahabarata", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "『マハーバーラタ』（古代インドの大叙事詩。パンダワ五兄弟とコラワ百兄弟の戦いを描き、ワヤン・クリの主要演目となっている）",
+        ex: "Kisah kepahlawanan Arjuna dan Bima diambil dari epos klasik Mahabarata.",
+        tr: "アルジュナやビマの英雄譚は、古典叙事詩『マハーバーラタ』から採られている。",
+        note: "■ 【綴り】：Mahabarata または Mahabharata。"
+      },
+      {
+        p: "v", w: "gulir", r: "gulir", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "転がる、回転する、（画面を）スクロールする（gulir ke bawah＝下へスクロールする）",
+        ex: "Silakan gulir layar ke bagian paling bawah untuk membaca syarat dan ketentuan pendaftaran.",
+        tr: "登録の利用規約を読むには、画面を一番下までスクロールしてください。",
+        note: "■ 【重要派生語】：bergulir（転がる ／ 議論・計画・時間が動き出す、進行する）、menggulirkan（転がす ／ 政策や議論を打ち出す）。"
+      },
+      {
+        p: "n", w: "cericit", r: "cericit", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "（小鳥・ひよこ・ネズミなどの）チュンチュン、チーチーという高い鳴き声、さえずり（＝cicitan / kicauan）",
+        ex: "Suasana pagi di vila itu terasa sangat damai dengan terdengarnya suara cericit burung dari balik pohon.",
+        tr: "木々の陰から小鳥のチュンチュンというさえずりが聞こえ、そのヴィラの朝の雰囲気はとても穏やかに感じられた。",
+        note: "■ 【派生動詞】：mencericit（小鳥やネズミなどがチーチー・チュンチュンと鳴く）。"
+      },
+      {
+        p: "other", w: "sebanyak", r: "banyak", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "①（数量詞の直前に置いて）〜もの、総勢〜、合計〜に達する ②〜と同じ数の、〜と同じだけ",
+        ex: "Pemerintah daerah menyalurkan bantuan bibit ikan sebanyak lima puluh ribu ekor kepada kelompok nelayan.",
+        tr: "地方政府は漁師グループに対し、5万匹もの稚魚の支援を配布した。",
+        note: "■ 【語構成】：se- + banyak（多い）。数値の前に置いて「〜もの数の（＝sejumlah）」を表す。"
+      },
+      {
+        p: "n", w: "privasi", r: "privasi", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "プライバシー、私生活の平穏・秘密",
+        ex: "Vila-vila di resor tersebut dibangun berjauhan untuk menjaga privasi setiap tamu yang menginap.",
+        tr: "そのリゾートのヴィラは、宿泊する各ゲストのプライバシーを守るために互いに離して建てられている。",
+        note: "■ 【コロケーション】：menjaga / melindungi privasi（プライバシーを守る／保護する）、ruang privasi（プライベート空間）。"
+      },
+      {
+        p: "n", w: "kerimbunan", r: "rimbun", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "（木々の葉や森の）生い茂り、鬱蒼とした茂み、緑の厚み",
+        ex: "Bangunan vila kayu itu tersembunyi dengan tenang di balik kerimbunan pepohonan tropis.",
+        tr: "その木造ヴィラの建物は、熱帯の木々の鬱蒼とした茂みの陰に静かに佇んでいる。",
+        note: "■ 【語構成】：ke- + rimbun（葉がふさふさと茂った）+ -an。"
+      },
+      {
+        p: "n", w: "tetumbuhan", r: "tumbuh", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "様々な植物、草木群（集合名詞＝tumbuh-tumbuhan / tumbuhan）",
+        ex: "Halaman belakang penginapan itu tampak sejuk karena dikelilingi oleh aneka tetumbuhan hijau.",
+        tr: "その宿の裏庭は様々な緑の草木（植物）に囲まれているため、涼しげに見える。",
+        note: "■ 【語構成】：tumbuh（育つ）の語頭音節重複＋-an（te-tumbuh-an）。同型に pepohonan（木々）、dedaunan（木々の葉）、bebatuan（岩々）。"
+      },
+      {
+        p: "n", w: "pepohonan", r: "pohon", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "木々、様々な樹木、木立（集合名詞＝pohon-pohonan）",
+        ex: "Angin sepoi-sepoi berembus di sela-sela pepohonan pinus yang tumbuh di lereng bukit.",
+        tr: "そよ風が、丘の斜面に生える松の木々の間を吹き抜けていく。",
+        note: "■ 【語構成】：pohon（木）の語頭音節重複＋-an（pe-pohon-an）。"
+      },
+      {
+        p: "n", w: "firma", r: "firma", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "合名会社、（法律・会計・建築設計などの）共同経営事務所、ファーム（略記：Fa）",
+        ex: "Proyek resor ramah lingkungan itu dirancang oleh sebuah firma arsitektur ternama di Bali.",
+        tr: "その環境配慮型リゾート計画は、バリの著名な建築設計事務所（建築ファーム）によって設計された。",
+        note: "■ 【コロケーション】：firma arsitektur（建築設計事務所）、firma hukum（法律事務所）。"
+      },
+      {
+        p: "n", w: "duo", r: "duo", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "二人組、デュオ、名コンビ、二重奏",
+        ex: "Studio kreatif tersebut didirikan oleh duo arsitek muda lulusan universitas yang sama.",
+        tr: "そのクリエイティブスタジオは、同じ大学を卒業した若手建築家の二人組（コンビ）によって設立された。",
+        note: "■ 【関連語】：solo / tunggal（1人）、duo / duet（2人組）、trio（3人組）、kuartet（4人組）。"
+      },
+      {
+        p: "a", w: "kontemporer", r: "kontemporer", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "現代の、コンテンポラリーな、同時代の（＝masa kini / modern）",
+        ex: "Galeri tersebut memamerkan perpaduan antara seni tradisional Bali dan desain kontemporer.",
+        tr: "そのギャラリーは、バリの伝統芸術と現代的な（コンテンポラリーな）デザインの融合を展示している。",
+        note: "■ 【コロケーション】：seni kontemporer（現代美術）、arsitektur kontemporer（現代建築）。"
+      },
+      {
+        p: "n", w: "bebatuan", r: "batu", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "岩々、様々な石や岩の群れ（集合名詞＝batu-batuan）",
+        ex: "Air sungai yang jernih mengalir tenang melewati celah-celah bebatuan di lembah itu.",
+        tr: "澄んだ川の水が、その谷の岩々の隙間を静かに流れている。",
+        note: "■ 【語構成】：batu（石・岩）の語頭音節重複＋-an（be-batu-an）。"
+      },
+      {
+        p: "a", w: "berserat", r: "serat", dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理",
+        m: "繊維を含む、繊維質の、木目・筋のある",
+        ex: "Dokter menyarankan pasien tersebut untuk memperbanyak konsumsi makanan berserat tinggi.",
+        tr: "医師はその患者に対し、食物繊維の多い（高繊維質の）食品の摂取を増やすよう勧めた。",
+        note: "■ 【語構成】：ber- + serat（繊維）。makanan berserat（繊維質の食品）、kayu berserat halus（木目の細かい木材）。"
+      },
+      {
+        p: "n", w: "bangkirai", r: "bangkirai", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "バンキライ（カリマンタン等の熱帯雨林に自生するフタバガキ科の巨木。極めて硬く耐水・耐久性に優れ、ウッドデッキや建築構造材に使われる高級木材）",
+        ex: "Lantai teras dan jembatan kayu di resor itu menggunakan material kayu bangkirai yang tahan cuaca.",
+        tr: "そのリゾートのテラス床と木橋には、耐候性に優れたバンキライ材が使用されている。",
+        note: "■ 【インドネシアの代表的な高級建築木材】：jati（チーク材）、ulin（ボルネオテツボク・アイアンウッド）、bangkirai（バンキライ）、merbau（メルバウ）。"
+      },
+      {
+        p: "n", w: "interior", r: "interior", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "内装、室内装飾、インテリア、内部（⇔ eksterior＝外観・外装）",
+        ex: "Interior ruang tamu hotel itu dirancang dengan memadukan unsur kayu alami dan batu alam.",
+        tr: "そのホテルのロビー（応接室）の内装は、天然木と自然石の要素を組み合わせてデザインされている。",
+        note: "■ 【コロケーション】：desain interior（インテリアデザイン・室内設計）、penataan interior（内装コーディネート）。"
+      },
+      {
+        p: "n", w: "eksterior", r: "eksterior", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "外観、外装、エクステリア、外部（⇔ interior＝内装・インテリア）",
+        ex: "Eksterior bangunan itu mempertahankan gaya kolonial, sedangkan interiornya dibuat sangat modern.",
+        tr: "その建物の外観はコロニアル様式を保っている一方、内装は非常にモダンに作られている。",
+        note: "■ 【対義語】：interior（内装・室内装飾）。"
+      },
+      {
+        p: "v", w: "bersumber", r: "sumber", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "（水・情報・資金・インスピレーションなどが〜に）源を発する、由来する、〜を出所とする",
+        ex: "Seluruh air bersih yang digunakan di desa tersebut bersumber dari mata air pegunungan alami.",
+        tr: "その村で使われているすべての清潔な水は、自然の山の湧き水に源を発している（由来している）。",
+        note: "■ 【語構成】：ber- + sumber（源・出所・情報源）。bersumber dari / pada ~。"
+      },
+      {
+        p: "n", w: "artisan", r: "artisan", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "熟練職人、アルチザン、工芸家（＝pengrajin / kriyawan：手仕事や伝統製法で少量生産する職人・製品）",
+        ex: "Furnitur kayu di ruangan ini dibuat dengan tangan oleh para artisan lokal dari Jepara.",
+        tr: "この部屋の木製家具は、ジュパラ出身の地元の熟練職人たちによって手作りされたものだ。",
+        note: "■ 【コロケーション】：artisan lokal（地元の熟練職人）、produk artisan（職人手作りの工芸品・食品）。"
+      },
+      {
+        p: "n", w: "spa", r: "spa", dictOnly: true, tier: 3, topicCat: "🏥 健康・身体・感情",
+        m: "スパ、温泉・美容リラクゼーション施設（perawatan spa＝スパトリートメント）",
+        ex: "Para tamu hotel dapat menikmati layanan pijat tradisional dan spa dengan pemandangan lembah.",
+        tr: "ホテルの宿泊客は渓谷の景色を眺めながら、伝統マッサージとスパのサービスを楽しむことができる。",
+        note: "■ 【コロケーション】：fasilitas spa dan kebugaran（スパ＆ウェルネス施設）。"
+      },
+      {
+        p: "v", w: "berkarakter", r: "karakter", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "①（デザイン・建物・声・味などが）個性のある、独特の持ち味・風格がある ②立派な人格を備えた",
+        ex: "Bangunan kayu tua itu terlihat sangat berkarakter berkat ukiran tradisional pada tiang-tiangnya.",
+        tr: "その古い木造建築は、柱に施された伝統的な彫刻のおかげで非常に風格がある（個性的に見える）。",
+        note: "■ 【語構成】：ber- + karakter（性格・人格・個性）。"
+      },
+      {
+        p: "n", w: "limasan", r: "limas", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "リマサン（ジャワの伝統的な寄棟造りの木造建築様式。四角錐台形［limas］の屋根を持つ伝統家屋：rumah limasan）",
+        ex: "Bangunan utama lobi resor itu mengadopsi bentuk atap limasan khas arsitektur tradisional Jawa.",
+        tr: "そのリゾートのロビー本館は、ジャワ伝統建築特有の「リマサン（寄棟）」の屋根形状を取り入れている。",
+        note: "■ 【ジャワ伝統建築の代表的な屋根様式】：joglo（ジョグロ：中央が高くそびえる大屋根）と limasan（リマサン：落ち着いた寄棟屋根）。"
+      },
+      {
+        p: "n", w: "fasad", r: "fasad", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "（建物の正面の）外観、ファサード（＝muka bangunan）",
+        ex: "Fasad gedung baru itu dilapisi kisi-kisi kayu untuk mengurangi panas sinar matahari langsung.",
+        tr: "その新しいビルの正面外観（ファサード）は、直射日光の熱を和らげるために木製のルーバー（格子）で覆われている。",
+        note: "■ 【建築用語】：フランス語・英語の facade 由来。建物の正面デザインを指す。"
+      },
+      {
+        p: "n", w: "plat", r: "pelat", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "金属板、プレート、車両のナンバープレート（plat nomor ※標準語綴りは pelat）",
+        ex: "Di dinding gerbang terpasang sebuah plat kuningan yang bertuliskan nama dan tahun berdirinya gedung.",
+        tr: "門の壁には、建物の名称と設立年が刻まれた真鍮のプレート（金属板）が取り付けられている。",
+        note: "■ 【表記】：標準語形は『pelat』（pelat nomor / pelat besi）。"
+      },
+      {
+        p: "n", w: "hektar", r: "hektare", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "ヘクタール（面積の単位：1ヘクタール＝10,000平方メートル、略記号 ha ※標準語綴りは hektare）",
+        ex: "Kawasan resor tepi pantai itu berdiri di atas lahan seluas lebih dari lima hektar.",
+        tr: "そのビーチ沿いのリゾートエリアは、5ヘクタール以上の広さの敷地の上に建っている。",
+        note: "■ 【表記】：KBBI標準語形は末尾に e の付く『hektare』。"
+      }
+    ]
+  };
+
+  PACK.vocab.forEach(function(it) {
+    if (it.dictOnly === true || it.tier === 3) {
+      dictOnlySet.add(it.w.trim().toLowerCase());
+    } else {
+      dictOnlySet.delete(it.w.trim().toLowerCase());
+    }
+  });
+
+  if (typeof window.wiAddPack === "function") {
+    window.wiAddPack(PACK);
+  }
 })();
