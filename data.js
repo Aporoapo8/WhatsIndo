@@ -149420,3 +149420,9383 @@ window.wiAddPack({
     window.wiAddPack(PACK);
   }
 })();
+/* =====================================================================
+   WhatsIndo 最近追加分の文字バグ（6箇所）ピンポイント修正パッチ
+   ===================================================================== */
+(function() {
+  const d = window.WHATSINDO_EXTERNAL_DATA;
+  if (!d || !Array.isArray(d.vocab)) return;
+
+  const FIX_MAP = {
+    "lantas": function(it) {
+      if (it.note) it.note = it.note.replace(/反박/g, "反論");
+    },
+    "asal-asalan": function(it) {
+      if (it.m) it.m = it.m.replace(/\s*\/\s*ทะ\s*/g, " ");
+      if (it.fullM) it.fullM = it.fullM.replace(/\s*\/\s*ทะ\s*/g, " ");
+    },
+    "orkestra": function(it) {
+      if (it.ex) it.ex = it.ex.replace(/оркеストラ/g, "orkestra");
+    },
+    "kerja": function(it) {
+      if (it.note) it.note = it.note.replace(/수행する/g, "遂行する");
+    },
+    "ikut": function(it) {
+      if (it.note) it.note = it.note.replace(/信봉者/g, "信奉者");
+    },
+    "mendatangkan": function(it) {
+      if (it.tr) it.tr = it.tr.replace(/招빙（招聘）/g, "招聘（しょうへい）");
+    }
+  };
+
+  for (let i = 0; i < d.vocab.length; i++) {
+    const it = d.vocab[i];
+    if (!it || !it.w) continue;
+    const key = it.w.trim().toLowerCase();
+    if (FIX_MAP[key]) {
+      FIX_MAP[key](it);
+    }
+  }
+
+  const vMap = window.__wiMasterVocabMap;
+  if (vMap) {
+    Object.keys(FIX_MAP).forEach(function(k) {
+      if (vMap.has(k)) FIX_MAP[k](vMap.get(k));
+    });
+  }
+
+  window.__wiDataRevision = (window.__wiDataRevision || 0) + 1;
+  if (typeof window.__reloadWhatsIndo === "function") {
+    try { window.__reloadWhatsIndo(); } catch (e) {}
+  }
+})();
+/* =====================================================================
+   WhatsIndo 語彙追加・統合パック（beli/bayar統合 ＋ OSIS〜menyurati 29語 ＆ 辞書専用語の自動振り分け）
+   ===================================================================== */
+(function() {
+  const d = window.WHATSINDO_EXTERNAL_DATA;
+  if (!d) return;
+
+  const dictOnlySet = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+  const vMap        = window.__wiMasterVocabMap;
+  const catMap      = window.__WI_V5_VCAT;
+
+  // -------------------------------------------------------------------
+  // 1. 「beli ➔ membeli」「bayar ➔ membayar」への一本化（単体見出しの削除）
+  // -------------------------------------------------------------------
+  const MERGE_REMOVE = new Set(["beli", "bayar"]);
+  if (Array.isArray(d.vocab)) {
+    for (let i = d.vocab.length - 1; i >= 0; i--) {
+      const it = d.vocab[i];
+      if (it && it.w && MERGE_REMOVE.has(it.w.trim().toLowerCase())) {
+        d.vocab.splice(i, 1);
+      }
+    }
+  }
+  MERGE_REMOVE.forEach(function(k) {
+    if (vMap) vMap.delete(k);
+    if (catMap) catMap.delete(k);
+    dictOnlySet.delete(k);
+  });
+
+  // 既存の jalan pintas も語幹 pintas でファミリー検索できるよう整備
+  if (vMap && vMap.has("jalan pintas")) {
+    vMap.get("jalan pintas").r = "pintas";
+  }
+
+  // -------------------------------------------------------------------
+  // 2. 統合アップデート ＆ 新規語彙・派生語パック
+  // -------------------------------------------------------------------
+  const PACK = {
+    vocab: [
+      // ==================== A. 統合アップデート（membeli / membayar） ====================
+      {
+        p: "v", w: "membeli", r: "beli", tier: 1, topicCat: "💼 仕事・経済・買い物",
+        m: "〜を買う、購入する（口語・命令形・1/2人称受動態・複合語では語幹 beli も用いられる ⇔ menjual / jual）",
+        ex: "Banyak konsumen kini lebih suka membeli kebutuhan sehari-hari melalui toko daring.",
+        tr: "多くの消費者は現在、オンラインショップを通じて日用品を購入することを好んでいる。",
+        note: [
+          "■ 【語構成】：meN- + beli（買う）。口語や命令文、1・2人称受動態（saya beli / kamu beli）、複合語では語幹『beli』がそのまま使われる。",
+          "■ 【重要複合語・コロケーション】：\n・jual beli：売買、取引（akta jual beli＝売買証書）\n・daya beli：購買力（menjaga daya beli masyarakat＝市民の購買力を維持する）\n・harga beli：買値、仕入れ価格（⇔ harga jual＝売値）",
+          "■ 【関連語ファミリー】：\n・membelikan（他動詞）：（他の人のために物を）買ってあげる（受益の -kan：Ayah membelikan adik sepeda baru）\n・pembeli（名詞）：買い手、購入者、買い物客\n・pembelian（名詞）：購入、買い付け、仕入れ\n・terbeli（状態動詞）：買うことができる（手が届く）／うっかり買ってしまう"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "membayar", r: "bayar", tier: 1, topicCat: "💼 仕事・経済・買い物",
+        m: "（代金・税金・給与・借金などを）支払う、納める（口語・命令形・複合語では語幹 bayar も用いられる）",
+        ex: "Sekarang kita bisa membayar tagihan listrik dan air dengan mudah melalui aplikasi ponsel.",
+        tr: "今ではスマホアプリを通じて電気代や水道代の請求を簡単に支払うことができる。",
+        note: [
+          "■ 【語構成】：meN- + bayar（払う）。口語や命令文、1・2人称受動態（saya bayar）、複合語では語幹『bayar』がそのまま使われる。",
+          "■ 【重要複合語・コロケーション】：\n・membayar tunai / nontunai：現金で払う ／ キャッシュレスで払う\n・membayar pajak / utang / denda：税金を納める ／ 借金を返す ／ 罰金を払う\n・bayar di tempat：代金引換（COD）\n・gagal bayar：債務不履行、デフォルト\n・kurang bayar / lebih bayar：（税金の）納付不足（追徴） ／ 過払い（還付）",
+          "■ 【関連語ファミリー】：\n・pembayaran（名詞）：支払い、決済、納付（alat pembayaran＝決済手段）\n・bayaran（名詞）：料金、報酬、ギャラ\n・berbayar（形容詞）：有料の（⇔ gratis / cuma-cuma）\n・membayarkan（他動詞）：（他人のために）代わって支払う／支出する"
+        ].join("\n")
+      },
+
+      // ==================== B. 出題対象（問題＋辞書：17語） ====================
+      {
+        p: "singkatan", w: "OSIS", r: "Organisasi Siswa Intra Sekolah", alts: ["organisasi siswa intra sekolah"], tier: 1, topicCat: "🎓 教育・学術・IT",
+        m: "生徒会（インドネシアの中学校 SMP・高校 SMA/SMK に設置される校内生徒自治組織）",
+        ex: "Pengurus OSIS sedang mengadakan rapat untuk mempersiapkan acara pentas seni sekolah.",
+        tr: "生徒会の役員たちは、学校の文化祭（芸術発表会）を準備するための会議を開いている。",
+        note: [
+          "■ 【正式名称】：Organisasi（組織）Siswa（生徒）Intra（内部の）Sekolah（学校）。",
+          "■ 【コロケーション】：ketua OSIS（生徒会長）、pengurus OSIS（生徒会役員）。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "pekerti", r: "pekerti", tier: 1, topicCat: "🎓 教育・学術・IT",
+        m: "品性、道徳心、人格、日頃の行い・振る舞い（主に budi pekerti の形で用いられる）",
+        ex: "Pendidikan budi pekerti sejak usia dini sangat penting untuk membentuk generasi yang santun dan jujur.",
+        tr: "礼儀正しく誠実な世代を育てるためには、幼少期からの道徳（品性）教育が非常に重要である。",
+        note: [
+          "■ 【最重要コロケーション】：\n・budi pekerti：品性、道徳心、人格、行儀作法（＝akhlak / moral / etika）\n・pekerti yang luhur / mulia：高潔な（立派な）品性\n・berbudi pekerti luhur：高潔な人格を備えている"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "brankas", r: "brankas", tier: 1, topicCat: "💼 仕事・経済・買い物",
+        m: "金庫（現金・貴金属・重要書類などを保管する耐火・防盗用の鉄製保管庫＝lemari besi）",
+        ex: "Dokumen asli sertifikat tanah dan perhiasan keluarga disimpan di dalam brankas yang terkunci rapat.",
+        tr: "土地権利証の原本や家族の貴金属は、厳重に施錠された金庫の中に保管されている。",
+        note: "■ 【語源】：オランダ語の brandkast（耐火金庫）からの借用語。ニュースの盗難事件や銀行・オフィスの話題で頻出。"
+      },
+      {
+        p: "n", w: "koran", r: "koran", tier: 1, topicCat: "🏠 日常・生活・移動",
+        m: "新聞（＝surat kabar / harian）",
+        ex: "Setiap pagi kakek selalu membaca koran sambil menikmati secangkir kopi hangat di teras.",
+        tr: "毎朝、祖父はテラスで温かいコーヒーを1杯楽しみながら必ず新聞を読む。",
+        note: [
+          "■ 【コロケーション】：\n・koran pagi / koran sore：朝刊 ／ 夕刊\n・berlangganan koran：新聞を定期購読する\n・kios / loper koran：新聞スタンド ／ 新聞配達員",
+          "■ 【類義語】：surat kabar（新聞の改まった表現）、harian（日刊紙）。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "petak", r: "petak", tier: 1, topicCat: "🌿 自然・天気・動植物",
+        m: "①（あぜ道や境界線で区切られた田畑・土地・鉱区などの）区画、一区画 ②（仕切られた）小部屋、長屋の一室",
+        ex: "Kakek masih rajin menggarap dua petak sawah peninggalan orang tuanya di desa.",
+        tr: "祖父は村にある両親から受け継いだ2区画（2枚）の水田を今も熱心に耕している。",
+        note: [
+          "■ 【コロケーション】：\n・sepetak sawah / sepetak tanah：一区画の田んぼ ／ 狭い一画の土地\n・petak tambang / petak hutan：採掘区画 ／ 森林管理区画\n・rumah petak：1棟を複数の小部屋に仕切った長屋式の賃貸住宅\n・petak umpet：かくれんぼ（子どもの遊び：main petak umpet）"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "kompos", r: "kompos", tier: 2, topicCat: "🌿 自然・天気・動植物",
+        m: "堆肥、コンポスト（落ち葉や生ごみなどの有機物を微生物の働きで発酵・分解させた有機肥料）",
+        ex: "Warga desa mengolah sampah organik rumah tangga serta dedaunan kering menjadi pupuk kompos.",
+        tr: "村の住民たちは家庭の生ごみと枯れ葉を加工して堆肥（コンポスト肥料）にしている。",
+        note: "■ 【コロケーション】：pupuk kompos（堆肥）、pengomposan（堆肥化プロセス）。"
+      },
+      {
+        p: "v", w: "pintas", r: "pintas", tier: 1, topicCat: "🏠 日常・生活・移動",
+        m: "近道をする、横切る（主に jalan pintas「近道・安易な手段」や sepintas「一見したところ」の形で用いられる）",
+        ex: "Jangan mengambil jalan pintas yang melanggar aturan hanya demi meraih keuntungan sesaat.",
+        tr: "目先の利益を得るためだけに、規則に違反するような安易な近道（不正手段）をとってはならない。",
+        note: [
+          "■ 【重要コロケーション・派生語】：\n・jalan pintas：①近道、抜け道 ②（正規の手順を省いた）手っ取り早い方法、安易な裏技（mengambil / menempuh jalan pintas）\n・sepintas / sepintas lalu：一見したところ、パッと見ただけでは、ちらっと（＝sekilas）\n・memintas（他動詞）：近道を通る、横切る ／ 人の話を遮る\n・pintasan（名詞）：抜け道、ショートカット（PCのショートカットアイコン等）"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "melintas", r: "lintas", tier: 1, topicCat: "🏠 日常・生活・移動",
+        m: "①（車・人・列車などが目の前を）通り過ぎる、通過する、横切る ②（考えや記憶が脳裏を）よぎる、浮かぶ",
+        ex: "Pejalan kaki diminta menunggu hingga seluruh rangkaian kereta api selesai melintas.",
+        tr: "歩行者は列車の全車両が通過し終えるまで待つよう求められている。",
+        note: [
+          "■ 【melintas と melintasi の使い分け】：\n・melintas（自動詞）：「通り過ぎる・通過する」（後ろに di depan ~ などの前置詞句が来る）\n・melintasi（他動詞）：「（橋・海峡・国境・道路などを）渡る・通過する」（直後に場所の目的語を直接とる）"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "impunitas", r: "impunitas", tier: 2, topicCat: "⚖️ 政治・法律・社会",
+        m: "不処罰、免責（重大な犯罪や人権侵害・汚職などの実行犯が法的な処罰や責任追及を免れている状態）",
+        ex: "Penegakan hukum yang tegas diperlukan untuk mengakhiri budaya impunitas bagi para pelaku perusakan hutan.",
+        tr: "森林破壊の実行犯たちに対する不処罰の風潮を終わらせるためには、厳格な法執行が必要である。",
+        note: "■ 【コロケーション】：mengakhiri / menghapus impunitas（不処罰を終わらせる・なくす）、praktik impunitas（処罰逃れの慣行）。"
+      },
+      {
+        p: "n", w: "merkuri", r: "merkuri", tier: 2, topicCat: "🌿 自然・天気・動植物",
+        m: "水銀（＝air raksa：常温で液体の重金属元素。違法金採掘や違法化粧品による汚染・中毒問題で頻出）",
+        ex: "Penggunaan merkuri dalam aktivitas penambangan emas tanpa izin mencemari aliran sungai di daerah tersebut.",
+        tr: "無許可の金採掘活動における水銀の使用が、同地域の河川の流れを汚染している。",
+        note: [
+          "■ 【類義語】：air raksa（水銀の固有インドネシア語表現）、merkurius（水銀／太陽系の水星）。",
+          "■ 【コロケーション】：pencemaran limbah merkuri（水銀廃液による汚染）、kosmetik bebas merkuri（水銀フリーの化粧品）。"
+        ].join("\n")
+      },
+      {
+        p: "a", w: "ekologis", r: "ekologi", tier: 1, topicCat: "🌿 自然・天気・動植物",
+        m: "生態学的な、生態系に関する、エコロジーの",
+        ex: "Alih fungsi hutan secara berlebihan dapat memicu bencana ekologis seperti banjir bandang dan tanah longsor.",
+        tr: "過度な森林の用途転換は、鉄砲水や土砂崩れのような生態系災害（環境災害）を引き起こす恐れがある。",
+        note: [
+          "■ 【コロケーション】：\n・bencana ekologis / krisis ekologis：生態系災害（環境破壊による災害） ／ 生態学的危機\n・dampak / fungsi ekologis：生態系への影響 ／ 生態学的機能（保水や炭素吸収など）",
+          "■ 【関連語】：ekologi（名詞：生態学・エコロジー）、ekosistem（名詞：生態系）。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "blok", r: "blok", tier: 1, topicCat: "💼 仕事・経済・買い物",
+        m: "①（鉱区・油田・住宅街・刑務所などの）区画、ブロック、鉱区 ②（政治・経済・軍事の）陣営、ブロック圏",
+        ex: "Pemerintah menetapkan lima blok wilayah pertambangan baru yang akan dikelola oleh koperasi warga.",
+        tr: "政府は住民協同組合によって管理される予定の5つの新しい鉱業区域ブロック（鉱区）を指定した。",
+        note: [
+          "■ 【コロケーション】：\n・blok tambang / blok migas：採掘鉱区 ／ 石油・天然ガス鉱区（Blok Rokan, Blok Masela 等）\n・Gerakan Non-Blok (GNB)：非同盟運動\n・blok perumahan / blok penjara：住宅街の街区 ／ 刑務所の棟",
+          "■ 【関連語】：memblokir（他動詞：封鎖する・凍結する・ブロックする）。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "pengusulan", r: "usul", tier: 1, topicCat: "⚖️ 政治・法律・社会",
+        m: "提案すること、申請、上申、推薦手続き",
+        ex: "Proses pengusulan kawasan cagar budaya tersebut ke tingkat nasional memerlukan kajian akademik yang lengkap.",
+        tr: "その文化財保護区域を国レベルへ申請（提案）するプロセスには、完全な学術的調査が必要である。",
+        note: [
+          "■ 【語構成】：peN- + usul（提案）+ -an。他動詞 mengusulkan（提案する・申請する）に対応する行為名詞。",
+          "■ 【usulan と pengusulan の違い】：\n・usulan：出された「提案内容・案そのもの」\n・pengusulan：提案・申請を行う「手続き・プロセス」\n・pengusul：提案者、発議者"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "luasan", r: "luas", tier: 2, topicCat: "🌿 自然・天気・動植物",
+        m: "面積、広さ、対象範囲の規模（＝luas wilayah / cakupan luas）",
+        ex: "Pemerintah daerah sedang mendata kembali luasan lahan pertanian yang terdampak kekeringan tahun ini.",
+        tr: "地方政府は今年干ばつの影響を受けた農地の面積（広さ）を改めて調査・集計している。",
+        note: [
+          "■ 【語構成】：luas（広い・面積）+ -an。森林・農地・鉱区・海域などの「具体的な区画面積・広がりの規模」を指す行政・環境用語としてニュースで多用される。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "subjek", r: "subjek", tier: 1, topicCat: "🎓 教育・学術・IT",
+        m: "①（文法の）主語（⇔ predikat＝述語、objek＝目的語） ②行動の主体、当事者、調査・課税の対象者",
+        ex: "Dalam pembangunan desa, masyarakat lokal harus ditempatkan sebagai subjek utama, bukan sekadar objek.",
+        tr: "農村開発において、地域住民は単なる客体（対象）としてではなく、主要な主体として位置づけられなければならない。",
+        note: [
+          "■ 【正書法】：標準語綴りは **j** の『subjek』（subyek は非標準）。形容詞は『subjektif（主観的な ⇔ objektif＝客観的な）』。",
+          "■ 【コロケーション】：subjek kalimat（文の主語）、subjek pajak（納税義務者・課税主体）、subjek hukum（法主体）。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "penambang", r: "tambang", tier: 1, topicCat: "💼 仕事・経済・買い物",
+        m: "鉱夫、鉱山労働者、採掘業者（＝petambang）",
+        ex: "Tim penyelamat berhasil mengevakuasi seluruh penambang yang sempat terjebak di dalam terowongan bawah tanah.",
+        tr: "救助隊は地下トンネル内に一時閉じ込められていたすべての鉱山労働者（鉱夫）を救出することに成功した。",
+        note: [
+          "■ 【語構成】：peN- + tambang（鉱山・採掘：t が鼻音化して n）。他動詞 menambang（採掘する）の行為者名詞。",
+          "■ 【関連語】：tambang（鉱山）、menambang（採掘する）、penambangan（採掘作業）、pertambangan（鉱業）、petambang（鉱夫・採掘業者）。"
+        ].join("\n")
+      },
+      {
+        p: "a", w: "berbayar", r: "bayar", tier: 1, topicCat: "💼 仕事・経済・買い物",
+        m: "有料の、料金が発生する（⇔ gratis / cuma-cuma / tak berbayar）",
+        ex: "Untuk menikmati seluruh fitur premium tanpa iklan, pengguna dapat beralih ke layanan langganan berbayar.",
+        tr: "広告なしですべてのプレミアム機能を楽しむには、ユーザーは有料のサブスクリプションサービスへ切り替えることができる。",
+        note: [
+          "■ 【語構成】：ber- + bayar（払う）。",
+          "■ 【コロケーション】：aplikasi / layanan berbayar（有料アプリ／有料サービス）、kantong plastik berbayar（有料レジ袋）、televisi berbayar（有料テレビ放送）。"
+        ].join("\n")
+      },
+
+      // ==================== C. 辞書専用語（問題には出さない：dictOnly: true, tier: 3：12語） ====================
+      {
+        p: "singkatan", w: "WPR", r: "Wilayah Pertambangan Rakyat", alts: ["wilayah pertambangan rakyat"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "住民鉱業区域（地域住民や地元協同組合による小規模な鉱物採掘が法的に認められた指定区域）",
+        ex: "Penetapan blok WPR diharapkan dapat memberikan kepastian hukum bagi para penambang rakyat.",
+        tr: "住民鉱業区域（WPR）ブロックの指定は、住民採掘者たちに法的確実性を与えるものと期待されている。",
+        note: "■ 【正式名称】：Wilayah（区域）Pertambangan（鉱業）Rakyat（住民・庶民）。この区域内で採掘を行うための許可証が『IPR（Izin Pertambangan Rakyat）』。"
+      },
+      {
+        p: "singkatan", w: "IPR", r: "Izin Pertambangan Rakyat", alts: ["izin pertambangan rakyat"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "住民鉱業許可（住民鉱業区域［WPR］内において、地元住民や協同組合が小規模採掘を行うための公的許可証）",
+        ex: "Dengan mengantongi IPR, masyarakat lokal dapat melakukan aktivitas penambangan secara legal dan ramah lingkungan.",
+        tr: "住民鉱業許可（IPR）を取得することで、地域住民は合法的かつ環境に配慮した形で採掘活動を行うことができる。",
+        note: [
+          "■ 【正式名称】：Izin（許可）Pertambangan（鉱業）Rakyat（住民）。",
+          "■ 【関連略語】：IUP（Izin Usaha Pertambangan＝一般の鉱業事業許可）、PETI（Pertambangan Tanpa Izin＝無許可違法採掘）。"
+        ].join("\n")
+      },
+      {
+        p: "singkatan", w: "ESDM", r: "Energi dan Sumber Daya Mineral", alts: ["energi dan sumber daya mineral", "kementerian energi dan sumber daya mineral"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "エネルギー・鉱物資源（Kementerian ESDM＝エネルギー鉱物資源省）",
+        ex: "Kementerian ESDM terus mempercepat program transisi energi menuju pembangkit listrik ramah lingkungan.",
+        tr: "エネルギー鉱物資源省（ESDM）は、環境に優しい発電所へのエネルギー転換プログラムを引き続き加速させている。",
+        note: "■ 【正式名称】：Energi（エネルギー）dan Sumber Daya（資源）Mineral（鉱物）。石油・天然ガス・電力・石炭・鉱物資源を管轄する重要省庁。"
+      },
+      {
+        p: "n", w: "petambang", r: "tambang", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "鉱夫、採掘者、鉱山事業者（＝penambang）",
+        ex: "Pemerintah daerah memberikan penyuluhan keselamatan kerja kepada para petambang tradisional.",
+        tr: "地方政府は伝統的な採掘従事者（鉱夫）たちに対して労働安全の指導を行った。",
+        note: "■ 【語構成】：pe- + tambang（鉱山）。menambang から派生した『penambang』と同義で、新聞記事では『petambang』も頻繁に用いられる。"
+      },
+      {
+        p: "n", w: "material", r: "material", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "①材料、素材、資材（material bangunan＝建築資材、material vulkanik＝火山噴出物） ②物質的な（＝materiil）",
+        ex: "Banjir lahar dingin membawa material pasir dan batu dalam jumlah besar dari puncak gunung.",
+        tr: "冷たい火山泥流（ラハール）が、山頂から大量の砂や石の物質（土砂資材）を運んできた。",
+        note: "■ 【コロケーション】：material bangunan（建築資材＝bahan bangunan）、kerugian material（物的損害 ⇔ kerugian imaterial / moril＝精神的損害）。"
+      },
+      {
+        p: "v", w: "menyurati", r: "surat", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "〜に手紙（書簡・公文書）を送る、〜宛てに文書で申し入れる（＝mengirimi surat）",
+        ex: "Gubernur Sumbar Mahyeldi menyurati Menteri ESDM agar dokumen pengelolaan lima blok WPR di Sumbar segera disahkan.",
+        tr: "西スマトラ州のマヒェルディ知事は、西スマトラの5つの住民鉱業区域（WPR）ブロックの管理文書が速やかに承認されるよう、エネルギー鉱物資源大臣に書簡を送った。",
+        note: [
+          "■ 【語構成】：meN- + surat（手紙・公文書）+ -i（s が鼻音化して ny）。直後に「送る相手（人・機関）」を目的語にとる他動詞。",
+          "■ 【関連語】：surat（手紙・文書）、surat-menyurat（文通・公文書業務）。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "obyek", r: "objek", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "対象、目的物、観光地（obyek wisata）、目的語（※KBBI標準語形は objek）",
+        ex: "Kawasan danau alami itu kini dikembangkan menjadi obyek wisata unggulan daerah.",
+        tr: "その自然湖エリアは現在、地域の主力観光地（観光対象）として開発されている。",
+        note: "■ 【正書法】：標準語形は **j** で綴る『objek』（形容詞は objektif）。ニュースや一般文章では旧慣用綴りの『obyek / obyektif』もよく見られる。"
+      },
+      {
+        p: "n", w: "subyek", r: "subjek", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "主語、主体、当事者、対象者（※KBBI標準語形は subjek）",
+        ex: "Setiap warga negara merupakan subyek hukum yang memiliki hak dan kewajiban yang sama.",
+        tr: "すべての国民は、平等の権利と義務を持つ法主体である。",
+        note: "■ 【正書法】：標準語形は **j** で綴る『subjek』（形容詞は subjektif）。"
+      },
+      {
+        p: "n", w: "koordinat", r: "koordinat", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "座標（地図や空間上の位置を示す緯度・経度や数値の組：titik koordinat＝座標地点）",
+        ex: "Tim penyelamat berhasil menemukan lokasi kapal nelayan tersebut berdasarkan titik koordinat terakhir.",
+        tr: "救助隊は最後の座標地点に基づいて、その漁船の位置を特定することに成功した。",
+        note: "■ 【コロケーション】：titik koordinat（座標地点・座標ポイント）、garis koordinat（座標軸）。"
+      },
+      {
+        p: "n", w: "status", r: "status", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "ステータス、地位、身分、（法的・警戒レベルなどの）状態・指定区分",
+        ex: "Pemerintah menaikkan status gunung berapi tersebut dari level waspada menjadi siaga.",
+        tr: "政府はその火山の警戒ステータス（状態区分）を「警戒（レベル2）」から「厳重警戒（レベル3）」へと引き上げた。",
+        note: [
+          "■ 【コロケーション】：\n・status sosial / status hukum：社会的地位 ／ 法的地位（法的ステータス）\n・status siaga / darurat：警戒態勢 ／ 非常事態ステータス\n・berstatus sebagai ~：〜としての地位（身分・指定）にある"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "memintas", r: "pintas", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "①近道をする、ショートカットする ②横切る、（人の話や進路を）遮る",
+        ex: "Untuk menghemat waktu, mereka berjalan kaki memintas melalui jalan setapak di belakang bukit.",
+        tr: "時間を節約するため、彼らは丘の裏の小道を通って歩いて近道をした。",
+        note: "■ 【語構成】：meN- + pintas（p が鼻音化して m）。関連語：jalan pintas（近道・安易な手段）、sepintas（一見したところ）。"
+      },
+      {
+        p: "singkatan", w: "Sumbar", r: "Sumatera Barat", alts: ["sumatera barat", "sumatra barat"], dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "西スマトラ州（州都はパダン Padang）",
+        ex: "Provinsi Sumbar terkenal dengan keindahan alam Bukittinggi serta kelezatan kuliner rendangnya.",
+        tr: "西スマトラ州（Sumbar）は、ブキティンギの自然美とルンダン料理の美味しさで有名だ。",
+        note: [
+          "■ 【スマトラ島の主要州アクロニム】：\n・Sumut：Sumatera Utara（北スマトラ州・州都メダン）\n・Sumbar：Sumatera Barat（西スマトラ州・州都パダン）\n・Sumsel：Sumatera Selatan（南スマトラ州・州都パレンバン）"
+        ].join("\n")
+      }
+    ],
+    acro: [
+      {
+        acro: "OSIS",
+        full: "organisasi siswa intra sekolah",
+        alts: [],
+        topicCat: "🎓 教育・学術・IT",
+        tr: "生徒会（中学校・高校の校内生徒自治組織）",
+        exp: "■ 【正式名称】：Organisasi（組織）Siswa（生徒）Intra Sekolah（校内の）。日本の生徒会にあたり、学校行事や文化祭の運営を担います。"
+      },
+      {
+        acro: "WPR",
+        full: "wilayah pertambangan rakyat",
+        alts: [],
+        dictOnly: true,
+        tier: 3,
+        topicCat: "⚖️ 政治・法律・社会",
+        tr: "住民鉱業区域（小規模住民採掘が認められた指定区域）",
+        exp: "■ 【正式名称】：Wilayah Pertambangan Rakyat。地域住民や協同組合が合法的に小規模採掘を行える区域（許可証は IPR＝Izin Pertambangan Rakyat）。"
+      },
+      {
+        acro: "IPR",
+        full: "izin pertambangan rakyat",
+        alts: [],
+        dictOnly: true,
+        tier: 3,
+        topicCat: "⚖️ 政治・法律・社会",
+        tr: "住民鉱業許可（住民鉱業区域 WPR 内での小規模採掘許可証）",
+        exp: "■ 【正式名称】：Izin Pertambangan Rakyat。"
+      },
+      {
+        acro: "ESDM",
+        full: "energi dan sumber daya mineral",
+        alts: ["kementerian energi dan sumber daya mineral"],
+        dictOnly: true,
+        tier: 3,
+        topicCat: "⚖️ 政治・法律・社会",
+        tr: "エネルギー・鉱物資源（Kementerian ESDM＝エネルギー鉱物資源省）",
+        exp: "■ 【正式名称】：Energi dan Sumber Daya Mineral。電力・石油ガス・石炭・鉱物資源を管轄する省庁。"
+      },
+      {
+        acro: "Sumbar",
+        full: "sumatera barat",
+        alts: ["sumatra barat"],
+        dictOnly: true,
+        tier: 3,
+        topicCat: "🏠 日常・生活・移動",
+        tr: "西スマトラ州（州都パダン）",
+        exp: "■ 【正式名称】：Sumatera Barat（西スマトラ州）。"
+      }
+    ]
+  };
+
+  if (Array.isArray(d.singkatan)) {
+    ["OSIS", "WPR", "IPR", "ESDM", "Sumbar"].forEach(function(code) {
+      const vObj = PACK.vocab.find(x => x.w.toLowerCase() === code.toLowerCase());
+      if (vObj && !d.singkatan.some(s => s && s.w && s.w.toLowerCase() === code.toLowerCase())) {
+        d.singkatan.push(vObj);
+      }
+    });
+  }
+
+  PACK.vocab.forEach(function(it) {
+    const key = it.w.trim().toLowerCase();
+    if (it.dictOnly === true || it.tier === 3) {
+      dictOnlySet.add(key);
+    } else {
+      dictOnlySet.delete(key);
+    }
+  });
+  PACK.acro.forEach(function(a) {
+    const key = a.acro.trim().toLowerCase();
+    if (a.dictOnly === true || a.tier === 3) {
+      dictOnlySet.add(key);
+    } else {
+      dictOnlySet.delete(key);
+    }
+  });
+
+  if (typeof window.wiAddPack === "function") {
+    window.wiAddPack(PACK);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 辞書専用パック 第1弾：【暦・12ヶ月・曜日・時間帯・祝祭日・季節・期間】（全59語）
+   - すべて問題には一切出題せず（dictOnly: true, tier: 3）、辞書検索・A〜Z辞書・Kompas連動のみに表示
+   - 既存の7曜日（Senin〜Minggu）と主要祝祭日も一括で辞書専用（問題非出題）へ移行
+   ===================================================================== */
+(function() {
+  const d = window.WHATSINDO_EXTERNAL_DATA;
+  if (!d) return;
+
+  const dictOnlySet = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+  const persistentAdded = window.__wiPersistentAddedVocab || (window.__wiPersistentAddedVocab = new Map());
+
+  // 複数回のパック追加や過去パッチの遅延タイマー後にも100%全追加語を保持する永続ガード
+  const baseWiAddPack = window.wiAddPack;
+  if (typeof baseWiAddPack === "function" && !baseWiAddPack.__wiPersistUpgraded) {
+    const upgradedAddPack = function(pack) {
+      if (pack && Array.isArray(pack.vocab)) {
+        for (let i = 0; i < pack.vocab.length; i++) {
+          const it = pack.vocab[i];
+          if (it && it.w) {
+            persistentAdded.set(it.w.trim().toLowerCase(), it);
+          }
+        }
+      }
+      baseWiAddPack(pack);
+    };
+    upgradedAddPack.__wiPersistUpgraded = true;
+    window.wiAddPack = upgradedAddPack;
+
+    setTimeout(function() {
+      if (persistentAdded.size > 0) {
+        baseWiAddPack({ vocab: Array.from(persistentAdded.values()) });
+      }
+    }, 185);
+  }
+
+  const PACK_PART1_CALENDAR = {
+    vocab: [
+      // ==================== 1. 12ヶ月＋非標準綴り（14語） ====================
+      {
+        p: "n", w: "Januari", r: "Januari", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "1月（グレゴリオ暦の第1月：31日間）",
+        ex: "Tahun anggaran baru pemerintah biasanya dimulai pada tanggal satu Januari setiap tahunnya.",
+        tr: "政府の新しい会計年度は通常、毎年1月1日に始まる。",
+        note: [
+          "■ 【語源と正書法】：オランダ語 Januari（ローマ神話の門の守護神ヤヌス Janus）に由来。月の名前は文中でも常に頭文字を大文字で綴る（bulan Januari）。略記は Jan.",
+          "■ 【記念日・行事】：\n・1 Januari：Tahun Baru Masehi（西暦元日・国民の祝日）\n・多くの地域で雨季（musim hujan）のピークにあたり、河川の増水や防災ニュースが増える時期。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Februari", r: "Februari", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "2月（グレゴリオ暦の第2月：平年28日・閏年29日）",
+        ex: "Pada tahun kabisat, bulan Februari memiliki dua puluh sembilan hari.",
+        tr: "閏年（うるうどし）には、2月は29日間ある。",
+        note: [
+          "■ 【正書法の重要ポイント】：KBBI標準語綴りは **F** で始まる『Februari』（P で始まる Pebruari は非標準）。略記は Feb.",
+          "■ 【記念日・行事】：\n・Tahun Baru Imlek（春節・旧正月）が1月下旬〜2月中旬頃に訪れることが多い。\n・9 Februari：Hari Pers Nasional (HPN)（国家報道の日）"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Pebruari", r: "Februari", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "2月（※非標準綴り：KBBI標準語形は Februari）",
+        ex: "Pendaftaran gelombang pertama akan ditutup pada akhir bulan Februari.",
+        tr: "第1期の登録は2月末に締め切られる予定だ。",
+        note: "■ 【正書法】：インドネシア語固有音に f がなかった時代の影響で『Pebruari』と発音・表記されることがあるが、公文書や試験での標準語（Kata Baku）は『Februari』。"
+      },
+      {
+        p: "n", w: "Maret", r: "Maret", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "3月（グレゴリオ暦の第3月：31日間）",
+        ex: "Batas akhir pelaporan Surat Pemberitahuan Tahunan pajak penghasilan orang pribadi adalah akhir bulan Maret.",
+        tr: "個人の所得税年次確定申告書（SPT）の提出期限は3月末である。",
+        note: [
+          "■ 【語源と綴り】：オランダ語 Maart に由来し、インドネシア語では母音 e が入って『Maret』と綴られる（英語の March と異なる点に注意）。略記は Mar.",
+          "■ 【季節・行事】：\n・バリ・ヒンドゥー教の新年『Hari Raya Nyepi（ニュピ：静寂の日）』が毎年3月頃（春分前後の新月）に祝われる。\n・雨季から乾季への季節の変わり目（pancaroba）にあたる地域が多い。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "April", r: "April", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "4月（グレゴリオ暦の第4月：30日間）",
+        ex: "Setiap tanggal dua puluh satu April, masyarakat Indonesia memperingati Hari Kartini.",
+        tr: "毎年4月21日に、インドネシアの人々は「カルティニの日」を記念する。",
+        note: [
+          "■ 【重要記念日】：\n・21 April：Hari Kartini（カルティニの日：女性解放・女子教育の先駆者 R.A. Kartini［1879–1904］の誕生日。全国の学校や職場でクバヤ kebaya などの伝統民族衣装を着て祝う）\n・18〜24 April 1955：バンドンで歴史的なアジア・アフリカ会議（Konferensi Asia-Afrika）が開催された月。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Mei", r: "Mei", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "5月（グレゴリオ暦の第5月：31日間）",
+        ex: "Tanggal dua Mei diperingati sebagai Hari Pendidikan Nasional untuk mengenang jasa Ki Hajar Dewantara.",
+        tr: "5月2日はキ・ハジャル・デワンタラの功績を称え、「国家教育の日」として記念されている。",
+        note: [
+          "■ 【語源と綴り】：オランダ語 Mei に由来（英語 May と発音は近いが綴りは Mei）。",
+          "■ 【重要記念日（歴史・政治記事で頻出）】：\n・1 Mei：Hari Buruh Internasional（メーデー・国際労働者の日：国民の祝日）\n・2 Mei：Hari Pendidikan Nasional (Hardiknas)（国家教育の日：近代教育の父 Ki Hajar Dewantara の誕生日）\n・20 Mei：Hari Kebangkitan Nasional (Harkitnas)（国家覚醒の日：1908年5月20日の民族主義団体 Budi Utomo 結成を記念）\n・Mei 1998：スハルト長期政権の退陣と民主化（Reformasi）の契機となった1998年5月政変の月。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Juni", r: "Juni", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "6月（グレゴリオ暦の第6月：30日間）",
+        ex: "Hari Lahir Pancasila diperingati sebagai hari libur nasional setiap tanggal satu Juni.",
+        tr: "パンチャシラ誕生の日は、毎年6月1日に国民の祝日として記念されている。",
+        note: [
+          "■ 【語源と綴り】：オランダ語 Juni に由来（英語の June と異なり末尾が i）。略記は Jun.",
+          "■ 【重要記念日】：\n・1 Juni：Hari Lahir Pancasila（パンチャシラ誕生の日：1945年6月1日にスカルノが独立準備調査会 BPUPKI で建国五原則「パンチャシラ」を初めて提唱した日・国民の祝日）\n・22 Juni：ジャカルタ市の創立記念日（HUT Kota Jakarta：1527年のファタヒラによるスンダ・クラパ戦勝とジャヤカルタ改称を記念）"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Juli", r: "Juli", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "7月（グレゴリオ暦の第7月：31日間）",
+        ex: "Tahun ajaran baru bagi sekolah dasar hingga menengah di Indonesia umumnya dimulai pada pertengahan bulan Juli.",
+        tr: "インドネシアの小中高における新学年は、一般に7月中旬に始まる。",
+        note: [
+          "■ 【語源と綴り】：オランダ語 Juli に由来（ローマのユリウス・カエサル Julius Caesar にちなむ）。略記は Jul.",
+          "■ 【生活・季節】：\n・インドネシアの学校・大学の新年度（tahun ajaran baru）が始まる月（6月下旬〜7月上旬が学年替わりの長期休暇）。\n・ジャワ島やバリ島では乾季（musim kemarau）の真っ只中で、晴天が続き観光のベストシーズンとなる。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Agustus", r: "Agustus", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "8月（グレゴリオ暦の第8月：31日間。インドネシアの独立記念月）",
+        ex: "Bangsa Indonesia memproklamasikan kemerdekaannya pada tanggal tujuh belas Agustus tahun 1945.",
+        tr: "インドネシア民族は1945年8月17日に独立を宣言した。",
+        note: [
+          "■ 【正書法の重要ポイント】：英語の August やオランダ語 Augustus と異なり、先頭に u を入れず **『Agustus』** と綴る！略記は Agt. または Agu.",
+          "■ 【最重要記念日】：\n・17 Agustus：Hari Kemerdekaan Republik Indonesia（インドネシア共和国独立記念日：1945年8月17日にスカルノとハッタが独立宣言 Proklamasi を読み上げた日）\n・Agustusan（アグストゥサン）：8月を通して全国各地の町内で行われる独立記念祝賀行事（油を塗った檳榔樹の柱を登る panjat pinang や袋飛び競走 balap karung などの伝統レクリエーション大会）。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "September", r: "September", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "9月（グレゴリオ暦の第9月：30日間）",
+        ex: "Perkuliahan semester ganjil di berbagai perguruan tinggi biasanya dimulai pada awal bulan September.",
+        tr: "各大学における奇数学期（前期）の講義は通常、9月初めに開始される。",
+        note: [
+          "■ 【語源】：ラテン語の septem（7：古代ローマ暦で3月から数えて7番目の月だったこと）に由来。これ以降の名前にすべて -ber（September, Oktober, November, Desember）が付くことから、インドネシアでは「月名に -ber が付く9月〜12月は雨季（musim hujan）の季節」という覚え方がよく知られる。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Oktober", r: "Oktober", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "10月（グレゴリオ暦の第10月：31日間）",
+        ex: "Setiap tanggal dua puluh delapan Oktober, bangsa Indonesia memperingati Hari Sumpah Pemuda.",
+        tr: "毎年10月28日に、インドネシア国民は「青年の誓いの日」を記念する。",
+        note: [
+          "■ 【正書法】：英語の October と異なり **k** で『Oktober』と綴る。略記は Okt.",
+          "■ 【重要記念日（歴史・文化で必出）】：\n・1 Oktober：Hari Kesaktian Pancasila（パンチャシラ神聖の日）\n・2 Oktober：Hari Batik Nasional（国家バティックの日：2009年にユネスコ無形文化遺産に登録された日を記念し、全国民がバティックを着用する日）\n・5 Oktober：HUT TNI（インドネシア国軍記念日）\n・28 Oktober：Hari Sumpah Pemuda（青年の誓いの日：1928年10月28日に全国の青年代表が「一つの祖国・一つの民族・一つの言語＝インドネシア語」を誓った歴史的記念日）"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "November", r: "November", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "11月（グレゴリオ暦の第11月：30日間）",
+        ex: "Tanggal sepuluh November diperingati sebagai Hari Pahlawan untuk mengenang Pertempuran Surabaya.",
+        tr: "11月10日はスラバヤの戦いを記念し、「英雄の日」として記念されている。",
+        note: [
+          "■ 【正書法の重要ポイント】：KBBI標準語綴りは **v** の『November』（p で綴る Nopember は非標準）。略記は Nov.",
+          "■ 【重要記念日】：\n・10 November：Hari Pahlawan（英雄の日：1945年11月10日にスラバヤ市民がイギリス・オランダ連合軍に対して独立を守るため激戦を繰り広げた日）\n・25 November：Hari Guru Nasional（国家教師の日）"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Nopember", r: "November", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "11月（※非標準綴り：KBBI標準語形は November）",
+        ex: "Pameran buku tahunan tersebut dijadwalkan berlangsung pada pertengahan bulan November.",
+        tr: "その年次ブックフェアは11月中旬に開催される予定だ。",
+        note: "■ 【正書法】：日常発音や古い看板などでは『Nopember』も見られるが、標準語（Kata Baku）は **v** を使う『November』。"
+      },
+      {
+        p: "n", w: "Desember", r: "Desember", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "12月（グレゴリオ暦の第12月：31日間）",
+        ex: "Pada akhir bulan Desember, banyak keluarga mengambil cuti untuk berlibur bersama.",
+        tr: "12月末には、多くの家族が一緒に旅行へ行くために休暇を取る。",
+        note: [
+          "■ 【正書法】：英語の December と異なり **s** で『Desember』と綴る。略記は Des.",
+          "■ 【重要記念日】：\n・22 Desember：Hari Ibu（母の日：1928年12月22日にジョグジャカルタで第1回インドネシア女性会議が開かれたことに由来する記念日）\n・25 Desember：Hari Raya Natal（クリスマス・国民の祝日）"
+        ].join("\n")
+      },
+
+      // ==================== 2. 7曜日＋別名・非標準綴り（9語） ====================
+      {
+        p: "n", w: "Senin", r: "Senin", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "月曜日（週の始まり。アラビア語の「第2の日：al-ithnayn」に由来）",
+        ex: "Setiap hari Senin pagi, seluruh siswa mengikuti upacara pengibaran bendera di lapangan sekolah.",
+        tr: "毎週月曜日の朝、全生徒が校庭で国旗掲揚式に参加する。",
+        note: [
+          "■ 【7曜日の語源（日曜を第1日とするアラビア語数詞由来）】：\n・日曜：Minggu（ポルトガル語 domingo 由来）／ Ahad（アラビア語「1：wahid / ahad」）\n・月曜：Senin（アラビア語「2：ithnayn」）\n・火曜：Selasa（アラビア語「3：thalatha」）\n・水曜：Rabu（アラビア語「4：arba'a」）\n・木曜：Kamis（アラビア語「5：khamsa」）\n・金曜：Jumat（アラビア語「集まり・合同礼拝の日：jum'ah」）\n・土曜：Sabtu（アラビア語・ヘブライ語「安息日・7：sabt」）",
+          "■ 【慣用表現】：\n・puasa Senin Kamis：月曜と木曜に行うイスラムの任意の断食\n・napasnya sudah Senin Kamis：息が月曜と木曜しか出ない ➔「虫の息である」「事業や家計が火の車で今にも潰れそうだ」"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Selasa", r: "Selasa", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "火曜日（アラビア語の「第3の日：ath-thulatha」に由来）",
+        ex: "Museum sejarah itu tutup setiap hari Senin dan kembali buka pada hari Selasa pagi.",
+        tr: "その歴史博物館は毎週月曜日が休館日で、火曜日の朝に再び開館する。",
+        note: "■ 【正書法】：曜日名の先頭文字は、文の途中であっても常に大文字で書く（hari Selasa）。"
+      },
+      {
+        p: "n", w: "Rabu", r: "Rabu", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "水曜日（アラビア語の「第4の日：al-arba'a」に由来）",
+        ex: "Jadwal kuliah bahasa Indonesia untuk kelas kami diadakan setiap hari Rabu pukul sepuluh pagi.",
+        tr: "私たちのクラスのインドネシア語講義のスケジュールは、毎週水曜日の午前10時に行われる。",
+        note: "■ 【口語との違い】：ジャワ語や古い口語では『Rebo』とも発音されるが、標準語綴りは『Rabu』。"
+      },
+      {
+        p: "n", w: "Kamis", r: "Kamis", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "木曜日（アラビア語の「第5の日：al-khamis」に由来）",
+        ex: "Para pegawai di kantor daerah itu mengenakan pakaian adat tradisional setiap hari Kamis.",
+        tr: "その地方役所の職員たちは、毎週木曜日に伝統民族衣装を着用する。",
+        note: "■ 【関連表現】：Kamis Putih（キリスト教の聖木曜日）、malam Jumat（木曜の夜＝金曜の前夜。イスラムでは礼拝やクルアーン朗誦の夜であり、民間伝承では怪談の夜としても親しまれる）。"
+      },
+      {
+        p: "n", w: "Jumat", r: "Jumat", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "金曜日（イスラム教徒が正午すぎにモスクへ集まり合同礼拝を行う週の聖日）",
+        ex: "Pada hari Jumat siang, jam istirahat kantor diperpanjang agar karyawan muslim dapat melaksanakan salat Jumat.",
+        tr: "金曜日の昼には、ムスリムの社員が金曜礼拝を行えるよう会社の昼休みが延長される。",
+        note: [
+          "■ 【正書法の重要ポイント】：アポストロフィを入れた Jum'at ではなく、そのまま **『Jumat』** と綴るのが現在のKBBI標準正書法！",
+          "■ 【重要表現】：\n・salat Jumat (Jumatan)：金曜日の昼にモスクで行われる男性ムスリム義務の合同礼拝\n・Jumat Berkah：「祝福の金曜日」（金曜日に食事や寄付を振る舞う習慣）\n・Jumat Agung (Wafat Isa Almasih)：キリスト教の聖金曜日（イエス・キリストの受難日・国民の祝日）"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Jum'at", r: "Jumat", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "金曜日（※非標準綴り：KBBI標準語形はアポストロフィなしの Jumat）",
+        ex: "Pelaksanaan ibadah salat Jumat dimulai tepat pada waktu zuhur.",
+        tr: "金曜礼拝は正午（ズフル）の時刻ちょうどに開始される。",
+        note: "■ 【正書法】：アラビア語原音に近い『Jum'at』も日常でよく見かけるが、標準インドネシア語（Kata Baku）はアポストロフィを使わない『Jumat』。"
+      },
+      {
+        p: "n", w: "Sabtu", r: "Sabtu", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "土曜日（アラビア語の「安息日：as-sabt」に由来）",
+        ex: "Karena hari Sabtu dan Minggu kantor libur, kami berencana pergi berkemah di pegunungan.",
+        tr: "土曜日と日曜日は会社が休みなので、私たちは山へキャンプに行く予定だ。",
+        note: [
+          "■ 【文化ポイント（malam Minggu の意味）】：\nインドネシアの伝統的な暦の感覚では「日没から翌日の日没まで」を1日と数えるため、**土曜日の夜は『malam Minggu（日曜の前夜）』**と呼ばれる！若者がデートや外食に出かける1週間で最も賑やかな夜（逆に日曜日の夜は『malam Senin＝月曜の前夜』となるので要注意！）。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Minggu", r: "Minggu", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "①日曜日（hari Minggu＝hari Ahad） ②（※小文字の minggu で）週、〜週間（＝pekan：dua minggu＝2週間、minggu depan＝来週）",
+        ex: "Setiap hari Minggu pagi, jalan utama di pusat kota ditutup bagi kendaraan bermotor untuk kegiatan olahraga warga.",
+        tr: "毎週日曜日の朝、都心の大通りは市民の運動イベント（カーフリーデー）のため車両通行止めになる。",
+        note: [
+          "■ 【語源】：ポルトガル語の domingo（主の日・日曜日）に由来。",
+          "■ 【大文字と小文字の使い分け】：\n・大文字『Minggu（hari Minggu）』：日曜日（アラビア語系では hari Ahad）\n・小文字『minggu』：週、1週間（＝pekan：minggu lalu＝先週、minggu ini＝今週、minggu depan＝来週、akhir minggu / akhir pekan＝週末）"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Ahad", r: "Ahad", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "日曜日（＝Minggu：アラビア語の「1（第1の日）：al-ahad」に由来する日曜日の呼称）",
+        ex: "Acara pengajian dan bakti sosial warga akan dilaksanakan pada hari Ahad pagi pekan depan.",
+        tr: "住民の宗教講話と社会奉仕イベントは、来週の日曜日の朝に実施される予定だ。",
+        note: "■ 【語法】：ポルトガル語由来の『Minggu』と同義。イスラム系の団体・新聞やマレーシア・スマトラ・スラウェシなどでは、日曜日を『hari Ahad』と呼ぶことも非常に多い。"
+      },
+
+      // ==================== 3. インドネシアの3大標準時（3語） ====================
+      {
+        p: "singkatan", w: "WIB", r: "Waktu Indonesia Barat", alts: ["waktu indonesia barat"], dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "インドネシア西部標準時（UTC+7：日本時間 JST より2時間遅れ。スマトラ島全域・ジャワ島全域・西カリマンタン州・中部カリマンタン州が対象）",
+        ex: "Pertandingan final bulu tangkis tersebut akan disiarkan secara langsung mulai pukul 19.00 WIB.",
+        tr: "そのバドミントン決勝戦は、インドネシア西部時間（WIB）の19時00分から生中継される。",
+        note: [
+          "■ 【インドネシアの3つの時間帯（東西約5,100kmに広がるため3区分）】：\n① **WIB (Waktu Indonesia Barat)**：西部時間（UTC+7 / 日本との時差 -2時間）➔ スマトラ島、ジャワ島（ジャカルタ・バンドン・スラバヤ等）、西・中部カリマンタン州\n② **WITA (Waktu Indonesia Tengah)**：中部時間（UTC+8 / 日本との時差 -1時間）➔ バリ島、東西ヌサ・トゥンガラ州、南・東・北カリマンタン州（新首都IKN含む）、スラウェシ島全域\n③ **WIT (Waktu Indonesia Timur)**：東部時間（UTC+9 / 日本との時差 0時間・同刻！）➔ マルク諸島、パプア全域"
+        ].join("\n")
+      },
+      {
+        p: "singkatan", w: "WITA", r: "Waktu Indonesia Tengah", alts: ["waktu indonesia tengah"], dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "インドネシア中部標準時（UTC+8：日本時間より1時間遅れ、WIBより1時間進み。バリ・ヌサトゥンガラ・南/東/北カリマンタン・スラウェシ全域が対象）",
+        ex: "Pesawat dari Jakarta dijadwalkan mendarat di Bandara Ngurah Rai Bali pada pukul 14.30 WITA.",
+        tr: "ジャカルタ発の飛行機は、インドネシア中部時間（WITA）の14時30分にバリのングラ・ライ空港へ着陸する予定だ。",
+        note: "■ 【正式名称】：Waktu Indonesia Tengah。ジャカルタ（WIB）からバリ（WITA）やマカッサル（WITA）、新首都ヌサンタラ（WITA）へ移動すると時計を1時間進める。"
+      },
+      {
+        p: "singkatan", w: "WIT", r: "Waktu Indonesia Timur", alts: ["waktu indonesia timur"], dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "インドネシア東部標準時（UTC+9：日本時間 JST と全く同じ時刻！WIBより2時間進み。マルク諸島・パプア全域が対象）",
+        ex: "Pemungutan suara di wilayah Papua dan Maluku dimulai lebih awal pada pukul 07.00 WIT.",
+        tr: "パプアおよびマルク地域における投票は、インドネシア東部時間（WIT）の午前7時00分に一足早く開始された。",
+        note: "■ 【正式名称】：Waktu Indonesia Timur。経度が日本とほぼ同じ東経135度付近を通るため、日本時間（JST）と時差がゼロになる。"
+      },
+
+      // ==================== 4. 暦・紀元・閏年・イスラム暦の主要月（8語） ====================
+      {
+        p: "n", w: "Masehi", r: "Masehi", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "①西暦、キリスト紀元（tahun Masehi / kalender Masehi：略号 M） ②キリスト教の（Isa Almasih＝イエス・キリスト）",
+        ex: "Candi Borobudur diperkirakan dibangun oleh Dinasti Syailendra sekitar abad kedelapan Masehi.",
+        tr: "ボロブドゥール寺院は、西暦8世紀頃にシャイレーンドラ朝によって建立されたと推定されている。",
+        note: [
+          "■ 【暦・年号の必須ペア】：\n・**M (Masehi)**：西暦〜年、紀元後（A.D.：例 abad ke-8 M＝西暦8世紀）\n・**SM (Sebelum Masehi)**：紀元前〜年（B.C.：例 500 tahun Sebelum Masehi＝紀元前500年）\n・**H (Hijriah)**：ヒジュラ暦（イスラム暦）〜年（例 tahun 1448 H）"
+        ].join("\n")
+      },
+      {
+        p: "singkatan", w: "SM", r: "Sebelum Masehi", alts: ["sebelum masehi", "sekolah menengah"], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "紀元前（Sebelum Masehi ＝ 英語の B.C.）",
+        ex: "Tradisi pengolahan logam perunggu di Asia Tenggara telah berkembang sejak ratusan tahun SM.",
+        tr: "東南アジアにおける青銅器の金属加工の伝統は、紀元前数百年の昔から発展していた。",
+        note: "■ 【対義語】：M（Masehi＝西暦・紀元後）。歴史や考古学の記事で『abad ke-3 SM（紀元前3世紀）』のように頻出する。"
+      },
+      {
+        p: "a", w: "Hijriah", r: "Hijriah", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "ヒジュラ暦の、イスラム暦の（預言者ムハンマドのメッカからメディナへの聖遷［hijrah：西暦622年］を元年とする純粋太陰暦：略号 H）",
+        ex: "Satu tahun dalam kalender Hijriah rata-rata lebih pendek sebelas hari dibandingkan kalender Masehi.",
+        tr: "ヒジュラ暦（イスラム暦）における1年は、西暦（グレゴリオ暦）と比べて平均して11日短い。",
+        note: [
+          "■ 【仕組み】：月の満ち欠けのみに基づく純粋太陰暦（1年＝約354日）であるため、ラマダン（断食月）やレバランの時期は西暦カレンダー上で毎年約11日ずつ前倒しに移動する。",
+          "■ 【祝日】：1 Muharam は『Tahun Baru Islam / Tahun Baru Hijriah（イスラム暦新年・国民の祝日）』。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Saka", r: "Saka", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "サカ暦（西暦78年を元年とする古代インド由来の太陽太陰暦。現在もバリ・ヒンドゥー教の暦やジャワ暦の基準として用いられる）",
+        ex: "Umat Hindu di Bali merayakan Hari Raya Nyepi sebagai pergantian Tahun Baru Saka.",
+        tr: "バリのヒンドゥー教徒は、サカ暦の新年の切り替わりとしてニュピの祝祭日を祝う。",
+        note: "■ 【計算式】：西暦年から78を引くとサカ暦の年になる（例：西暦2026年 ＝ サカ暦1948年）。なお略語の Saka（Satuan Karya Pramuka）はボーイスカウトの専門分団を指す。"
+      },
+      {
+        p: "a", w: "kabisat", r: "kabisat", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "閏（うるう）の（tahun kabisat＝閏年：4年に1度、2月が29日まであり1年が366日になる年）",
+        ex: "Tahun 2024 dan 2028 merupakan tahun kabisat yang memiliki tiga ratus enam puluh enam hari.",
+        tr: "2024年と2028年は、366日間ある閏年（うるうどし）である。",
+        note: "■ 【語源】：アラビア語の kabisah（挿入された・満たされた）に由来。常に『tahun kabisat（閏年）』の形で用いられる。"
+      },
+      {
+        p: "n", w: "Muharam", r: "Muharam", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "ムハッラム（イスラム暦［ヒジュラ暦］の第1月。1日はイスラム暦新年で国民の祝日）",
+        ex: "Peringatan Tahun Baru Islam jatuh pada tanggal satu Muharam dalam penanggalan Hijriah.",
+        tr: "イスラム新年の記念日は、ヒジュラ暦のムハッラム月1日にあたる。",
+        note: "■ 【文化】：ジャワ暦では同じ月が『Sura（スロ月）』と呼ばれ、1日の前夜（Malam Satu Sura）には王宮で神聖なクリス短剣などを清める伝統行事が行われる。"
+      },
+      {
+        p: "n", w: "Syawal", r: "Syawal", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "シャワル（イスラム暦の第10月。ラマダン断食月が明けた月であり、その1日が断食明け大祭 Idulfitri／Lebaran となる）",
+        ex: "Umat Islam merayakan Hari Raya Idulfitri pada tanggal satu Syawal setelah sebulan penuh berpuasa.",
+        tr: "イスラム教徒は丸1ヶ月間の断食を終えた後、シャワル月1日に断食明け大祭（イドゥル・フィトリ）を祝う。",
+        note: "■ 【コロケーション】：1 Syawal（シャワル月1日＝レバラン当日）、bulan Syawal（親戚や職場を訪問して挨拶を交わす halalbihalal が行われる月）。"
+      },
+      {
+        p: "n", w: "Zulhijah", r: "Zulhijah", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "ズルヒッジャ（イスラム暦の第12月・最終月。メッカへの大巡礼［Haji］が行われる月であり、10日が犠牲祭 Iduladha となる）",
+        ex: "Puncak ibadah haji di Padang Arafah berlangsung pada tanggal sembilan Zulhijah.",
+        tr: "アラファト平原におけるハッジ（大巡礼）のクライマックスは、ズルヒッジャ月9日に行われる。",
+        note: "■ 【語源】：「巡礼（ハッジ）の月」を意味するアラビア語 Dhu al-Hijjah に由来。"
+      },
+
+      // ==================== 5. 主要祝祭日・ラマダン文化・記念日（18語） ====================
+      {
+        p: "n", w: "Ramadan", r: "Ramadan", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "ラマダン（イスラム暦の第9月。ムスリムが夜明け［imsak/subuh］から日没［magrib］まで断食［puasa］を行う聖なる月）",
+        ex: "Menjelang datangnya bulan suci Ramadan, pusat perbelanjaan dan pasar tradisional mulai ramai dipadati pembeli.",
+        tr: "聖なるラマダン月の到来を控え、ショッピングセンターや伝統市場は買い物客で賑わい始めている。",
+        note: [
+          "■ 【正書法】：日常では Ramadhan とも書かれるが、KBBI標準語形は h のない **『Ramadan』**。",
+          "■ 【ラマダン月の1日の流れと必須語彙】：\n・**sahur（サフール）**：夜明け前（午前3〜4時頃）にとる断食前の食事\n・**imsak（イムサック）**：夜明け礼拝（subuh）の約10分前、飲食を終える合図の時刻\n・**puasa（プアサ）**：夜明けから日没までの断食（飲食・喫煙・怒りなどを慎む）\n・**ngabuburit（ガブブリット）**：日没の断食明けを待ちながら夕方に出かけたり屋台を巡ったりして時間を過ごすこと\n・**buka puasa（ブカ・プアサ）**：日没（magrib）のアザーンとともに断食を解いて食事をとること（友人や職場と一緒にとる夕食会は **bukber**＝buka puasa bersama）\n・**takjil（タクジル）**：断食明けにまず口にするナツメヤシ（kurma）や甘い飲み物・軽食\n・**tarawih（タラウィ）**：ラマダン期間中の夜（isya の後）にモスクで行われる特別礼拝"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Ramadhan", r: "Ramadan", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "ラマダン、断食月（※KBBI標準語綴りは h のない Ramadan）",
+        ex: "Suasana sore hari di bulan Ramadhan selalu meriah dengan pedagang takjil di pinggir jalan.",
+        tr: "ラマダン月の夕方の雰囲気は、道端のタクジル（断食明け軽食）の売り手でいつも賑やかだ。",
+        note: "■ 【表記】：メディアやポスターで非常に多く使われる綴り。標準語見出しは『Ramadan』。"
+      },
+      {
+        p: "n", w: "Idulfitri", r: "Idulfitri", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "イドゥル・フィトリ、断食明け大祭（ラマダン終了を祝いシャワル月1日に行われるイスラム最大の祝祭日＝Lebaran）",
+        ex: "Pada pagi Hari Raya Idulfitri, masyarakat berkumpul melaksanakan salat Id lalu saling bermaaf-maafan.",
+        tr: "イドゥル・フィトリ（断食明け大祭）の朝、人々は集まって大祭礼拝を行い、その後互いに許しを請い合う。",
+        note: [
+          "■ 【正書法】：KBBIでは1語につなげて『Idulfitri』と綴る（一般には2語で Idul Fitri とも書かれる）。通称は **『Lebaran（レバラン）』**。",
+          "■ 【定番の祝辞】：\n・Selamat Hari Raya Idulfitri, mohon maaf lahir dan batin.（断食明け大祭おめでとうございます。これまでの外面・内面の過ちをどうぞお許しください）"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Lebaran", r: "Lebaran", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "レバラン、断食明け大祭（＝Idulfitri：インドネシア最大の国民的祝祭・大型連休であり、大規模な帰省［mudik］が行われる）",
+        ex: "Menjelang hari raya Lebaran, stasiun dan terminal dipadati oleh warga yang hendak mudik.",
+        tr: "レバラン（断食明け大祭）の祝祭日が近づくと、駅やバスターミナルは帰省しようとする市民で埋め尽くされる。",
+        note: [
+          "■ 【レバランの社会・文化キーワード】：\n・**mudik（ムディック）**：レバランに合わせて何千万人もの人が一斉に故郷へ帰省する民族大移動（arus mudik＝帰省ラッシュ ⇔ arus balik＝Uターンラッシュ）\n・**THR (Tunjangan Hari Raya)**：祝祭日手当（レバランの1〜2週間前に企業や官庁から支給されるボーナス）\n・**ketupat & opor ayam**：ヤシの若葉で編んだひし形の包みで炊いた米餅（クトゥパット）と鶏肉のココナッツミルク煮込み（オポル・アヤム）\n・**halalbihalal（ハラルビハラル）**：レバラン休暇中や連休明けに親族・近所・職場で集まり、互いに許しを請い懇親を深めるインドネシア固有の行事"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Iduladha", r: "Iduladha", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "イドゥル・アドハ、犠牲祭（イスラム暦ズールヒッジャ月10日。モスク等で牛やヤギを犠牲［kurban］として捧げ、貧しい人々や地域住民に肉を分け合う祝日）",
+        ex: "Pada Hari Raya Iduladha, panitia masjid membagikan daging hewan kurban kepada warga yang membutuhkan.",
+        tr: "犠牲祭（イドゥル・アドハ）の祝日に、モスクの委員会は犠牲獣の肉を必要としている住民たちに配布した。",
+        note: [
+          "■ 【正書法と別名】：KBBI標準綴りは1語の『Iduladha』（一般には Idul Adha）。別名は **『Hari Raya Kurban（犠牲祭）』** または **『Lebaran Haji（巡礼のレバラン）』**。",
+          "■ 【背景】：預言者イブラヒム（アブラハム）が神への信仰を試された際、息子イスマイルの代わりに羊が犠牲として遣わされた故事に由来する。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Nyepi", r: "sepi", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "ニュピ（バリ・ヒンドゥー教のサカ暦新年・国民の祝日。午前6時から翌朝6時までの24時間、外出・火や電気の使用・労働・娯楽を一切断ち静寂の中で内省する日）",
+        ex: "Saat perayaan Hari Raya Nyepi, seluruh wilayah Pulau Bali termasuk bandara internasional ditutup total selama dua puluh empat jam.",
+        tr: "ニュピの祝祭日には、国際空港を含むバリ島全域が24時間にわたって完全に閉鎖される。",
+        note: [
+          "■ 【語構成】：語幹 sepi（静かな・人気のない）の鼻音化名詞形。",
+          "■ 【4つの禁戒（Catur Brata Penyepian）】：\n① Amati Geni（火・光・電気を使わない） ② Amati Karya（労働しない） ③ Amati Lelungan（外出・移動しない：空港・港・道路も完全閉鎖され、伝統自警団 pecalang が巡回する） ④ Amati Lelanguan（娯楽・快楽を慎む）\n・前日の大晦日には、悪霊（Bhuta Kala）を模した巨大な張り子人形 **『オゴオゴ（ogoh-ogoh）』** を担いで街を練り歩く勇壮なパレードが行われる。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Waisak", r: "Waisak", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "ワイサック、仏誕節（釈迦の「誕生・成道（悟り）・涅槃（入滅）」の3大出来事を記念する仏教最大の祝祭日・国民の祝日）",
+        ex: "Puncak perayaan Hari Raya Waisak nasional dipusatkan di pelataran Candi Borobudur dengan pelepasan ribuan lampion.",
+        tr: "全国ワイサック祝祭のクライマックスは、ボロブドゥール寺院の境内を中心に行われ、数千個のランタンが夜空へ放たれた。",
+        note: "■ 【文化】：毎年5月頃の満月の夜（Tri Suci Waisak）に、中部ジャワの世界遺産ムンドゥット寺院（Candi Mendut）からボロブドゥール寺院（Candi Borobudur）まで僧侶と信徒が行進し、夜空へ数千のランタン（lampion）を放つ幻想的な儀式で世界的に知られる。"
+      },
+      {
+        p: "n", w: "Natal", r: "Natal", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "クリスマス、イエス・キリスト降誕祭（毎年12月25日の国民の祝日）",
+        ex: "Menjelang libur Hari Raya Natal dan Tahun Baru, tiket kereta api dan pesawat sudah habis terjual.",
+        tr: "クリスマスと新年の連休を前に、列車や飛行機のチケットはすでに完売している。",
+        note: "■ 【コロケーション】：Hari Raya Natal（クリスマス祝日）、malam Natal（クリスマスイブ）、pohon Natal（クリスマスツリー）、Nataru（Natal dan Tahun Baru＝クリスマス・年末年始連休）。"
+      },
+      {
+        p: "n", w: "Imlek", r: "Imlek", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "イムレック、春節、旧正月（中国暦・太陰太陽暦の新年を祝う国民の祝日）",
+        ex: "Perayaan Tahun Baru Imlek selalu dimeriahkan dengan pertunjukan tari barongsai dan hiasan lampion merah.",
+        tr: "春節（旧正月）の祝賀は、いつも中国獅子舞（バロンサイ）の公演と赤い提灯の飾りで盛り上がる。",
+        note: [
+          "■ 【語源】：福建語（Hokkien）の「陰暦（im-lek）」に由来。2000年にアブドゥルラフマン・ワヒド（グス・ドゥル）大統領が公的祝賀を解禁し、2002年にメガワティ大統領によって国民の祝日に制定された。",
+          "■ 【関連語】：barongsai（中国獅子舞）、angpau（赤い袋のお年玉）、kue keranjang（春節の伝統的な甘い餅菓子）、Cap Go Meh（春節から15日目の元宵節祭り）。"
+        ].join("\n")
+      },
+      {
+        p: "singkatan", w: "Nataru", r: "Natal dan Tahun Baru", alts: ["natal dan tahun baru"], dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "クリスマスおよび年末年始（Natal dan Tahun Baru の合成略語。レバランと並ぶインドネシアの2大連休・旅行帰省シーズン）",
+        ex: "Pemerintah menyiagakan ribuan petugas gabungan untuk mengamankan arus lalu lintas selama libur Nataru.",
+        tr: "政府はクリスマス・年末年始（Nataru）の連休中、交通の流れの安全を確保するために数千人の合同係員を待機させた。",
+        note: "■ 【語構成】：NAtal（クリスマス）+ TAhun baRU（新年）の合成アクロニム。毎年12月〜1月の交通・観光・物価ニュースで毎日使われる。"
+      },
+      {
+        p: "n", w: "Maulid", r: "Maulid", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "マウリッド、預言者ムハンマド生誕祭（イスラム暦第3月ラビウル・アワル12日に祝われる国民の祝日：Maulid Nabi Muhammad SAW）",
+        ex: "Keraton Yogyakarta menggelar upacara tradisional Sekaten untuk memperingati Maulid Nabi Muhammad.",
+        tr: "ジョグジャカルタ王宮は、預言者ムハンマド生誕祭を記念して伝統行事「スカテン」を開催する。",
+        note: "■ 【文化】：ジョグジャカルタやソロ、チルボンの王宮では、マウリッドに合わせて神聖なガムランを奏で、巨大な米の山（Gunungan）を奉納する伝統祭礼『Sekaten（スカテン）』『Grebeg Maulud』が盛大に行われる。"
+      },
+      {
+        p: "n", w: "Isra Mikraj", r: "Isra Mikraj", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "イスラー・ミウラージュ（預言者ムハンマドが一夜にしてメッカからエルサレムへ旅し［Isra］、そこから天界へ昇って［Mikraj］1日5回の礼拝の啓示を受けた奇跡を記念する国民の祝日）",
+        ex: "Masjid-masjid mengadakan pengajian akbar dalam rangka memperingati hari besar Isra Mikraj.",
+        tr: "各モスクは、イスラー・ミウラージュの大祭日を記念して大規模な宗教講話会を開催した。",
+        note: "■ 【暦】：イスラム暦第7月ラジャブ（Rajab）27日に祝われる。"
+      },
+      {
+        p: "n", w: "Paskah", r: "Paskah", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "イースター、復活祭（イエス・キリストの復活を祝うキリスト教の重要祝祭日・国民の祝日）",
+        ex: "Umat Kristiani mengikuti ibadah perayaan Paskah dengan penuh khidmat di gereja masing-masing.",
+        tr: "キリスト教徒たちはそれぞれの教会で、厳粛な雰囲気の中イースター（復活祭）の礼拝に参加した。",
+        note: "■ 【関連祝日】：直前の金曜日は『Wafat Yesus Kristus / Jumat Agung（聖金曜日・キリスト受難日）』、復活祭の日曜日は『Kebangkitan Yesus Kristus (Paskah)』としてどちらも国民の祝日となる。"
+      },
+      {
+        p: "n", w: "Galungan", r: "Galungan", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "ガルンガン（バリ・ヒンドゥー教のウク暦［210日周期］に基づき、善［Dharma］が悪［Adharma］に勝利したことを祝い先祖の霊を家に迎える伝統祝祭日）",
+        ex: "Saat Hari Raya Galungan, jalan-jalan desa di Bali tampak indah dihiasi deretan penjor yang melengkung tinggi.",
+        tr: "ガルンガン祭の時には、バリの村々の道は高く弧を描く「ペンジョール（竹飾り）」の列で美しく彩られる。",
+        note: "■ 【バリ文化】：家々の門前に『penjor（ペンジョール）』と呼ばれるヤシの葉や供物で飾った高い竹竿を立てて先祖の霊を迎える。その10日後に先祖の霊を天へ送り出す祭日が『Kuningan（クニンガン）』。"
+      },
+      {
+        p: "v", w: "ngabuburit", r: "burit", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "（ラマダン断食月の夕方、日没の断食明け［buka puasa］の時刻が来るまで）散歩や買い物・イベントなどを楽しみながら時間を過ごす",
+        ex: "Banyak warga berkumpul di taman kota pada sore hari untuk ngabuburit sambil mencari jajanan buka puasa.",
+        tr: "多くの市民が夕方、断食明けの軽食を探しながらガブブリット（断食明け待ちの散策）をするために都市公園へ集まる。",
+        note: "■ 【語源】：スンダ語の『ngalantung ngadagoan burit（夕方［burit］になるのをぶらぶら待つ）』が全国に定着した大人気ワード。ラマダン期間中のニュースやSNSで毎日使われる。"
+      },
+      {
+        p: "n", w: "takjil", r: "takjil", dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理",
+        m: "タクジル（ラマダン月の日没時、断食を解く際にまず最初に口にする甘い飲み物・果物・伝統菓子などの軽食）",
+        ex: "Kolak pisang dan es buah merupakan menu takjil favorit yang paling banyak dicari saat bulan puasa.",
+        tr: "バナナのココナッツミルク煮（コラック）とフルーツポンチ（エス・ブア）は、断食月に最も多く求められる人気のタクジルメニューだ。",
+        note: "■ 【語源】：アラビア語の ta'jil（急ぐこと＝日没になったら速やかに断食を解くという教え）から転じて、インドネシアでは「断食明け用の甘い軽食・スナック（kolak, kurma, gorengan 等）」そのものを指す名詞として定着している（berburu takjil＝夕方屋台へタクジルを買いに行くこと）。"
+      },
+      {
+        p: "n", w: "tarawih", r: "tarawih", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "タラウィ（ラマダン［断食月］の期間中、夜の礼拝［salat Isya］の後にモスクや家庭で行われる夜間特別礼拝）",
+        ex: "Seusai berbuka puasa bersama keluarga, mereka berjalan kaki menuju masjid untuk melaksanakan salat tarawih.",
+        tr: "家族と一緒に断食明けの食事を終えた後、彼らはタラウィ礼拝を行うためにモスクへと歩いて向かった。",
+        note: "■ 【コロケーション】：salat tarawih（タラウィ礼拝）。ラマダンの前夜から始まり、断食月の夜の風物詩となる。"
+      },
+      {
+        p: "n", w: "zakat fitrah", r: "zakat", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "ザカート・フィトラ（ラマダン断食月の終わり、イドゥル・フィトリ礼拝の前までにすべてのムスリムが貧しい人々のために納める義務の喜捨。主食の米2.5kg［または3.5リットル］か相当額の金銭で納める）",
+        ex: "Pembayaran zakat fitrah dapat dilakukan melalui panitia amil zakat di masjid sebelum salat Idulfitri dimulai.",
+        tr: "ザカート・フィトラ（断食明けの喜捨）の納付は、イドゥル・フィトリ礼拝が始まる前にモスクのザカート管理委員会を通じて行うことができる。",
+        note: "■ 【関連語】：zakat mal（財産喜捨：一定以上の資産・所得がある人が年2.5%納める喜捨）、sedekah / infak（任意の寄付・施し）。"
+      },
+
+      // ==================== 6. 四半期・期間・1日の5礼拝時間帯（7語） ====================
+      {
+        p: "n", w: "triwulan", r: "wulan", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "四半期、3ヶ月間（1年を3ヶ月ずつ4つに分けた期間＝kuartal：triwulan pertama＝第1四半期）",
+        ex: "Pertumbuhan ekonomi nasional pada triwulan ketiga tahun ini tercatat mencapai lima koma dua persen.",
+        tr: "今年の第3四半期における国の経済成長率は、5.2パーセントに達したと記録された。",
+        note: [
+          "■ 【語構成】：サンスクリット・古ジャワ語由来の『tri（3）』＋『wulan（月＝bulan）』＝3ヶ月間（四半期）。経済報道や中央銀行・BPS（統計局）の発表で『kuartal』と並んで最頻出！",
+          "■ 【月数で覚える期間名詞の体系】：\n・**triwulan / kuartal**：3ヶ月期（四半期：1年を4分割）\n・**caturwulan**：4ヶ月期（1年を3分割：catur＝4）\n・**semester**：6ヶ月期（半年・2学期制の学期）\n・**windu**：8年間（sewindu＝8年）\n・**dasawarsa / dekade**：10年間（dasa＝10、warsa＝年）\n・**abad**：100年間（世紀）\n・**milenium**：1000年間（千年紀）"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "caturwulan", r: "wulan", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "4ヶ月間、四ヶ月期（1年を4ヶ月ずつ3期に分けた期間・かつての3学期制の学期単位）",
+        ex: "Evaluasi pencapaian program kerja daerah tersebut dilakukan setiap akhir caturwulan.",
+        tr: "その地方事業計画の達成度評価は、4ヶ月期（3分の1年）の終わりごとに行われる。",
+        note: "■ 【語構成】：catur（4）+ wulan（月＝bulan）。略称は cawu。"
+      },
+      {
+        p: "n", w: "milenium", r: "milenium", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "千年紀、1000年間、ミレニアム（＝masa seribu tahun）",
+        ex: "Perkembangan teknologi informasi yang sangat cepat menjadi ciri utama awal milenium ketiga ini.",
+        tr: "情報技術の極めて急速な発展が、この第3千年紀（21世紀〜）初頭の主な特徴となっている。",
+        note: "■ 【関連語】：generasi milenial（ミレニアル世代：1980年代〜1990年代中盤生まれの世代）。"
+      },
+      {
+        p: "n", w: "zuhur", r: "zuhur", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "ズフル（イスラムの1日5回の義務礼拝のうち、正午すぎに行う昼の礼拝、および正午すぎの昼の時間帯）",
+        ex: "Rapat akan diskors selama satu jam pada waktu zuhur untuk istirahat, salat, dan makan siang.",
+        tr: "会議は休憩・礼拝・昼食（Ishoma）のため、正午（ズフル）の時間帯に1時間中断される。",
+        note: [
+          "■ 【イスラムの1日5回の礼拝時間帯（インドネシアでは日常の時刻の目安としても使われる！）】：\n① **Subuh（スブ）**：夜明け（午前4時半〜5時頃）\n② **Zuhur（ズフル）**：正午すぎ（昼12時頃：口語では Lohor / Dzuhur）\n③ **Asar（アサル）**：午後（午後3時〜3時半頃）\n④ **Magrib（マグリブ）**：日没直後（午後6時頃：断食を解く時刻であり、子どもが家に帰る目安の時刻）\n⑤ **Isya（イシャ）**：夜（午後7時すぎ頃）\n・ビジネスやイベント日程表で『Ishoma（Istirahat, Salat, Makan＝休憩・礼拝・食事の時間）』とセットで頻出する。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "asar", r: "asar", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "アサル（イスラムの午後3時〜3時半頃に行う午後の礼拝、および午後の時間帯）",
+        ex: "Hujan mulai reda menjelang waktu asar sehingga warga dapat kembali beraktivitas di luar rumah.",
+        tr: "アサル（午後3時頃）の時刻が近づくと雨が小降りになり、住民たちは再び屋外で活動できるようになった。",
+        note: "■ 【日常会話での用法】：『habis asar / bakda asar（アサルの後＝午後3時半〜4時頃）』のように待ち合わせや予定の時刻表現として日常的に使われる。"
+      },
+      {
+        p: "n", w: "magrib", r: "magrib", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "マグリブ（日没直後の午後6時頃に行う夕方の礼拝、および日没・夕暮れ時の時間帯）",
+        ex: "Anak-anak diminta sudah pulang ke rumah sebelum azan magrib berkumandang.",
+        tr: "子どもたちは、マグリブ（日没）のアザーンが鳴り響く前に家へ帰っているよう言われている。",
+        note: "■ 【語源】：アラビア語で「日が沈む場所・時（西）」を意味する。ラマダン月では断食を解く（buka puasa）合図の時刻となる（標準語綴りは h のない magrib）。"
+      },
+      {
+        p: "n", w: "isya", r: "isya", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "イシャ（日没後の夕焼けが消えた午後7時すぎ頃に行う夜の礼拝、および宵の時間帯）",
+        ex: "Pertemuan warga di balai desa itu akan dimulai pada pukul setengah delapan malam atau bakda isya.",
+        tr: "村の集会所での住民会議は、午後7時半、すなわちイシャ（夜の礼拝）の後に開始される予定だ。",
+        note: "■ 【コロケーション】：salat Isya（夜の礼拝）、bakda isya / habis isya（イシャの礼拝が終わった後＝夜7時半〜8時頃）。"
+      }
+    ],
+    acro: [
+      {
+        acro: "WIB",
+        full: "waktu indonesia barat",
+        alts: [],
+        dictOnly: true,
+        tier: 3,
+        topicCat: "🏠 日常・生活・移動",
+        tr: "インドネシア西部標準時（UTC+7：ジャワ・スマトラ・西/中カリマンタン）",
+        exp: "■ 【正式名称】：Waktu Indonesia Barat（日本時間より2時間遅れ）。\n■ 【3大標準時】：WIB（西部時間 UTC+7）、WITA（中部時間 UTC+8）、WIT（東部時間 UTC+9）。"
+      },
+      {
+        acro: "WITA",
+        full: "waktu indonesia tengah",
+        alts: [],
+        dictOnly: true,
+        tier: 3,
+        topicCat: "🏠 日常・生活・移動",
+        tr: "インドネシア中部標準時（UTC+8：バリ・NTB/NTT・南/東/北カリマンタン・スラウェシ）",
+        exp: "■ 【正式名称】：Waktu Indonesia Tengah（日本時間より1時間遅れ、ジャカルタ等のWIBより1時間進み）。"
+      },
+      {
+        acro: "WIT",
+        full: "waktu indonesia timur",
+        alts: [],
+        dictOnly: true,
+        tier: 3,
+        topicCat: "🏠 日常・生活・移動",
+        tr: "インドネシア東部標準時（UTC+9：マルク・パプア ※日本時間と同刻）",
+        exp: "■ 【正式名称】：Waktu Indonesia Timur（日本時間 JST と時差ゼロ）。"
+      },
+      {
+        acro: "SM",
+        full: "sebelum masehi",
+        alts: [],
+        dictOnly: true,
+        tier: 3,
+        topicCat: "🎓 教育・学術・IT",
+        tr: "紀元前（⇔ M＝Masehi 西暦・紀元後）",
+        exp: "■ 【正式名称】：Sebelum Masehi（紀元前＝B.C.）。"
+      },
+      {
+        acro: "Nataru",
+        full: "natal dan tahun baru",
+        alts: [],
+        dictOnly: true,
+        tier: 3,
+        topicCat: "🏠 日常・生活・移動",
+        tr: "クリスマスおよび年末年始（連休）",
+        exp: "■ 【正式名称】：NAtal dan TAhun baRU（クリスマス・年末年始連休の定番アクロニム）。"
+      }
+    ]
+  };
+
+  // 略語配列 (d.singkatan) への登録と全項目の dictOnlySet 登録
+  if (Array.isArray(d.singkatan)) {
+    ["WIB", "WITA", "WIT", "SM", "Nataru"].forEach(function(code) {
+      const vObj = PACK_PART1_CALENDAR.vocab.find(x => x.w.toLowerCase() === code.toLowerCase());
+      if (vObj && !d.singkatan.some(s => s && s.w && s.w.toLowerCase() === code.toLowerCase())) {
+        d.singkatan.push(vObj);
+      }
+    });
+  }
+
+  PACK_PART1_CALENDAR.vocab.forEach(function(it) {
+    dictOnlySet.add(it.w.trim().toLowerCase());
+  });
+  PACK_PART1_CALENDAR.acro.forEach(function(a) {
+    dictOnlySet.add(a.acro.trim().toLowerCase());
+  });
+
+  if (typeof window.wiAddPack === "function") {
+    window.wiAddPack(PACK_PART1_CALENDAR);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 辞書専用パック 第2弾：【インドネシアの主要島嶼・全州・州略称(Akronim)・世界遺産・自然地理】（全60語）
+   - すべて問題には一切出題せず（dictOnly: true, tier: 3）、辞書検索・A〜Z辞書・Kompas連動のみに表示
+   - Kompasの政治・経済・地方記事で毎日登場する州名アクロニム（Jabar/Jateng/Jatim/Kaltim/Sulsel/NTT等）と
+     インドネシアの世界遺産・主要島嶼の歴史・文化・経済背景を完全網羅
+   ===================================================================== */
+(function() {
+  const d = window.WHATSINDO_EXTERNAL_DATA;
+  if (!d) return;
+
+  const dictOnlySet = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+
+  const PACK_PART2_GEOGRAPHY = {
+    vocab: [
+      // ==================== 1. インドネシアの主要島嶼・群島（18語） ====================
+      {
+        p: "n", w: "Nusantara", r: "Nusantara", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "①ヌサンタラ（インドネシア群島全域を指す歴史的・文化的雅称） ②東カリマンタン州に建設中のインドネシア新首都（Ibu Kota Nusantara / IKN）",
+        ex: "Pembangunan Ibu Kota Nusantara di Kalimantan Timur bertujuan mendorong pemerataan ekonomi di seluruh wilayah Indonesia.",
+        tr: "東カリマンタン州におけるヌサンタラ新首都の建設は、インドネシア全域における経済の均等化を促進することを目的としている。",
+        note: [
+          "■ 【語源と歴史背景】：古ジャワ語の『nusa（島）』＋『antara（間・外・向こう側）』に由来。1336年にマジャパヒト王国の宰相ガジャ・マダ（Gajah Mada）が群島全域を統一するまで贅沢を断つと誓った『パラパの誓い（Sumpah Palapa）』の中で用いた歴史的名詞。",
+          "■ 【重要表現】：\n・Wawasan Nusantara：ヌサンタラ群島構想（群島の海と陸を不可分の一体とみなすインドネシアの国家地政学理念）\n・Ibu Kota Nusantara (IKN)：東カリマンタン州プナジャム・パセル・ウタラ県に建設中の新首都"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Jawa", r: "Jawa", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "ジャワ島（インドネシアの総人口の約56%が居住する政治・経済・文化の中心島）、ジャワ族（Suku Jawa）、ジャワ語（Bahasa Jawa）",
+        ex: "Jaringan jalan tol dan kereta api di Pulau Jawa menghubungkan kota-kota besar dari Banten hingga Jawa Timur.",
+        tr: "ジャワ島の高速道路網と鉄道網は、バンテン州から東ジャワ州までの大都市群を結んでいる。",
+        note: [
+          "■ 【行政区分（全6州）】：西から順に ①Banten（バンテン州）、②DKI Jakarta（ジャカルタ特別州）、③Jawa Barat / Jabar（西ジャワ州：州都バンドン）、④Jawa Tengah / Jateng（中部ジャワ州：州都スマラン）、⑤DI Yogyakarta / DIY（ジョグジャカルタ特別州）、⑥Jawa Timur / Jatim（東ジャワ州：州都スラバヤ）。",
+          "■ 【民族・世界遺産】：中・東部のジャワ族（人口比約40%で国内第1位）と西部のスンダ族（約15%で第2位）が中心。ボロブドゥール寺院、プランバナン寺院、サンギラン初期人類遺跡、ジョグジャカルタの哲学軸、ウジュン・クロン国立公園の5つのユネスコ世界遺産を擁する。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Sumatra", r: "Sumatra", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "スマトラ島（インドネシア最西端に位置する世界第6の大島。一般・行政表記では Sumatera とも綴られる）",
+        ex: "Danau Toba di Sumatra Utara merupakan danau vulkanik terbesar di dunia yang menjadi destinasi wisata unggulan.",
+        tr: "北スマトラ州にあるトバ湖は、主力観光地となっている世界最大のカルデラ湖（火山湖）である。",
+        note: [
+          "■ 【行政区分（全10州）】：①Aceh（アチェ州）、②Sumatera Utara / Sumut（北スマトラ州：州都メダン）、③Sumatera Barat / Sumbar（西スマトラ州：州都パダン）、④Riau（リアウ州：州都プカンバル）、⑤Kepulauan Riau / Kepri（リアウ諸島州）、⑥Jambi（ジャンビ州）、⑦Sumatera Selatan / Sumsel（南スマトラ州：州都パレンバン）、⑧Kepulauan Bangka Belitung / Babel（バンカ・ブリトゥン諸島州）、⑨Bengkulu（ブンクル州）、⑩Lampung（ランプン州）。",
+          "■ 【自然・世界遺産・経済】：西岸に沿ってバリサン山脈（Bukit Barisan）が連なり、世界自然遺産『スマトラの熱帯雨林遺産（グヌン・ルスル、クリンチ・スブラット、ブキット・バリサン・スラタンの3国立公園）』と世界文化遺産『オンビリン炭鉱遺産』を擁する。パーム油・天然ゴム・石油・天然ガス・石炭・コーヒーの大産地。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Sumatera", r: "Sumatra", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "スマトラ島（標準語見出し Sumatra の一般的な別綴り。州名やインフラ名の公式表記として広く使われる）",
+        ex: "Pembangunan Jalan Tol Trans-Sumatera terus dipercepat untuk memangkas waktu tempuh logistik antarprovinsi.",
+        tr: "州間の物流所要時間を短縮するため、トランス・スマトラ高速道路の建設が引き続き加速されている。",
+        note: "■ 【表記】：辞書上の標準語形（Kata Baku）は『Sumatra』だが、州政府の名称（Provinsi Sumatera Barat 等）や報道では『Sumatera』が広く併用される。"
+      },
+      {
+        p: "n", w: "Kalimantan", r: "Kalimantan", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "カリマンタン島（世界第3の大島ボルネオ島のインドネシア領部分［島の南側約73%］および島全体の呼称）",
+        ex: "Hutan hujan tropis di Kalimantan merupakan habitat alami bagi orang utan dan bekantan.",
+        tr: "カリマンタンの熱帯雨林は、オランウータンやテングザルの自然の生息地である。",
+        note: [
+          "■ 【行政区分（全5州）】：①Kalimantan Barat / Kalbar（西：州都ポンティアナック）、②Kalimantan Tengah / Kalteng（中：州都パランカラヤ）、③Kalimantan Selatan / Kalsel（南：州都バンジャルバル／最大都市バンジャルマシン）、④Kalimantan Timur / Kaltim（東：州都サマリンダ／経済拠点バリクパパン／新首都ヌサンタラ IKN 所在地）、⑤Kalimantan Utara / Kaltara（北：州都タンジュン・セロル）。",
+          "■ 【地理・経済】：インドネシア最長のカプアス川やマハカム川など大河が網の目のように流れ、火山がなく地震が極めて少ない安定した地盤を持つ。石炭（batu bara）・石油・天然ガス・パーム油・ボーキサイトの主要産出地域。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Sulawesi", r: "Sulawesi", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "スラウェシ島（カリマンタン島の東に位置するアルファベットの「K」字型の島。旧称セレベス島）",
+        ex: "Kawasan industri di Sulawesi Tengah dan Sulawesi Tenggara berkembang menjadi pusat pengolahan nikel dunia.",
+        tr: "中部スラウェシ州および東南スラウェシ州の工業団地は、世界的なニッケル精錬・加工の中心地へと発展している。",
+        note: [
+          "■ 【行政区分（全6州）】：①Sulawesi Selatan / Sulsel（南：州都マカッサル）、②Sulawesi Utara / Sulut（北：州都マナド）、③Sulawesi Tengah / Sulteng（中：州都パル）、④Sulawesi Tenggara / Sultra（東南：州都ケンダリ）、⑤Gorontalo（ゴロンタロ州）、⑥Sulawesi Barat / Sulbar（西：州都マムジュ）。",
+          "■ 【生態系・経済・文化】：アジア区とオーストラリア区の動植物境界線『ウォーレス線（Garis Wallace）』の東側（ワラセア地域）に位置し、アノア（小型水牛）・バビルサ・メガネザル（tarsius）などの固有種が棲む。経済面では電気自動車（EV）バッテリー用の世界最大級のニッケル（nikel）採掘・精錬拠点。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Papua", r: "Papua", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "パプア（世界第2の大島ニューギニア島の西半分を占めるインドネシア最東部の地域）",
+        ex: "Pegunungan Jayawijaya di Papua memiliki puncak tertinggi di Indonesia yang diselimuti gletser tropis.",
+        tr: "パプアのジャヤウィジャヤ山脈には、熱帯氷河に覆われたインドネシア最高峰の山頂がある。",
+        note: [
+          "■ 【行政区分（2022年の州分割により現在全6州）】：①Papua（パプア州：州都ジャヤプラ）、②Papua Barat（西パプア州：州都マノクワリ）、③Papua Tengah（中部パプア州：州都ナビレ、グラスベルグ鉱山があるティミカを含む）、④Papua Pegunungan（山岳パプア州：州都ワメナ、国内唯一の海に面さない内陸州）、⑤Papua Selatan（南パプア州：州都メラウケ）、⑥Papua Barat Daya（南西パプア州：州都ソロン、ラジャ・アンパット諸島を含む）。",
+          "■ 【自然・資源】：インドネシア最高峰プンチャック・ジャヤ（4,884m）を含む世界自然遺産『ロレンツ国立公園』、世界最大級の金・銅鉱山（グラスベルグ鉱山）、極楽鳥（burung cenderawasih）で知られる。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Bali", r: "Bali", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "バリ島、バリ州（ジャワ島の東隣に位置する世界的な観光島・州都デンパサール Denpasar）",
+        ex: "Pulau Bali terkenal di seluruh dunia karena keindahan alam, seni tari, serta tradisi budayanya yang unik.",
+        tr: "バリ島は自然の美しさ、舞踊芸術、そして独自の文化的伝統によって世界中で有名だ。",
+        note: [
+          "■ 【文化・世界遺産】：住民の約87%がバリ・ヒンドゥー教を信仰し、『神々の島（Pulau Dewata）』『千の寺院の島（Pulau Seribu Pura）』と称される。2012年に伝統的な水利組合・棚田灌漑システム『スバック（Subak）』と水の寺院群が「バリ州の文化的景観」としてユネスコ世界文化遺産に登録された。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Lombok", r: "Lombok", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "ロンボク島（バリ島の東にロンボク海峡を挟んで隣接する、西ヌサ・トゥンガラ州［NTB］の中心島・州都マタラム）",
+        ex: "Sirkuit Internasional Mandalika yang berada di bagian selatan Pulau Lombok sering menjadi tuan rumah balap motor dunia.",
+        tr: "ロンボク島南部に位置するマンダリカ国際サーキットは、世界的なオートバイレースの開催地にしばしばなっている。",
+        note: [
+          "■ 【地理・自然・文化】：バリ島とロンボク島の間のロンボク海峡を生態系境界線の『ウォーレス線（Garis Wallace）』が通る。標高3,726mの活火山リンジャニ山（Gunung Rinjani・ユネスコ世界ジオパーク）や北西沖のギリ3島（Gili Trawangan 等）、先住民族ササック族（Suku Sasak）の伝統織物で有名。※なおジャワ語や一部の地方語で小文字の lombok は「唐辛子（cabai）」も意味する。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Sumbawa", r: "Sumbawa", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "スンバワ島（ロンボク島の東に位置し、ロンボク島とともに西ヌサ・トゥンガラ州［NTB］を構成する島）",
+        ex: "Letusan dahsyat Gunung Tambora di Pulau Sumbawa pada tahun 1815 pernah mengubah iklim dunia.",
+        tr: "1815年に起きたスンバワ島のタンボラ山の大噴火は、かつて世界の気候を変化させた。",
+        note: "■ 【歴史・資源】：1815年4月のタンボラ山（Gunung Tambora）噴火は有史以来世界最大規模の火山噴火（VEI 7）として知られる。また世界有数のバトゥ・ヒジャウ（Batu Hijau）銅・金鉱山や、野生馬のミルク・森の蜂蜜の産地としても有名。"
+      },
+      {
+        p: "n", w: "Flores", r: "Flores", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "フローレス島（東ヌサ・トゥンガラ州［NTT］の主要島。西端のラブアン・バジョはコモド国立公園の玄関口）",
+        ex: "Banyak wisatawan terbang ke Labuan Bajo di ujung barat Pulau Flores untuk mengunjungi Taman Nasional Komodo.",
+        tr: "多くの観光客がコモド国立公園を訪れるため、フローレス島西端のラブアン・バジョへと飛行機で向かう。",
+        note: [
+          "■ 【語源と特徴】：16世紀に訪れたポルトガル人が岬に咲く花を見て名付けた『Cabo de Flores（花の岬）』に由来し、住民の大多数がカトリック教徒。時間とともに色が変化する3色の火口湖で有名なクリムトゥ山（Gunung Kelimutu）や、小型人類ホモ・フロレシエンシス（Homo floresiensis）の化石が発見されたリャン・ブア洞窟がある。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Sumba", r: "Sumba", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "スンバ島（フローレス島の南に位置する東ヌサ・トゥンガラ州［NTT］の島。イカット絣織物や巨石墓文化で有名）",
+        ex: "Kain tenun ikat tradisional dari Pulau Sumba sangat dihargai karena keindahan motif dan pewarna alaminya.",
+        tr: "スンバ島の伝統的なイカット（絣織物）は、文様の美しさと天然染料によって非常に高く評価されている。",
+        note: "■ 【文化】：先祖信仰『マラプ（Marapu）』に基づく巨石墓（kubur batu megalitik）、高いとんがり屋根の伝統家屋、馬上から木槍を投げ合う伝統騎馬儀式『パソラ（Pasola）』、そして動物や人物文様を織り込んだ『スンバ・イカット（Tenun Ikat Sumba）』で世界的に知られる。"
+      },
+      {
+        p: "n", w: "Timor", r: "Timor", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "ティモール島（ヌサ・トゥンガラ諸島東端の島。西半分はインドネシア領東ヌサ・トゥンガラ州、東半分は独立国東ティモール）",
+        ex: "Kota Kupang yang terletak di bagian barat Pulau Timor merupakan ibu kota Provinsi Nusa Tenggara Timur.",
+        tr: "ティモール島西部に位置するクパン市は、東ヌサ・トゥンガラ州の州都である。",
+        note: "■ 【語源と歴史】：マレー語の『timur（東＝群島の東端にある島）』に由来。古来より香木である白檀（kayu cendana）の名産地として中国やヨーロッパの商人を惹きつけた。"
+      },
+      {
+        p: "n", w: "Maluku", r: "Maluku", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "マルク諸島、マルク州（スラウェシ島とパプアの間にある群島。歴史上「香料諸島」として知られたナツメグとクローブの原産地）",
+        ex: "Kepulauan Maluku dikenal dalam sejarah dunia sebagai daerah asal rempah-rempah pala dan cengkeh.",
+        tr: "マルク諸島は、ナツメグやクローブといった香辛料の原産地として世界史の中で知られている。",
+        note: [
+          "■ 【歴史・行政】：大航海時代にヨーロッパ列強が競って目指した『香料諸島（Kepulauan Rempah-rempah / Spice Islands＝モルッカ諸島）』。現在は南部・中部の『マルク州（Provinsi Maluku：州都アンボン、バンダ諸島を含む）』と、北部の『北マルク州（Provinsi Maluku Utara / Malut：州都ソフィフィ、テルナテ島・ティドレ島・ハルマヘラ島を含む）』の2州に分かれている。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Halmahera", r: "Halmahera", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "ハルマヘラ島（北マルク州［Malut］に位置するマルク諸島最大の島。世界有数のニッケル採掘・精錬拠点）",
+        ex: "Kawasan industri baterai kendaraan listrik berskala besar tengah dibangun di Pulau Halmahera.",
+        tr: "ハルマヘラ島では現在、大規模な電気自動車（EV）バッテリー用工業団地が建設されている。",
+        note: "■ 【地理・経済】：スラウェシ島やカリマンタン島と同様に独特の「K」字型をした火山島。中部のウェダ・ベイ（Weda Bay）工業団地などを中心に、EV電池向けニッケル精錬の一大拠点となっている。"
+      },
+      {
+        p: "n", w: "Madura", r: "Madura", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "マドゥラ島（東ジャワ州スラバヤの北東沖に位置し、スラマドゥ大橋でジャワ島と結ばれている島）、マドゥラ族・マドゥラ語",
+        ex: "Jembatan Suramadu yang membentang di atas selat menghubungkan Kota Surabaya dengan Pulau Madura.",
+        tr: "海峡の上に架かるスラマドゥ大橋は、スラバヤ市とマドゥラ島を結んでいる。",
+        note: "■ 【文化・産業】：乾燥した気候を活かした製塩業が盛んで『塩の島（Pulau Garam）』と呼ばれる。2頭の雄牛にソリを引かせて競走する伝統行事『カラパン・サピ（Karapan Sapi）』や、ピーナッツソースの鶏串焼き『サテ・マドゥラ（Sate Madura）』で有名。"
+      },
+      {
+        p: "n", w: "Nusa Tenggara", r: "Nusa Tenggara", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "ヌサ・トゥンガラ諸島（バリ島の東からティモール島まで東西に連なる「小スンダ列島」のインドネシア語呼称）",
+        ex: "Kawasan Nusa Tenggara memiliki musim kemarau yang lebih panjang sehingga banyak dijumpai padang sabana.",
+        tr: "ヌサ・トゥンガラ地域は乾季がより長いため、サバンナ（草原）が多く見られる。",
+        note: "■ 【語源と行政】：『nusa（島々）』＋『tenggara（南東）』＝南東の諸島。行政上はロンボク島・スンバワ島から成る『西ヌサ・トゥンガラ州（NTB）』と、フローレス島・スンバ島・ティモール島西部・コモド島などから成る『東ヌサ・トゥンガラ州（NTT）』に分かれる。"
+      },
+      {
+        p: "n", w: "Natuna", r: "Natuna", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "ナトゥナ諸島（リアウ諸島州［Kepri］の北端、南シナ海南部に位置するインドネシア最北端の国境離島群）",
+        ex: "TNI Angkatan Laut memperkuat patroli rutin untuk menjaga kedaulatan di perairan Laut Natuna Utara.",
+        tr: "インドネシア海軍は、北ナトゥナ海の海域における主権を守るため定期パトロールを強化している。",
+        note: "■ 【地政学・資源】：インドネシア政府は2017年に同海域の排他的経済水域（ZEE）を『北ナトゥナ海（Laut Natuna Utara）』と公式命名。世界有数の東ナトゥナ天然ガス田と豊かな漁場を抱える安全保障上の最重要海域。"
+      },
+
+      // ==================== 2. ニュース最頻出の州名＆州アクロニム（30語） ====================
+      {
+        p: "singkatan", w: "DKI Jakarta", r: "Daerah Khusus Ibukota Jakarta", alts: ["daerah khusus ibukota jakarta", "daerah khusus jakarta"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "ジャカルタ首都特別州（インドネシアの経済・金融・行政の中心特別州）",
+        ex: "Pemerintah Provinsi DKI Jakarta terus memperluas jaringan transportasi umum terintegrasi.",
+        tr: "ジャカルタ首都特別州政府は、統合された公共交通ネットワークを拡大し続けている。",
+        note: "■ 【行政ステータス】：5つの行政市（中央・北・西・南・東ジャカルタ）と1つの行政県（プラウ・スリブ諸島 Kepulauan Seribu）から成る州レベルの特別自治体。新首都ヌサンタラ（IKN）への首都機能移転法に伴い、『DKJ（Daerah Khusus Jakarta＝ジャカルタ特別州）』への移行と経済・金融中心都市としての特別地位が定められている。"
+      },
+      {
+        p: "singkatan", w: "Jabar", r: "Jawa Barat", alts: ["jawa barat"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "西ジャワ州（州都はバンドン Bandung。人口約5,000万人を抱えるインドネシア最多人口の州）",
+        ex: "Pemprov Jabar bekerja sama dengan pemerintah pusat dalam pengembangan kereta cepat Jakarta-Bandung.",
+        tr: "西ジャワ州政府（Pemprov Jabar）は、ジャカルタ・バンドン高速鉄道の開発において中央政府と協力している。",
+        note: [
+          "■ 【正式名称】：Provinsi Jawa Barat（JAwa BARat の合成略語）。",
+          "■ 【特徴】：高原の学園・文化都市バンドンを州都とし、スンダ族（Suku Sunda）とスンダ文化（アンクルン楽器など）の中心地。またジャカルタ東郊のブカシ（Bekasi）・チカラン（Cikarang）・カラワン（Karawang）には東南アジア最大規模の製造業工業団地が集積している。"
+        ].join("\n")
+      },
+      {
+        p: "singkatan", w: "Jateng", r: "Jawa Tengah", alts: ["jawa tengah"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "中部ジャワ州（州都は港湾都市スマラン Semarang。ジャワ伝統文化と歴史遺産の中心州）",
+        ex: "Gubernur Jateng meninjau kesiapan jalur mudik di sepanjang pantai utara Jawa.",
+        tr: "中部ジャワ州知事は、ジャワ北海岸（Pantura）沿いの帰省ルートの準備状況を視察した。",
+        note: "■ 【正式名称】：Provinsi Jawa Tengah（JAwa TENGah）。州都スマランのほか、バティックと宮廷文化の古都スラカルタ（ソロ Solo）、世界遺産ボロブドゥールがあるマゲラン（Magelang）、木彫り家具の街ジュパラ（Jepara）などを擁する。"
+      },
+      {
+        p: "singkatan", w: "DIY", r: "Daerah Istimewa Yogyakarta", alts: ["daerah istimewa yogyakarta"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "ジョグジャカルタ特別州（ジャワ島中南部に位置し、王宮文化と学術の中心となっている特別州）",
+        ex: "Kunjungan wisatawan domestik maupun mancanegara ke wilayah DIY meningkat tajam saat musim liburan.",
+        tr: "休暇シーズンには、ジョグジャカルタ特別州（DIY）地域への国内外の観光客の訪問が急増する。",
+        note: "■ 【特別な統治制度】：独立戦争時にインドネシア共和国を全面支援し一時首都となった歴史的貢献から「特別州（Daerah Istimewa）」の地位を持つ。選挙ではなく、ジョグジャカルタ王宮（Keraton）の現役スルタン（Sultan Hamengkubuwono）が州知事に、パクアラム公（Adipati Paku Alam）が副知事に就任する唯一の州。"
+      },
+      {
+        p: "singkatan", w: "Jatim", r: "Jawa Timur", alts: ["jawa timur"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "東ジャワ州（州都はインドネシア第2の大都市スラバヤ Surabaya。マドゥラ島も含む東部ジャワの大経済圏）",
+        ex: "Pelabuhan Tanjung Perak di Jatim menjadi pintu gerbang utama pengiriman barang ke wilayah Indonesia timur.",
+        tr: "東ジャワ州（Jatim）のタンジュン・ペラ港は、東部インドネシア地域への貨物発送の主要な玄関口となっている。",
+        note: "■ 【正式名称】：Provinsi Jawa Timur（JAwa TIMur）。州都スラバヤ、学園・避暑都市マラン（Malang）、ブロモ山、イジェン火山（青い炎の硫黄火口）、そしてスラマドゥ大橋でつながるマドゥラ島を擁する。"
+      },
+      {
+        p: "n", w: "Banten", r: "Banten", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "バンテン州（ジャワ島最西端の州・州都セラン Serang。2000年に西ジャワ州から分離新設）",
+        ex: "Pelabuhan Merak di Provinsi Banten dipadati kendaraan yang hendak menyeberang ke Pulau Sumatra.",
+        tr: "バンテン州のメラク港は、スマトラ島へ渡ろうとする車両で混雑している。",
+        note: "■ 【特徴】：16〜17世紀に胡椒交易で栄えたイスラム王国「バンテン・スルタン国」の地。ジャカルタ首都圏の一角をなすタンゲラン（スカルノ・ハッタ国際空港が立地）、鉄鋼都市チレゴン、世界自然遺産ウジュン・クロン国立公園、隔絶された伝統を守るバドゥイ族（Suku Baduy）の村がある。"
+      },
+      {
+        p: "n", w: "Aceh", r: "Aceh", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "アチェ州（スマトラ島最北端の特別自治州・州都バンダ・アチェ Banda Aceh）",
+        ex: "Kopi Gayo yang tumbuh di dataran tinggi Aceh dikenal sebagai salah satu kopi arabika terbaik di dunia.",
+        tr: "アチェの高原地帯で育つガヨ・コーヒーは、世界最高峰のアラビカ種コーヒーのひとつとして知られている。",
+        note: "■ 【歴史・文化】：東南アジアで最も早くイスラム教が定着した地域であり『メッカの玄関口（Serambi Mekah）』と称される。2005年のヘルシンキ和平合意により高度な自治権とイスラム法（Syariat Islam）の施行が認められている。ユネスコ無形文化遺産の『サマンダンス（Tari Saman）』や2004年インド洋大津波からの復興の象徴『バイトゥッラフマン大モスク』で有名。"
+      },
+      {
+        p: "singkatan", w: "Sumut", r: "Sumatera Utara", alts: ["sumatera utara", "sumatra utara"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "北スマトラ州（州都はスマトラ島最大の都市メダン Medan。トバ湖とバタック文化を擁する州）",
+        ex: "Polda Sumut menyiapkan rekayasa lalu lintas di jalur wisata menuju kawasan Danau Toba.",
+        tr: "北スマトラ州警察（Polda Sumut）は、トバ湖エリアへ向かう観光ルートにおいて交通誘導策を準備している。",
+        note: "■ 【正式名称】：Provinsi Sumatera Utara（SUMatera UTara）。ジャワ島外で最多の人口（約1,500万人）を抱え、世界最大のカルデラ湖トバ湖（Danau Toba）、バタック族（Suku Batak）、オランウータンが棲むブキット・ラワン（グヌン・ルスル国立公園）がある。"
+      },
+      {
+        p: "n", w: "Riau", r: "Riau", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "リアウ州（スマトラ島中東部、マラッカ海峡に面する資源豊かな州・州都プカンバル Pekanbaru）",
+        ex: "Provinsi Riau merupakan salah satu daerah penghasil minyak bumi dan kelapa sawit terbesar di Indonesia.",
+        tr: "リアウ州は、インドネシアにおける最大級の石油およびアブラヤシの産出地域のひとつである。",
+        note: "■ 【経済・文化】：国内最大級のロカン石油鉱区（Blok Rokan）や広大なアブラヤシ（パーム油）・紙パルプ農園を擁する。また、現代インドネシア語の母体となった古典マレー語（Bahasa Melayu Riau）の中心地でもある。"
+      },
+      {
+        p: "singkatan", w: "Kepri", r: "Kepulauan Riau", alts: ["kepulauan riau"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "リアウ諸島州（シンガポール・マレーシアの対岸に広がるバタム島・ビンタン島・ナトゥナ諸島などから成る州・州都タンジュン・ピナン）",
+        ex: "Kawasan industri di wilayah Kepri menarik banyak investasi manufaktur elektronik dari luar negeri.",
+        tr: "リアウ諸島州（Kepri）地域の工業団地は、海外から多くの電子製造業投資を引きつけている。",
+        note: "■ 【正式名称】：Provinsi Kepulauan Riau（KEPulauan RIau：2002年にリアウ州から分離新設）。最大都市バタム（Batam）とビンタン島（Bintan）、カリムン島は自由貿易地域（FTZ）に指定されている。"
+      },
+      {
+        p: "n", w: "Jambi", r: "Jambi", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "ジャンビ州（スマトラ島中部の州・州都ジャンビ。スマトラ最高峰クリンチ山やムアロ・ジャンビ古代仏教遺跡群が所在）",
+        ex: "Kompleks Candi Muaro Jambi di tepi Sungai Batanghari merupakan situs percandian Buddha terluas di Asia Tenggara.",
+        tr: "バタンハリ川のほとりにあるムアロ・ジャンビ寺院群は、東南アジアで最も広大な仏教寺院遺跡である。",
+        note: "■ 【自然・歴史】：西部の山岳地帯には標高3,805mのインドネシア最高峰の活火山クリンチ山（Gunung Kerinci）とクリンチ・スブラット国立公園があり、東部のバタンハリ川流域には7〜13世紀のムラユ王国・シュリーヴィジャヤ王国時代の赤レンガ造り仏教寺院群（Candi Muaro Jambi）が残る。"
+      },
+      {
+        p: "singkatan", w: "Sumsel", r: "Sumatera Selatan", alts: ["sumatera selatan", "sumatra selatan"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "南スマトラ州（州都は古都パレンバン Palembang。古代海洋帝国シュリーヴィジャヤ発祥の地であり、石炭・天然ガス・ゴムの主要産出州）",
+        ex: "Provinsi Sumsel pernah sukses menjadi tuan rumah penyelenggaraan Asian Games bersama Jakarta pada tahun 2018.",
+        tr: "南スマトラ州（Sumsel）は2018年にジャカルタとともにアジア競技大会の開催地となり、成功を収めた。",
+        note: "■ 【正式名称】：Provinsi Sumatera Selatan（SUMatera SELatam）。大河ムシ川（Sungai Musi）に架かるアンペラ橋、インドネシア初のLRT（都市高速鉄道）路線、名物料理プンペック（pempek）で有名。"
+      },
+      {
+        p: "singkatan", w: "Babel", r: "Kepulauan Bangka Belitung", alts: ["kepulauan bangka belitung", "bangka belitung"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "バンカ・ブリトゥン諸島州（南スマトラ州の東沖にあるバンカ島とブリトゥン島から成る州・州都パンカルピナン。世界有数のスズ産地）",
+        ex: "Selain dikenal sebagai penghasil timah terbesar, Provinsi Babel juga memiliki pantai berbatu granit yang indah.",
+        tr: "最大のスズ産地として知られるほか、バンカ・ブリトゥン諸島州（Babel）は花崗岩の巨石が並ぶ美しい海岸も有している。",
+        note: "■ 【正式名称】：Provinsi Kepulauan Bangka Belitung（BAngka BELitung）。電子部品のはんだ等に不可欠なスズ（timah）の世界的産地であり、地理的表示保護された最高級白胡椒『ムントク白胡椒（Lada Putih Muntok）』やベストセラー小説『虹の兵士たち（Laskar Pelangi）』の舞台として知られる。"
+      },
+      {
+        p: "n", w: "Bengkulu", r: "Bengkulu", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "ブンクル州（スマトラ島南西岸、インド洋に面する州・州都ブンクル。世界最大の花ラフレシアの自生地）",
+        ex: "Bunga langka Rafflesia arnoldii yang berukuran raksasa merupakan flora identitas kebanggaan Provinsi Bengkulu.",
+        tr: "巨大なサイズを誇る希少な花「ラフレシア・アルノルディ」は、ブンクル州が誇る象徴的な植物である。",
+        note: "■ 【歴史背景】：17〜19世紀初頭にかけてイギリス東インド会社が拠点（マールボロ要塞 Benteng Marlborough）を置いた歴史を持ち、当時の総督トーマス・スタンフォード・ラフルズ（Raffles）の名にちなんで世界最大の花『ラフレシア』が命名された（1824年の英蘭協約でオランダ領マラッカ・シンガポールと交換された）。また1938〜42年に初代大統領スカルノが流刑生活を送った地でもある。"
+      },
+      {
+        p: "n", w: "Lampung", r: "Lampung", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "ランプン州（スマトラ島最南端の州・州都バンダル・ランプン Bandar Lampung。スンダ海峡を挟んでジャワ島と向かい合う玄関口）",
+        ex: "Pelabuhan Bakauheni di ujung selatan Lampung merupakan pintu masuk utama kendaraan dari Pulau Jawa.",
+        tr: "ランプン州南端のバカウフニ港は、ジャワ島からの車両の主要な入り口となっている。",
+        note: "■ 【特徴】：ジャワ島のメラク港とフェリーで結ばれるバカウフニ港を擁する交通の要衝。ロブスタ種コーヒー・黒胡椒・キャッサバ・バナナの主要産地であり、野生のスマトラゾウを保護する『ウェイ・カンバス国立公園（Taman Nasional Way Kambas）』や金糸織物『タピス（Tapis Lampung）』で有名。"
+      },
+      {
+        p: "singkatan", w: "Kalbar", r: "Kalimantan Barat", alts: ["kalimantan barat"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "西カリマンタン州（州都は赤道直下の街ポンティアナック Pontianak。マレーシアのサラワク州と陸上の国境を接する）",
+        ex: "Pemerintah meresmikan pos lintas batas negara yang modern di wilayah Kalbar untuk mendukung perdagangan perbatasan.",
+        tr: "政府は国境貿易を支援するため、西カリマンタン州（Kalbar）地域に近代的な国境検問所を正式に開所した。",
+        note: "■ 【正式名称】：Provinsi Kalimantan Barat（KALimantan BARat）。インドネシア最長のカプアス川（Sungai Kapuas）が流れ、アルミニウムの原料となるボーキサイト（bauksit）の国内最大の産出・精錬拠点。またシンカワン市（Singkawang）は中華系文化と元宵節（Cap Go Meh）の祭りで有名。"
+      },
+      {
+        p: "singkatan", w: "Kalteng", r: "Kalimantan Tengah", alts: ["kalimantan tengah"], dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "中部カリマンタン州（州都はパランカラヤ Palangkaraya。インドネシア全州の中で最大の面積を持つ広大な州）",
+        ex: "Taman Nasional Tanjung Puting di Kalteng terkenal sebagai pusat konservasi orang utan terbesar di dunia.",
+        tr: "中部カリマンタン州（Kalteng）のタンジュン・プティン国立公園は、世界最大のオランウータン保護拠点として有名だ。",
+        note: "■ 【正式名称】：Provinsi Kalimantan Tengah（KALimantan TENGah）。面積は約15.3万平方キロ（日本の本州の約7割）で全38州中最大。初代大統領スカルノが1957年に最初の首都移転候補地として計画都市パランカラヤを建設したことでも知られる。"
+      },
+      {
+        p: "singkatan", w: "Kalsel", r: "Kalimantan Selatan", alts: ["kalimantan selatan"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "南カリマンタン州（州都はバンジャルバル Banjarbaru、最大都市は水上市場で有名なバンジャルマシン Banjarmasin）",
+        ex: "Wisatawan menyusuri Sungai Martapura dengan perahu klotok untuk mengunjungi pasar terapung di Kalsel.",
+        tr: "観光客は南カリマンタン州（Kalsel）の水上市場を訪れるため、クロトック（エンジン付き木造舟）でマルタプラ川を進む。",
+        note: "■ 【正式名称】：Provinsi Kalimantan Selatan（KALimantan SELatam）。2022年に州都がバンジャルマシンから隣接するバンジャルバル（Banjarbaru）へ正式移転した。石炭の大産地であり、マルタプラ（Martapura）は古くからダイヤモンドや宝石の採掘・研磨の街として有名。"
+      },
+      {
+        p: "singkatan", w: "Kaltim", r: "Kalimantan Timur", alts: ["kalimantan timur"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "東カリマンタン州（州都はサマリンダ Samarinda、経済拠点はバリクパパン Balikpapan。新首都ヌサンタラ［IKN］が位置する州）",
+        ex: "Pembangunan infrastruktur jalan tol menuju Ibu Kota Nusantara di wilayah Kaltim terus dikebut.",
+        tr: "東カリマンタン州（Kaltim）地域のヌサンタラ新首都へ向かう高速道路インフラの建設が急ピッチで進められている。",
+        note: "■ 【正式名称】：Provinsi Kalimantan Timur（KALimantan TIMur）。石油・天然ガス（LNG）・石炭の莫大な地下資源を有し、一人当たり地域総生産（PDRB）が全国トップクラスの豊かな州。マハカム川流域やデラワン諸島（Kepulauan Derawan）の自然でも知られる。"
+      },
+      {
+        p: "singkatan", w: "Kaltara", r: "Kalimantan Utara", alts: ["kalimantan utara"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "北カリマンタン州（州都はタンジュン・セロル Tanjung Selor、最大都市はタラカン島 Tarakan。2012年に東カリマンタン州から分離新設）",
+        ex: "Kawasan industri hijau terbesar di Asia Tenggara sedang dibangun di Kabupaten Bulungan, Kaltara.",
+        tr: "東南アジア最大のグリーン工業団地が現在、北カリマンタン州（Kaltara）のブルンガン県に建設されている。",
+        note: "■ 【正式名称】：Provinsi Kalimantan Utara（KALimantan uTARA）。マレーシアのサバ州・サラワク州と接する国境州であり、カヤン川の水力発電を活用した再生可能エネルギー型の巨大グリーン工業団地プロジェクトが進められている。"
+      },
+      {
+        p: "singkatan", w: "Sulut", r: "Sulawesi Utara", alts: ["sulawesi utara"], dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "北スラウェシ州（州都はマナド Manado。スラウェシ島北東端に位置し、フィリピンに近い海洋観光・水産拠点州）",
+        ex: "Keindahan bawah laut Taman Nasional Bunaken menjadi daya tarik utama pariwisata di Provinsi Sulut.",
+        tr: "ブナケン国立公園の海中の美しさは、北スラウェシ州（Sulut）における観光の最大の魅力となっている。",
+        note: "■ 【正式名称】：Provinsi Sulawesi Utara（SULawesi UTara）。ミナハサ族（Suku Minahasa）を中心とするキリスト教徒が多数派の地域で、港湾都市ビトゥン（Bitung）はマグロ・カツオ水産業と国際物流の拠点。"
+      },
+      {
+        p: "singkatan", w: "Sulteng", r: "Sulawesi Tengah", alts: ["sulawesi tengah"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "中部スラウェシ州（州都はパル Palu。スラウェシ島最大の面積を持ち、モロワリ［Morowali］の世界的ニッケル精錬拠点を擁する州）",
+        ex: "Pertumbuhan ekonomi Provinsi Sulteng melonjak tinggi berkat hilirisasi industri pengolahan nikel di Morowali.",
+        tr: "中部スラウェシ州（Sulteng）の経済成長率は、モロワリにおけるニッケル加工産業の下流化（高付加価値化）のおかげで急上昇した。",
+        note: "■ 【正式名称】：Provinsi Sulawesi Tengah（SULawesi TENGah）。東海岸のモロワリ県（Morowali）には世界最大規模のニッケル精錬・ステンレス鋼・EVバッテリー素材の一大工業団地（IMIP）が立地し、経済ニュースで毎週のように登場する最重要州。"
+      },
+      {
+        p: "singkatan", w: "Sulsel", r: "Sulawesi Selatan", alts: ["sulawesi selatan"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "南スラウェシ州（州都は東部インドネシア最大の都市マカッサル Makassar。ブギス・マカッサル海洋文化とトラジャ高地文化を擁する）",
+        ex: "Jalur kereta api pertama di Pulau Sulawesi telah resmi beroperasi melayani penumpang di wilayah Sulsel.",
+        tr: "スラウェシ島で最初の鉄道路線が正式に開業し、南スラウェシ州（Sulsel）地域の乗客にサービスを提供している。",
+        note: "■ 【正式名称】：Provinsi Sulawesi Selatan（SULawesi SELatam）。世界無形文化遺産の木造帆船『ピニシ（Pinisi）』を造るブルクンバ（Bulukumba）、切り立った石灰岩カルスト地形の『マロス・パンケップ世界ジオパーク』、舟形屋根の家屋（Tongkonan）と壮大な葬送儀礼で有名な『タナ・トラジャ（Tana Toraja）』を擁する。"
+      },
+      {
+        p: "singkatan", w: "Sultra", r: "Sulawesi Tenggara", alts: ["sulawesi tenggara"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "東南スラウェシ州（州都はケンダリ Kendari。ニッケル精錬拠点、天然アスファルトのブトン島、ワカトビ海洋国立公園を擁する）",
+        ex: "Taman Nasional Wakatobi di Provinsi Sultra ditetapkan oleh UNESCO sebagai cagar biosfer dunia.",
+        tr: "東南スラウェシ州（Sultra）のワカトビ国立公園は、ユネスコによって世界生物圏保存地域（エコパーク）に指定されている。",
+        note: "■ 【正式名称】：Provinsi Sulawesi Tenggara（SULawesi TenggARA）。中部スラウェシ州と並ぶニッケル（nikel）の一大産出・精錬州であり、ブトン島（Pulau Buton）の天然アスファルト（Aspal Buton）や4つの島の頭文字をとったダイビング聖地『Wakatobi（Wangi-wangi, Kaledupa, Tomia, Binongko）』で知られる。"
+      },
+      {
+        p: "n", w: "Gorontalo", r: "Gorontalo", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "ゴロンタロ州（スラウェシ島北部のミナハサ半島に位置する州・州都ゴロンタロ。2000年に北スラウェシ州から分離新設）",
+        ex: "Wisata pengamatan hiu paus di perairan pantai Botubarani menjadi ikon pariwisata bahari Gorontalo.",
+        tr: "ボトゥバラニ海岸の海域におけるジンベエザメの観察ツアーは、ゴロンタロ州の海洋観光の象徴となっている。",
+        note: "■ 【特徴】：キリスト教徒が多い隣の北スラウェシ州（マナド）に対し、ゴロンタロはイスラム教徒が大多数を占め「慣習はシャリーア（イスラム法）に依拠し、シャリーアは聖典クルアーンに依拠する」という伝統理念から『メディナの玄関口（Serambi Madinah）』と称される。トウモロコシと水産物の主要産地。"
+      },
+      {
+        p: "singkatan", w: "Sulbar", r: "Sulawesi Barat", alts: ["sulawesi barat"], dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "西スラウェシ州（州都はマムジュ Mamuju。2004年に南スラウェシ州から分離新設された、マンダル海洋文化とカカオ産出の州）",
+        ex: "Festival lomba perahu tradisional Sandeq digelar setiap tahun di perairan pesisir Provinsi Sulbar.",
+        tr: "伝統帆船「サンデック」のレースフェスティバルが毎年、西スラウェシ州（Sulbar）の沿岸海域で開催される。",
+        note: "■ 【正式名称】：Provinsi Sulawesi Barat（SULawesi BARat）。先住の海洋民族マンダル族（Suku Mandar）が操る世界最速級のアウトリガー帆船『サンデック（Perahu Sandeq）』や、国内有数のカカオ（kakao）生産で知られる。"
+      },
+      {
+        p: "singkatan", w: "NTB", r: "Nusa Tenggara Barat", alts: ["nusa tenggara barat"], dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "西ヌサ・トゥンガラ州（バリ島の東隣に位置し、ロンボク島とスンバワ島の2大島から成る州・州都マタラム Mataram）",
+        ex: "Pemerintah Provinsi NTB mengembangkan kawasan ekonomi khusus Mandalika sebagai destinasi wisata olahraga dunia.",
+        tr: "西ヌサ・トゥンガラ州（NTB）政府は、マンダリカ経済特区を世界的なスポーツツーリズムの目的地として開発している。",
+        note: "■ 【正式名称】：Provinsi Nusa Tenggara Barat。ロンボク島のリンジャニ山、ギリ3島（Gili Trawangan, Gili Meno, Gili Air）、マンダリカ国際サーキット、スンバワ島のタンボラ山などを擁する。"
+      },
+      {
+        p: "singkatan", w: "NTT", r: "Nusa Tenggara Timur", alts: ["nusa tenggara timur"], dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "東ヌサ・トゥンガラ州（フローレス島・スンバ島・ティモール島西部・コモド島など500以上の島々から成る州・州都クパン Kupang）",
+        ex: "Pengembangan pembangkit listrik tenaga surya dan angin sangat potensial dilakukan di wilayah kepulauan NTT.",
+        tr: "太陽光発電および風力発電の開発は、東ヌサ・トゥンガラ州（NTT）の群島地域で行うのに非常に高いポテンシャルを持っている。",
+        note: "■ 【正式名称】：Provinsi Nusa Tenggara Timur。世界自然遺産コモド国立公園（ラブアン・バジョ）、クリムトゥ山の3色湖、スンバ島のイカット織物、ロテ島の伝統弦楽器ササンド（Sasando）など豊かな文化・自然遺産を持つ。"
+      },
+      {
+        p: "singkatan", w: "Malut", r: "Maluku Utara", alts: ["maluku utara"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "北マルク州（ハルマヘラ島・テルナテ島・ティドレ島・モロタイ島などから成る州・州都ソフィフィ Sofifi）",
+        ex: "Ekspor produk olahan nikel dari kawasan industri di Provinsi Malut meningkat pesat dalam beberapa tahun terakhir.",
+        tr: "北マルク州（Malut）の工業団地からのニッケル加工製品の輸出は、ここ数年で急速に増加している。",
+        note: "■ 【正式名称】：Provinsi Maluku Utara（MALuku UTara：1999年にマルク州から分離新設）。1000ルピア紙幣にも描かれた歴史上の英雄パティムラや、クローブ交易で栄えたテルナテ王国・ティドレ王国の歴史を持ち、現在はハルマヘラ島のニッケル精錬で国内最高水準の経済成長を誇る。"
+      },
+      {
+        p: "singkatan", w: "Pabar", r: "Papua Barat", alts: ["papua barat"], dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "西パプア州（パプア北西部のドベライ半島東側・ボンベライ半島を中心とする州・州都マノクワリ Manokwari）",
+        ex: "Upaya konservasi hutan hujan tropis dan terumbu karang terus diperkuat oleh pemerintah daerah di Pabar.",
+        tr: "熱帯雨林とサンゴ礁の保全に向けた取り組みが、西パプア州（Pabar）の地方自治体によって引き続き強化されている。",
+        note: "■ 【正式名称】：Provinsi Papua Barat（PApua BARat）。国内最大級のタングー（Tangguh）液化天然ガス（LNG）プラントが立地する。なお2022年末の州分割により、ソロン市やラジャ・アンパット諸島を含む北西端エリアは『南西パプア州（Papua Barat Daya：略称 PBD）』として独立した。"
+      },
+
+      // ==================== 3. インドネシアの世界遺産・主要自然地理（12語） ====================
+      {
+        p: "n", w: "Borobudur", r: "Borobudur", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "ボロブドゥール寺院（中部ジャワ州マゲラン県にある世界最大の大乗仏教寺院遺跡。1991年にユネスコ世界文化遺産に登録）",
+        ex: "Candi Borobudur dibangun dengan menyusun jutaan balok batu vulkanik tanpa menggunakan perekat semen.",
+        tr: "ボロブドゥール寺院はセメント等の接着剤を一切使わず、数百万個の火山岩ブロックを組み上げて建造された。",
+        note: [
+          "■ 【歴史・建築構造（世界遺産検定・地域研究の最重要知識）】：\n・8〜9世紀頃、中部ジャワを支配した大乗仏教王朝 **『シャイレーンドラ朝（Dinasti Syailendra）』** によって建立された巨大な石造マンダラ（ストゥーパ）。\n・内部に部屋を持たず、自然の丘を安山岩の切石で覆った階段ピラミッド構造（下部の方形壇6層＋上部の円形壇3層＋頂上の中心大ストゥーパの計10層）。\n・仏教の三界思想を下から順に体現：①**欲界（Kamadhatu）**：最下層の隠された基壇、②**色界（Rupadhatu）**：回廊の壁面にブッダの生涯（『方広大荘厳経 Lalitavistara』）や善財童子の求道物語（『華厳経入法界品 Gandavyuha』）を描いた1,460面の物語浮彫レリーフが続く方形壇、③**無色界（Arupadhatu）**：格子状の小ストゥーパ72基（内部に仏像を安置）と頂上の無装飾の大ストゥーパが並ぶ円形壇。\n・長年火山灰と密林に埋もれていたが、1814年に当時のイギリス副総督ラフルズ（Raffles）の調査隊によって再発見された。東へ一直線に並ぶパウォン寺院（Candi Pawon）・ムンドゥット寺院（Candi Mendut）とともに3寺院一体で世界遺産を構成する。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Prambanan", r: "Prambanan", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "プランバナン寺院群（ジョグジャカルタ特別州と中部ジャワ州の境界にあるインドネシア最大のヒンドゥー教寺院群。1991年世界文化遺産登録）",
+        ex: "Candi Prambanan yang menjulang setinggi empat puluh tujuh meter didedikasikan untuk tiga dewa utama Hindu.",
+        tr: "高さ47メートルにそびえ立つプランバナン寺院は、ヒンドゥー教の三大最高神に捧げられている。",
+        note: [
+          "■ 【歴史・建築構造】：\n・9世紀中頃、古マタラム王国（サンジャヤ朝：ピカタン王やバリトゥン王の時代）に仏教のボロブドゥールに対抗するヒンドゥー教（シヴァ派）の国家寺院として建立。地元伝承では、一夜にして千の寺院を建てようとした王子によって石像に変えられた姫の伝説から **『ロロ・ジョングラン寺院（Candi Roro Jonggrang＝ほっそりした乙女の寺院）』** とも呼ばれる。\n・ヒンドゥー教の三神一体（Trimurti）を祀る3つの主祠堂が中心：①中央に高さ47mの最高神**シヴァ神殿（Candi Siwa：破壊と再生の神）**、②南に**ブラフマー神殿（Candi Brahma：創造の神）**、③北に**ヴィシュヌ神殿（Candi Wisnu：維持の神）**が並び、それぞれの神の乗り物（ヴァーハナ：聖牛ナンディ、聖鳥ハンサ、神鳥ガルーダ）を祀る3祠堂が向かい合う。\n・シヴァ神殿とブラフマー神殿の回廊には古代インド叙事詩『ラーマーヤナ（Ramayana）』、ヴィシュヌ神殿にはクリシュナ神の物語の精緻なレリーフが刻まれている。なお同一遺跡公園の北側には仏教寺院の『セウ寺院（Candi Sewu＝千の寺院）』などが隣接し、当時のヒンドゥー教と仏教の平和的共存と通婚の歴史を伝えている。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Sangiran", r: "Sangiran", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "サンギラン初期人類遺跡（中部ジャワ州ソロ川流域にある、ジャワ原人の化石が多数発見された世界文化遺産。1996年登録）",
+        ex: "Situs Manusia Purba Sangiran menyimpan lebih dari separuh fosil Homo erectus yang pernah ditemukan di dunia.",
+        tr: "サンギラン初期人類遺跡は、これまでに世界で発見されたホモ・エレクトス（原人）化石の半数以上を保存している。",
+        note: "■ 【学術的価値】：1936年以降、オランダの古人類学者ケーニヒスワルト（Koenigswald）らによって多数のジャワ原人（ピテカントロプス・エレクトス＝ホモ・エレクトス）およびメガントロプスの化石が発見された遺跡。約150万年前から数十万年間にわたる人類進化と環境・石器文化の変遷を連続的に示す世界屈指の古人類学遺跡。"
+      },
+      {
+        p: "n", w: "Ombilin", r: "Ombilin", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "オンビリン炭鉱遺産（西スマトラ州サワルントにある東南アジア最古の近代炭鉱・鉄道・港湾の産業システム。2019年世界文化遺産登録）",
+        ex: "Warisan Tambang Batu Bara Ombilin Sawahlunto ditetapkan oleh UNESCO sebagai situs warisan budaya dunia.",
+        tr: "サワルントのオンビリン炭鉱遺産は、ユネスコによって世界文化遺産に指定された。",
+        note: [
+          "■ 【正式名称】：Warisan Tambang Batu Bara Ombilin Sawahlunto。",
+          "■ 【3つの構成資産による一貫産業システム】：19世紀後半にオランダ人技師デ・グレフが発見し、1892年から採掘が始まった高品質石炭の近代産業遺産。①内陸のバリサン山脈の谷にある**サワルント（Sawahlunto）の炭鉱都市と坑道**、②急勾配の山岳地帯をアプト式（歯軌条ラック式）蒸気機関車で越えた**全長155kmの鉄道網と駅舎・橋梁**、③インド洋に面するパダンの**エマハーフェン港（現トゥルック・バユール港 Pelabuhan Teluk Bayur）の石炭貯蔵サイロ**までが一体として保存されている。なお当時の採掘にはジャワなどから強制動員された囚人労働者『オラン・ランタイ（Orang Rantai＝鎖につながれた人々）』が使役された歴史も記録されている。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Subak", r: "Subak", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "スバック（バリ島の伝統的な水利組合および棚田の灌漑システム。2012年に「バリ州の文化的景観」として世界文化遺産に登録）",
+        ex: "Sistem irigasi Subak di Bali mengatur pembagian air sawah secara adil berdasarkan falsafah Tri Hita Karana.",
+        tr: "バリのスバック灌漑システムは、「トリ・ヒタ・カラナ」の哲学に基づいて水田への水配分を公平に管理している。",
+        note: [
+          "■ 【哲学的基盤】：バリ・ヒンドゥー教の根本哲学 **『トリ・ヒタ・カラナ（Tri Hita Karana＝幸福をもたらす3つの調和：①神と人間の調和 Parahyangan、②人間同士の社会的調和 Pawongan、③人間と自然環境の調和 Palemahan）』** を農業実践として具現化した9世紀以来の自治組織。水源のバトゥール湖にある最高水寺院（Pura Ulun Danu Batur）から各村の水寺院・棚田（ジャティルウィ Jatiluwih 等）へと宗教儀礼と連動して水を分配する。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Komodo", r: "Komodo", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "コモド島、コモド国立公園、コモドオオトカゲ（東ヌサ・トゥンガラ州［NTT］にある世界最大のトカゲの固有生息地。1991年世界自然遺産登録）",
+        ex: "Biawak komodo merupakan spesies kadal terbesar di dunia yang hanya hidup secara alami di Taman Nasional Komodo.",
+        tr: "コモドオオトカゲは、コモド国立公園にのみ自然生息する世界最大のトカゲ種である。",
+        note: "■ 【世界自然遺産】：コモド島（Pulau Komodo）、リンチャ島（Pulau Rinca）、パダル島（Pulau Padar）などの火山島群から成る国立公園。体長最大3m・体重70kg以上に達する肉食の『コモドオオトカゲ（biawak komodo：現地名 ora）』の保護区であり、潮流がぶつかる周辺海域はマンタやサンゴ礁が密集する世界有数の海洋生態系となっている。"
+      },
+      {
+        p: "n", w: "Ujung Kulon", r: "Ujung Kulon", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "ウジュン・クロン国立公園（ジャワ島最西端［バンテン州］の半島とクラカタウ火山群から成る国立公園。1991年世界自然遺産登録）",
+        ex: "Taman Nasional Ujung Kulon merupakan habitat terakhir di dunia bagi badak jawa yang sangat langka.",
+        tr: "ウジュン・クロン国立公園は、極めて希少なジャワサイにとって世界で最後の生息地である。",
+        note: "■ 【語源と価値】：スンダ語・ジャワ語の『ujung（岬・先端）』＋『kulon（西＝barat）』で「西の岬」の意。1883年のクラカタウ（Krakatau）火山大噴火の津波で半島が無人化した後に再生した低地熱帯雨林と、その噴火で誕生した活火山『アナック・クラカタウ（Anak Krakatau＝クラカタウの子）』を含む。地球上でここにしか生き残っていない絶滅危惧種 **『ジャワサイ（badak jawa / badak bercula satu：一角サイ）』**（約70〜80頭のみ生存）の最後の聖域。"
+      },
+      {
+        p: "n", w: "Lorentz", r: "Lorentz", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "ロレンツ国立公園（パプアにある東南アジア最大の国立公園。氷河を戴く最高峰から熱帯雨林・沿岸海洋までが連続する世界自然遺産。1999年登録）",
+        ex: "Taman Nasional Lorentz di Papua membentang dari puncak gunung bersalju hingga perairan pesisir Laut Arafura.",
+        tr: "パプアのロレンツ国立公園は、雪を頂いた山頂からアラフラ海の沿岸海域まで広がっている。",
+        note: "■ 【世界自然遺産の特徴】：総面積250万ヘクタール（四国と九州を合わせた面積の約半分）に及ぶ東南アジア最大の保護区。標高4,884mの最高峰プンチャック・ジャヤ（カルステンツ・ピラミッド）の熱帯氷河から、高山ツンドラ、雲霧林、低地熱帯雨林、広大なマングローブ湿地、アラフラ海までが一続きでつながる世界で唯一の生態系であり、極楽鳥やキノボリカンガルー、ヒクイドリ（kasuari）、またアスマット族（Suku Asmat）やダニ族などの先住民族が暮らす。"
+      },
+      {
+        p: "n", w: "Raja Ampat", r: "Raja Ampat", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "ラジャ・アンパット諸島（南西パプア州ソロン沖に広がる約1,500の島々から成る群島。地球上で最も海洋生物多様性が高いサンゴ礁の聖地）",
+        ex: "Perairan Kepulauan Raja Ampat dijuluki sebagai surga bawah laut karena memiliki ratusan spesies terumbu karang.",
+        tr: "ラジャ・アンパット諸島の海域は、数百種のサンゴを有することから「海中の楽園」と称されている。",
+        note: "■ 【語源】：「4人の王（Raja Ampat）」の伝説に由来し、ワイゲオ島（Waigeo）・ミソール島（Misool）・サラワティ島（Salawati）・バタンタ島（Batanta）の4つの主要な島と、海面からキノコのように突き出た無数のカルスト小島（Wayag や Pianemo 等）で構成される。世界のサンゴ種の約75%が確認されている「コーラル・トライアングル（サンゴの三角地帯）」の核心部。"
+      },
+      {
+        p: "n", w: "Danau Toba", r: "Toba", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "トバ湖（北スマトラ州［Sumut］にある世界最大のカルデラ湖。中央にサモシール島が浮かび、ユネスコ世界ジオパークに認定されている）",
+        ex: "Pulau Samosir yang berada di tengah Danau Toba merupakan pusat kebudayaan tradisional masyarakat Batak Toba.",
+        tr: "トバ湖の中央に位置するサモシール島は、トバ・バタックの人々の伝統文化の中心地である。",
+        note: "■ 【規模と形成】：約7万4千年前の超巨大火山噴火によって形成された長さ約100km・幅約30km・面積約1,130平方キロ（琵琶湖の約1.7倍）の世界最大の火山カルデラ湖。政府が最優先で開発する「5大スーパー優先観光地（Destinasi Pariwisata Super Prioritas：トバ湖・ボロブドゥール・マンダリカ・ラブアンバジョ・リクパン）」のひとつ。"
+      },
+      {
+        p: "n", w: "Bromo", r: "Bromo", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "ブロモ山（東ジャワ州［Jatim］にある標高2,329mの活火山。「砂の海」と呼ばれる巨大カルデラと劇的な日の出の絶景で有名な観光地）",
+        ex: "Wisatawan menaiki mobil jip pada dini hari untuk menyaksikan pemandangan matahari terbit di kawasan Gunung Bromo.",
+        tr: "観光客はブロモ山エリアでの日の出の景色を見るため、未明にジープに乗って向かう。",
+        note: "■ 【語源と文化】：ヒンドゥー教の創造神ブラフマー（Brahma）のジャワ語発音に由来。背後にジャワ島最高峰のスメル山（Gunung Semeru：3,676m）がそびえ、山麓にはマジャパヒト王国時代からのヒンドゥー教の伝統を守り続けるテンゲル族（Suku Tengger）が暮らし、年に一度火口へ農作物や家畜を捧げる『カサダ祭（Upacara Yadnya Kasada）』を行う。"
+      },
+      {
+        p: "n", w: "Merapi", r: "Merapi", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "ムラピ山（中部ジャワ州とジョグジャカルタ特別州の境にそびえる標高2,930mの活火山。インドネシアで最も活動が活発な火山であり、ジョグジャカルタの哲学軸の北端をなす霊峰）",
+        ex: "Balai penyelidikan gunung berapi terus memantau aktivitas guguran lava pijar dari puncak Gunung Merapi.",
+        tr: "火山調査所は、ムラピ山の山頂からの赤熱溶岩の崩落活動を引き続き監視している。",
+        note: "■ 【語源と世界遺産】：古ジャワ語の『meru（山）』＋『api（火）』＝「火の山」。数年に一度の周期で噴火や火砕流（awan panas / wedhus gembel）を起こす一方、火山灰がもたらす肥沃な土壌と湧き水によって古代からマタラム王国の繁栄を支えてきた。北のムラピ山・中央のジョグジャカルタ王宮（Keraton）・南のインド洋（Parangtritis）を一直線に結ぶ都市計画は、2023年にユネスコ世界文化遺産『ジョグジャカルタの哲学軸（Sumbu Filosofi Yogyakarta）』に登録された。"
+      }
+    ],
+    acro: [
+      {
+        acro: "DKI Jakarta",
+        full: "daerah khusus ibukota jakarta",
+        alts: ["daerah khusus jakarta"],
+        dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        tr: "ジャカルタ首都特別州",
+        exp: "■ 【正式名称】：Daerah Khusus Ibukota Jakarta（首都移転法に伴い DKJ＝Daerah Khusus Jakarta へ移行）。"
+      },
+      {
+        acro: "Jabar",
+        full: "jawa barat",
+        alts: [],
+        dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        tr: "西ジャワ州（州都バンドン Bandung）",
+        exp: "■ 【正式名称】：Provinsi Jawa Barat（インドネシアで最も人口が多い州・スンダ文化の中心）。"
+      },
+      {
+        acro: "Jateng",
+        full: "jawa tengah",
+        alts: [],
+        dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        tr: "中部ジャワ州（州都スマラン Semarang）",
+        exp: "■ 【正式名称】：Provinsi Jawa Tengah（ソロやボロブドゥール等を擁するジャワ文化の中心州）。"
+      },
+      {
+        acro: "DIY",
+        full: "daerah istimewa yogyakarta",
+        alts: [],
+        dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        tr: "ジョグジャカルタ特別州（州都ジョグジャカルタ）",
+        exp: "■ 【正式名称】：Daerah Istimewa Yogyakarta（王宮のスルタンが州知事を務める歴史・学術の特別州）。"
+      },
+      {
+        acro: "Jatim",
+        full: "jawa timur",
+        alts: [],
+        dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        tr: "東ジャワ州（州都スラバヤ Surabaya）",
+        exp: "■ 【正式名称】：Provinsi Jawa Timur（国内第2の大都市スラバヤやマラン・ブロモ山・マドゥラ島を擁する州）。"
+      },
+      {
+        acro: "Sumut",
+        full: "sumatera utara",
+        alts: ["sumatra utara"],
+        dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        tr: "北スマトラ州（州都メダン Medan）",
+        exp: "■ 【正式名称】：Provinsi Sumatera Utara（スマトラ最大の都市メダンと世界最大のカルデラ湖トバ湖を擁する州）。"
+      },
+      {
+        acro: "Kepri",
+        full: "kepulauan riau",
+        alts: [],
+        dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        tr: "リアウ諸島州（州都タンジュン・ピナン／最大都市バタム）",
+        exp: "■ 【正式名称】：Provinsi Kepulauan Riau（シンガポール対岸のバタム島・ビンタン島およびナトゥナ諸島から成る州）。"
+      },
+      {
+        acro: "Sumsel",
+        full: "sumatera selatan",
+        alts: ["sumatra selatan"],
+        dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        tr: "南スマトラ州（州都パレンバン Palembang）",
+        exp: "■ 【正式名称】：Provinsi Sumatera Selatan（古代シュリーヴィジャヤ王国の中心地パレンバンを州都とする資源州）。"
+      },
+      {
+        acro: "Babel",
+        full: "kepulauan bangka belitung",
+        alts: ["bangka belitung"],
+        dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        tr: "バンカ・ブリトゥン諸島州（州都パンカルピナン）",
+        exp: "■ 【正式名称】：Provinsi Kepulauan Bangka Belitung（世界有数のスズとムントク白胡椒の産地）。"
+      },
+      {
+        acro: "Kalbar",
+        full: "kalimantan barat",
+        alts: [],
+        dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        tr: "西カリマンタン州（州都ポンティアナック Pontianak）",
+        exp: "■ 【正式名称】：Provinsi Kalimantan Barat（赤道直下のポンティアナックを州都とし、最長のカプアス川が流れる州）。"
+      },
+      {
+        acro: "Kalteng",
+        full: "kalimantan tengah",
+        alts: [],
+        dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        tr: "中部カリマンタン州（州都パランカラヤ Palangkaraya）",
+        exp: "■ 【正式名称】：Provinsi Kalimantan Tengah（インドネシア全州で最大の面積を持ち、オランウータン保護区を擁する州）。"
+      },
+      {
+        acro: "Kalsel",
+        full: "kalimantan selatan",
+        alts: [],
+        dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        tr: "南カリマンタン州（州都バンジャルバル／最大都市バンジャルマシン）",
+        exp: "■ 【正式名称】：Provinsi Kalimantan Selatan（水上市場や石炭・マルタプラのダイヤモンドで知られる州）。"
+      },
+      {
+        acro: "Kaltim",
+        full: "kalimantan timur",
+        alts: [],
+        dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        tr: "東カリマンタン州（州都サマリンダ／新首都ヌサンタラ IKN 所在地）",
+        exp: "■ 【正式名称】：Provinsi Kalimantan Timur（新首都 IKN や石油都市バリクパパンを擁する資源州）。"
+      },
+      {
+        acro: "Kaltara",
+        full: "kalimantan utara",
+        alts: [],
+        dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        tr: "北カリマンタン州（州都タンジュン・セロル／最大都市タラカン）",
+        exp: "■ 【正式名称】：Provinsi Kalimantan Utara（マレーシアと国境を接し、大規模グリーン工業団地が建設中の州）。"
+      },
+      {
+        acro: "Sulut",
+        full: "sulawesi utara",
+        alts: [],
+        dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        tr: "北スラウェシ州（州都マナド Manado）",
+        exp: "■ 【正式名称】：Provinsi Sulawesi Utara（ブナケン海洋国立公園やミナハサ文化で知られる州）。"
+      },
+      {
+        acro: "Sulteng",
+        full: "sulawesi tengah",
+        alts: [],
+        dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        tr: "中部スラウェシ州（州都パル Palu）",
+        exp: "■ 【正式名称】：Provinsi Sulawesi Tengah（モロワリの世界最大級ニッケル精錬工業団地を擁する州）。"
+      },
+      {
+        acro: "Sulsel",
+        full: "sulawesi selatan",
+        alts: [],
+        dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        tr: "南スラウェシ州（州都マカッサル Makassar）",
+        exp: "■ 【正式名称】：Provinsi Sulawesi Selatan（東部インドネシア最大の経済都市マカッサルやタナ・トラジャを擁する州）。"
+      },
+      {
+        acro: "Sultra",
+        full: "sulawesi tenggara",
+        alts: [],
+        dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        tr: "東南スラウェシ州（州都ケンダリ Kendari）",
+        exp: "■ 【正式名称】：Provinsi Sulawesi Tenggara（ニッケル精錬拠点、ブトン島の天然アスファルト、ワカトビ国立公園を擁する州）。"
+      },
+      {
+        acro: "Sulbar",
+        full: "sulawesi barat",
+        alts: [],
+        dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        tr: "西スラウェシ州（州都マムジュ Mamuju）",
+        exp: "■ 【正式名称】：Provinsi Sulawesi Barat（マンダル族の快速帆船サンデックとカカオ生産で知られる州）。"
+      },
+      {
+        acro: "NTB",
+        full: "nusa tenggara barat",
+        alts: [],
+        dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        tr: "西ヌサ・トゥンガラ州（州都マタラム Mataram）",
+        exp: "■ 【正式名称】：Provinsi Nusa Tenggara Barat（ロンボク島とスンバワ島から成り、リンジャニ山やマンダリカを擁する州）。"
+      },
+      {
+        acro: "NTT",
+        full: "nusa tenggara timur",
+        alts: [],
+        dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        tr: "東ヌサ・トゥンガラ州（州都クパン Kupang）",
+        exp: "■ 【正式名称】：Provinsi Nusa Tenggara Timur（フローレス島・スンバ島・ティモール島西部・コモド国立公園などを擁する州）。"
+      },
+      {
+        acro: "Malut",
+        full: "maluku utara",
+        alts: [],
+        dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        tr: "北マルク州（州都ソフィフィ／最大都市テルナテ）",
+        exp: "■ 【正式名称】：Provinsi Maluku Utara（歴史的な香料交易の中心テルナテ島や、ニッケル精錬のハルマヘラ島を擁する州）。"
+      },
+      {
+        acro: "Pabar",
+        full: "papua barat",
+        alts: [],
+        dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        tr: "西パプア州（州都マノクワリ Manokwari）",
+        exp: "■ 【正式名称】：Provinsi Papua Barat（タングーLNG基地や豊かな熱帯雨林・サンゴ礁を擁する州）。"
+      }
+    ]
+  };
+
+  if (Array.isArray(d.singkatan)) {
+    PACK_PART2_GEOGRAPHY.acro.forEach(function(a) {
+      const codeLow = a.acro.trim().toLowerCase();
+      const vObj = PACK_PART2_GEOGRAPHY.vocab.find(x => x.w.trim().toLowerCase() === codeLow);
+      if (vObj && !d.singkatan.some(s => s && s.w && s.w.trim().toLowerCase() === codeLow)) {
+        d.singkatan.push(vObj);
+      }
+    });
+  }
+
+  PACK_PART2_GEOGRAPHY.vocab.forEach(function(it) {
+    dictOnlySet.add(it.w.trim().toLowerCase());
+  });
+  PACK_PART2_GEOGRAPHY.acro.forEach(function(a) {
+    dictOnlySet.add(a.acro.trim().toLowerCase());
+  });
+
+  if (typeof window.wiAddPack === "function") {
+    window.wiAddPack(PACK_PART2_GEOGRAPHY);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 辞書専用パック 第3弾：【インドネシアの主要都市・工業拠点・歴史観光都市・主要海峡/大河】（全63語）
+   - すべて問題には一切出題せず（dictOnly: true, tier: 3）、辞書検索・A〜Z辞書・Kompas連動のみに表示
+   - 過去の統合パッチによる都市名の push ブロックを解除し、辞書専用データとして完全復活・大幅拡充
+   ===================================================================== */
+(function() {
+  const d = window.WHATSINDO_EXTERNAL_DATA;
+  if (!d) return;
+
+  const dictOnlySet = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+
+  const PACK_PART3_CITIES = {
+    vocab: [
+      // ==================== 1. ジャカルタ首都圏 ＆ 西ジャワ・バンテン主要都市・工業地帯（13語） ====================
+      {
+        p: "n", w: "Jakarta", r: "Jakarta", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "ジャカルタ（インドネシア最大の経済・金融・行政中心都市。周辺衛星都市とともに巨大都市圏 Jabodetabek を形成）",
+        ex: "Sebagai pusat perekonomian dan bisnis terbesar di Indonesia, Jakarta selalu sibuk dengan berbagai aktivitas perdagangan.",
+        tr: "インドネシア最大の経済およびビジネスの中心地として、ジャカルタは常に様々な商業活動で賑わっている。",
+        note: [
+          "■ 【歴史の4段階変遷】：\n① **Sunda Kelapa（スンダ・クラパ）**：ヒンドゥー教パジャジャラン王国時代の主要貿易港\n② **Jayakarta（ジャヤカルタ）**：1527年6月22日にファタヒラ率いるイスラム軍がポルトガル艦隊を撃退し、サンスクリット語で「完全なる勝利の街」を意味するジャヤカルタへ改称（6月22日は現在のジャカルタ市創立記念日）\n③ **Batavia（バタヴィア）**：1619年から約3世紀にわたるオランダ東インド会社（VOC）およびオランダ領東インド植民地政府の首都\n④ **Jakarta（ジャカルタ）**：1942年の日本軍政期にバタヴィアからジャカルタへ改称され、1945年8月17日に独立宣言の地となった。",
+          "■ 【象徴・ランドマーク】：独立記念塔モナス（Monas）、東南アジア最大のイスティクラル・モスク、旧市街コタ・トゥア（Kota Tua）、スカルノ・ハッタ国際空港（近郊タンゲラン）。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Bogor", r: "Bogor", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "ボゴール（ジャカルタの南約60kmに位置する西ジャワ州の都市。ボゴール植物園や大統領宮殿で知られる「雨の街」）",
+        ex: "Kebun Raya Bogor yang memiliki ribuan koleksi pohon tropis menjadi tempat wisata edukasi yang populer.",
+        tr: "数千種の熱帯樹木コレクションを有するボゴール植物園は、人気の教育観光スポットとなっている。",
+        note: [
+          "■ 【歴史・異名】：年間を通じて午後にスコール（にわか雨）が降りやすいことから **『雨の街（Kota Hujan）』** と呼ばれる。中世にはスンダ族のヒンドゥー王国『パジャジャラン王国（Kerajaan Pajajaran）』の都パクアンが置かれ、オランダ領時代には総督の避暑地『バイテンゾルフ（Buitenzorg＝憂いなし）』と呼ばれた。1817年創設のボゴール植物園（Kebun Raya Bogor）、ボゴール大統領宮殿（Istana Bogor）、名門ボゴール農科大学（IPB）がある。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Depok", r: "Depok", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "デポック（ジャカルタのすぐ南に隣接する西ジャワ州の都市。インドネシア大学［UI］のメインキャンパスが立地する学園・住宅都市）",
+        ex: "Banyak mahasiswa dari berbagai daerah tinggal di Kota Depok karena dekat dengan kampus Universitas Indonesia.",
+        tr: "インドネシア大学（UI）のキャンパスに近いため、様々な地域から来た多くの学生がデポック市に暮らしている。",
+        note: "■ 【特徴】：ジャカルタ首都圏（Jabodetabek）の南翼を担うベッドタウンであり、緑豊かなインドネシア大学（UI）メインキャンパスを中心に学生街として発展している。"
+      },
+      {
+        p: "n", w: "Tangerang", r: "Tangerang", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "タンゲラン（ジャカルタの西に隣接するバンテン州の主要工業・商業都市。スカルノ・ハッタ国際空港の所在地）",
+        ex: "Bandara Internasional Soekarno-Hatta secara administratif terletak di wilayah Kota Tangerang, Provinsi Banten.",
+        tr: "スカルノ・ハッタ国際空港は、行政区分上はバンテン州のタンゲラン市内に位置している。",
+        note: "■ 【構成】：タンゲラン市（Kota Tangerang）、計画都市BSDシティ等がある南タンゲラン市（Kota Tangerang Selatan / Tangsel）、およびタンゲラン県（Kabupaten Tangerang）の3自治体から成り、空港・製造業工場・大型展示会場（ICE BSD）が集積している。"
+      },
+      {
+        p: "n", w: "Bekasi", r: "Bekasi", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "ブカシ（ジャカルタの東に隣接する西ジャワ州の大都市。ジャカルタ首都圏最大のベッドタウン兼製造業拠点）",
+        ex: "Jalur kereta komuter dan LRT menghubungkan warga Kota Bekasi yang bekerja di pusat Kota Jakarta.",
+        tr: "通勤電車（KRL）とLRTの路線が、ジャカルタ中心部で働くブカシ市の住民を結んでいる。",
+        note: "■ 【歴史・経済】：独立戦争時の激戦地であることから『愛国者の街（Kota Patriot）』と呼ばれる。隣接するブカシ県（チカラン等）とともにインドネシア製造業の心臓部をなす。"
+      },
+      {
+        p: "n", w: "Cikarang", r: "Cikarang", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "チカラン（西ジャワ州ブカシ県の郡都。日系をはじめ数千社の外資・国内工場が集積する東南アジア最大級の製造業工業地帯）",
+        ex: "Kawasan industri di Cikarang menjadi pusat pabrik perakitan otomotif dan komponen elektronik terbesar di Indonesia.",
+        tr: "チカランの工業団地は、インドネシア最大の自動車組立および電子部品工場の中心地となっている。",
+        note: "■ 【経済的特徴】：ジャバベカ（Jababeka）、MM2100、EJIP、デルタマス（GIIC）など巨大な工業団地が連なり、日系製造業（自動車・二輪車・機械・化学等）が最も多く進出しているエリア。"
+      },
+      {
+        p: "n", w: "Karawang", r: "Karawang", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "カラワン（西ジャワ州北部、チカランの東隣に位置する県および都市。伝統的な米どころであり、現在は大規模な自動車・製造業工業拠点）",
+        ex: "Selain dikenal sebagai lumbung padi Jawa Barat, Karawang kini berkembang pesat menjadi kawasan industri otomotif.",
+        tr: "西ジャワの米倉（穀倉地帯）として知られるほか、カラワンは現在、自動車工業地帯として急速に発展している。",
+        note: "■ 【歴史と産業】：1945年8月16日に青年グループがスカルノとハッタに早期の独立宣言を迫った歴史的な『レンガスデンクロック事件（Peristiwa Rengasdengklok）』の舞台となった県。KIIC（カラワン国際工業団地）やスリヤチプタ工業団地など、日本の自動車メーカーの主力工場が集積する。"
+      },
+      {
+        p: "n", w: "Bandung", r: "Bandung", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "バンドン（西ジャワ州の州都。標高約700mの高原盆地に位置するスンダ文化・学園・クリエイティブ産業の中心都市）",
+        ex: "Pada tahun 1955, Kota Bandung menjadi tuan rumah penyelenggaraan Konferensi Asia-Afrika yang bersejarah.",
+        tr: "1955年、バンドン市は歴史的なアジア・アフリカ会議（バンドン会議）の開催地となった。",
+        note: [
+          "■ 【歴史・異名・文化】：\n・周囲をタンクバン・プラフ火山などの山々に囲まれ気候が涼しいことから、オランダ領時代には **『ジャワのパリ（Parijs van Java）』** や **『花の都（Kota Kembang）』** と称された。アール・デコ様式の歴史建築（Gedung Sate［西ジャワ州庁舎］や Gedung Merdeka［アジア・アフリカ会議記念博物館］）が今も残る。\n・1946年3月、独立戦争中にオランダ軍に街を占領されるのを拒んだ市民と共和国軍が自ら街の南部を焼き払って撤退した英雄的事件 **『バンドン火の海事件（Bandung Lautan Api）』** でも知られる。\n・バンドン工科大学（ITB）、パジャジャラン大学（Unpad）、インドネシア教育大学（UPI）などが集まる学園都市であり、ファッション・インディーズ音楽・カフェ文化の発信地。2023年にはジャカルタと約45分で結ぶ東南アジア初の高速鉄道『Whoosh』が開業した。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Cirebon", r: "Cirebon", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "チルボン（西ジャワ州北東端、中部ジャワ州との境界にある港湾・歴史都市。雲文様のバティック「メガ・ムンドゥン」やエビ産業で有名）",
+        ex: "Motif batik Mega Mendung yang berbentuk awan berlapis merupakan warisan budaya khas Kota Cirebon.",
+        tr: "幾重もの雲の形をした「メガ・ムンドゥン」のバティック文様は、チルボン市特有の文化遺産である。",
+        note: "■ 【語源と文化】：スンダ語の『ci（水・川）』＋『rebon（アミ・小エビ）』に由来し、**『エビの街（Kota Udang）』** や『ワリ（イスラム聖者）の街（Kota Wali）』と呼ばれる。スンダ文化・ジャワ文化・中国文化・イスラム文化が融合した独自の宮廷（カセプハン王宮 Keraton Kasepuhan 等）を持ち、雨雲を象徴する青や赤のグラデーションのバティック『メガ・ムンドゥン（Mega Mendung）』で名高い。"
+      },
+      {
+        p: "n", w: "Serang", r: "Serang", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "セラン（バンテン州の州都。旧バンテン・スルタン国の遺跡群を抱えるジャワ島西部の行政中心都市）",
+        ex: "Kawasan Banten Lama di bagian utara Kota Serang ramai dikunjungi peziarah dan wisatawan sejarah.",
+        tr: "セラン市北部にある旧バンテン遺跡エリアは、巡礼者や歴史観光客で賑わっている。",
+        note: "■ 【特徴】：ジャカルタとメラク港を結ぶ高速道路の中間に位置するバンテン州の行政中心都市。北岸の『旧バンテン（Banten Lama）』には16世紀のバンテン大モスクやスロソワン王宮跡が残る。"
+      },
+      {
+        p: "n", w: "Cilegon", r: "Cilegon", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "チレゴン（バンテン州北西端の重化学工業都市。国営製鉄会社クラカタウ・スチールが立地する「鉄鋼の街」）",
+        ex: "Kota Cilegon dijuluki sebagai Kota Baja karena menjadi pusat industri besi dan baja terbesar di Indonesia.",
+        tr: "チレゴン市はインドネシア最大の鉄鋼産業の中心地であることから、「鉄鋼の街（コタ・バジャ）」と称されている。",
+        note: "■ 【経済】：国営鉄鋼メーカー『Krakatau Steel（クラカタウ・スチール）』や石油化学コンビナートが集積する重工業都市であり、市内のメラク港（Pelabuhan Merak）はスマトラ島へ渡るフェリーのジャワ側発着点となっている。"
+      },
+      {
+        p: "n", w: "Garut", r: "Garut", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "ガルート（バンドンの南東に位置する西ジャワ州の高原都市。伝統菓子「ドドル」、革製品、チパナス温泉、ガルート羊で有名）",
+        ex: "Dodol dan kerajinan jaket kulit dari Garut sangat populer sebagai buah tangan khas Jawa Barat.",
+        tr: "ガルートの伝統菓子ドドルと革ジャケット工芸品は、西ジャワ名物のお土産として非常に人気がある。",
+        note: "■ 【特徴】：パパンダヤン火山やグントゥール山などの火山に囲まれた盆地で、かつてチャーリー・チャップリンも訪れた保養地として『ジャワのスイス（Swiss van Java）』と称された。"
+      },
+      {
+        p: "n", w: "Sukabumi", r: "Sukabumi", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "スカブミ（ジャカルタとバンドンの間、ゲデ・パングランゴ山の南麓に位置する西ジャワ州の都市および県）",
+        ex: "Kawasan Geopark Ciletuh di Kabupaten Sukabumi menawarkan pemandangan air terjun dan tebing pantai yang megah.",
+        tr: "スカブミ県のチルトゥ・ジオパーク地域は、壮大な滝と海岸断崖の景色を提供している。",
+        note: "■ 【語源】：サンスクリット由来の『suka（喜び・快適さ）』＋『bumi（大地）』＝「心地よく愛される土地」。茶畑やラフティング、南岸のユネスコ世界ジオパーク『チルトゥ・パラブハンラトゥ（Ciletuh-Palabuhanratu）』で有名。"
+      },
+
+      // ==================== 2. 中部ジャワ・ジョグジャカルタ・東ジャワ主要都市（14語） ====================
+      {
+        p: "n", w: "Semarang", r: "Semarang", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "スマラン（中部ジャワ州の州都。ジャワ北海岸の中央に位置する歴史的港湾・商業都市）",
+        ex: "Kawasan Kota Lama Semarang terkenal dengan bangunan-bangunan berarsitektur Eropa peninggalan zaman kolonial.",
+        tr: "スマラン旧市街エリアは、植民地時代の遺産であるヨーロッパ建築の建物群で有名だ。",
+        note: [
+          "■ 【語源と名所】：タマリンドの木（asem）がまばらに（arang）生えていたことに由来。オランダ領時代の商館やブレンドゥック教会が並ぶ『スマラン旧市街（Kota Lama Semarang：リトル・ネーデルラント）』、旧鉄道会社本部の『ラワン・スウ（Lawang Sewu＝千の扉）』、明の鄭和提督が立ち寄った『三保洞寺院（Klenteng Sam Poo Kong）』、名物料理のスマラン春巻き（Lumpia Semarang）やディポヌゴロ大学（Undip）で知られる。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Yogyakarta", r: "Yogyakarta", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "ジョグジャカルタ（ジャワ伝統文化・宮廷芸術の中心であり、ガジャマダ大学など多くの大学が集まる「学生の街」・特別州の州都）",
+        ex: "Yogyakarta dikenal luas sebagai Kota Pelajar dan Kota Budaya yang masih mempertahankan tradisi kesultanan.",
+        tr: "ジョグジャカルタは、スルタン王国の伝統を今も守り続ける「学生の街」「文化の街」として広く知られている。",
+        note: [
+          "■ 【歴史・文化】：通称は **『Jogja / Yogya（ジョグジャ）』**。1755年のギヤンティ条約によるマタラム王国分割で成立した『ジョグジャカルタ・スルタン国』の王都であり、独立戦争期（1946〜1949年）にはインドネシア共和国の臨時首都となった。王宮（Keraton）と水の離宮タマン・サリ（Taman Sari）、繁華街マリオボロ通り（Jalan Malioboro）、名物料理の若いジャックフルーツの甘煮『グドゥッ（Gudeg）』で有名。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Surakarta", r: "Surakarta", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "スラカルタ（通称「ソロ Solo」：中部ジャワ州南東部に位置し、ジョグジャカルタと並ぶジャワ宮廷文化・バティックの中心都市）",
+        ex: "Kota Surakarta atau yang lebih akrab disebut Solo sangat terkenal dengan kerajinan batik tulis dan musik keroncongnya.",
+        tr: "スラカルタ市、あるいは「ソロ」という愛称で親しまれる街は、手描きバティックの工芸とクロンチョン音楽で非常に有名だ。",
+        note: "■ 【歴史】：1745年にマタラム王国のパクブウォノ2世がカルタスラからソロ村へ遷都し『スラカルタ・ハディニングラット』と命名した王都。ススフナン王宮（Keraton Kasunanan）とマンクヌガラン王宮（Pura Mangkunegaran）の2つの宮廷を擁し、東南アジア最大級のバティック市場『クレウェル市場（Pasar Klewer）』がある。"
+      },
+      {
+        p: "n", w: "Solo", r: "Surakarta", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "ソロ（中部ジャワ州の古都スラカルタ［Kota Surakarta］の通称・愛称。バティックやブンガワン・ソロ川で有名）",
+        ex: "Banyak wisatawan berkunjung ke Pasar Klewer di Kota Solo untuk berbelanja kain batik berkualitas.",
+        tr: "多くの観光客が良質なバティック布を買い求めるため、ソロ市のクレウェル市場を訪れる。",
+        note: "■ 【表記】：行政上の正式市名は『Kota Surakarta』だが、日常会話・観光・交通案内・報道でも『Solo』の名が広く使われる（標語：Solo, The Spirit of Java）。"
+      },
+      {
+        p: "n", w: "Magelang", r: "Magelang", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "マゲラン（中部ジャワ州南部、ジョグジャカルタの北に位置する県および市。世界遺産ボロブドゥール寺院や国軍士官学校の所在地）",
+        ex: "Candi Borobudur secara administratif berada di wilayah Kabupaten Magelang, Provinsi Jawa Tengah.",
+        tr: "ボロブドゥール寺院は行政区分上、中部ジャワ州のマゲラン県内に位置している。",
+        note: "■ 【特徴】：ムラピ山・メルバブ山・スンビン山などに囲まれた盆地都市。マゲラン市内のティダール山（Gunung Tidar）は「ジャワ島の釘（ヘソ）」と呼ばれ、インドネシア国軍士官学校（Akademi Militer / Akmil）が置かれている。"
+      },
+      {
+        p: "n", w: "Jepara", r: "Jepara", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "ジュパラ（中部ジャワ州北岸の県および都市。精緻なチーク材木彫り家具の世界的産地であり、女性解放の先駆者カルティニの生誕地）",
+        ex: "Furnitur kayu jati berukir dari Jepara telah lama diekspor ke berbagai negara di Eropa dan Asia.",
+        tr: "ジュパラ産の彫刻入りチーク材家具は、古くからヨーロッパやアジアの各国へ輸出されている。",
+        note: "■ 【文化・観光】：『木彫りの街（Kota Ukir）』として世界的に知られるほか、1879年にこの地で生まれた民族英雄 R.A. カルティニ（Kartini）ゆかりの地。沖合には美しいサンゴ礁の海洋国立公園『カリムンジャワ諸島（Kepulauan Karimunjawa）』がある。"
+      },
+      {
+        p: "n", w: "Pekalongan", r: "Pekalongan", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "プカロンガン（中部ジャワ州北海岸の都市。色鮮やかな沿岸バティックの中心地であり、ユネスコ創造都市に認定された「バティックの街」）",
+        ex: "Kota Pekalongan memiliki museum batik nasional dan dikenal luas sebagai pusat produksi batik pesisir.",
+        tr: "プカロンガン市は国立バティック博物館を有し、沿岸バティックの生産拠点として広く知られている。",
+        note: "■ 【特徴】：ジョグジャカルタやソロの落ち着いた茶・藍系の「内陸宮廷バティック」に対し、プカロンガンは中国・アラブ・オランダ・日本の影響を吸収した華やかで色彩豊かな『沿岸バティック（Batik Pesisir：日本の桜文様を取り入れたジャワ・ホウカイ Jlamprang / Jawa Hokokai 等も有名）』の最大産地。"
+      },
+      {
+        p: "n", w: "Kudus", r: "Kudus", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "クドゥス（中部ジャワ州北部の都市。ヒンドゥー建築様式のミナレットを持つメナラ・クドゥス・モスクや、丁子タバコ［クレテック］産業発祥の街）",
+        ex: "Masjid Menara Kudus merupakan bukti nyata akulturasi budaya Islam dan Hindu pada masa Wali Songo.",
+        tr: "メナラ・クドゥス・モスクは、ワリ・ソンゴ（九聖人）時代におけるイスラム文化とヒンドゥー文化の融合の明確な証しである。",
+        note: "■ 【歴史・産業】：エルサレムのアラビア語名（Al-Quds＝聖なる街）に由来し、九聖人の一人スナン・クドゥスがヒンドゥー教徒への配慮から赤レンガのチャンディ（寺院）様式で建てたミナレット（塔）と、牛を屠殺せず水牛（kerbau）の肉を使う食文化（Soto Kudus）が今も伝わる。また大手企業ジャルム（Djarum：バドミントン強豪クラブ PB Djarum の母体）の本拠地でもある。"
+      },
+      {
+        p: "n", w: "Surabaya", r: "Surabaya", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "スラバヤ（東ジャワ州の州都。ジャカルタに次ぐインドネシア第2の大都市であり、1945年の独立防衛戦から「英雄の街」と称される）",
+        ex: "Kota Surabaya dijuluki sebagai Kota Pahlawan untuk mengenang pertempuran hebat rakyat mempertahankan kemerdekaan.",
+        tr: "スラバヤ市は独立を守るために戦った民衆の激しい戦いを記念して、「英雄の街（コタ・パフラワン）」と称されている。",
+        note: [
+          "■ 【語源と歴史】：海のサメ（Ikan Sura）と川のワニ（Buaya）が縄張りを争った伝説、および「危険（baya）に勇敢に立ち向かう（sura）」という古ジャワ語に由来。1945年11月10日、再植民地化を狙う連合軍に対し市民が竹槍や鹵獲武器で立ち向かった『スラバヤの戦い（Pertempuran Surabaya）』から、11月10日は国の「英雄の日（Hari Pahlawan）」に制定されている。東部インドネシアへの最大の貿易港タンジュン・ペラ港と名門アイルランガ大学（Unair）・スラバヤ工科大学（ITS）を擁する。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Malang", r: "Malang", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "マラン（東ジャワ州第2の都市。標高約450mの高原に位置する涼しい学園・観光都市であり、ブロモ山観光の拠点）",
+        ex: "Udara yang sejuk serta banyaknya perguruan tinggi membuat Kota Malang menjadi tujuan favorit mahasiswa.",
+        tr: "涼しい空気と多くの大学があることから、マラン市は学生たちに人気の街となっている。",
+        note: "■ 【特徴】：13世紀のシンガサリ王国（Kerajaan Singasari）の中心地であり、オランダ領時代から高原避暑地・リンゴ（apel Malang）の名産地として発展。ブラウィジャヤ大学（UB）やマラン国立大学（UM）が集まる学園都市で、肉団子スープ『バクソ・マラン（Bakso Malang）』の本場。"
+      },
+      {
+        p: "n", w: "Batu", r: "Batu", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "バトゥ（東ジャワ州マランの北西に隣接する標高約900mの高原観光都市。リンゴ農園や大型テーマパーク・博物館が集まる行楽地）",
+        ex: "Kota Wisata Batu di Jawa Timur selalu dipadati pengunjung yang ingin memetik apel dan mengunjungi taman rekreasi.",
+        tr: "東ジャワ州の観光都市バトゥは、リンゴ狩りやレクリエーションパークを訪れたい来場者でいつも賑わっている。",
+        note: "■ 【特徴】：2001年にマラン県から独立した高原リゾート市（Kota Wisata Batu）。Jatim Park や交通博物館（Museum Angkut）などのテーマパーク、果樹園・花卉栽培・酪農で有名。"
+      },
+      {
+        p: "n", w: "Banyuwangi", r: "Banyuwangi", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "バニュワンギ（ジャワ島最東端に位置する東ジャワ州の県および都市。バリ島へ渡るケタパン港や、青い炎で有名なイジェン火山の玄関口）",
+        ex: "Wisatawan mendaki Kawah Ijen di Banyuwangi pada malam hari untuk melihat fenomena api biru alami.",
+        tr: "観光客は天然の青い炎（ブルーファイア）現象を見るため、夜間にバニュワンギのイジェン火口へ登る。",
+        note: "■ 【語源と自然】：ジャワ語の『banyu（水＝air）』＋『wangi（芳しい・良い香り＝harum）』で「香りのよい水」の意。イジェン火山（Kawah Ijen）の硫黄火口湖、アラス・プルウォ国立公園（サーフィンの聖地 G-Land）、バラランガン国立公園（「アフリカのサバンナ」と呼ばれる草原）、先住オシン族（Suku Osing）のガンドルン舞踊（Tari Gandrung）で知られる。"
+      },
+      {
+        p: "n", w: "Kediri", r: "Kediri", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "クディリ（東ジャワ州ブランタス川流域の歴史・産業都市。11〜13世紀のクディリ王国の古都であり、大手丁子タバコ企業の拠点）",
+        ex: "Kota Kediri tumbuh sebagai salah satu pusat industri pengolahan rokok kretek terbesar di Indonesia.",
+        tr: "クディリ市は、インドネシア最大級のクレテック（丁子タバコ）製造産業の中心地のひとつとして発展している。",
+        note: "■ 【特徴】：大手タバコメーカー『グダン・ガラム（Gudang Garam）』の本社工場が立地し、2024年には近郊にドーホ空港（Bandara Dhoho）が開港した。また同県のパレ地区（Pare）は、全国から若者が合宿で英語を学びに来る『英語村（Kampung Inggris Pare）』として非常に有名。"
+      },
+      {
+        p: "n", w: "Madiun", r: "Madiun", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "マディウン（東ジャワ州西部の主要都市。国営鉄道車両製造会社 INKA の本拠地であり、伝統武術シラットやピーナッツソース料理プチェルの街）",
+        ex: "Kereta api buatan pabrik PT INKA di Kota Madiun telah diekspor ke berbagai negara berkembang.",
+        tr: "マディウン市のPT INKA（国営鉄道車両メーカー）の工場で作られた鉄道車両は、様々な発展途上国へ輸出されている。",
+        note: "■ 【産業・グルメ】：東南アジア有数の鉄道車両メーカー『PT INKA（Industri Kereta Api）』の本社工場があるため『鉄道産業の街（Kota Industri Kereta Api）』、また多くのプンチャック・シラット流派の本拠地であることから『武術の街（Kota Pendekar）』、温野菜に甘辛いピーナッツソースをかけた『ナシ・プチェル（Nasi Pecel Madiun）』の本場として知られる。"
+      },
+
+      // ==================== 3. スマトラ島の主要都市（10語） ====================
+      {
+        p: "n", w: "Banda Aceh", r: "Aceh", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "バンダ・アチェ（スマトラ島最北端にあるアチェ州の州都。16〜17世紀に栄えたアチェ・スルタン国の都であり、バイトゥッラフマン大モスクの所在地）",
+        ex: "Masjid Raya Baiturrahman yang berdiri megah di pusat Kota Banda Aceh menjadi simbol ketabahan masyarakat Aceh.",
+        tr: "バンダ・アチェ市の中心部に壮麗に建つバイトゥッラフマン大モスクは、アチェ市民の不屈の精神の象徴となっている。",
+        note: "■ 【語源と歴史】：ペルシア語由来の『bandar（港・交易都市）』＋『Aceh』。1962年までは『クタラジャ（Kutaraja＝王の都）』と呼ばれていた。2004年12月26日のインド洋大津波で甚大な被害を受けたが力強く復興し、津波博物館（Museum Tsunami Aceh）が平和と防災の記念碑となっている。"
+      },
+      {
+        p: "n", w: "Sabang", r: "Sabang", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "サバン（アチェ州北端沖のウェー島［Pulau Weh］にあるインドネシア最西端の都市。「サバンからメラウケまで」の国家標語の起点）",
+        ex: "Tugu Kilometer Nol Indonesia terletak di atas tebing menghadap samudra di wilayah Kota Sabang.",
+        tr: "インドネシアの「ゼロキロメートル記念碑（最西端の碑）」は、サバン市域の大洋に面した崖の上に位置している。",
+        note: "■ 【国家統一の象徴】：西端のアチェ州サバン（Sabang）から東端のパプアのメラウケ（Merauke）まで約5,100kmに及ぶ国土全体を表す国民歌・決まり文句 **『Dari Sabang sampai Merauke（サバンからメラウケまで＝インドネシア全国津々浦々）』** で必ず登場する最重要地名。"
+      },
+      {
+        p: "n", w: "Medan", r: "Medan", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "メダン（北スマトラ州［Sumut］の州都。スマトラ島最大、かつジャワ島外で最多の人口を擁する商業・多文化拠点都市）",
+        ex: "Kota Medan merupakan pusat perdagangan utama di Pulau Sumatra serta pintu gerbang menuju objek wisata Danau Toba.",
+        tr: "メダン市はスマトラ島における主要な商業の中心地であり、観光地トバ湖へ向かう玄関口でもある。",
+        note: "■ 【歴史・文化】：19世紀後半にデリ（Deli）地域のタバコやゴムのプランテーション輸出拠点として急速に発展。マレー系・バタック系・ジャワ系・中華系・インド系が共存する多文化都市で、デリ・スルタン国の王宮『マイムン宮殿（Istana Maimun）』、クアラナム国際空港、発酵ケーキ『ビカ・アンボン（Bika Ambon：名前はアンボン通り発祥だがメダン名物！）』で有名。"
+      },
+      {
+        p: "n", w: "Padang", r: "Padang", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "パダン（西スマトラ州［Sumbar］の州都。インド洋に面する港湾都市であり、ミナンカバウ文化と世界的に有名なパダン料理の中心地）",
+        ex: "Rumah makan yang menyajikan masakan khas Padang seperti rendang dan gulai dapat ditemukan di seluruh Indonesia.",
+        tr: "ルンダンやグライのようなパダン名物料理を提供する食堂は、インドネシアの全国各地で見つけることができる。",
+        note: "■ 【文化】：母系制社会（matrilineal）で知られるミナンカバウ人（Suku Minangkabau）の最大都市であり、水牛の角のように屋根の両端が反り上がった伝統建築『ルマ・ガダン（Rumah Gadang）』や、親不孝な息子が石に変えられた『マリン・クンダン（Malin Kundang）』の伝説の岩があるアイール・マニス海岸、アンドラス大学（Unand）で有名。"
+      },
+      {
+        p: "n", w: "Bukittinggi", r: "Bukittinggi", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "ブキティンギ（西スマトラ州［Sumbar］のバリサン山脈中腹にある高原観光・歴史都市。時計塔「ジャム・ガダン」やハッタ副大統領の生誕地として有名）",
+        ex: "Menara Jam Gadang yang berdiri di pusat Kota Bukittinggi merupakan ikon wisata kebanggaan Sumatera Barat.",
+        tr: "ブキティンギ市の中心部に建つ時計塔「ジャム・ガダン」は、西スマトラ州が誇る観光シンボルである。",
+        note: "■ 【歴史・名所】：オランダ領時代には『フォート・デ・コック（Fort de Kock）』と呼ばれ、1948年12月にジョグジャカルタがオランダ軍に占領された際には、インドネシア共和国臨時政府（PDRI）の首都となった歴史を持つ。初代副大統領モハマッド・ハッタ（Mohammad Hatta）の生誕地であり、1926年建造の時計塔『ジャム・ガダン（Jam Gadang＝大きな時計）』や壮大な断崖の『シアノック渓谷（Ngarai Sianok）』で知られる。"
+      },
+      {
+        p: "n", w: "Sawahlunto", r: "Sawahlunto", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "サワルント（西スマトラ州の内陸盆地にある歴史的炭鉱都市。2019年に「オンビリン炭鉱遺産」としてユネスコ世界文化遺産に登録）",
+        ex: "Kota tua Sawahlunto berhasil bertransformasi dari kota tambang batu bara menjadi kota wisata sejarah.",
+        tr: "サワルントの旧市街は、炭鉱の街から歴史観光都市へと見事に変貌を遂げた。",
+        note: "■ 【特徴】：19世紀末にオランダ植民地政府が開発したオンビリン炭鉱の中心都市で、その地形から『大鍋の街（Kota Kuali）』とも呼ばれる。当時の坑道（Lubang Mbah Soero）や労働者用の巨大共同炊事場（Dapur Umum、現在の博物館 Museum Goedang Ransoem）、蒸気機関車『マク・イタム（Mak Itam＝黒いおじさん）』が保存されている。"
+      },
+      {
+        p: "n", w: "Pekanbaru", r: "Pekanbaru", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "プカンバル（スマトラ島中部のリアウ州の州都。シアック川沿いに発達した石油・パーム油・製紙産業の一大商業都市）",
+        ex: "Kota Pekanbaru di Provinsi Riau berkembang menjadi salah satu pusat perdagangan dan jasa terpadat di Sumatra.",
+        tr: "リアウ州のプカンバル市は、スマトラ島で最も活気ある商業・サービス業の中心地のひとつへと発展している。",
+        note: "■ 【語源】：『pekan（市場・週）』＋『baru（新しい）』＝「新しい市場」。18世紀にシアック・スルタン国が新しい交易市場を開いたことに由来する。"
+      },
+      {
+        p: "n", w: "Batam", r: "Batam", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "バタム（リアウ諸島州［Kepri］最大の都市・島。シンガポールの南約20kmに位置する自由貿易・電子部品・造船工業特区）",
+        ex: "Karena letaknya sangat dekat dengan Singapura, Pulau Batam ditetapkan sebagai kawasan perdagangan bebas dan industri.",
+        tr: "シンガポールに非常に近い位置にあるため、バタム島は自由貿易および工業特区に指定されている。",
+        note: "■ 【経済】：1970年代以降、ハビビ研究技術相（後の第3代大統領）の主導でシンガポールに対抗・連携するハイテク工業・物流拠点（BP Batam）として開発された。6つの美しい橋から成る『バレラン橋（Jembatan Barelang）』がシンボル。"
+      },
+      {
+        p: "n", w: "Palembang", r: "Palembang", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "パレンバン（南スマトラ州［Sumsel］の州都。7〜13世紀に海上交易を支配した仏教王国シュリーヴィジャヤの古都であり、インドネシア最古の都市）",
+        ex: "Jembatan Ampera yang melintasi Sungai Musi merupakan penanda utama Kota Palembang.",
+        tr: "ムシ川に架かるアンペラ橋は、パレンバン市の最大のランドマークである。",
+        note: "■ 【歴史・文化】：西暦682年のクドゥカン・ブキット碑文に街の創建が記されていることからインドネシア最古の都市とされる。大河ムシ川（Sungai Musi）によって北岸（Seberang Ilir）と南岸（Seberang Ulu）に分かれ、日本の戦争賠償で1965年に建設された赤い大鉄橋『アンペラ橋（Jembatan Ampera）』が結んでいる。魚のすり身とタピオカ粉を揚げて黒酢だれ（cuko）で食べる名物料理『プンペック（Pempek Palembang）』で有名。"
+      },
+      {
+        p: "n", w: "Bandar Lampung", r: "Lampung", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "バンダル・ランプン（スマトラ島南端のランプン州の州都。ジャワ島とスマトラ島を結ぶ物流・商業の玄関口都市）",
+        ex: "Kota Bandar Lampung berfungsi sebagai simpul distribusi hasil perkebunan kopi dan lada dari Sumatra bagian selatan.",
+        tr: "バンダル・ランプン市は、南部スマトラからのコーヒーや胡椒といった農園産品の流通拠点として機能している。",
+        note: "■ 【歴史】：1983年に双子都市であった『タンジュンカラン（Tanjungkarang）』と港町『トゥルックブトゥン（Telukbetung）』が合併して現在のバンダル・ランプン市となった。"
+      },
+
+      // ==================== 4. カリマンタン・スラウェシの主要都市（10語） ====================
+      {
+        p: "n", w: "Pontianak", r: "Pontianak", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "ポンティアナック（西カリマンタン州［Kalbar］の州都。カプアス川の河口近くに位置し、緯度0度の赤道が市内を通過する「赤道の街」）",
+        ex: "Tugu Khatulistiwa dibangun di Kota Pontianak karena kota tersebut dilalui tepat oleh garis lintang nol derajat.",
+        tr: "ポンティアナック市は緯度0度の赤道がちょうど通過しているため、そこに赤道記念碑（トゥグ・カトゥリスティワ）が建てられている。",
+        note: "■ 【地理と文化】：別名 **『赤道の街（Kota Khatulistiwa）』**。毎年3月21〜23日頃（春分）と9月21〜23日頃（秋分）の正午には、太陽が真上（天頂）に来てあらゆる物の影が地面から消える『太陽南中現象（Titik Kulminasi Matahari）』の観測イベントが開かれる。アロエベラ（lidah buaya）の栽培・加工でも有名。"
+      },
+      {
+        p: "n", w: "Singkawang", r: "Singkawang", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "シンカワン（西カリマンタン州北西岸の都市。客家系を中心とした中華系住民が多く、春節・元宵節［Cap Go Meh］の盛大な祭礼で有名）",
+        ex: "Perayaan Cap Go Meh di Kota Singkawang menarik ribuan wisatawan untuk menyaksikan pawai Tatung.",
+        tr: "シンカワン市における元宵節（チャプ・ゴ・メ）の祝祭は、「タトゥン」のパレードを見ようと数千人の観光客を惹きつける。",
+        note: "■ 【語源と文化】：客家語（Hakka）の『San Khew Jong（山と河口と海に面した街）』に由来。市内に多数の中国寺院（廟）・モスク・教会が共存し、インドネシアで最も宗教的寛容度が高い都市（Kota Paling Toleran）の第1位にたびたび選ばれている。"
+      },
+      {
+        p: "n", w: "Palangkaraya", r: "Palangkaraya", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "パランカラヤ（中部カリマンタン州［Kalteng］の州都。1957年にスカルノ初代大統領の構想のもと熱帯林を切り開いて建設された計画都市）",
+        ex: "Kota Palangkaraya memiliki tata ruang jalan yang lebar dan lurus karena dirancang sebagai kota terencana sejak awal.",
+        tr: "パランカラヤ市は最初から計画都市として設計されたため、広くて真っ直ぐな道路配置を持っている。",
+        note: "■ 【語源】：ダヤック・ガジュ語の『palangka（聖なる器・場所）』＋サンスクリット由来の『raya（偉大な・大きな）』＝「偉大なる聖なる地」。スカルノ大統領がかつてジャカルタに代わる首都移転の最有力候補として構想した都市として知られる。"
+      },
+      {
+        p: "n", w: "Banjarmasin", r: "Banjarmasin", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "バンジャルマシン（南カリマンタン州［Kalsel］最大の経済・港湾都市。バリト川とマルタプラ川が交わる「千の川の街」であり、水上マーケットで有名）",
+        ex: "Pasar terapung tradisional di atas sungai merupakan daya tarik wisata yang sangat terkenal di sekitar Kota Banjarmasin.",
+        tr: "川の上で開かれる伝統的な水上マーケット（パサール・トゥラプン）は、バンジャルマシン市周辺の非常に有名な観光名所だ。",
+        note: "■ 【文化】：別名 **『千の川の街（Kota Seribu Sungai）』**。早朝に小舟（jukung）の上で女性たちが野菜や果物・軽食を売買する『水上市場（Pasar Terapung Muara Kuin / Lok Baintan）』や、香り高い鶏スープ『ソト・バンジャル（Soto Banjar）』、絞り染め布『サシランガン（Kain Sasirangan）』で名高い。"
+      },
+      {
+        p: "n", w: "Banjarbaru", r: "Banjarbaru", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "バンジャルバル（南カリマンタン州［Kalsel］の現在の州都。バンジャルマシンの南東高台に位置し、2022年に法律で正式に新州都へ指定された都市）",
+        ex: "Pusat perkantoran Pemerintah Provinsi Kalimantan Selatan kini dipusatkan di kawasan Kota Banjarbaru.",
+        tr: "南カリマンタン州政府の庁舎群は現在、バンジャルバル市エリアに集約されている。",
+        note: "■ 【背景】：低湿地で洪水リスクの高いバンジャルマシンに代わり、地盤が高いバンジャルバルへ州庁舎やラムン・マンクラット大学キャンパスなどが移転し、2022年2月制定の法律により南カリマンタン州の公式州都となった。"
+      },
+      {
+        p: "n", w: "Balikpapan", r: "Balikpapan", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "バリクパパン（東カリマンタン州［Kaltim］の石油精製・商業・港湾拠点都市。新首都ヌサンタラ［IKN］に最も近い主要玄関口都市）",
+        ex: "Kota Balikpapan berkembang pesat sebagai kota industri pengolahan minyak bumi sekaligus pintu gerbang menuju Ibu Kota Nusantara.",
+        tr: "バリクパパン市は石油精製工業都市として、また同時にヌサンタラ新首都へ向かう玄関口として急速に発展している。",
+        note: "■ 【歴史・経済】：1897年にマチルダ第1号油井（Sumur Minyak Mathilda）の掘削に成功して以来、『石油の街（Kota Minyak）』として発展。スルタン・アジ・ムハマド・スライマン・セピンガン国際空港を擁し、国内で最も清潔で住みやすい都市賞（Adipura）の常連都市。"
+      },
+      {
+        p: "n", w: "Samarinda", r: "Samarinda", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "サマリンダ（東カリマンタン州［Kaltim］の州都。大河マハカム川に貫かれたカリマンタン島最大の人口を持つ都市）",
+        ex: "Kota Samarinda yang dibelah oleh aliran Sungai Mahakam merupakan ibu kota Provinsi Kalimantan Timur.",
+        tr: "マハカム川の流れによって貫かれているサマリンダ市は、東カリマンタン州の州都である。",
+        note: "■ 【語源と産業】：17世紀に移住したブギス族が川岸に同じ高さ（sama rendah）の高床式住居を並べたことに由来するとされる。石炭と木材の積み出し拠点であり、マハカム川に棲む希少な淡水イルカ『カワイルカ（pesut Mahakam）』や伝統絹サロン『サロン・サマリンダ』で知られる。"
+      },
+      {
+        p: "n", w: "Makassar", r: "Makassar", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "マカッサル（南スラウェシ州［Sulsel］の州都。東部インドネシア最大の経済・海運・航空ハブ都市。1971〜1999年の旧称はウジュン・パンダン）",
+        ex: "Pelabuhan dan bandara di Kota Makassar berfungsi sebagai pusat penghubung utama antara wilayah Indonesia barat dan timur.",
+        tr: "マカッサル市の港と空港は、インドネシアの西部地域と東部地域を結ぶ主要なハブ拠点として機能している。",
+        note: [
+          "■ 【歴史・文化】：16〜17世紀に海洋王国『ゴワ・タッロ王国（Kerajaan Gowa-Tallo：英雄スルタン・ハサヌディン Sultan Hasanuddin は「東の闘鶏 Ayam Jantan dari Timur」と称された）』の中心として繁栄。オランダ式の『ロッテルダム要塞（Benteng Fort Rotterdam）』、夕日の名所ロサリ海岸（Pantai Losari）、ハサヌディン大学（Unhas）、スパイシーな牛肉スープ『チョト・マカッサル（Coto Makassar）』で有名。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Manado", r: "Manado", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "マナド（北スラウェシ州［Sulut］の州都。ブナケン海洋国立公園の玄関口であり、スパイシーな郷土料理で知られるスラウェシ島第2の都市）",
+        ex: "Perairan Taman Nasional Bunaken di dekat Kota Manado sangat terkenal di kalangan penyelam dunia.",
+        tr: "マナド市近くのブナケン国立公園の海域は、世界のダイバーの間で非常に有名だ。",
+        note: "■ 【食文化】：カボチャや多数の野菜・ハーブを煮込んだ健康的なお粥『ブブル・マナド（Bubur Manado＝Tinutuan：マナド市は別名 Kota Tinutuan とも呼ばれる）』や、唐辛子をたっぷり使った鶏肉料理『アヤム・リチャリチャ（Ayam Rica-rica）』、マグロの燻製『チャカラン・フフ（Cakalang Fufu）』で有名。"
+      },
+      {
+        p: "n", w: "Kendari", r: "Kendari", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "ケンダリ（東南スラウェシ州［Sultra］の州都。ケンダリ湾を取り囲む港湾都市であり、ニッケル鉱業・水産業の拠点）",
+        ex: "Jembatan Teluk Kendari menjadi ikon baru yang mempercepat konektivitas di ibu kota Sulawesi Tenggara.",
+        tr: "ケンダリ湾大橋は、東南スラウェシ州の州都における交通の連結性を高める新しいシンボルとなっている。",
+        note: "■ 【特徴】：風光明媚なケンダリ湾（Teluk Kendari）の周囲に広がり、近郊のコナウェ（Konawe / Morosi）には巨大ニッケル精錬工業団地が立地している。"
+      },
+
+      // ==================== 5. バリ・ヌサトゥンガラ・マルク・パプアの主要都市（11語） ====================
+      {
+        p: "n", w: "Denpasar", r: "Denpasar", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "デンパサール（バリ州の州都。バリ島南部に位置する行政・商業・教育・文化の中心都市）",
+        ex: "Bandara Internasional I Gusti Ngurah Rai terletak di sebelah selatan Kota Denpasar yang merupakan ibu kota Provinsi Bali.",
+        tr: "イ・グスティ・ングラ・ライ国際空港は、バリ州の州都であるデンパサール市の南側に位置している。",
+        note: "■ 【語源と歴史】：バリ語の『den（北）』＋『pasar（市場）』＝「市場の北」に由来。かつてのバドゥン王国（Kerajaan Badung）の王宮所在地であり、1906年にオランダ軍の侵攻に対して王族と民衆が正装して死の行進を行った悲劇的抵抗『ププタン（Puputan Badung）』の記念広場や、バリ博物館、サヌール海岸（Pantai Sanur）がある。"
+      },
+      {
+        p: "n", w: "Ubud", r: "Ubud", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "ウブド（バリ州ギャニャール県の中部高原にある町。渓谷と棚田に囲まれ、バリ伝統絵画・舞踊・工芸・ヨガの芸術文化の中心地）",
+        ex: "Kawasan Ubud di Bali menjadi pusat berkumpulnya para seniman lukis, penari tradisional, dan wisatawan pencinta budaya.",
+        tr: "バリのウブド地域は、画家や伝統舞踊家、そして文化を愛する観光客が集まる中心地となっている。",
+        note: "■ 【語源と文化】：バリ語の『ubad（薬・薬草＝obat）』に由来。1920〜30年代にウブド王族がドイツ人画家ヴァルター・シュピースら西洋の芸術家を招いたことで独自のバリ近代絵画・芸術運動（ピタ・マハ Pita Maha）が開花した。テガラランの棚田（Sawah Terasering Tegallalang）やモンキーフォレスト、数々の美術館で有名。"
+      },
+      {
+        p: "n", w: "Kuta", r: "Kuta", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "クタ（バリ島南部バドゥン県にある世界的に有名な白砂のサーフィン＆サンセットビーチリゾート地区 ※ロンボク島南部のマンダリカ地区にも同名のクタがある）",
+        ex: "Pantai Kuta di Bali selalu ramai dikunjungi wisatawan yang ingin belajar berselancar atau menikmati matahari terbenam.",
+        tr: "バリのクタ・ビーチは、サーフィンを習ったり夕日を楽しんだりしたい観光客でいつも賑わっている。",
+        note: "■ 【地理】：バリのングラ・ライ国際空港のすぐ北に広がるビーチリゾート（Pantai Kuta）。北側にレギャン（Legian）・スミニャック（Seminyak）・チャングー（Canggu）、南側の半島にウルワツ（Uluwatu）や高級保養地ヌサ・ドゥア（Nusa Dua：G20サミット等の国際会議開催地）が位置する。"
+      },
+      {
+        p: "n", w: "Mataram", r: "Mataram", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "①マタラム市（西ヌサ・トゥンガラ州［NTB］の州都・ロンボク島西岸の最大都市） ②マタラム王国（中世ジャワに栄えた古代およびイスラム王朝）",
+        ex: "Kota Mataram di Pulau Lombok merupakan pusat pemerintahan dan perekonomian Provinsi Nusa Tenggara Barat.",
+        tr: "ロンボク島のマタラム市は、西ヌサ・トゥンガラ州の行政および経済の中心地である。",
+        note: [
+          "■ 【2つの重要な Mataram】：\n① **現代の都市**：ロンボク島西岸にある西ヌサ・トゥンガラ州（NTB）の州都マタラム市（アムプナン・マタラム・チャクラヌガラの3地区から成る）。\n② **ジャワの歴史王朝**：8〜10世紀にボロブドゥールやプランバナンを築いた『古マタラム王国（Mataram Kuno / Medang）』、および16〜18世紀にスルタン・アグン（Sultan Agung）のもとでジャワの大半を統一し、後にジョグジャカルタとスラカルタ（ソロ）の2王家に分かれた『マタラム・イスラム王国（Kesultanan Mataram）』。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Labuan Bajo", r: "Labuan Bajo", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "ラブアン・バジョ（東ヌサ・トゥンガラ州［NTT］フローレス島西端の港町。世界自然遺産コモド国立公園への観光クルーズ拠点）",
+        ex: "Pemerintah menata kawasan pelabuhan Labuan Bajo menjadi destinasi wisata bahari kelas dunia.",
+        tr: "政府はラブアン・バジョの港湾エリアを、世界クラスの海洋観光地へと整備した。",
+        note: "■ 【語源と観光】：海の民であるバジョ族（Suku Bajo）の停泊地（labuan / pelabuhan）であったことに由来。コモド国際空港が立地し、コモド島・リンチャ島・パダル島・ピンクビーチを巡るピニシ帆船クルーズの出発港。2023年にはASEAN首脳会議の開催地となった。"
+      },
+      {
+        p: "n", w: "Kupang", r: "Kupang", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "クパン（東ヌサ・トゥンガラ州［NTT］の州都。ティモール島南西端のクパン湾に面する政治・経済・港湾の中心都市）",
+        ex: "Kota Kupang di ujung barat Pulau Timor merupakan pusat layanan pemerintahan dan pendidikan di Provinsi NTT.",
+        tr: "ティモール島西端にあるクパン市は、東ヌサ・トゥンガラ州（NTT）における行政および教育サービスの中心地である。",
+        note: "■ 【特徴】：ポルトガルおよびオランダ統治時代からティモール島の要衝港として発展。牛肉の燻製料理『セイ・サピ（Se'i Sapi Kupang）』や、近くのロテ島（Pulau Rote）発祥のヤシの葉を使った伝統ハープ楽器『ササンド（Sasando）』で知られる。"
+      },
+      {
+        p: "n", w: "Ambon", r: "Ambon", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "アンボン（マルク州の州都。美しいアンボン湾を抱える香料諸島の中心都市であり、ユネスコ認定の「世界の音楽都市」）",
+        ex: "Kota Ambon dianugerahi predikat sebagai Kota Musik Dunia oleh UNESCO karena tingginya bakat dan tradisi musik warganya.",
+        tr: "アンボン市は市民の高い音楽的才能と伝統から、ユネスコによって「世界の音楽都市」の称号を授与された。",
+        note: "■ 【文化・歴史】：『アンボン・マニセ（Ambon Manise＝甘く美しいアンボン）』と親しまれ、湾をまたぐ赤い斜張橋『メラ・プティ大橋（Jembatan Merah Putih）』や世界平和の鐘（Gong Perdamaian Dunia）、数多くの有名歌手を輩出してきた豊かな合唱・音楽文化で知られる。"
+      },
+      {
+        p: "n", w: "Ternate", r: "Ternate", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "テルナテ（北マルク州［Malut］の最大都市・火山島。円錐形のガマラマ火山がそびえ、15〜17世紀に世界唯一のクローブ［丁子］原産地として栄えたスルタン国の古都）",
+        ex: "Pulau Ternate dan Tidore memiliki banyak benteng peninggalan bangsa Portugis, Spanyol, dan Belanda.",
+        tr: "テルナテ島とティドレ島には、ポルトガル・スペイン・オランダが残した多くの要塞遺跡がある。",
+        note: "■ 【世界史の舞台】：すぐ南に並ぶティドレ島（Tidore）とともに、大航海時代にヨーロッパ人が追い求めた香辛料『クローブ（cengkeh＝丁子）』の本来の自生地。島内にトルコ要塞・オラニエ要塞・カラマタ要塞などが残り、旧1,000ルピア紙幣の風景（ティドレ島を望むマイタラ島）としても非常に有名。"
+      },
+      {
+        p: "n", w: "Sorong", r: "Sorong", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "ソロン（南西パプア州［Papua Barat Daya］の州都。ドベライ半島の西端に位置するパプア北西部の経済・物流拠点であり、ラジャ・アンパット諸島への玄関口）",
+        ex: "Wisatawan yang hendak menuju Kepulauan Raja Ampat terlebih dahulu terbang ke Bandara Domine Eduard Osok di Kota Sorong.",
+        tr: "ラジャ・アンパット諸島へ向かう観光客は、まず初めにソロン市のドミネ・エドゥアルド・オソック空港へ飛行機で向かう。",
+        note: "■ 【経済】：20世紀初頭から石油採掘で発展したためパプアの『石油の街（Kota Minyak）』と呼ばれ、2022年末に新設された南西パプア州の州都となった。"
+      },
+      {
+        p: "n", w: "Jayapura", r: "Jayapura", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "ジャヤプラ（パプア州の州都。太平洋とセンタニ湖の間に位置するインドネシア最東部の主要行政・商業都市）",
+        ex: "Jembatan Youtefa yang berwarna merah megah menjadi ikon kebanggaan warga Kota Jayapura di Papua.",
+        tr: "壮麗な赤色をしたヨウテファ大橋は、パプアのジャヤプラ市民が誇るシンボルとなっている。",
+        note: "■ 【語源と歴史】：サンスクリット由来の『jaya（勝利・栄光）』＋『pura（都市）』＝「勝利の都」。オランダ統治時代には『ホランディア（Hollandia）』、その後の移行期に『コタバル』『スカルノプラ』を経て1968年に現在のジャヤプラとなった。郊外には風光明媚なセンタニ湖（Danau Sentani）が広がる。"
+      },
+      {
+        p: "n", w: "Merauke", r: "Merauke", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "メラウケ（南パプア州［Papua Selatan］の州都。パプアニューギニア国境に近く、インドネシア最東端に位置する街。「サバンからメラウケまで」の国家標語の東の終点）",
+        ex: "Ungkapan \"Dari Sabang sampai Merauke\" melambangkan luasnya bentangan wilayah Negara Kesatuan Republik Indonesia.",
+        tr: "「サバンからメラウケまで」という表現は、インドネシア共和国単一国家の広大な領域の広がりを象徴している。",
+        note: "■ 【地理と特徴】：西端のアチェ州サバン（Sabang）と対をなす最東端の街（国境のソタ地区に「サバン〜メラウケ双子のゼロキロメートル記念碑」がある）。パプアの他地域と異なり広大な平坦地とサバンナが広がり、オーストラリアに近い生態系（ワラビーや巨大な蟻塚 musamus）が見られ、大規模な稲作開発（食料基地計画）の地としても知られる。"
+      },
+
+      // ==================== 6. ニュース・地理で必出の回廊・海峡・大河（5語） ====================
+      {
+        p: "singkatan", w: "Pantura", r: "Pantai Utara", alts: ["pantai utara", "jalur pantai utara"], dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "ジャワ北海岸（Pantai Utara の合成アクロニム。ジャカルタからチルボン・スマランを経てスラバヤ・バニュワンギへ至る、インドネシアの大動脈となる交通・経済回廊）",
+        ex: "Kementerian Pekerjaan Umum mempercepat perbaikan jalan di sepanjang jalur Pantura menjelang arus mudik Lebaran.",
+        tr: "公共事業省はレバランの帰省ラッシュを前に、ジャワ北海岸ルート（Pantura）沿いの道路補修を急いでいる。",
+        note: "■ 【語構成】：PANtai（海岸）+ UTARA（北）。対になるジャワ南海岸ルートは『Pansela（Pantai Selatan）』と呼ばれる。交通・物流・帰省ニュースで100%登場する必須略語。"
+      },
+      {
+        p: "n", w: "Selat Malaka", r: "Malaka", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "マラッカ海峡（スマトラ島とマレー半島の間にある全長約900kmの海峡。インド洋と太平洋・南シナ海を結ぶ世界最重要の海上貿易航路）",
+        ex: "Selat Malaka merupakan salah satu jalur pelayaran perdagangan internasional paling sibuk di dunia.",
+        tr: "マラッカ海峡は、世界で最も往来の激しい国際貿易航路のひとつである。",
+        note: "■ 【地政学と歴史】：古来よりシュリーヴィジャヤ王国、マラッカ王国、アチェ王国などがこの海峡の制海権と中継貿易によって繁栄し、現代でも日本や東アジアへ向かう大型タンカー・コンテナ船の生命線となっている。"
+      },
+      {
+        p: "n", w: "Selat Sunda", r: "Sunda", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "スンダ海峡（ジャワ島とスマトラ島の間を隔てる海峡。中央にクラカタウ火山群が位置し、メラク港とバカウフニ港を結ぶ連絡フェリーが往復する）",
+        ex: "Kapal feri menyeberangi Selat Sunda untuk mengangkut penumpang dari Pelabuhan Merak di Jawa menuju Bakauheni di Sumatra.",
+        tr: "連絡フェリーがジャワのメラク港からスマトラのバカウフニ港へ乗客を運ぶため、スンダ海峡を横断する。",
+        note: "■ 【地理】：幅が最も狭い部分で約24km。海峡内には1883年の大噴火で知られるクラカタウ（Krakatau / Anak Krakatau）火山島が浮かぶ。"
+      },
+      {
+        p: "n", w: "Sungai Kapuas", r: "Kapuas", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "カプアス川（西カリマンタン州［Kalbar］の中央山岳部から州都ポンティアナックを経て南シナ海へ注ぐ、全長1,143kmのインドネシア最長の河川）",
+        ex: "Sungai Kapuas di Kalimantan Barat merupakan sungai terpanjang di Indonesia yang menjadi urat nadi transportasi warga.",
+        tr: "西カリマンタン州のカプアス川はインドネシア最長の河川であり、住民の交通の大動脈となっている。",
+        note: "■ 【インドネシアの4大河川】：①カプアス川（Sungai Kapuas：西カリマンタン州・1,143km・国内最長）、②マハカム川（Sungai Mahakam：東カリマンタン州・980km）、③バリト川（Sungai Barito：中〜南カリマンタン州・909km）、④ムシ川（Sungai Musi：南スマトラ州・750km・スマトラ最長）。"
+      },
+      {
+        p: "n", w: "Bengawan Solo", r: "Solo", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "ブンガワン・ソロ、ソロ川（中部ジャワ州から東ジャワ州を経てジャワ海へ注ぐ全長約600kmのジャワ島最長の河川。グサン作詞・作曲の国民的名曲のタイトル）",
+        ex: "Lagu keroncong \"Bengawan Solo\" ciptaan Gesang telah diterjemahkan ke dalam berbagai bahasa dan terkenal hingga ke Jepang.",
+        tr: "グサンが作ったクロンチョン楽曲『ブンガワン・ソロ』は様々な言語に翻訳され、日本にまで広く知られている。",
+        note: "■ 【語源と歴史】：ジャワ語の『bengawan』は「大河」の意。流域のサンギランやトリニルではジャワ原人の化石が発見され、また1940年にソロ出身の音楽家グサン（Gesang Martohartono）が発表したクロンチョン名曲『Bengawan Solo』は、戦後日本でも大ヒットしインドネシアを代表するメロディとして世界で愛されている。"
+      }
+    ],
+    acro: [
+      {
+        acro: "Pantura",
+        full: "pantai utara",
+        alts: ["jalur pantai utara"],
+        dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        tr: "ジャワ北海岸（ジャカルタ〜スマラン〜スラバヤを結ぶ主要交通・物流回廊）",
+        exp: "■ 【正式名称】：PANtai uTARA（ジャワ北海岸幹線ルート。南海岸ルートは Pansela＝Pantai Selatan）。"
+      }
+    ]
+  };
+
+  if (Array.isArray(d.singkatan)) {
+    const ptObj = PACK_PART3_CITIES.vocab.find(x => x.w.toLowerCase() === "pantura");
+    if (ptObj && !d.singkatan.some(s => s && s.w && s.w.toLowerCase() === "pantura")) {
+      d.singkatan.push(ptObj);
+    }
+  }
+
+  PACK_PART3_CITIES.vocab.forEach(function(it) {
+    dictOnlySet.add(it.w.trim().toLowerCase());
+  });
+  PACK_PART3_CITIES.acro.forEach(function(a) {
+    dictOnlySet.add(a.acro.trim().toLowerCase());
+  });
+
+  if (typeof window.wiAddPack === "function") {
+    window.wiAddPack(PACK_PART3_CITIES);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 辞書専用パック 第4弾：【世界の国名・地域・大陸・大洋・国名略称】（全65語）
+   - すべて問題には一切出題せず（dictOnly: true, tier: 3）、辞書検索・A〜Z辞書・Kompas連動のみに表示
+   - 英語と綴りが大きく異なる重要国名（Belanda / Mesir / Yunani / Selandia Baru / Tiongkok / Kamboja 等）の
+     語源やインドネシアとの歴史・外交・言語的つながりを徹底解説
+   ===================================================================== */
+(function() {
+  const d = window.WHATSINDO_EXTERNAL_DATA;
+  if (!d) return;
+
+  const dictOnlySet = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+
+  const PACK_PART4_COUNTRIES = {
+    vocab: [
+      // ==================== 1. アジア・オセアニアの国々と略称（24語） ====================
+      {
+        p: "n", w: "Indonesia", r: "Indonesia", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "インドネシア（東南アジアに位置する世界最大の群島国家。正式国名はインドネシア共和国 Republik Indonesia）",
+        ex: "Indonesia merupakan negara kepulauan terbesar di dunia yang memiliki keragaman suku, budaya, dan bahasa daerah.",
+        tr: "インドネシアは多様な民族、文化、地方言語を有する世界最大の群島国家である。",
+        note: [
+          "■ 【国名の語源】：ギリシャ語の『Indos（インド）』＋『nesos（島々）』から1850年にイギリスの民族学者ジョージ・ウィンザー・アールとジェームズ・ローガンが造語し、その後1920年代にモハマッド・ハッタらの民族運動家が自国の呼称として採用した。",
+          "■ 【国家の基本データ】：\n・独立宣言：1945年8月17日（Proklamasi Kemerdekaan）\n・国是：『Bhinneka Tunggal Ika（多様性の中の統一）』／ 建国五原則：『Pancasila（パンチャシラ）』\n・面積・島数：約190万平方キロメートル、17,000以上の島々から成る世界最大の群島国家（negara kepulauan）\n・人口：約2億8,000万人（世界第4位、ムスリム人口としては世界最多）"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Jepang", r: "Jepang", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "日本（東アジアの島国。インドネシアにとって最大級の貿易・投資・インフラ開発パートナー国）",
+        ex: "Jepang dikenal sebagai salah satu mitra dagang dan investor terbesar bagi pembangunan infrastruktur di Indonesia.",
+        tr: "日本はインドネシアのインフラ開発における最大の貿易相手国および投資国のひとつとして知られている。",
+        note: [
+          "■ 【雅称・別名】：インドネシアのメディアでは、日本はしばしば **『Negeri Sakura（桜の国）』** や **『Negeri Matahari Terbit（日出ずる国）』** と美称される。",
+          "■ 【コロケーション】：bahasa Jepang（日本語）、orang Jepang（日本人）、produk / mobil buatan Jepang（日本製品／日本車）。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Tiongkok", r: "Tiongkok", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "中国、中華人民共和国（Republik Rakyat Tiongkok / RRT：インドネシア最大の貿易相手国）",
+        ex: "Volume perdagangan ekspor dan impor antara Indonesia dan Tiongkok terus meningkat dari tahun ke tahun.",
+        tr: "インドネシアと中国の間の輸出入貿易量は、年々増加し続けている。",
+        note: [
+          "■ 【最重要：Tiongkok / Tionghoa / China / Cina の使い分け】：\n・**Tiongkok**：「中国（国家・地理としての中国）」を指す現在の公的標準語（福建語［Hokkien］での「中国＝Tiong-kok」の発音に由来）。2014年のスシロ・バンバン・ユドヨノ大統領決定第12号（Keppres No. 12 Tahun 2014）により、政府の公式呼称として『Cina』から『Tiongkok』へ正式に戻された。\n・**Tionghoa**：「中華系の（民族・文化・人々）」（福建語の「中華＝Tiong-hoa」に由来。例：warga keturunan Tionghoa＝中華系市民、Tahun Baru Imlek merupakan perayaan masyarakat Tionghoa）。\n・**China**：英語由来で、経済記事や一部メディア（Kompas等）で Tiongkok と並行して広く使われる。\n・**Cina**：1967年〜2014年の間に公的呼称とされていた語だが、歴史的に差別的ニュアンス（konotasi negatif）を含むと受け止められることが多いため、現在の公的・丁寧な場面では『Tiongkok / Tionghoa』を使うのがマナー。",
+          "■ 【雅称】：『Negeri Tirai Bambu（竹のカーテンの国）』『Negeri Panda（パンダの国）』。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "China", r: "Tiongkok", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "中国、中華人民共和国（＝Tiongkok：ニュース記事や経済報道で Tiongkok と並んで広く使われる表記）",
+        ex: "Ekspor komoditas batu bara dan nikel Indonesia sebagian besar dikirim ke pasar China.",
+        tr: "インドネシアの石炭およびニッケル産品の輸出の大部分は、中国市場へと送られている。",
+        note: "■ 【語法】：公的文書では『Tiongkok（Republik Rakyat Tiongkok）』が正式名称だが、Kompas などの新聞記事では文字数が短く分かりやすい『China』も標準的に使用されている（『Laut China Selatan＝南シナ海』など）。"
+      },
+      {
+        p: "n", w: "Cina", r: "Tiongkok", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "中国、中華系の（※現在は公的・丁寧な呼称として国家には Tiongkok、民族・文化には Tionghoa を用いる）",
+        ex: "Sejak tahun 2014, pemerintah secara resmi menggunakan istilah Tiongkok untuk menggantikan sebutan Cina.",
+        tr: "2014年以降、政府は「Cina」という呼称に代えて公式に「Tiongkok」という用語を使用している。",
+        note: "■ 【歴史的背景】：2014年の大統領決定（Keppres No. 12/2014）により、公的機関での呼称は国家が『Tiongkok』、民族・文化が『Tionghoa』に統一された（ただし植物名の petai cina や薬草の akar cina などの慣用複合語には残っている）。"
+      },
+      {
+        p: "n", w: "Korea Selatan", r: "Korea", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "韓国、大韓民国（略称は Korsel。インドネシアでもK-POPや韓国ドラマ、EV・鉄鋼・石油化学投資で非常に存在感が大きい国）",
+        ex: "Musik pop dan drama televisi asal Korea Selatan sangat digemari oleh generasi muda di Indonesia.",
+        tr: "韓国発のポップミュージックやテレビドラマは、インドネシアの若い世代に大人気だ。",
+        note: "■ 【略称と雅称】：ニュース見出しでは必ず **『Korsel（KORea SELatam）』** と略される。雅称は『Negeri Ginseng（高麗人参の国）』。"
+      },
+      {
+        p: "singkatan", w: "Korsel", r: "Korea Selatan", alts: ["korea selatan"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "韓国、大韓民国（Korea Selatan の合成アクロニム）",
+        ex: "Tim bulu tangkis Indonesia akan menghadapi wakil Korsel pada pertandingan babak semifinal besok.",
+        tr: "インドネシアのバドミントンチームは、明日の準決勝で韓国（Korsel）代表と対戦する。",
+        note: "■ 【対になる略語】：Korsel（Korea Selatan＝韓国） ⇔ Korut（Korea Utara＝北朝鮮）。"
+      },
+      {
+        p: "n", w: "Korea Utara", r: "Korea", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "北朝鮮、朝鮮民主主義人民共和国（略称は Korut）",
+        ex: "Situasi keamanan di Semenanjung Korea kembali menjadi perhatian setelah uji coba rudal Korea Utara.",
+        tr: "北朝鮮のミサイル発射実験を受け、朝鮮半島の安全保障情勢が再び注目を集めている。",
+        note: "■ 【外交背景】：インドネシアはスカルノ初代大統領時代からの非同盟運動（Gerakan Non-Blok）の伝統により、韓国（Korsel）と北朝鮮（Korut）の双方と正式な外交関係・大使館を維持している数少ない国のひとつ。"
+      },
+      {
+        p: "singkatan", w: "Korut", r: "Korea Utara", alts: ["korea utara"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "北朝鮮（Korea Utara の合成アクロニム）",
+        ex: "Kedutaan Besar RI di Pyongyang memfasilitasi hubungan diplomatik antara Indonesia dan Korut.",
+        tr: "平壌のインドネシア共和国大使館は、インドネシアと北朝鮮（Korut）の間の外交関係を取り持っている。",
+        note: "■ 【正式名称】：KORea UTara（北朝鮮）。"
+      },
+      {
+        p: "n", w: "Taiwan", r: "Taiwan", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "台湾（東アジアの島・地域。インドネシア人海外労働者［PMI］の主要な就労先であり、半導体・製造業・貿易の重要パートナー）",
+        ex: "Ratusan ribu pekerja migran asal Indonesia bekerja di sektor manufaktur dan perawatan lansia di Taiwan.",
+        tr: "数十万人のインドネシア出身海外労働者が、台湾の製造業および高齢者介護セクターで働いている。",
+        note: "■ 【外交・経済】：インドネシア政府は「一つの中国」原則を採りつつ、台北とジャカルタに経済貿易代表部（KDEI / TETO）を置いて活発な貿易・投資・労働者受け入れを行っている。"
+      },
+      {
+        p: "n", w: "Singapura", r: "Singapura", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "シンガポール（リアウ諸島州バタム島の対岸に位置する都市国家。インドネシアに対する最大の外国直接投資［FDI］元であり金融・航空ハブ）",
+        ex: "Dari Pulau Batam di Kepulauan Riau, kita dapat menyeberang ke Singapura dengan kapal feri hanya dalam waktu satu jam.",
+        tr: "リアウ諸島州のバタム島からは、フェリーでわずか1時間でシンガポールへ渡ることができる。",
+        note: "■ 【語源と歴史】：サンスクリット語の『Singha（ライオン）』＋『Pura（都市）』＝「ライオンの都（Negeri Singa）」。14世紀にシュリーヴィジャヤの王子サン・ニラ・ウタマが名付けたとされる。1967年のASEAN創設メンバー5カ国のひとつ。"
+      },
+      {
+        p: "n", w: "Malaysia", r: "Malaysia", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "マレーシア（カリマンタン島で陸上の国境を接し、マラッカ海峡を挟んでスマトラ島と向かい合う隣国）",
+        ex: "Indonesia dan Malaysia disebut sebagai negara serumpun karena memiliki akar bahasa dan budaya Melayu yang sangat dekat.",
+        tr: "インドネシアとマレーシアは、非常に近いマレーの言語と文化のルーツを持っているため「同根の国（兄弟国）」と呼ばれる。",
+        note: "■ 【必須コロケーション】：ニュースではマレーシアのことを **『Negeri Jiran（隣国）』** や **『negara serumpun（同じマレーのルーツを持つ同根の国）』** と呼ぶ。"
+      },
+      {
+        p: "n", w: "Thailand", r: "Thailand", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "タイ（東南アジア大陸部の中心国。インドネシア等とともに1967年にバンコク宣言でASEANを創設した原加盟国）",
+        ex: "Thailand dan Indonesia bekerja sama erat dalam menjaga stabilitas ekonomi dan pangan di kawasan Asia Tenggara.",
+        tr: "タイとインドネシアは、東南アジア地域の経済と食料の安定を守るため緊密に協力している。",
+        note: "■ 【雅称・別名】：インドネシア語では **『Negeri Gajah Putih（白象の国）』** と美称されるほか、文語・歴史表記では『Muangthai』とも呼ばれる。"
+      },
+      {
+        p: "n", w: "Filipina", r: "Filipina", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "フィリピン（スラウェシ海の北に位置する東南アジアの群島国家。首都はマニラ Manila）",
+        ex: "Sama seperti Indonesia, Filipina juga merupakan negara kepulauan besar yang terletak di kawasan Asia Tenggara.",
+        tr: "インドネシアと同様に、フィリピンも東南アジア地域に位置する大きな群島国家である。",
+        note: "■ 【正書法】：英語の Philippines（Ph-）に対し、インドネシア語では **F** で始まる『Filipina』と綴る。ASEAN創設原加盟5カ国のひとつ。"
+      },
+      {
+        p: "n", w: "Vietnam", r: "Vietnam", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "ベトナム（インドシナ半島東岸のASEAN加盟国。首都はハノイ Hanoi、最大都市はホーチミン市）",
+        ex: "Pertumbuhan sektor manufaktur dan ekspor elektronik di Vietnam berlangsung sangat pesat dalam satu dekade terakhir.",
+        tr: "ベトナムにおける製造業セクターと電子機器輸出の成長は、過去10年間で非常に急速に進んでいる。",
+        note: "■ 【関係】：東南アジアにおいてインドネシアと並び高い経済成長を続ける製造業・農水産輸出国。"
+      },
+      {
+        p: "n", w: "Kamboja", r: "Kamboja", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "①カンボジア（東南アジア大陸部の王国・首都プノンペン） ②（※小文字の bunga kamboja で）プルメリアの花（フランジパニ）",
+        ex: "Indonesia pernah berperan aktif sebagai mediator dalam proses perdamaian konflik di Kamboja melalui Jakarta Informal Meeting.",
+        tr: "インドネシアはかつて「ジャカルタ非公式会合（JIM）」を通じて、カンボジア紛争の和平プロセスにおいて積極的な仲介役を果たした。",
+        note: [
+          "■ 【2つの意味と歴史的つながり】：\n① **国名の Kamboja**：英語の Cambodia とは綴りが異なり **『Kamboja』** となる！9世紀のアンコール朝創始者ジャヤヴァルマン2世がジャワ（シャイレーンドラ朝）から帰還して独立を宣言した歴史や、1980〜90年代のカンボジア和平をインドネシア（アリ・アラタス外相）が主導した深い歴史的関係がある。\n② **植物の bunga kamboja**：バリ島などで髪飾りや供物に使われる芳香のある南国の花「プルメリア（フランジパニ）」は、インドネシア語で『bunga kamboja（または kemboja）』と呼ばれる。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Laos", r: "Laos", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "ラオス（東南アジアで唯一の海に面していない内陸国・ASEAN加盟国。首都はビエンチャン Vientiane）",
+        ex: "Laos merupakan satu-satunya negara anggota ASEAN di kawasan Asia Tenggara yang tidak memiliki wilayah laut.",
+        tr: "ラオスは東南アジア地域のASEAN加盟国の中で、海域を持たない唯一の国（内陸国）である。",
+        note: "■ 【特徴】：メコン川流域に位置し、豊富な水力発電による周辺国への電力輸出から「東南アジアのバッテリー」とも呼ばれる。"
+      },
+      {
+        p: "n", w: "Myanmar", r: "Myanmar", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "ミャンマー（東南アジア西端のASEAN加盟国。旧称ビルマ Birma / Burma）",
+        ex: "Para menteri luar negeri ASEAN menggelar pertemuan khusus untuk membahas penyelesaian krisis kemanusiaan di Myanmar.",
+        tr: "ASEAN外相たちは、ミャンマーにおける人道危機の解決を議論するため特別会合を開催した。",
+        note: "■ 【歴史表記】：旧称はインドネシア語で **『Birma（ビルマ）』**（大阪大学外国語学部の専攻名「ビルマ語」など歴史・学術分野でもおなじみの呼称）。1989年に軍事政権が国名を Myanmar へ変更した。"
+      },
+      {
+        p: "n", w: "Brunei Darussalam", r: "Brunei", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "ブルネイ・ダルサラーム国（カリマンタン島［ボルネオ島］北岸に位置するイスラム君主国・ASEAN加盟国。首都はバンダル・スリ・ブガワン）",
+        ex: "Brunei Darussalam merupakan negara di Pulau Kalimantan yang memiliki pendapatan per kapita tinggi dari sektor minyak dan gas.",
+        tr: "ブルネイ・ダルサラームはカリマンタン島に位置する国で、石油・天然ガス部門による高い一人当たり所得を有している。",
+        note: "■ 【語源】：『Darussalam（ダルサラーム）』はアラビア語で「平和の郷・安寧の家」の意。公用語はマレー語（Bahasa Melayu）。"
+      },
+      {
+        p: "n", w: "Timor Leste", r: "Timor", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "東ティモール（ティモール島東半分を占める共和国・首都ディリ Dili。ポルトガル領およびインドネシア統治期を経て2002年に独立）",
+        ex: "Pos lintas batas negara di Kabupaten Belu menghubungkan Provinsi Nusa Tenggara Timur dengan negara Timor Leste.",
+        tr: "ベル県の国境検問所は、東ヌサ・トゥンガラ州と東ティモール国を結んでいる。",
+        note: "■ 【語源と歴史】：ポルトガル語の『Timor（東）』＋『Leste（東）』＝「東の東（東ティモール）」。1976〜1999年のインドネシア統治時代には27番目の州『東ティモール州（Timor Timur：略称 Timtim）』と呼ばれ、1999年の住民投票を経て2002年に独立した。"
+      },
+      {
+        p: "n", w: "India", r: "India", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "インド（南アジアの大国。古代よりヒンドゥー・仏教文化やサンスクリット語彙をインドネシアにもたらした歴史的関係国）",
+        ex: "Pengaruh kebudayaan Hindu dan Buddha dari India tampak jelas pada arsitektur candi-candi kuno di Pulau Jawa.",
+        tr: "インドからのヒンドゥー教および仏教文化の影響は、ジャワ島の古代寺院の建築に明確に表れている。",
+        note: "■ 【重要区別】：国名の「インド」は **『India』** だが、海の「インド洋」は H が付く **『Samudra Hindia』**、歴史上の「オランダ領東インド」は **『Hindia Belanda』** となる点に注意！"
+      },
+      {
+        p: "n", w: "Australia", r: "Australia", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "オーストラリア、豪州（インドネシアの南にティモール海・アラフラ海を挟んで隣接する大陸国家）",
+        ex: "Karena letaknya yang berdekatan di sebelah selatan, banyak pelajar Indonesia yang melanjutkan kuliah ke Australia.",
+        tr: "南側に隣接して位置しているため、多くのインドネシア人学生がオーストラリアへ進学・留学する。",
+        note: "■ 【雅称】：ニュースや日常表現では **『Negeri Kanguru（カンガルーの国）』** と呼ばれる。バリ島を訪れる外国人観光客の国別第1位を占める隣国。"
+      },
+      {
+        p: "n", w: "Selandia Baru", r: "Selandia", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "ニュージーランド（オーストラリアの南東に位置する島国。英語の New Zealand にあたるインドネシア語国名）",
+        ex: "Indonesia mengimpor berbagai produk susu dan keju berkualitas tinggi dari peternakan di Selandia Baru.",
+        tr: "インドネシアはニュージーランドの牧場から、高品質な様々な乳製品やチーズを輸入している。",
+        note: [
+          "■ 【なぜ New Zealand が Selandia Baru になるのか？】：\n1642年に同地を発見したオランダ人航海士タスマンが、オランダのゼーラント州（Zeeland）にちなんでラテン語風に『Nova Zeelandia（ノヴァ・ゼーランディア）』と名付けたことに由来。『Zeelandia』がインドネシア語音化して **『Selandia』** となり、後ろから『Baru（New）』で修飾した超重要国名！"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Papua Nugini", r: "Papua", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "パプアニューギニア（ニューギニア島の東半分を占め、インドネシアのパプアと南北に長い陸上国境を接する隣国。略称は PNG）",
+        ex: "Warga di daerah perbatasan Papua sering berbelanja di pasar tradisional lintas batas antara Indonesia dan Papua Nugini.",
+        tr: "パプアの国境地域の住民は、インドネシアとパプアニューギニアの間の国境越え伝統市場でしばしば買い物をする。",
+        note: "■ 【表記】：英語の New Guinea（ニューギニア）をインドネシア語音化して『Nugini』と綴る。略称は **『PNG（Papua Nugini）』**。"
+      },
+
+      // ==================== 2. 中東・アフリカの国々（11語） ====================
+      {
+        p: "n", w: "Arab Saudi", r: "Arab", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "サウジアラビア（イスラム教の二大聖地メッカとメディナを擁する中東の王国。毎年インドネシアから世界最多の巡礼者が訪れる）",
+        ex: "Setiap tahun lebih dari dua ratus ribu jemaah asal Indonesia berangkat ke Arab Saudi untuk menunaikan ibadah haji.",
+        tr: "毎年、インドネシアから20万人以上の巡礼者がハッジ（大巡礼）を果たすためにサウジアラビアへ出発する。",
+        note: "■ 【語順の注意】：英語の Saudi Arabia とは語順が逆になり、「サウド家のアラブ」という意味で **『Arab Saudi（Kerajaan Arab Saudi）』** となる。聖地メッカは『Mekah（または Makkah）』、メディナは『Madinah』。"
+      },
+      {
+        p: "n", w: "Uni Emirat Arab", r: "Arab", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "アラブ首長国連邦（アブダビやドバイなど7つの首長国から成る中東の連邦国家。略称は UEA）",
+        ex: "Pemerintah Indonesia menjalin kerja sama investasi energi terbarukan dan infrastruktur dengan Uni Emirat Arab.",
+        tr: "インドネシア政府はアラブ首長国連邦（UEA）と、再生可能エネルギーおよびインフラ投資の協力関係を結んでいる。",
+        note: "■ 【略語】：英語の UAE（United Arab Emirates）は、インドネシア語では **『UEA（Uni Emirat Arab）』** と略される。"
+      },
+      {
+        p: "n", w: "Qatar", r: "Qatar", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "カタール（ペルシア湾に面する中東の天然ガス大国・首長国。首都はドーハ Doha）",
+        ex: "Tim nasional sepak bola usia muda Indonesia tampil mengesankan dalam turnamen Piala Asia yang digelar di Qatar.",
+        tr: "サッカーのインドネシア若手代表チームは、カタールで開催されたアジアカップ大会で印象的な活躍を見せた。",
+        note: "■ 【特徴】：世界有数の液化天然ガス（LNG）輸出国であり、航空ハブや国際スポーツ大会の開催地としてニュースで頻出。"
+      },
+      {
+        p: "n", w: "Mesir", r: "Mesir", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "エジプト（北アフリカ・中東の共和国・首都カイロ Kairo。1947年に世界で最初にインドネシアの独立主権を公式承認した歴史的友好国）",
+        ex: "Mesir adalah negara pertama di dunia yang secara resmi mengakui kedaulatan kemerdekaan Republik Indonesia pada tahun 1947.",
+        tr: "エジプトは1947年に、インドネシア共和国の独立主権を世界で最初に公式承認した国である。",
+        note: [
+          "■ 【最重要：なぜ Egypt が Mesir になるのか？】：\n英語の Egypt とは全く綴りが異なり、エジプトを指すアラビア語名『Misr（ミスル）』に由来して **『Mesir』** となる！\n・カイロの世界最古級のイスラム大学『アル・アズハル大学（Universitas Al-Azhar）』には、昔から数千人規模のインドネシア人留学生が学んでいる。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Turki", r: "Turki", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "トルコ（アジアとヨーロッパにまたがる共和国。首都はアンカラ Ankara、最大都市はイスタンブール Istanbul）",
+        ex: "Kota Istanbul di Turki memiliki keunikan geografis karena terletak di antara Benua Eropa dan Benua Asia.",
+        tr: "トルコのイスタンブール市は、ヨーロッパ大陸とアジア大陸の間に位置しているため地理的な独自性を持っている。",
+        note: "■ 【歴史的関係】：16世紀にアチェ・スルタン国がポルトガルに対抗するためオスマン帝国（Kesultanan Utsmaniyah）と軍事同盟を結んで大砲や技術者の支援を受けた歴史がある。"
+      },
+      {
+        p: "n", w: "Palestina", r: "Palestina", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "パレスチナ（中東の国家・地域。インドネシアが1945年憲法前文の「植民地支配の廃絶」理念に基づき一貫して独立を強く支持している国）",
+        ex: "Indonesia secara konsisten mendukung kemerdekaan penuh bangsa Palestina di berbagai forum internasional.",
+        tr: "インドネシアは様々な国際フォーラムにおいて、パレスチナ民族の完全な独立を一貫して支持している。",
+        note: "■ 【外交背景】：1955年のアジア・アフリカ会議（バンドン会議）以来、インドネシア外交における最重要課題のひとつとして超党派でパレスチナ支援が掲げられている。"
+      },
+      {
+        p: "n", w: "Israel", r: "Israel", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "イスラエル（中東の地中海東岸に位置する国家。インドネシアはパレスチナ問題が解決するまで正式な外交関係を結ばない方針をとっている）",
+        ex: "Dewan Keamanan PBB menggelar sidang darurat untuk membahas gencatan senjata dalam konflik antara Israel dan Palestina.",
+        tr: "国連安全保障理事会は、イスラエルとパレスチナの間の紛争における停戦を議論するため緊急会合を開催した。",
+        note: "■ 【ニュース背景】：インドネシアとイスラエルの間には正式な国交（hubungan diplomatik）がないため、スポーツ国際大会へのイスラエル代表の入国可否などが国内政治ニュースで大きな議論になることがある。"
+      },
+      {
+        p: "n", w: "Iran", r: "Iran", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "イラン（中東・西アジアのイスラム共和国・旧称ペルシア Persia。首都はテヘラン Teheran）",
+        ex: "Ketegangan geopolitik di kawasan Timur Tengah yang melibatkan Iran memengaruhi fluktuasi harga minyak dunia.",
+        tr: "イランが関わる中東地域の地政学的緊張は、世界の原油価格の変動に影響を及ぼしている。",
+        note: "■ 【言語・文化的影響】：歴史上のペルシア語（Bahasa Persia）からは、`bandar（港町）`、`pasar（市場＝バザール）`、`anggur（ブドウ・ワイン）`、`pahlawan（英雄）`、`syahbandar（港長）` など多くの重要語彙がマレー・インドネシア語に吸収されている。"
+      },
+      {
+        p: "n", w: "Irak", r: "Irak", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "イラク（中東のティグリス・ユーフラテス川流域［古代メソポタミア］に位置する共和国。首都はバグダッド Bagdad）",
+        ex: "Tim nasional sepak bola Indonesia beberapa kali bertemu dengan tim Irak dalam babak kualifikasi Piala Dunia.",
+        tr: "サッカーのインドネシア代表チームは、ワールドカップ予選においてイラク代表と何度か対戦している。",
+        note: "■ 【正書法】：英語の Iraq（末尾 q）に対し、インドネシア語の標準綴りは末尾を **k** にした『Irak』となる。"
+      },
+      {
+        p: "n", w: "Maroko", r: "Maroko", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "モロッコ（北アフリカ北西端の王国・首都ラバト Rabat。14世紀にアチェを訪れた大旅行家イブン・バットゥータの出身国）",
+        ex: "Pada abad keempat belas, penjelajah asal Maroko bernama Ibnu Battuta pernah singgah di Kesultanan Samudera Pasai.",
+        tr: "14世紀に、イブン・バットゥータという名のモロッコ出身の探検家がサムドラ・パサイ王国に立ち寄った。",
+        note: "■ 【歴史】：1960年にスカルノ大統領がモロッコを公式訪問し、世界に先駆けてモロッコ独立を支援したことから、首都ラバトやカサブランカには今も「スカルノ通り（Rue Soekarno）」「バンドン通り」が存在する。"
+      },
+      {
+        p: "n", w: "Afrika Selatan", r: "Afrika", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "南アフリカ共和国（アフリカ大陸最南端の国家・略称は Afsel。オランダ東インド会社時代に流刑されたインドネシア人の子孫「ケープ・マレー」が暮らす国）",
+        ex: "Presiden Nelson Mandela dari Afrika Selatan sangat mengagumi motif batik Indonesia dan sering mengenakannya dalam acara resmi.",
+        tr: "南アフリカのネルソン・マンデラ大統領はインドネシアのバティック文様を非常に愛し、公式行事でも好んで着用した。",
+        note: "■ 【歴史的絆】：17世紀後半、オランダ東インド会社（VOC）に抵抗したマカッサル出身のイスラム高僧シェイク・ユスフ（Syekh Yusuf Al-Makassari：両国の民族英雄）らがケープタウンへ流刑となり、南アフリカに最初のイスラム共同体（Cape Malay）を築いた深い歴史的つながりがある。"
+      },
+
+      // ==================== 3. ヨーロッパ・南北アメリカの国々（20語） ====================
+      {
+        p: "n", w: "Belanda", r: "Belanda", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "オランダ（西ヨーロッパの王国・首都アムステルダム。約3世紀半にわたりインドネシアに関わり、法律や近代語彙に大きな影響を残した国）",
+        ex: "Banyak kosakata dalam bahasa Indonesia, terutama istilah hukum, administrasi, dan teknik, yang diserap dari bahasa Belanda.",
+        tr: "インドネシア語の多くの語彙、特に法律・行政・技術用語は、オランダ語から吸収（借用）されたものだ。",
+        note: [
+          "■ 【なぜ Netherlands / Holland が Belanda になるのか？】：\nオランダの中心地域『Holland（ホラント）』をポルトガル人が『Holanda（オランダ）』と呼び、それがジャワ語・マレー語で『Wolanda / Walanda』➔ **『Belanda』** へと音変化したもの！",
+          "■ 【歴史・言語用語】：\n・**Hindia Belanda**：オランダ領東インド（植民地時代のインドネシアの呼称）\n・**VOC (Vereenigde Oostindische Compagnie)**：オランダ東インド会社（1602–1799：インドネシア語では Kompeni と呼ばれた）\n・**Negeri Kincir Angin**：風車の国（オランダの雅称）\n・オランダ語由来の身近な借用語：`kantor（事務所）`, `kamar（部屋）`, `handuk（タオル）`, `kulkas（冷蔵庫）`, `wastafel（洗面台）`, `knalpot（マフラー）`, `korupsi（汚職）`, `gratis（無料）` など数千語に及ぶ。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Inggris", r: "Inggris", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "①イギリス、英国（Kerajaan Inggris / Britania Raya） ②（bahasa Inggris で）英語",
+        ex: "Kemampuan berbahasa Inggris yang baik menjadi nilai tambah yang sangat penting saat melamar pekerjaan.",
+        tr: "優れた英語力は、就職の応募をする際に非常に重要なプラス評価（付加価値）となる。",
+        note: "■ 【語源】：ポルトガル語の『Inglês（イングレーズ＝イギリスの・英語）』がマレー語に入って **『Inggris』** となった。歴史上は1811〜1816年のナポレオン戦争期に、イギリスのラフルズ（Raffles）副総督がジャワを一時統治し、ボロブドゥール再発見や『ジャワ誌（The History of Java）』の執筆、左側通行の導入などを行った。"
+      },
+      {
+        p: "n", w: "Prancis", r: "Prancis", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "フランス（西ヨーロッパの共和国・首都パリ Paris。KBBI標準語綴りは e を入れない Prancis）",
+        ex: "Menara Eiffel di Kota Paris merupakan ikon pariwisata paling terkenal dari negara Prancis.",
+        tr: "パリ市にあるエッフェル塔は、フランスという国で最も有名な観光の象徴だ。",
+        note: "■ 【正書法の重要ポイント】：以前は Perancis とも綴られたが、現在のKBBI標準語形（Kata Baku）は p と r の間に e を入れない **『Prancis』** に統一されている！"
+      },
+      {
+        p: "n", w: "Perancis", r: "Prancis", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "フランス（※非標準・旧慣用綴り：現在のKBBI標準語形は e のない Prancis）",
+        ex: "Kedutaan besar negara tersebut menggelar festival film dan kuliner khas Prancis di Jakarta.",
+        tr: "同国の大使館はジャカルタで、フランス特有の映画とグルメのフェスティバルを開催した。",
+        note: "■ 【正書法】：一般の看板や古い文章では『Perancis』も見られるが、標準語は『Prancis』。"
+      },
+      {
+        p: "n", w: "Jerman", r: "Jerman", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "ドイツ（中央ヨーロッパ最大の経済・工業大国・首都ベルリン Berlin）",
+        ex: "Presiden ketiga Republik Indonesia, B.J. Habibie, pernah menempuh studi teknik penerbangan dan bekerja di Jerman.",
+        tr: "インドネシア共和国の第3代大統領 B.J. ハビビは、かつてドイツで航空工学を学び働いていた。",
+        note: "■ 【雅称】：『Negeri Panser（戦車・装甲車の国：サッカードイツ代表や重工業の強さから）』。第3代大統領ハビビがアーヘン工科大学で航空工学博士号を取得し、メッサーシュミット社副社長を務めた国としてインドネシア人に特に親しまれている。"
+      },
+      {
+        p: "n", w: "Spanyol", r: "Spanyol", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "スペイン（南西ヨーロッパのイベリア半島に位置する王国・首都マドリード Madrid）",
+        ex: "Pada abad keenam belas, para pelaut dari Portugis dan Spanyol datang ke Kepulauan Maluku untuk mencari rempah-rempah.",
+        tr: "16世紀に、ポルトガルやスペインからの船乗りたちが香辛料を求めてマルク諸島へやって来た。",
+        note: "■ 【語源と歴史】：オランダ語 Spanje / ポルトガル語 Espanhol に由来。1521年にマゼラン艦隊の生き残りが北マルクのティドレ島（Tidore）に到達し、ポルトガルと同盟した隣のテルナテ島（Ternate）と香料独占を争った歴史や、国営航空機メーカー PTDI（旧IPTN）とスペインCASA社による『CN-235輸送機』の共同開発で知られる。"
+      },
+      {
+        p: "n", w: "Portugis", r: "Portugis", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "①ポルトガル人、ポルトガル語（bahasa Portugis） ②（特に歴史文脈で）ポルトガル勢力、ポルトガル国（＝Portugal）",
+        ex: "Kata-kata sehari-hari seperti meja, sepatu, jendela, dan keju dalam bahasa Indonesia berasal dari bahasa Portugis.",
+        tr: "インドネシア語における「机（meja）」「靴（sepatu）」「窓（jendela）」「チーズ（keju）」のような日常語は、ポルトガル語に由来している。",
+        note: [
+          "■ 【インドネシア語に巨大な影響を与えたポルトガル語借用語】：\n1511年のマラッカ占領から16世紀にかけてマルク諸島やヌサ・トゥンガラで交易を行ったポルトガル人は、オランダよりも100年早く来航したため、身近な生活語彙が多数定着している：\n・`Minggu（日曜日：domingo）`, `meja（机：mesa）`, `kemeja（シャツ：camisa）`, `sepatu（靴：sapato）`, `jendela（窓：janela）`, `keju（チーズ：queijo）`, `mentega（バター：manteiga）`, `sabun（石けん：sabão）`, `bendera（旗：bandeira）`, `gereja（教会：igreja）`, `lelang（競売：leilão）`, `boneka（人形：boneca）` など！"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Portugal", r: "Portugis", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "ポルトガル（イベリア半島西部の共和国・首都リスボン Lisabon）",
+        ex: "Tim nasional sepak bola Portugal berhasil meraih gelar juara dalam turnamen Piala Eropa.",
+        tr: "サッカーのポルトガル代表チームは、ヨーロッパ選手権（ユーロ）大会で優勝タイトルを獲得した。",
+        note: "■ 【Portugis との使い分け】：現代の国家名（サッカー代表や外交ニュース）には『Portugal』を使い、歴史上の勢力（bangsa Portugis）や言語（bahasa Portugis）・民族には『Portugis』を使う。"
+      },
+      {
+        p: "n", w: "Italia", r: "Italia", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "イタリア（南ヨーロッパの地中海に突き出た半島国家・首都ローマ Roma）",
+        ex: "Masakan khas Italia seperti pasta dan piza sangat populer di berbagai restoran kota besar.",
+        tr: "パスタやピザのようなイタリア料理は、大都市の様々なレストランで非常に人気がある。",
+        note: "■ 【正書法】：英語の Italy ではなくラテン語・イタリア語原音そのままの **『Italia』**。なおピザのKBBI標準語綴りは z 1つの『piza』。"
+      },
+      {
+        p: "n", w: "Yunani", r: "Yunani", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "ギリシャ（南東ヨーロッパのバルカン半島南端に位置する共和国・首都アテネ Athena。西洋哲学・民主主義・オリンピック発祥の地）",
+        ex: "Konsep demokrasi dan ajang olahraga Olimpiade berakar dari peradaban kuno di Yunani.",
+        tr: "民主主義の概念やオリンピックのスポーツ祭典は、ギリシャの古代文明にルーツを持っている。",
+        note: [
+          "■ 【最重要：なぜ Greece が Yunani になるのか？】：\n英語の Greece とは似ても似つかないが、古代ギリシャの『イオニア地方（Ionia）』をペルシア語・アラビア語で『Yunan（ユーナーン）』と呼んだことに由来し、イスラム世界を通じてマレー・インドネシア語に **『Yunani』** として定着した！哲学・歴史・科学の長文で100%出る必須国名（mitologi Yunani＝ギリシャ神話、bahasa Yunani＝ギリシャ語）。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Rusia", r: "Rusia", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "ロシア（東ヨーロッパから北アジアにまたがる世界最大の面積を持つ連邦国家・首都モスクワ Moskow）",
+        ex: "Rusia merupakan negara dengan wilayah daratan terluas di dunia yang membentang dari Eropa Timur hingga Asia Utara.",
+        tr: "ロシアは東ヨーロッパから北アジアまで広がる、世界最大の陸地面積を持つ国である。",
+        note: "■ 【正書法】：s は1つだけで **『Rusia（Federasi Rusia）』** と綴る。1950〜60年代の旧ソビエト連邦（Uni Soviet）時代には、ジャカルタのゲロラ・ブン・カルノ競技場（GBK）の建設などを支援した歴史がある。"
+      },
+      {
+        p: "n", w: "Ukraina", r: "Ukraina", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "ウクライナ（東ヨーロッパの黒海北岸に位置する共和国・首都キーウ Kyiv。世界有数の小麦・ひまわり油の輸出国）",
+        ex: "Gangguan pasokan gandum dari Ukraina sempat memicu kenaikan harga bahan baku mi instan di pasar global.",
+        tr: "ウクライナからの小麦供給の混乱は、かつて世界市場における即席麺の原材料価格の上昇を誘発した。",
+        note: "■ 【経済的つながり】：インドネシアは世界有数の即席麺（mi instan）およびパンの消費国であり、原料となる小麦（gandum）の主要な輸入先のひとつとしてウクライナ情勢は経済・食料ニュースで頻繁に報じられる。"
+      },
+      {
+        p: "n", w: "Swiss", r: "Swiss", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "スイス（中央ヨーロッパのアルプス山脈に位置する永世中立の連邦国家・首都ベルン Bern、国際機関都市ジュネーブ Jenewa）",
+        ex: "Indonesia dan Swiss telah menandatangani perjanjian kemitraan ekonomi komprehensif untuk meningkatkan perdagangan.",
+        tr: "インドネシアとスイスは、貿易を拡大するための包括的経済連携協定（CEPA）に署名した。",
+        note: "■ 【表記】：英語の Switzerland ではなく、短い **『Swiss』** がインドネシア語の公式国名！"
+      },
+      {
+        p: "n", w: "Swedia", r: "Swedia", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "スウェーデン（北ヨーロッパのスカンディナビア半島に位置する王国・首都ストックホルム。ノーベル賞の授与国）",
+        ex: "Penghargaan Nobel di bidang fisika, kimia, dan sastra diserahkan setiap tahun di Stockholm, Swedia.",
+        tr: "物理学・化学・文学分野のノーベル賞は毎年、スウェーデンのストックホルムで授与される。",
+        note: "■ 【表記】：Sweden ではなくラテン語系の **『Swedia』** と綴る。"
+      },
+      {
+        p: "n", w: "Belgia", r: "Belgia", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "ベルギー（西ヨーロッパの王国・首都ブリュッセル Brussel。欧州連合［Uni Eropa］やNATOの本部所在地）",
+        ex: "Markas besar Uni Eropa terletak di Kota Brussel yang merupakan ibu kota negara Belgia.",
+        tr: "欧州連合（EU）の本部は、ベルギーの首都であるブリュッセル市に位置している。",
+        note: "■ 【インドネシア独立史との関わり】：1947年の国連調停委員会『三国委員会（Komisi Tiga Negara / KTN）』において、インドネシアが指名したオーストラリア、オランダが指名したベルギー、両国が選んだアメリカの3カ国が停戦交渉を仲介した歴史で必ず登場する国名。"
+      },
+      {
+        p: "n", w: "Polandia", r: "Polandia", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "ポーランド（中央ヨーロッパの共和国・首都ワルシャワ Warsawa）",
+        ex: "Bendera negara Polandia memiliki warna putih di bagian atas dan merah di bagian bawah, berkebalikan dengan bendera Indonesia.",
+        tr: "ポーランドの国旗は上が白で下が赤の配色をしており、インドネシアの国旗（上が赤・下が白）と上下逆になっている。",
+        note: "■ 【豆知識】：インドネシアの国旗『Sang Saka Merah Putih（上が赤・下が白 ※モナコと同じ配色）』と、ポーランドの国旗（上が白・下が赤）は上下がちょうど反対になるペアとしてよく引き合いに出される。"
+      },
+      {
+        p: "n", w: "Amerika Serikat", r: "Amerika", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "アメリカ合衆国（北アメリカ大陸の連邦共和国・首都ワシントンD.C.。略称は AS）",
+        ex: "Nilai tukar rupiah terhadap dolar Amerika Serikat mengalami penguatan pada perdagangan pagi ini.",
+        tr: "米ドルに対するルピアの為替レートは、今朝の取引で上昇（ルピア高）を記録した。",
+        note: [
+          "■ 【語構成と略語】：『Serikat』は「連邦・連合（United）」の意。ニュース見出しでは英語の USA / US ではなく、必ず **『AS（Amerika Serikat）』** と略される（例：Presiden AS＝アメリカ大統領、dolar AS＝米ドル）。雅称は『Negeri Paman Sam（アンクル・サムの国）』。"
+        ].join("\n")
+      },
+      {
+        p: "singkatan", w: "AS", r: "Amerika Serikat", alts: ["amerika serikat"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "アメリカ合衆国（Amerika Serikat の頭文字略語＝英語の US / USA）",
+        ex: "Bank sentral AS memutuskan untuk mempertahankan tingkat suku bunga acuan pada bulan ini.",
+        tr: "米国（AS）の中央銀行（FRB）は、今月の政策金利を据え置くことを決定した。",
+        note: "■ 【注意】：大文字の『AS』はアメリカ合衆国（Amerika Serikat）、小文字の一般名詞『as』は「車軸・中心軸（as roda＝車軸）」を意味する。"
+      },
+      {
+        p: "n", w: "Kanada", r: "Kanada", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "カナダ（北アメリカ大陸北部の連邦国家・首都オタワ Ottawa）",
+        ex: "Indonesia mengimpor gandum berkualitas tinggi dari Kanada untuk memenuhi kebutuhan industri tepung terigu dalam negeri.",
+        tr: "インドネシアは国内の小麦粉産業の需要を満たすため、カナダから高品質な小麦を輸入している。",
+        note: "■ 【正書法】：英語の Canada に対し、頭文字を **K** にして『Kanada』と綴る。"
+      },
+      {
+        p: "n", w: "Meksiko", r: "Meksiko", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "メキシコ（北アメリカ南部・ラテンアメリカの連邦共和国・首都メキシコシティ）",
+        ex: "Tanaman jagung, cabai, dan kakao pada awalnya berasal dari peradaban kuno di kawasan Meksiko dan Amerika Tengah.",
+        tr: "トウモロコシ、唐辛子、カカオの植物は、もともとメキシコおよび中央アメリカ地域の古代文明に由来している。",
+        note: "■ 【正書法】：英語の Mexico の x をインドネシア語の音に合わせて **ks** に置き換え、『Meksiko』と綴る。"
+      },
+      {
+        p: "n", w: "Brasil", r: "Brasil", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "ブラジル（南アメリカ大陸最大の連邦共和国・首都ブラジリア。アマゾン熱帯雨林を擁し、インドネシアと並ぶ世界の2大生物多様性大国）",
+        ex: "Hutan tropis Indonesia memiliki tingkat keanekaragaman hayati darat tertinggi kedua di dunia setelah Brasil.",
+        tr: "インドネシアの熱帯林は、ブラジルに次いで世界で2番目に高い陸上生物多様性の水準を誇っている。",
+        note: "■ 【正書法の重要ポイント】：英語の Brazil（z）ではなく、ポルトガル語原音通りに **s** を使って **『Brasil』** と綴るのが標準正書法！"
+      },
+
+      // ==================== 4. 地域・大陸・大洋・国名関連略語（10語） ====================
+      {
+        p: "n", w: "Asia Tenggara", r: "Asia", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "東南アジア（インドネシアをはじめASEAN加盟国が位置する地域＝Southeast Asia）",
+        ex: "Kawasan Asia Tenggara dikenal sebagai salah satu wilayah dengan pertumbuhan ekonomi paling dinamis di dunia.",
+        tr: "東南アジア地域は、世界で最もダイナミックな経済成長を遂げている地域のひとつとして知られている。",
+        note: [
+          "■ 【語構成】：『Asia（アジア）』＋『Tenggara（南東）』。日本語や英語（Southeast Asia）と同じく「アジアの南東部＝東南アジア」を表す。",
+          "■ 【アジアの各地域名】：\n・Asia Tenggara：東南アジア\n・Asia Timur：東アジア（日本・中国・韓国など）\n・Asia Selatan：南アジア（インド・パキスタンなど）\n・Asia Tengah：中央アジア\n・Asia Barat / Timur Tengah：西アジア ／ 中東"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Timur Tengah", r: "timur", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "中東（西アジアから北アフリカ北東部にかけての地域＝Middle East。略称は Timteng）",
+        ex: "Perkembangan situasi politik di kawasan Timur Tengah selalu dipantau secara cermat oleh para pelaku pasar energi.",
+        tr: "中東地域における政治情勢の推移は、エネルギー市場の関係者たちによって常に注意深く監視されている。",
+        note: "■ 【語構成】：『timur（東）』＋『tengah（中・中央）』＝中東。ニュース見出しでは『Timteng』と略されることもある。"
+      },
+      {
+        p: "n", w: "Uni Eropa", r: "Eropa", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "欧州連合、ヨーロッパ連合（ヨーロッパの27カ国が加盟する政治・経済統合体。インドネシア語の略称は UE＝英語の EU）",
+        ex: "Pemerintah Indonesia melakukan perundingan dengan pihak Uni Eropa terkait kebijakan perdagangan minyak kelapa sawit.",
+        tr: "インドネシア政府はアブラヤシ（パーム油）の貿易政策に関して、欧州連合（EU）側と交渉を行っている。",
+        note: "■ 【略語とニュース背景】：インドネシア語では **『UE（Uni Eropa）』** と略される。インドネシアの主力輸出品であるパーム油やコーヒー・木材に対する欧州連合の森林減少防止規則（EUDR）やニッケル輸出制限をめぐるWTO紛争など、経済・外交記事で毎週のように登場する。"
+      },
+      {
+        p: "n", w: "Eropa", r: "Eropa", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "ヨーロッパ、欧州（Benua Eropa＝ヨーロッパ大陸）",
+        ex: "Banyak bangunan bersejarah di kawasan Kota Tua Jakarta yang mengadopsi gaya arsitektur klasik Eropa.",
+        tr: "ジャカルタ旧市街エリアにある多くの歴史的建造物は、ヨーロッパの古典建築様式を取り入れている。",
+        note: "■ 【正書法】：英語の Europe やオランダ語 Europa に対し、インドネシア語では先頭を **E** 1文字、末尾を **pa** にして『Eropa』と綴る（末尾に h を付ける Eropah はマレーシア語や古い表記）。"
+      },
+      {
+        p: "n", w: "Samudra Hindia", r: "samudra", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "インド洋（スマトラ島西岸・ジャワ島南岸・ヌサトゥンガラ諸島南岸からアフリカ・インド・オーストラリアに囲まれた大洋）",
+        ex: "Gelombang laut di perairan Samudra Hindia sebelah selatan Pulau Jawa cenderung lebih tinggi dibandingkan di Laut Jawa.",
+        tr: "ジャワ島南側のインド洋海域における海の波は、ジャワ海に比べて高くなる傾向がある。",
+        note: [
+          "■ 【2大洋とインドネシアの地理（Posisi Silang＝十字路の位置）】：\nインドネシア群島は **『2つの大陸（アジア大陸 Benua Asia とオーストラリア大陸 Benua Australia）』** および **『2つの大洋（インド洋 Samudra Hindia と太平洋 Samudra Pasifik）』** が交差する戦略的十字路（posisi silang）に位置している、という表現は地理・政治の定番フレーズ！\n・なお昔（スカルノ政権期など）にはインド洋を『Samudra Indonesia（インドネシア洋）』と呼んだ時期もある。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Samudra Pasifik", r: "samudra", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "太平洋（パプア北岸や北マルク・北スラウェシの北東からアジア・南北アメリカに広がる世界最大の大洋。古い雅称では Lautan Teduh）",
+        ex: "Indonesia terletak di jalur Cincin Api Pasifik sehingga memiliki banyak gunung berapi aktif di sepanjang kepulauannya.",
+        tr: "インドネシアは環太平洋火山帯（パシフィック・リング・オブ・ファイア）上に位置しているため、群島に沿って多くの活火山を有している。",
+        note: "■ 【重要コロケーション】：『Cincin Api Pasifik（環太平洋火山帯＝Pacific Ring of Fire）』、『kawasan Asia-Pasifik（アジア太平洋地域）』。なお直訳的な別名として『Lautan Teduh（穏やかな大洋＝太平の海）』とも呼ばれる。"
+      },
+      {
+        p: "singkatan", w: "RRT", r: "Republik Rakyat Tiongkok", alts: ["republik rakyat tiongkok"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "中華人民共和国（Republik Rakyat Tiongkok の公式略称＝英語の PRC）",
+        ex: "Hubungan diplomatik antara Republik Indonesia dan RRT pertama kali dibuka pada tahun 1950.",
+        tr: "インドネシア共和国と中華人民共和国（RRT）の間の外交関係は、1950年に初めて開設された。",
+        note: "■ 【正式名称】：Republik（共和国）Rakyat（人民）Tiongkok（中国）。"
+      },
+      {
+        p: "singkatan", w: "UEA", r: "Uni Emirat Arab", alts: ["uni emirat arab"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "アラブ首長国連邦（Uni Emirat Arab の頭文字略語＝英語の UAE）",
+        ex: "Masjid Raya Sheikh Zayed di Kota Solo merupakan hadiah persahabatan dari pemerintah UEA kepada Indonesia.",
+        tr: "ソロ市にあるシェイク・ザーイド大モスクは、アラブ首長国連邦（UEA）政府からインドネシアへの友好の贈り物である。",
+        note: "■ 【正式名称】：Uni Emirat Arab。"
+      },
+      {
+        p: "singkatan", w: "PNG", r: "Papua Nugini", alts: ["papua nugini"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "パプアニューギニア（Papua Nugini の略称）",
+        ex: "Pemerintah Indonesia dan PNG sepakat meningkatkan kerja sama keamanan dan ekonomi di wilayah perbatasan darat.",
+        tr: "インドネシア政府とパプアニューギニア（PNG）政府は、陸上国境地域における安全保障と経済の協力を強化することで合意した。",
+        note: "■ 【正式名称】：Papua Nugini（英語 Papua New Guinea の略号 PNG がそのまま使われる）。"
+      },
+      {
+        p: "singkatan", w: "Afsel", r: "Afrika Selatan", alts: ["afrika selatan"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "南アフリカ共和国（Afrika Selatan の合成アクロニム）",
+        ex: "Pertemuan tingkat tinggi negara-negara berkembang digelar di Johannesburg, Afsel.",
+        tr: "発展途上国の首脳会合が、南アフリカ（Afsel）のヨハネスブルグで開催された。",
+        note: "■ 【正式名称】：AFrika SELatam。"
+      }
+    ],
+    acro: [
+      {
+        acro: "Korsel",
+        full: "korea selatan",
+        alts: [],
+        dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        tr: "韓国、大韓民国",
+        exp: "■ 【正式名称】：KORea SELatam（北朝鮮は Korut＝Korea Utara）。"
+      },
+      {
+        acro: "Korut",
+        full: "korea utara",
+        alts: [],
+        dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        tr: "北朝鮮、朝鮮民主主義人民共和国",
+        exp: "■ 【正式名称】：KORea UTara（韓国は Korsel＝Korea Selatan）。"
+      },
+      {
+        acro: "AS",
+        full: "amerika serikat",
+        alts: [],
+        dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        tr: "アメリカ合衆国（米国）",
+        exp: "■ 【正式名称】：Amerika Serikat（英語の US / USA に相当する最重要ニュース略語）。"
+      },
+      {
+        acro: "RRT",
+        full: "republik rakyat tiongkok",
+        alts: [],
+        dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        tr: "中華人民共和国（中国）",
+        exp: "■ 【正式名称】：Republik Rakyat Tiongkok（英語の PRC に相当）。"
+      },
+      {
+        acro: "UEA",
+        full: "uni emirat arab",
+        alts: [],
+        dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        tr: "アラブ首長国連邦（英語の UAE）",
+        exp: "■ 【正式名称】：Uni Emirat Arab。"
+      },
+      {
+        acro: "PNG",
+        full: "papua nugini",
+        alts: [],
+        dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        tr: "パプアニューギニア",
+        exp: "■ 【正式名称】：Papua Nugini（インドネシアのパプアと東側で陸上国境を接する隣国）。"
+      },
+      {
+        acro: "Afsel",
+        full: "afrika selatan",
+        alts: [],
+        dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        tr: "南アフリカ共和国",
+        exp: "■ 【正式名称】：AFrika SELatam。"
+      }
+    ]
+  };
+
+  if (Array.isArray(d.singkatan)) {
+    PACK_PART4_COUNTRIES.acro.forEach(function(a) {
+      const codeLow = a.acro.trim().toLowerCase();
+      const vObj = PACK_PART4_COUNTRIES.vocab.find(x => x.w.trim().toLowerCase() === codeLow);
+      if (vObj && !d.singkatan.some(s => s && s.w && s.w.trim().toLowerCase() === codeLow)) {
+        d.singkatan.push(vObj);
+      }
+    });
+  }
+
+  PACK_PART4_COUNTRIES.vocab.forEach(function(it) {
+    dictOnlySet.add(it.w.trim().toLowerCase());
+  });
+  PACK_PART4_COUNTRIES.acro.forEach(function(a) {
+    dictOnlySet.add(a.acro.trim().toLowerCase());
+  });
+
+  if (typeof window.wiAddPack === "function") {
+    window.wiAddPack(PACK_PART4_COUNTRIES);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 辞書専用パック 第5弾：【主要民族・地方語・歴史王朝・建国理念・伝統無形文化遺産】（全45語）
+   - すべて問題には一切出題せず（dictOnly: true, tier: 3）、辞書検索・A〜Z辞書・Kompas連動のみに表示
+   ===================================================================== */
+(function() {
+  const d = window.WHATSINDO_EXTERNAL_DATA;
+  if (!d) return;
+
+  const dictOnlySet = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+
+  const PACK_PART5_CULTURE_HISTORY = {
+    vocab: [
+      // ==================== 1. インドネシアの主要民族・地方語（14語） ====================
+      {
+        p: "n", w: "Sunda", r: "Sunda", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "スンダ族、スンダ語、スンダ地方（西ジャワ州・バンテン州を中心に居住する、ジャワ族に次ぐインドネシア第2の人口を持つ民族）",
+        ex: "Masyarakat Sunda di Jawa Barat dikenal memiliki tutur kata yang lembut serta kesenian musik angklung dan kecapi suling.",
+        tr: "西ジャワのスンダの人々は、柔和な言葉遣いならびにアンクルンやクチャピ・スリン（琴と竹笛）の音楽芸術を持つことで知られている。",
+        note: [
+          "■ 【地理・人口】：西ジャワ州（バンドン・ボゴール等）とバンテン州（旧スンダ王国・パジャジャラン王国の故地）を中心に居住し、総人口の約15%（約4,200万人）を占める国内第2の民族（Suku Sunda）。",
+          "■ 【文化・食】：西ジャワの高原地帯を『タタール・スンダ（Tatar Sunda）』または『パラヒャンガン（Parahyangan＝神々の住まい）』と呼ぶ。竹楽器アンクルン（angklung）、伝統舞踊ジャイポンガン（Jaipongan）、新鮮な生野菜（lalapan）とサンバルを添える爽やかなスンダ料理（Masakan Sunda）で有名。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Minangkabau", r: "Minangkabau", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "ミナンカバウ族、ミナンカバウ語（西スマトラ州を中心に居住する民族。世界最大規模の「母系制社会」と全国各地への出稼ぎ・商業文化で有名）",
+        ex: "Masyarakat Minangkabau menganut sistem kekerabatan matrilineal yang mewariskan harta pusaka melalui garis keturunan ibu.",
+        tr: "ミナンカバウ社会は、母系の血筋を通じて家督財産を相続する「母系制」の親族システムをとっている。",
+        note: [
+          "■ 【3大特徴（地域研究・文化の超重要知識）】：\n① **世界最大の母系社会（Sistem Matrilineal）**：氏族（suku）の系統や家屋・水田などの世襲財産（harta pusaka tinggi）がすべて「母から娘」へと受け継がれ、母方の伯父・叔父（mamak）が甥や姪（kemenakan）の教育・後見を担う。\n② **出稼ぎ・遊学の伝統（Budaya Merantau）**：成人前の男子は故郷を出て他地域で学問や商売の修行を積み、成功して故郷に錦を飾る『ムランタウ（merantau）』の伝統があり、全国にパダン料理店（Rumah Makan Padang）を展開しているほか、ハッタ副大統領、シャフリル首相、タン・マラカ、ハムカなど独立期の知識人・政治家を多数輩出した。\n③ **イスラムと慣習の融合**：「慣習（adat）はシャリーア（イスラム法）に依拠し、シャリーアは聖典クルアーンに依拠する（Adat basandi syarak, syarak basandi Kitabullah）」を理念とする。水牛（kabau）の角を模した屋根の伝統家屋『ルマ・ガダン（Rumah Gadang）』でも知られる。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Minang", r: "Minangkabau", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "ミナン、ミナンカバウの（Minangkabau の通称・短縮形：orang Minang＝ミナンカバウ人、bahasa Minang＝ミナンカバウ語）",
+        ex: "Bahasa Minang memiliki banyak kemiripan kosakata dengan bahasa Melayu dan bahasa Indonesia.",
+        tr: "ミナン語（ミナンカバウ語）は、マレー語やインドネシア語と多くの語彙的類似性を持っている。",
+        note: "■ 【コロケーション】：orang Minang / suku Minang（ミナン人）、masakan Minang（ミナン料理＝パダン料理）、ranah Minang（ミナンの地＝西スマトラ）。"
+      },
+      {
+        p: "n", w: "Batak", r: "Batak", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "バタック族、バタック語（北スマトラ州のトバ湖周辺高地を中心に居住する民族。父系氏族「マルガ」の強い結束や力強い歌唱・弁論文化で知られる）",
+        ex: "Setiap orang Batak memiliki nama marga di belakang namanya yang menunjukkan garis keturunan dari pihak ayah.",
+        tr: "すべてのバタック人は名前の後ろに、父方の血統を示す氏族名（マルガ）を持っている。",
+        note: [
+          "■ 【社会・文化】：\n・ミナンカバウ族とは対照的に厳格な **『父系制（patrilineal）』** をとり、Siregar, Nasution, Simanjuntak, Sinaga, Panjaitan などの父系氏族名 **『マルガ（marga）』** を名乗る。\n・トバ（Toba）、カロ（Karo）、マンダイリン（Mandailing）、シマルングン（Simalungun）、パクパク（Pakpak）、アンコラ（Angkola）の6支族に分かれ、伝統手織り布『ウロス（kain ulos）』や、3つの親族集団が支え合う社会規範『ダリハン・ナ・トル（Dalihan Na Tolu）』を持つ。法曹界（弁護士・裁判官）や音楽界で非常に多くの人材が活躍している。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Betawi", r: "Betawi", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "ブタウィ族、ブタウィ語（ジャカルタの先住民族。17世紀以降のバタヴィアで多様な民族・文化が混ざり合って形成された独自の都市民族）",
+        ex: "Boneka raksasa ondel-ondel dan musik gambang kromong merupakan kesenian tradisional khas masyarakat Betawi.",
+        tr: "巨大な人形「オンデル・オンデル」とガンバン・クロモン音楽は、ブタウィの人々特有の伝統芸能である。",
+        note: [
+          "■ 【語源と文化】：ジャカルタのオランダ統治時代の旧称『Batavia（バタヴィア）』の現地発音に由来。スンダ・ジャワ・マレー・バリ・ブギス・アンボンに中国・アラブ・ポルトガル・オランダの要素が融合して生まれた。厄除けの巨大人形『オンデル・オンデル（ondel-ondel）』、焦がしココナッツの卵焼き『クラック・トゥロール（kerak telor）』、ココナッツミルク牛肉スープ『ソト・ブタウィ（Soto Betawi）』、そして現代ジャカルタ口語（gue / lo や語末の -in 等）の母体となったブタウィ方言で知られる。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Bugis", r: "Bugis", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "ブギス族、ブギス語（南スラウェシ州を中心に居住する代表的な海洋民族。伝統帆船ピニシを操り群島全域の海上交易で活躍してきた民族）",
+        ex: "Para pelaut suku Bugis dan Makassar terkenal tangguh mengarungi lautan Nusantara dengan kapal layar pinisi.",
+        tr: "ブギス族とマカッサル族の船乗りたちは、ピニシ帆船でヌサンタラの海をたくましく航海することで有名だ。",
+        note: "■ 【文化・文字】：独自の文字『ロンタラ文字（Aksara Lontara）』と、ユネスコ世界の記憶に登録された世界最長級の創世叙事詩『ラ・ガリゴ（Sureq Galigo）』を持つ。名誉と自尊心・相互扶助を重んじる行動倫理『シリ・ナ・パッセ（Siri' na Pacce）』でも知られる。"
+      },
+      {
+        p: "n", w: "Dayak", r: "Dayak", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "ダヤック族（カリマンタン島［ボルネオ島］の内陸部や大河流域に暮らす先住民族の総称。熱帯雨林と共生するロングハウス文化や精緻な彫刻・ビーズ工芸で有名）",
+        ex: "Rumah Betang merupakan rumah adat panjang khas suku Dayak di Kalimantan yang dihuni oleh puluhan keluarga.",
+        tr: "「ルマ・ブタン（ロングハウス）」は、数十世帯が共に暮らすカリマンタンのダヤック族特有の伝統長屋家屋である。",
+        note: "■ 【特徴】：ガジュ（Ngaju）、クニャ（Kenyah）、カヤン（Kayan）、イバン（Iban）など数百の支族に分かれる。数十メートルの高床式共同長屋『ルマ・ブタン（Rumah Betang）／ルマ・ラミン（Rumah Lamin）』、神聖なサイチョウ（burung enggang / rangkong）の羽根を使った優雅な伝統舞踊、盾（talawang）と吹き矢・山刀（mandau）の工芸で知られる。"
+      },
+      {
+        p: "n", w: "Toraja", r: "Toraja", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "トラジャ族、タナ・トラジャ（南スラウェシ州北部の山岳地帯に暮らす民族。船形屋根の伝統家屋「トンコナン」や壮大な葬送儀礼、断崖の洞窟墓で世界的に有名）",
+        ex: "Upacara pemakaman adat Rambu Solo di Tana Toraja dihadiri oleh ratusan kerabat dan wisatawan mancanegara.",
+        tr: "タナ・トラジャにおける伝統葬送儀礼「ランブ・ソロ」には、数百人の親族や外国人観光客が参列する。",
+        note: [
+          "■ 【3大文化遺産】：\n① **トンコナン（Tongkonan）**：舟の舳先のように前後の屋根が大きく反り上がり、正面に水牛の角を何十本も飾る伝統高床家屋\n② **ランブ・ソロ（Rambu Solo'）**：故人の魂を天界（Puya）へ送るため、多数の水牛（特に希少な白水牛 tedong bonga）を捧げて数日間にわたり盛大に営まれる葬送儀礼\n③ **断崖の墓とタウ・タウ人形**：切り立った石灰岩の絶壁に穴を掘って棺を納め、故人を模した木彫り人形『タウ・タウ（Tau-tau）』をバルコニーに並べる独自の埋葬文化。また『トラジャ・コーヒー（Kopi Toraja）』の名産地でもある。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Asmat", r: "Asmat", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "アスマット族（南パプア州のアラフラ海沿岸湿地帯・ロレンツ国立公園周辺に暮らす先住民族。先祖の霊を宿す独創的な木彫り彫刻芸術で世界中の美術館から高く評価される）",
+        ex: "Ukiran kayu karya suku Asmat dari Papua sangat dikagumi oleh para kolektor seni dunia karena makna spiritualnya.",
+        tr: "パプアのアスマット族による木彫り作品は、その精神的な意味合いから世界の美術コレクターたちに深く称賛されている。",
+        note: "■ 【芸術文化】：自称は「木の人々（As-akmat）」の意。下絵を一切描かず、マングローブ等の丸太から祖先の霊を鎮める巨大な記念柱『ビス・ポール（Mbis pole）』や盾を彫り上げる世界屈指のプリミティブ・アート（民族彫刻芸術）を持つ。"
+      },
+      {
+        p: "n", w: "Dani", r: "Dani", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "ダニ族（山岳パプア州の標高1,600mにあるバリエム渓谷［ワメナ周辺］に暮らす高地先住民族。茅葺きの円形住居「ホナイ」やサツマイモ農耕文化で知られる）",
+        ex: "Masyarakat suku Dani di Lembah Baliem tinggal di dalam rumah tradisional berbentuk bundar yang disebut Honai.",
+        tr: "バリエム渓谷のダニ族の人々は、「ホナイ」と呼ばれる円形の伝統家屋の中で暮らしている。",
+        note: "■ 【特徴】：高地の寒さを防ぐため、木と茅葺き屋根で作られた2階建ての円形住居『ホナイ（Honai）』や、焼き石で豚肉とサツマイモ・野菜を蒸し焼きにする伝統料理儀礼『バカル・バトゥ（Bakar Batu＝石焼き宴）』で知られる。"
+      },
+      {
+        p: "n", w: "Sasak", r: "Sasak", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "ササック族、ササック語（西ヌサ・トゥンガラ州ロンボク島の人口の約85%を占める主要民族。サデ村などの伝統建築や機織り・籐の棒術「プリシアン」で有名）",
+        ex: "Kaum perempuan suku Sasak di Desa Sade sangat terampil menenun kain songket dengan alat tenun tradisional.",
+        tr: "サデ村のササック族の女性たちは、伝統的な織機を使ってソンケット布を織るのが非常に巧みだ。",
+        note: "■ 【文化】：隣のバリ島（ヒンドゥー教）とは異なりイスラム教を信仰する。泥と水牛の糞で床を固めた茅葺き屋根の伝統集落（Desa Sade / Desa Ende）や、大太鼓『グンダン・ベレック（Gendang Beleq）』の演奏で知られる。"
+      },
+      {
+        p: "n", w: "Baduy", r: "Baduy", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "バドゥイ族（バンテン州レバック県のクンダン山岳部に暮らすスンダ系の伝統共同体。電気・車両・化学製品・近代機器を一切使わず自然の掟を守り抜く暮らしで知られる）",
+        ex: "Masyarakat suku Baduy Dalam berjalan kaki tanpa alas kaki dan selalu mengenakan pakaian tenun berwarna putih alami.",
+        tr: "内バドゥイ族の人々は裸足で歩き、常に生成りの白い手織り服を着用する。",
+        note: "■ 【内バドゥイと外バドゥイ】：自称は『ウラン・カネケス（Urang Kanekes）』。外部との接触や近代技術を厳格に拒み、白い服を着て徒歩のみで移動する3集落の **『内バドゥイ（Baduy Dalam）』** と、紺・黒の服を着て内バドゥイを囲むように暮らし外部の訪問者を受け入れる **『外バドゥイ（Baduy Luar）』** に分かれる。毎年、竹と木の根だけで川に橋を架け、農作物を携えて歩いて州庁舎を訪問する伝統行事『セバ・バドゥイ（Seba Baduy）』がニュースで報じられる。"
+      },
+      {
+        p: "n", w: "Osing", r: "Osing", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "オシン族、オシン語（東ジャワ州最東端バニュワンギ地域の先住民族。ヒンドゥー期のブランバンガン王国の末裔とされ、独自のジャワ・バリ折衷文化を持つ）",
+        ex: "Tari Gandrung dan ritual Seblang merupakan warisan budaya suku Osing yang dilestarikan di Banyuwangi.",
+        tr: "ガンドルン舞踊とスブラン儀礼は、バニュワンギで保存されているオシン族の文化遺産である。",
+        note: "■ 【語源】：彼らの言語で「いいえ・〜ない（ジャワ語の ora に相当）」を『osing』と言うことに由来する。ケムレン村（Desa Kemiren）などで伝統家屋と古ジャワ語に近い独自の言語・音楽を守り続けている。"
+      },
+      {
+        p: "n", w: "Tionghoa", r: "Tionghoa", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "中華系の、華人の（インドネシアにおける中国系住民・民族・文化を指す公的かつ丁寧な標準呼称）",
+        ex: "Akulturasi budaya Tionghoa dan Nusantara tampak jelas pada kuliner bakmi, lumpia, serta motif batik pesisir.",
+        tr: "中華文化とヌサンタラ文化の融合は、バクミー（麺）や春巻きといった料理、ならびに沿岸バティックの文様にはっきりと表れている。",
+        note: [
+          "■ 【Tiongkok と Tionghoa の厳密な使い分け】：\n・**Tiongkok**：「中国」という**国家・地理**を指す語（Pemerintah Tiongkok＝中国政府、ekspor ke Tiongkok＝中国への輸出）\n・**Tionghoa**：「中華系・華人」という**民族・人・文化・伝統**を指す語（masyarakat / warga Tionghoa＝中華系市民、budaya Tionghoa＝中華文化）\n・何世代にもわたりインドネシアに定住し現地文化と融合したプラナカン（Peranakan）文化や、福建語由来の日常語彙（`tahu＝豆腐`, `bakso＝肉団子`, `cawan＝茶碗`, `teko＝急須`, `loteng＝2階`, `cuan＝儲け` 等）はインドネシア社会に深く根付いている。"
+        ].join("\n")
+      },
+
+      // ==================== 2. 歴史王朝・植民地史・建国理念（16語） ====================
+      {
+        p: "n", w: "Sriwijaya", r: "Sriwijaya", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "シュリーヴィジャヤ王国、スリウィジャヤ王国（7〜13世紀頃、南スマトラのパレンバンを中心にマラッカ海峡の海上交易を支配した東南アジア最大の大乗仏教海洋帝国）",
+        ex: "Kerajaan Sriwijaya pernah menjadi pusat pembelajaran agama Buddha dan penguasa jalur perdagangan di Selat Malaka.",
+        tr: "シュリーヴィジャヤ王国はかつて、仏教研究の中心地でありマラッカ海峡の交易路の支配者であった。",
+        note: "■ 【歴史的意義】：サンスクリット語で『輝く勝利（Sri＝光輝、Wijaya＝勝利）』の意。7世紀に唐の僧・義浄（I-Tsing）がインドへの往復に長期滞在してサンスクリット経典を学んだ国際的な仏教学問センターであり、マジャパヒト王国と並んで近代インドネシアが「かつて群島が一つに結ばれていた海洋国家のルーツ（kebesaran maritim）」として仰ぐ2大古代王朝のひとつ。"
+      },
+      {
+        p: "n", w: "Majapahit", r: "Majapahit", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "マジャパヒト王国（1293〜16世紀初頭、東ジャワのトロウランを都とし、第4代ハヤム・ウルク王と名宰相ガジャ・マダのもとでヌサンタラ全域に勢力を広げたヒンドゥー・仏教帝国）",
+        ex: "Semboyan Bhinneka Tunggal Ika diambil dari kitab Kakawin Sutasoma yang ditulis oleh Mpu Tantular pada zaman Majapahit.",
+        tr: "国是「ビネカ・トゥンガル・イカ（多様性の中の統一）」は、マジャパヒト時代にムプ・タントゥラルが著した詩編『カカウィン・スタソマ』から採られている。",
+        note: [
+          "■ 【歴史・国家象徴の源泉】：\n・1293年、元（モンゴル・フビライハン）のジャワ遠征軍を撃退したラデン・ウィジャヤ（Raden Wijaya）が建国。都の跡地である東ジャワ州モジョケルト県トロウラン（Trowulan）には赤レンガ造りの巨大な割れ門（Candi Wringin Lawang）や沐浴場が残る。\n・14世紀半ば、第4代国王 **『ハヤム・ウルク（Hayam Wuruk）』** と宰相 **『ガジャ・マダ（Gajah Mada）』** の時代に黄金期を迎え、宮廷詩人プラパンチャが著した歴史叙事詩『ナーガラクルターガマ（Nagarakretagama：1365年）』にはスマトラからマルク・パプア沿岸に至る広大な勢力圏（Nusantara）が記されている。\n・赤と白の旗『Gula Kelapa（椰子糖の赤とココナッツ果肉の白）』は、現代インドネシア国旗『Merah Putih』のルーツとされる。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Singasari", r: "Singasari", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "シンガサリ王国（1222〜1292年に東ジャワのマラン周辺で栄えたヒンドゥー・仏教王国。マジャパヒト王国の直接の前身となった王朝）",
+        ex: "Candi Singasari di dekat Kota Malang merupakan peninggalan bersejarah dari masa Kerajaan Singasari.",
+        tr: "マラン市近くにあるシンガサリ寺院は、シンガサリ王国時代の歴史的遺産である。",
+        note: "■ 【歴史】：1222年にケン・アロク（Ken Arok）がクディリ王国を倒して建国。第5代クルタナガラ王（Kertanagara）はスマトラへ遠征（Pamalayu遠征）を行い元のフビライ・ハンの服属要求を拒絶した。その娘婿ラデン・ウィジャヤが後にマジャパヒト王国を建国した。"
+      },
+      {
+        p: "n", w: "Syailendra", r: "Syailendra", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "シャイレーンドラ朝（8〜9世紀に中部ジャワで栄えた大乗仏教王朝。世界遺産ボロブドゥール寺院やカラサン寺院・ムンドゥット寺院を建立した王朝）",
+        ex: "Kemegahan Candi Borobudur menjadi bukti tingginya peradaban dan seni arsitektur pada masa Dinasti Syailendra.",
+        tr: "ボロブドゥール寺院の壮麗さは、シャイレーンドラ朝時代における文明と建築芸術の高さを証明している。",
+        note: "■ 【語源】：サンスクリット語で『山の王（Syaila＝山、Indra＝王）』の意。サマラトゥンガ王（Samaratungga）の治世にボロブドゥールを完成させ、またシュリーヴィジャヤ王国とも王族の婚姻を通じて深く結びついていた。"
+      },
+      {
+        p: "n", w: "Gajah Mada", r: "Gajah Mada", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "ガジャ・マダ（14世紀マジャパヒト王国の名宰相［Mahapatih］。1336年に「パラパの誓い」を立て、ヌサンタラ群島の統一を成し遂げた歴史的英雄）",
+        ex: "Patih Gajah Mada mengucapkan Sumpah Palapa sebagai tekad untuk menyatukan seluruh kepulauan Nusantara di bawah Majapahit.",
+        tr: "宰相ガジャ・マダは、マジャパヒトのもとでヌサンタラ群島全域を統一する決意として「パラパの誓い」を宣誓した。",
+        note: "■ 【現代への影響】：群島統一の象徴的英雄として、ジョグジャカルタのインドネシア最古・最大の国立総合大学 **『ガジャマダ大学（Universitas Gadjah Mada / UGM）』** や、国軍の憲兵隊（Polisi Militer）の徽章、全国の主要大通りの名称にその名が冠されている。"
+      },
+      {
+        p: "n", w: "Sumpah Palapa", r: "sumpah", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "パラパの誓い（1336年、マジャパヒト王国の宰相ガジャ・マダが「ヌサンタラ群島全域を平定・統一するまでは一切の贅沢・香辛料［palapa］を口にしない」と宣言した歴史的な誓い）",
+        ex: "Istilah Nusantara tercatat secara jelas dalam naskah sejarah yang memuat ikrar Sumpah Palapa oleh Gajah Mada.",
+        tr: "「ヌサンタラ」という用語は、ガジャ・マダによる「パラパの誓い」の宣誓を記した歴史文献（パラルトン）の中に明確に記録されている。",
+        note: "■ 【歴史的意義】：グルン（ロンボク）、スラン（セラム）、タンジュンプル（カリマンタン）、ハル（スマトラ）、パハン（マレー半島）、ドムポ（スンバワ）、バリ、スンダ、パレンバン、トゥマシック（シンガポール）から成る『ヌサンタラ（Nusantara）』を統一するという、現在のインドネシア領域の原型を示した誓い。インドネシア初の通信衛星『パラパ衛星（Satelit Palapa：1976年打上げ）』の名前の由来にもなった。"
+      },
+      {
+        p: "n", w: "Wali Songo", r: "wali", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "ワリ・ソンゴ、九聖人（15〜16世紀にジャワ島でイスラム教を広めた9人の聖者。ワヤン影絵やガムラン音楽などの土着伝統文化を尊重・融合させながら平和的に布教したことで知られる）",
+        ex: "Sunan Kalijaga merupakan salah satu tokoh Wali Songo yang menggunakan pertunjukan wayang kulit sebagai media dakwah.",
+        tr: "スナン・カリジャガは、ワヤン・クリ（影絵芝居）の公演を布教の媒体として活用したワリ・ソンゴ（九聖人）のひとりである。",
+        note: "■ 【語源】：アラビア語の『wali（聖者・神の友）』＋ジャワ語の『songo（9＝sembilan）』。スナン・グレシク（マウラナ・マリク・イブラヒム）、スナン・アンペル、スナン・ボナン、スナン・ドラジャット、スナン・ギリ、スナン・カリジャガ、スナン・クドゥス、スナン・ムリア、スナン・グヌン・ジャティの9人を指し、ジャワ北海岸の各都市にある彼らの霊廟には現在も全国から多くの巡礼者（peziarah）が訪れる。"
+      },
+      {
+        p: "singkatan", w: "VOC", r: "Vereenigde Oostindische Compagnie", alts: ["vereenigde oostindische compagnie", "kompeni"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "オランダ東インド会社（1602年に設立され、バタヴィア［現ジャカルタ］を本拠地に香料貿易の独占や条約締結権・軍隊保有権を行使した世界初の株式会社。1799年解散）",
+        ex: "Pada abad ketujuh belas, VOC memonopoli perdagangan rempah-rempah di Kepulauan Maluku dan membangun benteng di Batavia.",
+        tr: "17世紀に、オランダ東インド会社（VOC）はマルク諸島における香辛料貿易を独占し、バタヴィアに要塞を築いた。",
+        note: "■ 【歴史】：現地では Compagnie がなまって **『Kompeni（コンプニ）』** と呼ばれた。1799年末に汚職と戦費増大により倒産・解散し、その全領土と負債はオランダ本国政府（オランダ領東インド Hindia Belanda）へ引き継がれた。"
+      },
+      {
+        p: "n", w: "Hindia Belanda", r: "Belanda", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "オランダ領東インド（1800年のVOC解散から1942年の日本軍進駐・1945年の独立宣言まで用いられた、オランダ植民地時代のインドネシアの公称）",
+        ex: "Banyak gedung bersejarah di sekitar Kota Tua yang dibangun pada masa pemerintahan kolonial Hindia Belanda.",
+        tr: "旧市街周辺にある多くの歴史的建造物は、オランダ領東インド植民地政府の時代に建てられたものだ。",
+        note: "■ 【歴史背景】：英語の Dutch East Indies、オランダ語の Nederlands-Indië に相当する歴史必須用語。"
+      },
+      {
+        p: "n", w: "Tanam Paksa", r: "tanam", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "強制栽培制度（1830年にオランダ領東インド総督ファン・デン・ボスが導入した制度。農民に耕地の5分の1または年間66日の労働でコーヒー・サトウキビ・藍などの輸出作物の栽培を強制した）",
+        ex: "Sistem Tanam Paksa pada abad kesembilan belas mendatangkan keuntungan besar bagi Belanda, namun menyengsarakan petani Jawa.",
+        tr: "19世紀の強制栽培制度はオランダに莫大な利益をもたらしたが、ジャワの農民を苦しめた。",
+        note: "■ 【歴史と文学】：オランダ語名『カルチュールステルセル（Cultuurstelsel）』。この制度下での農民の窮状と腐敗を告発したのが、元植民地官僚エドゥアルド・ダウエス・デッケル（筆名 **Multatuli＝ムルタトゥーリ**）が1860年に発表した名作小説 **『マックス・ハーフェラール（Max Havelaar）』** であり、これがきっかけとなって1901年以降の『倫理政策（Politik Etis：灌漑・移住・教育）』へと転換した。"
+      },
+      {
+        p: "n", w: "Sumpah Pemuda", r: "sumpah", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "青年の誓い（1928年10月28日、バタヴィアで開催された第2回青年会議において、各地の青年団体代表が「一つの祖国・一つの民族・一つの共通言語＝インドネシア語」を宣言した歴史的誓い）",
+        ex: "Melalui ikrar Sumpah Pemuda pada tanggal 28 Oktober 1928, bahasa Indonesia ditetapkan sebagai bahasa persatuan.",
+        tr: "1928年10月28日の「青年の誓い」の宣誓を通じて、インドネシア語が統一言語として定められた。",
+        note: [
+          "■ 【青年の誓い（Sumpah Pemuda）の3ヶ条】：\n① **Satu Nusa（一つの祖国）**：Kami putra dan putri Indonesia, mengaku bertumpah darah yang satu, tanah air Indonesia.（我々インドネシアの青年男女は、ただ一つの祖国、インドネシアの国土を認める）\n② **Satu Bangsa（一つの民族）**：Kami putra dan putri Indonesia, mengaku berbangsa yang satu, bangsa Indonesia.（ただ一つの民族、インドネシア民族を認める）\n③ **Satu Bahasa（一つの言語）**：Kami putra dan putri Indonesia, menjunjung bahasa persatuan, bahasa Indonesia.（統一言語、インドネシア語を奉戴する）\n・この会議の閉会時に、作曲家 W.R. スプラプトマン（Wage Rudolf Supratman）がバイオリンで初めて国歌 **『インドネシア・ラヤ（Indonesia Raya）』** を演奏した。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Proklamasi", r: "proklamasi", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "独立宣言、布告（特に1945年8月17日午前10時、ジャカルタの東ペガンサアン通り56番地にてスカルノとハッタが「インドネシア民族の名において」読み上げたインドネシア共和国独立宣言）",
+        ex: "Naskah Proklamasi Kemerdekaan Republik Indonesia ditandatangani oleh Soekarno dan Mohammad Hatta atas nama bangsa Indonesia.",
+        tr: "インドネシア共和国独立宣言の原文は、インドネシア民族の名においてスカルノとモハマッド・ハッタによって署名された。",
+        note: [
+          "■ 【インドネシア共和国独立宣言（全文・歴史必出）】：\n\"**PROKLAMASI**\nKami bangsa Indonesia dengan ini menyatakan Kemerdekaan Indonesia.\nHal-hal yang mengenai pemindahan kekuasaan dan lain-lain diselenggarakan dengan cara saksama dan dalam tempo yang sesingkat-singkatnya.\nJakarta, 17 Agustus 1945\nAtas nama bangsa Indonesia,\nSoekarno - Hatta\"\n・独立宣言文は前夜、前田精（まえだ・ただす）海軍少将の公邸（現・独立宣言起草博物館 Museum Perumusan Naskah Proklamasi）にてスカルノ、ハッタ、アフマッド・スバルジョの3名によって起草され、サユティ・メリクによってタイプ清書された。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Pancasila", r: "Pancasila", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "パンチャシラ、建国五原則（インドネシア共和国の国家哲学・最高理念。1945年6月1日にスカルノが提唱し、1945年憲法前文に明記されている5つの基本原則）",
+        ex: "Pancasila merupakan dasar negara dan pandangan hidup bangsa Indonesia yang mempersatukan seluruh lapisan masyarakat.",
+        tr: "パンチャシラは、社会のあらゆる階層をひとつに束ねるインドネシアの国家基盤であり民族の世界観である。",
+        note: [
+          "■ 【語源】：サンスクリット語の『panca（5）』＋『sila（原則・道徳規範）』。",
+          "■ 【パンチャシラ（建国五原則）の公式5項目と国章ガルーダの盾の象徴】：\n1. **Ketuhanan Yang Maha Esa**（唯一神への信仰）➔ 象徴：中央の『黄金の星（Bintang）』\n2. **Kemanusiaan yang Adil dan Beradab**（公正で文化的な人道主義）➔ 象徴：右下の『鎖（Rantai）』\n3. **Persatuan Indonesia**（インドネシアの統一）➔ 象徴：右上の『ガジュマルの樹（Pohon Beringin）』\n4. **Kerakyatan yang Dipimpin oleh Hikmat Kebijaksanaan dalam Permusyawaratan/Perwakilan**（協議と代議制における英知に導かれた民主主義）➔ 象徴：左上の『野牛の頭（Kepala Banteng）』\n5. **Keadilan Sosial bagi Seluruh Rakyat Indonesia**（全インドネシア国民に対する社会正義）➔ 象徴：左下の『稲穂と綿花（Padi dan Kapas：食と衣の象徴）』"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Bhinneka Tunggal Ika", r: "bineka", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "多様性の中の統一（「様々に分かれてはいるが、それでも本質は一つである」を意味する古ジャワ語由来のインドネシア共和国国是。国章ガルーダが両足で掴む白帯に記されている）",
+        ex: "Semboyan Bhinneka Tunggal Ika mengajarkan kita untuk saling menghormati perbedaan suku, agama, dan budaya.",
+        tr: "「多様性の中の統一」というスローガンは、民族・宗教・文化の違いを互いに尊重し合うことを私たちに教えている。",
+        note: "■ 【語源と原典】：14世紀マジャパヒト王国時代、詩人ムプ・タントゥラル（Mpu Tantular）がヒンドゥー教（シヴァ派）と仏教の究極の真理は一つであると説いた古ジャワ語詩『カカウィン・スタソマ（Kakawin Sutasoma）』の一節『Bhinneka tunggal ika, tan hana dharma mangrwa（多様ではあるが一つである、真理に二つはない）』に由来。現代語の名詞形は『kebinekaan（多様性）』。"
+      },
+      {
+        p: "n", w: "Orde Baru", r: "orde", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "新秩序、オルデ・バル（1966年から1998年5月まで32年間続いた第2代スハルト大統領による政権・政治体制の呼称。略称は Orba）",
+        ex: "Pada masa pemerintahan Orde Baru, pemerintah menitikberatkan pada stabilitas politik dan pembangunan ekonomi lima tahunan.",
+        tr: "新秩序（スハルト政権）の統治時代において、政府は政治的安定と5カ年経済開発計画に重点を置いた。",
+        note: [
+          "■ 【インドネシア近現代政治史の3大時代区分】：\n① **Orde Lama (Orla)**：旧秩序（1945–1966年：初代スカルノ大統領の時代）\n② **Orde Baru (Orba)**：新秩序（1966–1998年：第2代スハルト大統領の時代。5カ年開発計画 Repelita による高度経済成長とインフラ整備・米の自給達成を果たした一方、国軍の二重機能 Dwifungsi ABRI や強権統治・KKN［汚職・癒着・縁故主義］が問題化した）\n③ **Era Reformasi**：改革・民主化の時代（1998年5月のスハルト退陣〜現在：大統領直接選挙・地方分権・報道の自由・国軍の政治撤退・KPK設立などが実現）"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Reformasi", r: "reformasi", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "①改革、刷新（reformasi birokrasi＝行政・官僚機構改革） ②レフォルマシ（1998年5月のスハルト大統領退陣とそれ以降のインドネシア民主化運動・民主化時代）",
+        ex: "Gerakan Reformasi pada tahun 1998 membuka era baru demokrasi, kebebasan pers, dan otonomi daerah di Indonesia.",
+        tr: "1998年のレフォルマシ（政治改革・民主化）運動は、インドネシアにおける民主主義、報道の自由、地方自治の新時代を切り開いた。",
+        note: "■ 【歴史】：1997年のアジア通貨危機（krisis moneter / krismon）を契機に学生や市民が汚職・癒着・縁故主義（KKN）の打破を求めて立ち上がり、1998年5月21日のスハルト退陣・ハビビ大統領就任へとつながった歴史的転換点。"
+      },
+
+      // ==================== 3. 伝統無形文化遺産・芸術・工芸・建築（15語） ====================
+      {
+        p: "n", w: "batik", r: "batik", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "バティック、ジャワ更紗（溶かした蝋［malam］で布に防染文様を描いて染め上げるインドネシアの伝統ろうけつ染め布。2009年ユネスコ無形文化遺産登録）",
+        ex: "Para pegawai dan mahasiswa mengenakan kemeja batik pada tanggal dua Oktober untuk memperingati Hari Batik Nasional.",
+        tr: "職員や学生たちは「国家バティックの日」を記念して、10月2日にバティックのシャツを着用する。",
+        note: [
+          "■ 【技法と分類】：\n・**batik tulis（手描きバティック）**：銅製の小さな注ぎ口がついた専用ペン『チャンティン（canting）』を使い、職人が溶かした蜜蝋（malam）で一筆ずつ点と線を描いて染める最高級品\n・**batik cap（型押しバティック）**：銅製のスタンプ型（cap）で蝋を押して量産するバティック",
+          "■ 【代表的な哲学文様と2大系統】：\n・王宮の伝統的な幾何学・象徴文様には、波や刀を表す『パラン（Parang：不屈の精神）』、ヤシの実が四方に並ぶ『カウンドゥン（Kawung：公正と純潔）』、幸福を願う『シドムクティ（Sidomukti）』、チルボンの雨雲文様『メガ・ムンドゥン（Mega Mendung）』などがある。\n・また、ジョグジャやソロの威厳ある茶・藍・白黒の **『内陸宮廷バティック（Batik Pedalaman / Keraton）』** と、プカロンガンやチルボンの自由で色鮮やかな **『沿岸バティック（Batik Pesisir）』** の文化二元性（対比）でも知られる。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "wayang", r: "wayang", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "ワヤン（インドネシアの伝統人形芝居・影絵芝居。『ラーマーヤナ』や『マハーバーラタ』等を題材とし、2003年にユネスコ無形文化遺産に登録）",
+        ex: "Pertunjukan wayang kulit semalam suntuk dipimpin oleh seorang dalang yang diiringi alunan musik gamelan.",
+        tr: "夜通し行われるワヤン・クリ（影絵芝居）の公演は、ガムラン音楽の調べを伴奏にひとりのダラン（人形遣い）によって進行される。",
+        note: [
+          "■ 【語源と主要3種類】：ジャワ語・古ジャワ語の『bayang（影・魂）』と同根。\n① **wayang kulit（ワヤン・クリ）**：中部・東ジャワやバリで盛んな、精巧に透かし彫りした水牛の革人形を白い布スクリーン（kelir）に映す影絵芝居\n② **wayang golek（ワヤン・ゴレック）**：西ジャワ（スンダ地方）で盛んな、立体的な木彫り人形を使う人形劇\n③ **wayang wong / wayang orang（ワヤン・オラン）**：人間自身がワヤンの衣装と化粧をして踊り演じる古典舞踊劇"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "dalang", r: "dalang", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "①ダラン（ワヤン影絵・人形芝居において、全登場人物の声色・人形操作・ガムラン楽団への指揮・哲学や時事風刺の語りを一人でこなす人形遣い師） ②（事件・陰謀・暴動などの背後にいる）黒幕、首謀者",
+        ex: "Pihak kepolisian masih terus memburu aktor intelektual yang diduga menjadi dalang di balik kerusuhan tersebut.",
+        tr: "警察当局は、その暴動の背後で黒幕（首謀者）になっているとみられる知的指導者を引き続き追っている。",
+        note: [
+          "■ 【重要比喩用法】：裏で人形を操る存在であることから、政治・事件ニュースでは **『dalang di balik ~（〜の背後にいる黒幕・首謀者＝otak pelaku）』**、動詞 **『mendalangi（裏で糸を引く・首謀する）』** として超頻出！"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "gamelan", r: "gamelan", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "ガムラン（ジャワやバリの伝統的な青銅製打楽器オーケストラ。大小のゴング・鉄琴・太鼓・竹笛・弦楽器などから成り、2021年ユネスコ無形文化遺産登録）",
+        ex: "Alunan musik gamelan Jawa yang tenang dan harmonis menyambut kedatangan para tamu di pendopo keraton.",
+        tr: "穏やかで調和のとれたジャワ・ガムラン音楽の調べが、王宮のプンドポ（吹き抜け大広間）で来賓たちの到着を迎えた。",
+        note: "■ 【語源と音階】：ジャワ語の『gamel（槌で叩く）』に由来。西洋の平均律とは異なる独自の5音階 **『スレンドロ（Slendro）』** と7音階 **『ペロッグ（Pelog）』** を持ち、フランスの作曲家ドビュッシーなど世界の現代音楽にも大きな影響を与えた。"
+      },
+      {
+        p: "n", w: "keris", r: "keris", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "クリス（ジャワを中心に群島各地に伝わる伝統的な両刃の短剣。波打つ刃と、鋼鉄と隕鉄［ニッケル］を幾重にも鍛接して浮かび上がらせる「パモール」文様が特徴。2005年ユネスコ無形文化遺産登録）",
+        ex: "Empu pembuat keris menempa berlapis-lapis besi dan batu meteorit hingga menghasilkan motif pamor yang indah pada bilah keris.",
+        tr: "クリスを鍛える刀匠（ムプ）は、幾層もの鉄と隕石を鍛造してクリスの刀身に美しい「パモール（地肌文様）」を生み出す。",
+        note: [
+          "■ 【冶金技術と文化的特徴】：\n・刀匠は敬称を込めて **『ムプ（Empu / Mpu）』** と呼ばれ、単なる武器ではなく精神的守護具・家宝（pusaka）・正装の象徴として扱われる。\n・刀身（bilah）には真っ直ぐな直刃（keris lurus）と、蛇（Naga）の動きを象徴する奇数回（3〜13回など）の波状刃（keris luk）がある。\n・最大の技術的特徴は、炭素鋼・鉄とニッケルを含む隕鉄（batu meteorit）を何十層も折り返し鍛接し、ヒ素とライム果汁で酸洗い（warangan）することで刀身に白い銀色の渦や稲穂のような層状文様 **『パモール（pamor）』** を浮かび上がらせる高度な古代鍛造冶金技術にある。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "angklung", r: "angklung", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "アンクルン（西ジャワ・スンダ地方の伝統的な竹製楽器。長さと太さの異なる竹筒を枠の中で揺らして1つにつき1音を鳴らし、多人数で分担してメロディを合奏する。2010年ユネスコ無形文化遺産登録）",
+        ex: "Setiap pemain memegang satu angklung dengan nada berbeda sehingga diperlukan kerja sama dan konsentrasi saat bermain.",
+        tr: "各奏者が異なる音階のアンクルンを1つずつ持つため、演奏時には協力と集中力が必要とされる。",
+        note: "■ 【歴史】：元々スンダ農村で稲の女神デウィ・スリ（Dewi Sri）に豊作を祈る伝統楽器（ドグドグ・ロジョール等）であったものを、1938年に教育者ダエン・スティグナ（Daeng Soetigna）がドレミの西洋音階（ディアトニック音階）に改良し、バンドンの『サウン・アンクルン・ウジョ（Saung Angklung Udjo）』を通じて世界に広まった。"
+      },
+      {
+        p: "n", w: "kebaya", r: "kebaya", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "クバヤ（インドネシア女性の伝統的な前開き長袖ブラウス正装。繊細な刺繍やレースが施され、下半身にバティックやソンケットの腰布を巻いて着用する。2024年ユネスコ無形文化遺産登録）",
+        ex: "Para mahasiswi tampak anggun mengenakan kebaya dan kain batik saat menghadiri upacara wisuda universitas.",
+        tr: "女子学生たちは大学の卒業式に出席する際、クバヤとバティックの腰布をまとって優雅に見えた。",
+        note: "■ 【文化】：結婚式、大学の卒業式（wisuda）、カルティニの日（4月21日）、国家公式式典などにおけるインドネシア女性の第一礼装（busana nasional）。ジャワ・スンダ・バリ・プラナカン（kebaya encim）など地域ごとに多彩なスタイルがあり、2024年にインドネシア・マレーシア・シンガポール・ブルネイ・タイの共同提案によりユネスコ無形文化遺産に登録された。"
+      },
+      {
+        p: "n", w: "songket", r: "songket", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "ソンケット（絹や綿の生地に金糸・銀糸を浮き織りにして豪華な文様を織り出した伝統錦織物。パレンバン、ミナンカバウ、バリ、ロンボク等の宮廷・婚礼衣装として有名）",
+        ex: "Pengantin dari Palembang itu mengenakan busana adat yang terbuat dari kain songket bersulam benang emas.",
+        tr: "そのパレンバン出身の新郎新婦は、金糸が織り込まれたソンケット布で作られた伝統婚礼衣装をまとっていた。",
+        note: "■ 【語源】：マレー語の『sungkit（糸をすくい上げて金糸を通す）』に由来。シュリーヴィジャヤ王国時代からの伝統を継ぐパレンバンのソンケットや、西スマトラのパンドゥシケイ（Pandai Sikek）のソンケットは「織物の女王（Ratu Segala Kain）」と称される。"
+      },
+      {
+        p: "n", w: "tenun ikat", r: "tenun", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "イカット、絣（かすり）織物（織る前の糸の束を植物繊維で縛って［ikat］防染・染色し、織り上げることで文様を浮かび上がらせる伝統織物。スンバ島・フローレス島・バリ島等で盛ん）",
+        ex: "Pembuatan selembar kain tenun ikat tradisional membutuhkan ketelitian tinggi dan waktu hingga berbulan-bulan.",
+        tr: "伝統的なイカット（絣織物）を1枚作るには、高い緻密さと数ヶ月もの時間が必要とされる。",
+        note: "■ 【語源】：日本語や英語でも世界共通の染織用語となっている『イカット（Ikat）』は、インドネシア語の『ikat / mengikat（縛る・結ぶ）』そのものが語源！特にバリ島トゥンガナン村の経緯（たてよこ）両方の糸を縛るダブル・イカット『グリンシン（Kain Gringsing）』は世界でも3地域にしかない超希少織物として知られる。"
+      },
+      {
+        p: "n", w: "pencak silat", r: "silat", dictOnly: true, tier: 3, topicCat: "🏥 健康・身体・感情",
+        m: "プンチャック・シラット（インドネシア群島に伝わる伝統武術・格闘技。護身術・スポーツ競技・舞踊芸術・精神修養の4要素を兼ね備え、2019年にユネスコ無形文化遺産に登録）",
+        ex: "Cabang olahraga pencak silat berhasil menyumbangkan banyak medali emas bagi kontingen Indonesia di ajang Asian Games.",
+        tr: "プンチャック・シラット競技は、アジア競技大会においてインドネシア選手団に多くの金メダルをもたらすことに成功した。",
+        note: "■ 【語源】：ジャワやマドゥラ・バリで用いられた『pencak（演武・型）』と、スマトラ（ミナンカバウやマレー）で用いられた『silat（実戦武術）』を1948年の全国連盟（IPSI）結成時に統合した名称。武術家は『pesilat』または『pendekar』と呼ばれる。"
+      },
+      {
+        p: "n", w: "tari Saman", r: "Saman", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "サマン・ダンス（アチェ州中央高地のガヨ族に伝わる伝統群舞。楽器を使わず、横一列に座った男性たちが掛け声と手拍子・胸や腿を叩く音だけで超高速に一糸乱れぬ動きを繰り広げる。2011年ユネスコ無形文化遺産登録）",
+        ex: "Kekompakan gerakan tangan yang sangat cepat dalam pertunjukan tari Saman dari Aceh memukau para penonton.",
+        tr: "アチェのサマン・ダンス公演における非常に速く息の合った手の動きは、観客たちを魅了した。",
+        note: "■ 【異名と歴史】：14世紀頃にアチェのイスラム指導者シェイク・サマン（Syekh Saman）が布教と共同体の結束のために創始したとされ、その圧倒的なスピードとシンクロ率から **『千の手の舞（Tari Seribu Tangan）』** と称される。"
+      },
+      {
+        p: "n", w: "tari Kecak", r: "Kecak", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "ケチャ、ケチャ・ダンス（バリ島の伝統舞踊劇。楽器を一切使わず、上半身裸で格子柄の布を巻いた数十人の男性が円陣を組んで「チャッ・チャッ・チャッ」と複雑なリズムで合唱しながら『ラーマーヤナ』の猿軍団の戦いを演じる）",
+        ex: "Pertunjukan tari Kecak dengan latar belakang matahari terbenam di Pura Uluwatu merupakan atraksi wisata paling populer di Bali.",
+        tr: "ウルワツ寺院での夕日を背景にしたケチャ・ダンスの公演は、バリで最も人気のある観光アトラクションである。",
+        note: "■ 【成立背景】：古来の憑依トランス儀礼『サンヒャン（Sanghyang）』の男声合唱をもとに、1930年代にバリの舞踊家ワヤン・リンバック（Wayan Limbak）とドイツ人画家ヴァルター・シュピースが叙事詩『ラーマーヤナ』の劇と融合させて創作した舞踊劇。"
+      },
+      {
+        p: "n", w: "pinisi", r: "pinisi", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "ピニシ（南スラウェシ州ブルクンバのブギス・マカッサル族の船大工が、設計図や鉄釘を使わず伝統技法と儀礼によって建造する2本マスト7枚帆の大型木造帆船。2017年ユネスコ無形文化遺産登録）",
+        ex: "Seni pembuatan perahu pinisi di Sulawesi Selatan telah diakui oleh UNESCO sebagai warisan budaya takbenda dunia.",
+        tr: "南スラウェシにおけるピニシ帆船の造船技術は、ユネスコによって世界の無形文化遺産として認定されている。",
+        note: "■ 【象徴】：2本の主マストはイスラムの信仰告白（2つのシャハーダ）、7枚の帆は聖典クルアーンの開端章（アル・ファーティハ）の7節を象徴し、インドネシアの海洋国家（negara maritim）の誇りとして旧100ルピア紙幣にも描かれた。"
+      },
+      {
+        p: "n", w: "joglo", r: "joglo", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "ジョグロ（中部・東ジャワおよびジョグジャカルタの代表的な伝統木造建築様式。4本の中心主柱「ソコ・グル」が支える中央部が台形ピラミッド状に高くそびえる格式高い大屋根が特徴）",
+        ex: "Pendopo balai kota itu dibangun dengan gaya arsitektur rumah joglo khas Jawa Tengah yang megah dan sejuk.",
+        tr: "その市役所のプンドポ（前殿ホール）は、壮麗で涼しい中部ジャワ特有のジョグロ建築様式で建てられている。",
+        note: "■ 【構造】：かつては王族や貴族（priyayi）のみに許された最高格式の建築。前面の壁のない吹き抜け大広間 **『プンドポ（Pendopo：来客の歓迎やガムラン・舞踊の場）』**、中間のワヤン上演スペース『プリンギタン（Pringgitan）』、奥の家族の居住空間『ダレム（Dalem）』から構成され、中央屋根を4本の太いチーク材の主柱『ソコ・グル（Soko Guru）』が支える耐震性に優れた木組み構造を持つ。"
+      },
+      {
+        p: "n", w: "rumah gadang", r: "rumah", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "ルマ・ガダン（西スマトラ州ミナンカバウ族の伝統的な母系大家族家屋。水牛の角のように両端が鋭く天に向かって反り上がった屋根「ゴンジョン」と、全面に施された鮮やかな木彫り装飾が特徴）",
+        ex: "Atap rumah gadang di Sumatera Barat berbentuk melengkung runcing ke atas menyerupai tanduk kerbau.",
+        tr: "西スマトラのルマ・ガダン（伝統家屋）の屋根は、水牛の角に似て上に向かって鋭く反り上がった形をしている。",
+        note: "■ 【語源と構造】：ミナンカバウ語で『gadang』は「大きい（＝besar）」の意（時計塔の Jam Gadang と同じ）。水牛の角を模した屋根の突起は『ゴンジョン（gonjong）』と呼ばれ、壁面には「自然を師として学ぶ（Alam Takambang Jadi Guru）」というミナン哲学を表す植物・幾何学文様の木彫りが施される。"
+      }
+    ],
+    acro: [
+      {
+        acro: "VOC",
+        full: "vereenigde oostindische compagnie",
+        alts: ["kompeni"],
+        dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        tr: "オランダ東インド会社（1602–1799年：バタヴィアを拠点に香料貿易を独占した世界初の株式会社）",
+        exp: "■ 【正式名称】：Vereenigde Oostindische Compagnie（現地では Kompeni と呼ばれた）。"
+      }
+    ]
+  };
+
+  if (Array.isArray(d.singkatan)) {
+    const vocObj = PACK_PART5_CULTURE_HISTORY.vocab.find(x => x.w.toUpperCase() === "VOC");
+    if (vocObj && !d.singkatan.some(s => s && s.w && s.w.toUpperCase() === "VOC")) {
+      d.singkatan.push(vocObj);
+    }
+  }
+
+  PACK_PART5_CULTURE_HISTORY.vocab.forEach(function(it) {
+    dictOnlySet.add(it.w.trim().toLowerCase());
+  });
+  PACK_PART5_CULTURE_HISTORY.acro.forEach(function(a) {
+    dictOnlySet.add(a.acro.trim().toLowerCase());
+  });
+
+  if (typeof window.wiAddPack === "function") {
+    window.wiAddPack(PACK_PART5_CULTURE_HISTORY);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 辞書専用パック 第6弾：【主要政党・イスラム組織・名門国立大学・代表料理＆食文化】（全45語）
+   - すべて問題には一切出題せず（dictOnly: true, tier: 3）、辞書検索・A〜Z辞書・Kompas連動のみに表示
+   ===================================================================== */
+(function() {
+  const d = window.WHATSINDO_EXTERNAL_DATA;
+  if (!d) return;
+
+  const dictOnlySet = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+
+  const PACK_PART6_INSTITUTIONS_CULINARY = {
+    vocab: [
+      // ==================== 1. インドネシアの主要政党（7語） ====================
+      {
+        p: "singkatan", w: "PDIP", r: "Partai Demokrasi Indonesia Perjuangan", alts: ["partai demokrasi indonesia perjuangan", "pdi perjuangan", "pdi-p"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "闘争民主党（メガワティ第5代大統領が党首を務める、スカルノ主義・民族主義・庶民派［wong cilik］を掲げる主要政党）",
+        ex: "Fraksi PDIP di DPR menyampaikan pandangan umum terkait rancangan anggaran pendapatan dan belanja negara.",
+        tr: "国会の闘争民主党（PDIP）会派は、国家歳入歳出予算案に関する全般的見解を表明した。",
+        note: [
+          "■ 【正式名称】：Partai Demokrasi Indonesia Perjuangan（表記は PDI-P または PDI Perjuangan とも書かれる）。",
+          "■ 【特徴とシンボル】：初代スカルノ大統領の長女メガワティ・スカルノプトリ（Megawati Soekarnoputri）が率いる政党。シンボルは赤い背景と円の中の『白い鼻筋の黒い野牛（Banteng Moncong Putih）』で、パンチャシラと世俗民族主義、庶民（wong cilik）の擁護を理念とし、中部ジャワ州やバリ州などに強固な地盤を持つ。"
+        ].join("\n")
+      },
+      {
+        p: "singkatan", w: "Golkar", r: "Partai Golongan Karya", alts: ["partai golongan karya", "golongan karya"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "ゴルカル党、職能集団党（スハルト新秩序［Orde Baru］体制下の与党を前身とし、民主化後も常に政権・国会の中核を担う保守・開発主義の大政党）",
+        ex: "Partai Golkar menggelar musyawarah nasional untuk memilih ketua umum dan menyusun strategi pemenangan pemilu.",
+        tr: "ゴルカル党は総選挙の必勝戦略を策定し党首を選出するため、全国大会（Munas）を開催した。",
+        note: [
+          "■ 【正式名称】：Partai Golongan Karya（GOLongan KARya＝職能集団の合成アクロニム）。",
+          "■ 【特徴とシンボル】：1964年に結成され、スハルト政権下では「政党ではなく職能集団（Golongan Karya）」として圧倒的与党の地位にあった。民主化後は政党『Partai Golkar』となり、実業界や官僚・地方首長に広いネットワークを持つ。シンボルカラーは黄色、党章はパンチャシラ第3原則と同じ『ガジュマルの樹（Pohon Beringin）』。"
+        ].join("\n")
+      },
+      {
+        p: "singkatan", w: "Gerindra", r: "Partai Gerakan Indonesia Raya", alts: ["partai gerakan indonesia raya", "gerakan indonesia raya"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "グリンドラ党、大インドネシア運動党（プラボウォ・スビアント第8代大統領らが2008年に創設した民族主義政党）",
+        ex: "Partai Gerindra menekankan program kemandirian pangan, ketahanan energi, dan penguatan pertahanan nasional.",
+        tr: "グリンドラ党は食料自立、エネルギー安全保障、および国防強化のプログラムを強調している。",
+        note: "■ 【正式名称】：Partai GERakan INDonesia RAya（大インドネシア運動党）。党章は『ガルーダの頭（Kepala Burung Garuda）』。"
+      },
+      {
+        p: "singkatan", w: "NasDem", r: "Partai Nasional Demokrat", alts: ["partai nasional demokrat", "nasional demokrat"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "ナスデム党、国民民主党（メディア王スリヤ・パロ党首が2011年に創設し、「変化の運動［Gerakan Perubahan］」を掲げる中道民族主義政党）",
+        ex: "Partai NasDem mengumumkan daftar calon kepala daerah yang akan diusung dalam pemilihan gubernur tahun ini.",
+        tr: "ナスデム党は今年の知事選挙で擁立する地方首長候補者のリストを発表した。",
+        note: "■ 【正式名称】：Partai NASional DEMokrat。シンボルカラーは濃紺とオレンジ。"
+      },
+      {
+        p: "n", w: "Demokrat", r: "Demokrat", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "①民主党（Partai Demokrat：第6代大統領スシロ・バンバン・ユドヨノ［SBY］を創設者とする中道民族主義・宗教道徳政党） ②民主主義者",
+        ex: "Partai Demokrat mengadakan rapat pimpinan nasional di Jakarta untuk membahas arah koalisi pemerintahan.",
+        tr: "民主党（Partai Demokrat）は連立政権の方向性を議論するため、ジャカルタで全国指導者会議を開催した。",
+        note: "■ 【特徴】：2001年に設立され、インドネシア初の直接選挙で選出されたスシロ・バンバン・ユドヨノ大統領（SBY：在任2004–2014年）の与党として2期10年政権を担った。シンボルカラーは青、党章は三方向に輝く『赤い頂点を持つ青白の星（Bintang Mercy）』。"
+      },
+      {
+        p: "singkatan", w: "PAN", r: "Partai Amanat Nasional", alts: ["partai amanat nasional"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "国民信託党（1998年の民主化［Reformasi］運動の中心人物アミン・ライスらが創設し、近代派イスラム組織ムハマディヤの支持層を基盤とする中道政党）",
+        ex: "Ketua Umum PAN menyampaikan pidato politik mengenai pentingnya pemberdayaan usaha mikro, kecil, dan menengah.",
+        tr: "国民信託党（PAN）の党首は、零細・中小企業のエンパワーメントの重要性に関する政治演説を行った。",
+        note: [
+          "■ 【正式名称】：Partai Amanat Nasional。シンボルは青い背景に輝く『白い太陽（Matahari Putih）』。",
+          "■ 【国会（DPR）の主要8政党の整理】：\n・**民族主義・世俗系（4党）**：PDIP（闘争民主党）、Golkar（ゴルカル党）、Gerindra（グリンドラ党）、NasDem（ナスデム党）、Demokrat（民主党）\n・**イスラム系・イスラム大衆基盤（4党）**：PKB（民族覚醒党：伝統派NU系）、PAN（国民信託党：近代派ムハマディヤ系）、PKS（福祉正義党：都市部イスラム政党）、PPP（開発統一党：伝統イスラム政党）"
+        ].join("\n")
+      },
+      {
+        p: "singkatan", w: "PPP", r: "Partai Persatuan Pembangunan", alts: ["partai persatuan pembangunan"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "開発統一党（1973年にスハルト政権の政党簡素化政策により4つのイスラム政党が合併して誕生した、歴史あるイスラム政党）",
+        ex: "Partai Persatuan Pembangunan atau PPP merupakan salah satu partai politik berasaskan Islam tertua di Indonesia.",
+        tr: "開発統一党（PPP）は、インドネシアで最も古いイスラムを基盤とする政党のひとつである。",
+        note: "■ 【正式名称】：Partai Persatuan Pembangunan。スハルト時代にはゴルカル・PPP（イスラム系）・PDI（民族・キリスト教系）の3政党のみが認められていた。シンボルカラーは緑、党章はメッカの『聖殿カアバ（Ka'bah）』。"
+      },
+
+      // ==================== 2. イスラム大衆組織・宗教評議会・伝統教育（6語） ====================
+      {
+        p: "singkatan", w: "NU", r: "Nahdlatul Ulama", alts: ["nahdlatul ulama"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "ナフダトゥル・ウラマー（1926年にスラバヤでハシム・アシャリ師らが創設した、会員数約1億人とも言われる世界最大の伝統派イスラム大衆組織）",
+        ex: "Organisasi kemasyarakatan Islam terbesar di Indonesia, yakni NU dan Muhammadiyah, berperan penting dalam menjaga kerukunan bangsa.",
+        tr: "インドネシア最大のイスラム社会組織であるNUとムハマディヤは、国民の調和を守る上で重要な役割を果たしている。",
+        note: [
+          "■ 【正式名称と語源】：Nahdlatul Ulama（アラビア語で「ウラマー［イスラム法学者］の覚醒・復興」の意）。本部（中央執行部）は **『PBNU（Pengurus Besar Nahdlatul Ulama）』**、会員や支持者は **『Nahdliyin（ナフディイン）』** と呼ばれる。",
+          "■ 【特徴】：東・中部ジャワなどの農村部に広がるイスラム寄宿塾『プサントレン（pesantren）』と指導者『キヤイ（Kiai）』のネットワークを基盤とし、地域の伝統慣習や文化と調和した穏健・寛容なイスラム（Islam Nusantara）を掲げる。第4代大統領アブドゥルラフマン・ワヒド（グス・ドゥル：創設者ハシム・アシャリの孫）やマアルフ・アミン元副大統領を輩出した。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Nahdlatul Ulama", r: "Nahdlatul Ulama", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "ナフダトゥル・ウラマー（略称 NU：1926年創設のインドネシアおよび世界最大の伝統派イスラム社会組織）",
+        ex: "Nahdlatul Ulama didirikan di Surabaya pada tanggal 31 Januari 1926 oleh K.H. Hasyim Asy'ari bersama para ulama pesantren.",
+        tr: "ナフダトゥル・ウラマーは1926年1月31日、ハシム・アシャリ師とプサントレンのウラマーたちによってスラバヤで設立された。",
+        note: "■ 【シンボル】：地球儀を9つの星（ワリ・ソンゴ等を象徴）と緩やかに結ばれた縄が囲む緑色の紋章。"
+      },
+      {
+        p: "n", w: "Muhammadiyah", r: "Muhammadiyah", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "ムハマディヤ（1912年にジョグジャカルタでアフマッド・ダフラン師が創設した近代派・改革派イスラム社会組織。全国に膨大な数の学校・大学・総合病院を運営する）",
+        ex: "Muhammadiyah mengelola ribuan sekolah, ratusan rumah sakit, serta perguruan tinggi yang tersebar di seluruh provinsi Indonesia.",
+        tr: "ムハマディヤは、インドネシアの全州に広がる数千の学校、数百の病院、ならびに大学を運営している。",
+        note: [
+          "■ 【2大イスラム組織（NU と Muhammadiyah）の対比】：\n・**NU（ナフダトゥル・ウラマー：1926年・スラバヤ発祥）**：「伝統派（Tradisionalis）」。農村部の寄宿塾（pesantren）を基盤とし、土着の伝統儀礼（スラマタンや聖者廟参拝等）を包摂する。\n・**Muhammadiyah（ムハマディヤ：1912年・ジョグジャカルタ発祥）**：「近代派・改革派（Modernis）」。都市部の知識人や商工業者を主な基盤とし、迷信を排してクルアーンとスンナ（預言者の言行）への回帰を説くとともに、近代的な学校教育・西洋医学の総合病院（RS PKU Muhammadiyah）・孤児院などの社会福祉事業に圧倒的な強みを持つ（中央指導部は PP Muhammadiyah）。"
+        ].join("\n")
+      },
+      {
+        p: "singkatan", w: "MUI", r: "Majelis Ulama Indonesia", alts: ["majelis ulama indonesia"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "インドネシア・ウラマー評議会（1975年に設立された、NUやムハマディヤなど国内の諸イスラム団体の法学者［ウラマー］が集まる最高協議機関）",
+        ex: "Komisi Fatwa MUI menetapkan panduan pelaksanaan ibadah serta standar kehalalan produk makanan dan minuman.",
+        tr: "インドネシア・ウラマー評議会（MUI）のファトワ委員会は、礼拝実施のガイドラインならびに飲食製品のハラール基準を定めている。",
+        note: "■ 【正式名称と役割】：Majelis Ulama Indonesia。現代社会の諸問題（医療・金融・食品・社会倫理など）に関するイスラム法上の公式見解『ファトワ（fatwa）』の発出や、食品・化粧品のハラール性審査において極めて大きな影響力を持つ。"
+      },
+      {
+        p: "n", w: "pesantren", r: "santri", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "プサントレン、イスラム寄宿塾（塾生［santri］が寮［pondok］で共同生活を送りながら、指導者［Kiai］のもとでイスラム法学・アラビア語・一般科目を学ぶインドネシア伝統の教育機関）",
+        ex: "Pondok pesantren modern memadukan kurikulum pendidikan agama Islam dengan ilmu pengetahuan umum dan keterampilan bahasa asing.",
+        tr: "近代的なポンドック・プサントレン（イスラム寄宿塾）は、イスラム宗教教育のカリキュラムと一般教養および外国語スキルを融合させている。",
+        note: "■ 【語構成】：pe- + santri（塾生）+ -an ➔ pesantren（サントリが学ぶ場所：pondok pesantren は略して ponpes とも呼ばれる）。アラビア語で書かれた古典イスラム法学書『キタブ・クニン（kitab kuning＝黄色い本）』の講読や、自立心・礼儀（adab）の育成で知られる。"
+      },
+      {
+        p: "n", w: "santri", r: "santri", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "①サントリ（イスラム寄宿塾［pesantren］で学ぶ生徒・塾生。特に女子塾生は santriwati とも呼ばれる） ②戒律を厳格に守る敬虔なイスラム教徒",
+        ex: "Para santri dibiasakan hidup mandiri dan disiplin sejak bangun sebelum waktu subuh hingga malam hari.",
+        tr: "サントリ（寄宿塾生）たちは、夜明け（スブ）前に起きてから夜に至るまで、自立して規律ある生活を送るよう習慣づけられている。",
+        note: "■ 【文化・社会学】：毎年10月22日は独立防衛のジハード決議（1945年）を記念した『国家サントリの日（Hari Santri Nasional）』。また米国の人類学者クリフォード・ギアツが著書『ジャワの宗教』で提示した、敬虔なムスリム『サントリ（Santri）』、土着精霊信仰やヒンドゥー的伝統を残す庶民『アバンガン（Abangan）』、王宮貴族・官僚層『プリヤイ（Priyayi）』の3分類でも世界的に知られる用語。"
+      },
+
+      // ==================== 3. 名門国立大学略称（10語） ====================
+      {
+        p: "singkatan", w: "UI", r: "Universitas Indonesia", alts: ["universitas indonesia"], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "インドネシア大学（ジャカルタ中央部のサレンバと西ジャワ州デポックにキャンパスを構える、インドネシア最高峰の国立総合大学）",
+        ex: "Kampus utama UI di Depok dikelilingi oleh hutan kota dan danau buatan yang asri.",
+        tr: "デポックにあるインドネシア大学（UI）のメインキャンパスは、緑豊かで美しい都市林と人工湖に囲まれている。",
+        note: "■ 【歴史と象徴】：1849年設立のドクター・ジャワ医学校（後のSTOVIA：民族覚醒運動団体ブディ・ウトモ発祥の地）を起源とする国内最古級の最高学府。学生が着用する『黄色いブレザー（Jaket Kuning / Almamater Kuning）』は学生運動と知性の象徴として知られる。"
+      },
+      {
+        p: "singkatan", w: "UGM", r: "Universitas Gadjah Mada", alts: ["universitas gadjah mada"], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "ガジャマダ大学（ジョグジャカルタ特別州に本部を置く、独立後のインドネシア共和国政府が1949年に創設した国内最大級の国立総合大学）",
+        ex: "Ribuan mahasiswa baru UGM mengikuti kegiatan orientasi kampus di lapangan Grha Sabha Pramana, Yogyakarta.",
+        tr: "ガジャマダ大学（UGM）の数千人の新入生が、ジョグジャカルタのグラハ・サバ・プラマナ広場でキャンパス・オリエンテーション行事に参加した。",
+        note: "■ 【歴史】：独立戦争中の1949年12月19日、当時の共和国首都ジョグジャカルタでスカルノ宮殿（王宮のシティンギル）を仮校舎として開学した「民族闘争から生まれた国立大学」。マジャパヒト王国の名宰相ガジャ・マダの名を冠し、ジョコ・ウィドド第7代大統領をはじめ数多くの政財界・学術界のリーダーを輩出している。"
+      },
+      {
+        p: "singkatan", w: "ITB", r: "Institut Teknologi Bandung", alts: ["institut teknologi bandung"], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "バンドン工科大学（西ジャワ州バンドンにある1920年創設のインドネシア最高峰の国立理工系・美術デザイン系大学）",
+        ex: "Tim mahasiswa ITB berhasil merancang teknologi pesawat tanpa awak untuk pemetaan lahan pertanian.",
+        tr: "バンドン工科大学（ITB）の学生チームは、農地マッピング用の無人航空機（ドローン）技術の設計に成功した。",
+        note: "■ 【歴史と象徴】：1920年にオランダ植民地政府が設立した『バンドン工業高等専門学校（Technische Hoogeschool te Bandoeng）』を前身とし、初代スカルノ大統領（土木建築工学専攻）や第3代ハビビ大統領が学んだ名門。知恵の神『ガネーシャ（Ganesha）』をシンボルとし、工学・情報科学だけでなく美術デザイン学部（FSRD）や経営大学院（SBM ITB）でも国内トップを誇る。"
+      },
+      {
+        p: "singkatan", w: "IPB", r: "Institut Pertanian Bogor", alts: ["institut pertanian bogor", "ipb university"], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "ボゴール農科大学（西ジャワ州ボゴールのダルマガにメインキャンパスを置く、農学・林学・獣医学・水産学・生命科学分野の最高峰国立大学）",
+        ex: "Para peneliti dari IPB mengembangkan varietas bibit padi unggul yang tahan terhadap cuaca ekstrem.",
+        tr: "ボゴール農科大学（IPB）の研究者たちは、異常気象に強い優良な稲の種子品種を開発した。",
+        note: "■ 【正式名称】：Institut Pertanian Bogor（現在は国際呼称として IPB University も使用）。1963年にインドネシア大学（UI）の農学部・獣医学部から独立して創設され、第6代ユドヨノ大統領（農業経済学博士号取得）ら多くの閣僚・研究者を輩出している。"
+      },
+      {
+        p: "singkatan", w: "Unpad", r: "Universitas Padjadjaran", alts: ["universitas padjadjaran", "universitas pajajaran"], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "パジャジャラン大学（西ジャワ州バンドン市内［ディパティ・ウクール］および近郊スンダ高原のジャティナンゴールにキャンパスを構える名門国立総合大学）",
+        ex: "Fakultas Hukum dan Fakultas Kedokteran Unpad di Bandung selalu menjadi incaran utama para calon mahasiswa baru.",
+        tr: "バンドンにあるパジャジャラン大学（Unpad）の法学部と医学部は、常に大学受験生たちの最大の目標となっている。",
+        note: "■ 【名称の由来】：1957年創設。かつて西ジャワ（スンダ地方）で栄えたヒンドゥー王国『パジャジャラン王国（Kerajaan Pajajaran：名君プラブ・シリワンギ Prabu Siliwangi）』の名を冠しており、国内の全国大学入試（SNBP/SNBT）において毎年トップクラスの志願者数を集める超人気国立大学。"
+      },
+      {
+        p: "singkatan", w: "Unair", r: "Universitas Airlangga", alts: ["universitas airlangga"], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "アイルランガ大学（東ジャワ州スラバヤにある1954年創設の名門国立総合大学。特に医学部・歯学部・法学部・経済学部で全国屈指の伝統を誇る）",
+        ex: "Rumah Sakit Universitas Airlangga atau Unair di Surabaya menjadi pusat riset penyakit tropis terkemuka.",
+        tr: "スラバヤにあるアイルランガ大学（Unair）病院は、一流の熱帯病研究拠点となっている。",
+        note: "■ 【名称と歴史】：1913年設立のオランダ東インド医学校（NIAS）を起源とし、11世紀に東ジャワを統治した名君『アイルランガ王（Prabu Airlangga）』の名を冠する。シンボルはアイルランガ王が乗る神鳥ガルーダ・ムカ（Garuda Mukha）。"
+      },
+      {
+        p: "singkatan", w: "ITS", r: "Institut Teknologi Sepuluh Nopember", alts: ["institut teknologi sepuluh nopember"], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "スラバヤ工科大学、11月10日工科大学（東ジャワ州スラバヤにある国立工科大学。ITBと並ぶ理工系の双璧であり、造船・海洋工学やロボティクスで世界的に知られる）",
+        ex: "Tim robotika ITS Surabaya kembali meraih juara pertama dalam kontes robot tingkat internasional.",
+        tr: "スラバヤ工科大学（ITS）のロボティクスチームが、国際レベルのロボットコンテストで再び優勝を収めた。",
+        note: "■ 【名称の由来】：正式名称は Institut Teknologi Sepuluh Nopember（1945年11月10日のスラバヤ英雄戦の精神を記念して1957年に創設されたため、固有名詞として当時の旧綴り Nopember が残されている）。"
+      },
+      {
+        p: "singkatan", w: "Undip", r: "Universitas Diponegoro", alts: ["universitas diponegoro"], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "ディポヌゴロ大学（中部ジャワ州の州都スマランのトゥンバラン高地にメインキャンパスを置く、中部ジャワを代表する名門国立総合大学）",
+        ex: "Kampus Undip di kawasan Tembalang, Semarang, terus mengembangkan riset di bidang teknik dan kelautan.",
+        tr: "スマランのトゥンバラン地区にあるディポヌゴロ大学（Undip）キャンパスは、工学および海洋分野の研究を発展させ続けている。",
+        note: "■ 【名称の由来】：1825〜1830年のジャワ戦争（Perang Jawa）でオランダ植民地軍に対して果敢に戦ったジョグジャカルタ王宮の英雄『ディポヌゴロ王子（Pangeran Diponegoro）』の名を冠して1957年に創設。"
+      },
+      {
+        p: "singkatan", w: "Unhas", r: "Universitas Hasanuddin", alts: ["universitas hasanuddin"], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "ハサヌディン大学（南スラウェシ州の州都マカッサルにある、東部インドネシア地域で最大・最高峰の国立総合大学）",
+        ex: "Unhas di Makassar menjadi pusat pendidikan tinggi dan penelitian kemaritiman utama di kawasan Indonesia timur.",
+        tr: "マカッサルのハサヌディン大学（Unhas）は、東部インドネシア地域における主要な高等教育および海洋研究の中心地となっている。",
+        note: "■ 【名称の由来】：1956年創設。17世紀にオランダ東インド会社（VOC）に抵抗したゴワ・タッロ王国（マカッサル）の第16代国王であり、「東の闘鶏（Ayam Jantan dari Timur）」と称された民族英雄『スルタン・ハサヌディン（Sultan Hasanuddin）』の名を冠する。"
+      },
+      {
+        p: "singkatan", w: "UPI", r: "Universitas Pendidikan Indonesia", alts: ["universitas pendidikan indonesia"], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "インドネシア教育大学（西ジャワ州バンドン北部の高台に本部を置く、教育学・言語教育・教員養成分野におけるインドネシア最高峰の国立大学）",
+        ex: "Banyak mahasiswa asing yang mengikuti program bahasa dan budaya Indonesia di kampus UPI Bandung.",
+        tr: "多くの外国人留学生が、バンドンのインドネシア教育大学（UPI）キャンパスでインドネシア語・文化プログラムを受講している。",
+        note: "■ 【歴史と建築】：1954年に教員養成大学（PTPG ➔ 後の IKIP Bandung）として創設。キャンパス中央の本館『ヴィラ・イゾラ（Villa Isola / Bumi Siliwangi：1933年竣工の優美な白いアール・デコ建築）』はバンドン北部を代表する歴史的ランドマーク。"
+      },
+
+      // ==================== 4. インドネシアの代表料理・伝統食材・食文化（22語） ====================
+      {
+        p: "n", w: "rendang", r: "rendang", dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理",
+        m: "ルンダン（西スマトラ州ミナンカバウ族の伝統料理。牛肉を大量のココナッツミルクとレモングラス・ガランガル・唐辛子等のスパイスで水分がなくなるまで数時間煮詰めた濃厚な肉料理）",
+        ex: "Rendang daging sapi khas Sumatera Barat pernah dinobatkan sebagai salah satu makanan terlezat di dunia.",
+        tr: "西スマトラ名物の牛肉のルンダンは、世界で最も美味しい料理のひとつに選ばれたことがある。",
+        note: [
+          "■ 【調理段階と文化的意義】：\n・元々は調理技法『merendang（ココナッツミルクの油分が分離して焦げ茶色に乾くまでじっくり弱火で炒め煮にする）』を指す語。汁気が残る段階は **『グライ（Gulai）』**、さらに煮詰まって濃厚なソース状になった段階は **『カリオ（Kalio）』**、完全に水分が飛んで黒褐色になり常温で数週間保存可能になった完成形が **『ルンダン（Rendang）』** と呼ばれる。\n・ミナンカバウ社会では単なる料理ではなく、4つの主材料が社会全体の調和を象徴する儀礼食：①牛肉（dagiang）＝氏族長（Niniak Mamak）、②ココナッツ（karambia）＝知識人（Cadiak Pandai）、③唐辛子（lado）＝宗教指導者（Alim Ulama）、④調合スパイス（pemasak）＝社会全体。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "sate", r: "sate", dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理",
+        m: "サテ（一口大に切った鶏肉・ヤギ肉・牛肉などを竹串に刺して炭火で焼き、甘辛いピーナッツソースや甘口醤油ダレをかけて食べるインドネシアの代表的な串焼き料理）",
+        ex: "Aroma harum sate ayam yang dibakar di atas bara arang menarik perhatian para pejalan kaki.",
+        tr: "炭火の上で焼かれるサテ・アヤム（焼き鳥）の香ばしい匂いが、通行人たちの関心を惹きつけている。",
+        note: "■ 【正書法と地域バリエーション】：KBBIでは『sate』と『satai』の両方が収録されているが、日常・メニューでは99% **『sate』** が使われる。代表的な種類に、濃厚なピーナッツソースの『サテ・マドゥラ（Sate Madura）』、甘口醤油と刻み野菜のヤギ肉串『サテ・カンビン（Sate Kambing）』、ウコン風味の牛内臓串にトロトロの米粉カレーソースをかける西スマトラの『サテ・パダン（Sate Padang）』、魚のすり身をレモングラスの茎に巻きつけて焼くバリの『サテ・リリット（Sate Lilit）』がある。"
+      },
+      {
+        p: "n", w: "soto", r: "soto", dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理",
+        m: "ソト（ウコン・生姜・レモングラス・コブミカンの葉などのハーブとスパイスで鶏肉や牛肉を煮込んだインドネシア伝統のスープ料理）",
+        ex: "Semangkuk soto ayam hangat dengan perasan jeruk nipis sangat nikmat disantap saat cuaca dingin.",
+        tr: "ライムを絞った温かいソト・アヤム（鶏スープ）の1杯は、寒い天気の時に食べると格別に美味しい。",
+        note: "■ 【地域の多様性】：群島各地に70種類以上の郷土ソトが存在する。ウコンの黄色い澄んだ鶏スープにエビせんべいの粉（koya）をのせる東ジャワの『ソト・ラモンガン（Soto Lamongan）』、牛乳やココナッツミルクを使うジャカルタの濃厚な牛肉スープ『ソト・ブタウィ（Soto Betawi）』、スパイスが香る南カリマンタンの『ソト・バンジャル（Soto Banjar）』、炒ったピーナッツと40種のスパイスで牛内臓を煮込む南スラウェシの『チョト・マカッサル（Coto Makassar）』などが有名。"
+      },
+      {
+        p: "n", w: "bakso", r: "bakso", dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理",
+        m: "バクソ（牛肉のすり身とタピオカ粉を練って丸めた弾力のある肉団子、およびそれに麺・春雨・野菜・揚げワンタンを合わせた国民的スープ料理）",
+        ex: "Pedagang bakso keliling biasanya membunyikan mangkuk dengan sendok untuk memberi tanda kepada warga.",
+        tr: "移動屋台のバクソ売りは通常、住民に合図を送るためにスプーンでお椀をチンチンと鳴らす。",
+        note: "■ 【語源と種類】：福建語（Hokkien）の『肉酥（bak-so＝挽き肉）』に由来（イスラム教徒が大多数のインドネシアでは豚肉ではなく牛肉・鶏肉・魚肉で作られる）。中にうずら卵や辛い挽肉が入ったもの、腱（筋）入りの『バクソ・ウラット（bakso urat）』、テニスボール大の特大『バクソ・ブアナ／バクソ・テニス』、揚げ豆腐や焼売も入る東ジャワの『バクソ・マラン（Bakso Malang）』などがある。"
+      },
+      {
+        p: "n", w: "nasi goreng", r: "nasi", dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理",
+        m: "ナシゴレン（インドネシア風チャーハン。赤玉ねぎ・ニンニク・唐辛子のペーストと甘口醤油［ケチャップ・マニス］で香ばしく炒め、目玉焼きやクルプック・漬物を添える国民食）",
+        ex: "Nasi goreng yang dimasak dengan bumbu kecap manis dan disajikan bersama telur mata sapi sangat disukai wisatawan.",
+        tr: "甘口醤油（ケチャップ・マニス）の調味料で炒められ、目玉焼きと一緒に提供されるナシゴレンは観光客に大人気だ。",
+        note: "■ 【特徴】：他国のチャーハンとの最大の違いは、パームシュガー（椰子糖）入りの濃厚な甘口黒醤油 **『ケチャップ・マニス（kecap manis）』** と発酵エビペースト『トゥラシ（terasi）』を使ってコクと香ばしい焦げ茶色を出す点にある。"
+      },
+      {
+        p: "n", w: "gado-gado", r: "gado-gado", dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理",
+        m: "①ガドガド（茹でた野菜・ジャガイモ・ゆで卵・揚げ豆腐・テンペ・ロントンに濃厚なピーナッツソースをかけたジャカルタ・西ジャワ名物の温野菜サラダ） ②（比喩で）様々な要素や言語が混ざったごちゃ混ぜの状態",
+        ex: "Sepiring gado-gado terdiri atas rebusan sayur-sayuran segar, tahu, tempe, dan siraman bumbu kacang yang gurih.",
+        tr: "一皿のガドガドは、新鮮な茹で野菜、豆腐、テンペ、そして香ばしいピーナッツソースから成っている。",
+        note: "■ 【類似料理との違いと比喩】：\n・**gado-gado**：茹で野菜＋豆腐・テンペ・卵に調理済みのピーナッツソースをかける（ジャカルタ・西ジャワ）\n・**lotek（ロテック）**：スンダ地方（バンドン等）の茹で野菜サラダ（ソースにバンブー・クンチュール kencur［バンウコン］が効いている）\n・**karedok（カレドック）**：スンダ地方の「生の野菜」をピーナッツソースで和えるサラダ\n・**pecel（プチェル）**：中・東ジャワの茹で野菜ピーナッツソースかけ\n・また比喩表現で『bahasa gado-gado』は「インドネシア語と英語や地方語がごちゃ混ぜになった言葉遣い」を指す。"
+      },
+      {
+        p: "n", w: "tempe", r: "tempe", dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理",
+        m: "テンペ（茹でた大豆にテンペ菌［クモノスカビ］を植え、バナナの葉などで包んで発酵させ白い菌糸でブロック状に固めたジャワ発祥の伝統発酵大豆食品）",
+        ex: "Tempe dan tahu merupakan sumber protein nabati yang bergizi tinggi serta terjangkau bagi seluruh lapisan masyarakat.",
+        tr: "テンペと豆腐は、あらゆる階層の人々にとって栄養価が高く手頃な植物性タンパク質の供給源である。",
+        note: "■ 【歴史と食文化】：中国由来の『豆腐（tahu）』に対し、**『テンペ（tempe）』は16世紀以前からジャワ島で独自に生み出されたインドネシア固有の発酵食品**（19世紀のジャワ古典文献『スラット・チュンティニ Serat Centhini』にも記述がある）。薄切りにして衣をつけてサクサクに揚げた『テンペ・メンドアン（tempe mendoan）』や甘辛く炒めた『オレック・テンペ（orek tempe）』として毎日食卓にのぼる。なお古い慣用句『mental tempe（テンペのように柔らかいメンタル＝軟弱な精神）』は「くじけやすい」という比喩で使われる。"
+      },
+      {
+        p: "n", w: "tahu", r: "tahu", dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理",
+        m: "①豆腐（大豆の豆乳を凝固させた食品。福建語 tau-hu に由来） ②（※同音異義の動詞として）知る、分かっている（mengerti / kenal）",
+        ex: "Tahu Sumedang yang baru digoreng sangat nikmat dimakan hangat-hangat bersama cabai rawit hijau.",
+        tr: "揚げたてのスメダン豆腐（タフ・スメダン）は、緑の小唐辛子と一緒に熱々のうちに食べると非常に美味しい。",
+        note: "■ 【2つの同音異義語と料理】：\n・**¹tahu（動詞）**：知る、知っている（tidak tahu＝知らない、memberi tahu＝知らせる、pengetahuan＝知識）\n・**²tahu（名詞）**：豆腐。西ジャワ名物の外がカリッと中が空洞で柔らかい揚げ豆腐『タフ・スメダン（Tahu Sumedang）』、もやしや野菜を詰めて揚げた『タフ・イシ（tahu isi＝tahu berontak）』、ウコンで黄色く染めたクディリ名物『タフ・タクワ（tahu takwa）』などがある。"
+      },
+      {
+        p: "n", w: "sambal", r: "sambal", dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理",
+        m: "サンバル（唐辛子・赤玉ねぎ・ニンニク・トマト・発酵エビペースト［terasi］・ライムなどを石臼ですり潰して作るインドネシア料理に不可欠な辛味調味料）",
+        ex: "Bagi banyak orang Indonesia, makan terasa kurang lengkap tanpa kehadiran sambal yang pedas.",
+        tr: "多くのインドネシア人にとって、辛いサンバルがないと食事が物足りなく感じられる。",
+        note: "■ 【道具と代表種類】：石のすり鉢『チョベッ（cobek）』と石のすりこぎ『ウルカン（ulekan）』で材料をすり潰して（mengulek）作る。代表的なものに、発酵エビペースト入りの王道『サンバル・トゥラシ（sambal terasi）』、刻んだ生のエシャロット・レモングラス・コブミカンの葉に熱したココナッツオイルをかけるバリ名物『サンバル・マタ（sambal matah）』、パダン料理に添える緑唐辛子の『サンバル・イジョ（sambal ijo）』、超激辛の『サンバル・バワン（sambal bawang）』がある。"
+      },
+      {
+        p: "n", w: "kecap", r: "kecap", dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理",
+        m: "ケチャップ、インドネシアの醤油（特に大豆の発酵液にパームシュガー［椰子糖］を加えてトロリと甘く煮詰めた『ケチャップ・マニス kecap manis＝甘口黒醤油』）",
+        ex: "Tambahkan dua sendok makan kecap manis agar warna dan rasa nasi goreng menjadi lebih gurih.",
+        tr: "ナシゴレンの色と風味がよりコク深くなるよう、ケチャップ・マニス（甘口醤油）を大さじ2杯加えなさい。",
+        note: [
+          "■ 【超重要引っかけ注意：「トマトケチャップ」ではない！】】：\n・インドネシア語の **『kecap』** は大豆から作る **「醤油」** のこと！全体の9割を占めるトロリと甘い『kecap manis（甘口醤油）』と、日本や中国の醤油に近いサラサラした塩辛い『kecap asin（辛口醤油）』の2種類がある。\n・日本語の「トマトケチャップ」はインドネシア語では **『saus tomat』** と言う（ちなみに英語の ketchup の語源自体が、東南アジアに伝わった福建語の魚醤・醤油『kôe-chiap / ke-tsiap』に由来する）。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "kerupuk", r: "kerupuk", dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理",
+        m: "クルプック、揚げせんべい（タピオカ粉にエビや魚のすり身・ニンニクを練り込んで蒸し、薄く切って乾燥させてから油でサクサクに揚げたインドネシアの食卓に必須のせんべい）",
+        ex: "Nasi goreng dan soto biasanya selalu disajikan bersama kerupuk udang yang renyah.",
+        tr: "ナシゴレンやソトは通常、いつもサクサクしたエビせんべい（クルプック・ウダン）と一緒に提供される。",
+        note: "■ 【主な種類】：エビせんべい『kerupuk udang（シドアルジョ産が有名）』、魚せんべい『kerupuk ikan / kemplang（パレンバン産）』、白い渦巻き型で缶に入って食堂に置かれている『kerupuk putih / kerupuk kaleng』、ムリンジョ（melinjo）という木の実を潰して揚げたほろ苦い『ウンピン（emping）』、牛や水牛の皮を揚げた『kerupuk kulit（西スマトラでは jangek、ジャワでは rambak）』など。"
+      },
+      {
+        p: "n", w: "nasi tumpeng", r: "tumpeng", dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理",
+        m: "ナシ・トゥンプン（ウコンとココナッツミルクで黄色く炊いたご飯を聖なる火山［山］を象徴する円錐形に高く盛り付け、周囲に7種類以上のおかずを彩りよく並べたインドネシアの伝統祝祭料理）",
+        ex: "Acara peresmian kantor cabang baru itu ditandai dengan pemotongan pucuk nasi tumpeng oleh direktur utama.",
+        tr: "その新支店の開所式は、代表取締役社長によるナシ・トゥンプンの頂上の切り分け（ポトン・トゥンプン）によって祝われた。",
+        note: "■ 【文化的意味】：日本の鏡開きやケーキ入刀にあたり、創立記念日・開所式・誕生日・感謝祭（syukuran）などで円錐形の黄色いご飯（nasi kuning）の頂上部を切り分けて最も敬う人に手渡す儀式 **『ポトン・トゥンプン（potong tumpeng）』** が行われる。"
+      },
+      {
+        p: "n", w: "ketupat", r: "ketupat", dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理",
+        m: "クトゥパット（ココナッツの若葉［janur］をひし形の格子状に編んだ包みの中に米を入れて長時間茹で上げた伝統的な米餅。断食明け大祭［レバラン］の象徴的な祝祭食）",
+        ex: "Menjelang Hari Raya Idulfitri, warga membuat ketupat untuk disantap bersama opor ayam dan rendang.",
+        tr: "イドゥル・フィトリ（断食明け大祭）を前に、住民たちはオポル・アヤムやルンダンと一緒に食べるためのクトゥパットを作る。",
+        note: "■ 【哲学的意味】：ワリ・ソンゴの一人スナン・カリジャガが広めたとされるジャワ語の語呂合わせ哲学で、クトゥパット（ジャワ語で『Kupat』）は **『Ngaku Lepat（自らの過ちを認めて謝罪する）』** と **『Laku Papat（4つの徳行）』** を意味し、網目模様は人間の複雑な過ちを、中から現れる真っ白な米餅は断食と許し合いによって清められた純白の心を象徴している。"
+      },
+      {
+        p: "n", w: "lontong", r: "lontong", dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理",
+        m: "ロントン（バナナの葉で米を円筒状に固く巻いて数時間茹で上げ、米粒を一体化させた伝統的な米ケーキ。輪切りにしてサテやガドガド、ココナッツ野菜スープと一緒に食べる）",
+        ex: "Sate ayam Madura biasanya disajikan di atas piring bersama potongan lontong dan bumbu kacang.",
+        tr: "マドゥラ風サテ・アヤムは通常、輪切りのロントンとピーナッツソースと一緒に皿に盛り付けて提供される。",
+        note: "■ 【ketupat と lontong の違い】：どちらも米を詰めて茹で固めた米餅だが、**『ketupat』** は「ヤシの若葉（janur）を編んだひし形の袋」で茹でる（主にレバラン祝祭用）のに対し、**『lontong』** は「バナナの葉（daun pisang）で巻いた細長い円筒形」で茹でる（一年中屋台や朝食の lontong sayur 等で食べられる）。"
+      },
+      {
+        p: "n", w: "opor ayam", r: "opor", dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理",
+        m: "オポル・アヤム（鶏肉をココナッツミルクとレモングラス・ガランガル・キャンドルナッツ・コリアンダー等のスパイスでまろやかに煮込んだ白いココナッツ煮込み料理。レバランの定番食）",
+        ex: "Hidangan opor ayam yang gurih selalu menjadi menu wajib saat keluarga berkumpul pada hari Lebaran.",
+        tr: "まろやかでコクのあるオポル・アヤムの料理は、レバランの日に家族が集まる際の必須メニューとなっている。",
+        note: "■ 【特徴】：唐辛子を使わない（または控えめな）白〜淡黄色の優しい味わいのココナッツミルク煮込みで、クトゥパット（ketupat）や揚げエシャロット（bawang goreng）と相性抜群の国民的家庭料理。"
+      },
+      {
+        p: "n", w: "gudeg", r: "gudeg", dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理",
+        m: "グドゥッ（ジョグジャカルタを代表する伝統郷土料理。若いジャックフルーツ［パラミツ：nangka muda］をココナッツミルクとパームシュガー、チークの葉と一緒に数時間甘く茶色く煮込んだ料理）",
+        ex: "Kota Yogyakarta dijuluki sebagai Kota Gudeg karena kuliner manis berbahan nangka muda itu sangat terkenal di sana.",
+        tr: "ジョグジャカルタ市は、若いジャックフルーツを原料とするその甘い料理が非常に有名であることから「グドゥッの街」と称されている。",
+        note: "■ 【特徴】：一緒に煮込むチークの若葉（daun jati）によって独特の赤茶色に染まる。通常はご飯の上にグドゥッ、鶏肉、煮卵、そして牛皮をピリ辛に煮込んだ『クレチェッ（sambal goreng krecek）』と濃厚なココナッツミルクソース（areh）を添えて提供される。"
+      },
+      {
+        p: "n", w: "pempek", r: "pempek", dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理",
+        m: "プンペック（南スマトラ州パレンバンの名物料理。魚のすり身とタピオカ粉を練って成形して茹でた後に揚げ、黒糖・唐辛子・ニンニク・タマリンドで作る甘酸っぱく辛い黒酢だれ「チュコ」で食べる料理）",
+        ex: "Pempek kapal selam yang berisi telur ayam utuh di dalamnya disajikan bersama kuah cuko khas Palembang.",
+        tr: "中に鶏卵が丸ごと1個入った「プンペック・カパル・スラム（潜水艦型プンペック）」は、パレンバン特有のチュコ（黒酢だれ）と一緒に提供される。",
+        note: "■ 【語源と種類】：植民地時代にパレンバンで魚のすり身揚げを売り歩いた中華系のおじさんを『アペック（apek＝伯父さん）』と呼んだことがなまって『pempek（または empek-empek）』となったとされる。中に卵を包んだ一番人気の『カパル・スラム（kapal selam＝潜水艦）』、細長い『レンジェル（lenjer）』、丸い『アダーン（adaan）』などがある。"
+      },
+      {
+        p: "n", w: "rawon", r: "rawon", dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理",
+        m: "ラウォン（東ジャワ州スラバヤ周辺の伝統料理。「クルワッ［kluwek］」という発酵させた木の実のスパイスを使った、漆黒の色合いと深いコクが特徴の牛肉スープ）",
+        ex: "Kuah rawon berwarna hitam pekat karena menggunakan bumbu tradisional dari biji keluak pilihan.",
+        tr: "ラウォンのスープは厳選されたクルワッ（keluak）の種子の伝統スパイスを使用しているため、濃い黒色をしている。",
+        note: "■ 【特徴】：生のままでは毒性があるパンギノキの種子を発酵・灰漬けにして無毒化した黒いスパイス『クルワッ（keluak / kluwek）』を使うことで、イカスミや黒ゴマとは全く異なるナッツのような香ばしい漆黒のスープになる。短い生のもやし（taoge pendek）と塩漬けアヒル卵（telur asin）を添えて食べる。"
+      },
+      {
+        p: "n", w: "martabak", r: "martabak", dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理",
+        m: "マルタバック（インドネシアの夜の屋台を代表する2大鉄板料理。①挽肉と溶き卵・ネギを薄い小麦粉生地で包んで揚げ焼きにする塩味の『マルタバック・トゥロール』と、②厚いパンケーキ生地にチョコやチーズ等を挟む甘味の『マルタバック・マニス』）",
+        ex: "Saat berkunjung ke rumah teman pada malam hari, banyak orang membawa martabak manis sebagai buah tangan.",
+        tr: "夜に友人の家を訪ねる際、多くの人が手土産としてマルタバック・マニス（甘いマルタバック）を持っていく。",
+        note: [
+          "■ 【全く異なる2種類の Martabak】：\n① **Martabak Telur (Martabak Asin)**：アラブ・インド由来の塩味のお惣菜マルタバック。薄く伸ばした生地にアヒルや鶏の卵・味付けした牛挽肉・長ネギを包んで鉄板の油でカリッと焼き上げる。\n② **Martabak Manis (Terang Bulan)**：バンカ島の中華系菓子『Hok Lo Pan』に由来する甘いスイーツ。重曹で蜂の巣状にふっくら焼き上げた厚い円形パンケーキにたっぷりのバターを塗り、チョコレートスプレー・おろしチーズ・砕いたピーナッツ・ゴマ・練乳を挟んで半分に折りたたんだ高カロリーで最高に美味しい国民的夜食（東ジャワやスラウェシ等では **『トゥラン・ブラン（Terang Bulan＝満月）』**、バンドンでは『Kue Bandung』とも呼ばれる）。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "kolak", r: "kolak", dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理",
+        m: "コラック（バナナやサツマイモ、カボチャなどをココナッツミルクとパームシュガー［椰子糖］、香り高いパンダンの葉で甘く煮込んだ伝統デザートスープ。ラマダン断食明けの軽食［takjil］の代表格）",
+        ex: "Ibu memasak kolak pisang dan ubi jalar dengan kuah santan gula aren untuk hidangan berbuka puasa.",
+        tr: "母は断食明けの食事のために、パームシュガーとココナッツミルクの汁でバナナとサツマイモのコラックを作った。",
+        note: "■ 【コロケーション】：kolak pisang（バナナのコラック）、kolak biji salak（サツマイモ団子のコラック）、daun pandan（甘いバニラに似た香りを出すパンダンの葉）。"
+      },
+      {
+        p: "n", w: "cendol", r: "cendol", dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理",
+        m: "チェンドル、エス・チェンドル（米粉や緑豆粉にパンダンやスジの葉の緑色の絞り汁を混ぜてところてん状に押し出した緑のゼリー麺に、ココナッツミルクと濃厚なパームシュガーシロップ、氷をかけた伝統甘味飲料）",
+        ex: "Minuman es cendol yang manis dan segar sangat cocok dinikmati pada siang hari yang terik.",
+        tr: "甘くて爽やかな冷たいエス・チェンドルの飲み物は、日差しの照りつける昼間に楽しむのにぴったりだ。",
+        note: "■ 【地域による呼び分け】：西ジャワ（バンドン等のスンダ地方）では緑豆粉や米粉で作る **『エス・チェンドル（Es Cendol）』**、中部・東ジャワ（バンジャルネガラやジョグジャ・ソロ等）ではアレンヤシ澱粉や米粉で作る **『エス・ダウェット（Es Dawet）』** と呼ばれる。"
+      },
+      {
+        p: "n", w: "jamu", r: "jamu", dictOnly: true, tier: 3, topicCat: "🏥 健康・身体・感情",
+        m: "①ジャムウ（ウコン・生姜・ガランガル・タマリンドなどの根茎や薬草・スパイスを調合して作るインドネシア伝統の生薬・ハーブ健康飲料。2023年ユネスコ無形文化遺産登録） ②（※同音異義の語根として）客、もてなし（menjamu＝客をもてなす、jamuan＝宴席）",
+        ex: "Budaya sehat jamu dari Indonesia telah ditetapkan oleh UNESCO sebagai warisan budaya takbenda dunia pada tahun 2023.",
+        tr: "インドネシアのジャムウ健康文化は、2023年にユネスコによって世界の無形文化遺産に認定された。",
+        note: [
+          "■ 【代表的な2大ジャムウメニュー】：\n・**Kunyit Asam（クニット・アサム）**：ウコン（kunyit）とタマリンド（asam jawa）・パームシュガーで作る爽やかな甘酸っぱい黄色いジャムウ（抗炎症・美肌・疲労回復）\n・**Beras Kencur（ブラス・クンチュール）**：炒った米粉（beras）とバンウコン（kencur＝芳香のある生姜科の根茎）・生姜で作る甘くスパイシーな白いジャムウ（食欲増進・体力回復・喉や筋肉のケア）\n・伝統的にバティックの布で背中に瓶入りの籠を背負って売り歩く女性は『Jamu Gendong（ジャムウ・ゲンドン）』と呼ばれる。\n■ 【同音異義語】：語幹 ¹jamu（客）から派生する他動詞『menjamu（客をもてなす／ホームチームが対戦相手を迎え撃つ）』、名詞『jamuan makan malam（晩餐会）』との区別に注意！"
+        ].join("\n")
+      }
+    ],
+    acro: [
+      {
+        acro: "PDIP",
+        full: "partai demokrasi indonesia perjuangan",
+        alts: ["pdi perjuangan", "pdi-p"],
+        dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        tr: "闘争民主党（メガワティ党首が率いる民族主義主要政党）",
+        exp: "■ 【正式名称】：Partai Demokrasi Indonesia Perjuangan。"
+      },
+      {
+        acro: "Golkar",
+        full: "partai golongan karya",
+        alts: ["golongan karya"],
+        dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        tr: "ゴルカル党（職能集団党）",
+        exp: "■ 【正式名称】：Partai GOLongan KARya。"
+      },
+      {
+        acro: "Gerindra",
+        full: "partai gerakan indonesia raya",
+        alts: ["gerakan indonesia raya"],
+        dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        tr: "グリンドラ党（大インドネシア運動党）",
+        exp: "■ 【正式名称】：Partai GERakan INDonesia RAya。"
+      },
+      {
+        acro: "NasDem",
+        full: "partai nasional demokrat",
+        alts: ["nasional demokrat"],
+        dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        tr: "ナスデム党（国民民主党）",
+        exp: "■ 【正式名称】：Partai NASional DEMokrat。"
+      },
+      {
+        acro: "PAN",
+        full: "partai amanat nasional",
+        alts: [],
+        dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        tr: "国民信託党",
+        exp: "■ 【正式名称】：Partai Amanat Nasional。"
+      },
+      {
+        acro: "PPP",
+        full: "partai persatuan pembangunan",
+        alts: [],
+        dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        tr: "開発統一党",
+        exp: "■ 【正式名称】：Partai Persatuan Pembangunan。"
+      },
+      {
+        acro: "NU",
+        full: "nahdlatul ulama",
+        alts: [],
+        dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        tr: "ナフダトゥル・ウラマー（1926年創設・世界最大の伝統派イスラム社会組織）",
+        exp: "■ 【正式名称】：Nahdlatul Ulama（中央執行部は PBNU）。"
+      },
+      {
+        acro: "MUI",
+        full: "majelis ulama indonesia",
+        alts: [],
+        dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        tr: "インドネシア・ウラマー評議会（ファトワ発出やハラール基準を担うイスラム法学者評議会）",
+        exp: "■ 【正式名称】：Majelis Ulama Indonesia。"
+      },
+      {
+        acro: "UI",
+        full: "universitas indonesia",
+        alts: [],
+        dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        tr: "インドネシア大学（ジャカルタ＆デポック）",
+        exp: "■ 【正式名称】：Universitas Indonesia。"
+      },
+      {
+        acro: "UGM",
+        full: "universitas gadjah mada",
+        alts: [],
+        dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        tr: "ガジャマダ大学（ジョグジャカルタ）",
+        exp: "■ 【正式名称】：Universitas Gadjah Mada。"
+      },
+      {
+        acro: "ITB",
+        full: "institut teknologi bandung",
+        alts: [],
+        dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        tr: "バンドン工科大学（西ジャワ州バンドン）",
+        exp: "■ 【正式名称】：Institut Teknologi Bandung。"
+      },
+      {
+        acro: "IPB",
+        full: "institut pertanian bogor",
+        alts: ["ipb university"],
+        dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        tr: "ボゴール農科大学（西ジャワ州ボゴール）",
+        exp: "■ 【正式名称】：Institut Pertanian Bogor。"
+      },
+      {
+        acro: "Unpad",
+        full: "universitas padjadjaran",
+        alts: ["universitas pajajaran"],
+        dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        tr: "パジャジャラン大学（西ジャワ州バンドン＆ジャティナンゴール）",
+        exp: "■ 【正式名称】：UNiversitas PADjadjaran。"
+      },
+      {
+        acro: "Unair",
+        full: "universitas airlangga",
+        alts: [],
+        dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        tr: "アイルランガ大学（東ジャワ州スラバヤ）",
+        exp: "■ 【正式名称】：UNiversitas AIRlangga。"
+      },
+      {
+        acro: "ITS",
+        full: "institut teknologi sepuluh nopember",
+        alts: [],
+        dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        tr: "スラバヤ工科大学（11月10日工科大学・東ジャワ州スラバヤ）",
+        exp: "■ 【正式名称】：Institut Teknologi Sepuluh Nopember。"
+      },
+      {
+        acro: "Undip",
+        full: "universitas diponegoro",
+        alts: [],
+        dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        tr: "ディポヌゴロ大学（中部ジャワ州スマラン）",
+        exp: "■ 【正式名称】：UNiversitas DIPonegoro。"
+      },
+      {
+        acro: "Unhas",
+        full: "universitas hasanuddin",
+        alts: [],
+        dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        tr: "ハサヌディン大学（南スラウェシ州マカッサル）",
+        exp: "■ 【正式名称】：UNiversitas HASanuddin。"
+      },
+      {
+        acro: "UPI",
+        full: "universitas pendidikan indonesia",
+        alts: [],
+        dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        tr: "インドネシア教育大学（西ジャワ州バンドン）",
+        exp: "■ 【正式名称】：Universitas Pendidikan Indonesia。"
+      }
+    ]
+  };
+
+  if (Array.isArray(d.singkatan)) {
+    PACK_PART6_INSTITUTIONS_CULINARY.acro.forEach(function(a) {
+      const codeLow = a.acro.trim().toLowerCase();
+      const vObj = PACK_PART6_INSTITUTIONS_CULINARY.vocab.find(x => x.w.trim().toLowerCase() === codeLow);
+      if (vObj && !d.singkatan.some(s => s && s.w && s.w.trim().toLowerCase() === codeLow)) {
+        d.singkatan.push(vObj);
+      }
+    });
+  }
+
+  PACK_PART6_INSTITUTIONS_CULINARY.vocab.forEach(function(it) {
+    dictOnlySet.add(it.w.trim().toLowerCase());
+  });
+  PACK_PART6_INSTITUTIONS_CULINARY.acro.forEach(function(a) {
+    dictOnlySet.add(a.acro.trim().toLowerCase());
+  });
+
+  if (typeof window.wiAddPack === "function") {
+    window.wiAddPack(PACK_PART6_INSTITUTIONS_CULINARY);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 国名・都市名・島名ブロック完全解除 ＆ 第1弾〜第6弾 100%強制反映パッチ
+   - 過去パッチ(Part2/Part11)の遅延タイマー(50ms/125ms)による国名・都市名の自動削除を完全無効化
+   - wiAddPack の連続呼び出し時に2個目以降のパックが遅延再注入されない問題を根治
+   - 第4弾の全65語（国名・地域・大洋・略語）および第1〜6弾の全追加語を100%辞書に定着させます
+   ===================================================================== */
+(function() {
+  const d = window.WHATSINDO_EXTERNAL_DATA;
+  if (!d || !Array.isArray(d.vocab)) return;
+
+  // 1. d.vocab.push に掛けられていた過去パッチの削除フィルターを完全解除し純正に戻す
+  d.vocab.push = Array.prototype.push;
+
+  const dictOnlySet     = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+  const persistentAdded = window.__wiPersistentAddedVocab || (window.__wiPersistentAddedVocab = new Map());
+  const persistentAcro  = window.__wiPersistentAddedAcro  || (window.__wiPersistentAddedAcro  = new Map());
+  const vMap            = window.__wiMasterVocabMap || (window.__wiMasterVocabMap = new Map());
+  const catMap          = window.__WI_V5_VCAT || (window.__WI_V5_VCAT = new Map());
+
+  // 2. 第4弾の国名・地域・大洋（全65語）を保護マスターに確実登録
+  const COUNTRIES_RESCUE_LIST = [
+    {
+      p: "n", w: "Indonesia", r: "Indonesia", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "インドネシア（東南アジアに位置する世界最大の群島国家。正式国名はインドネシア共和国 Republik Indonesia）",
+      ex: "Indonesia merupakan negara kepulauan terbesar di dunia yang memiliki keragaman suku, budaya, dan bahasa daerah.",
+      tr: "インドネシアは多様な民族、文化、地方言語を有する世界最大の群島国家である。",
+      note: "■ 【国名の語源】：ギリシャ語の『Indos（インド）』＋『nesos（島々）』に由来。\n■ 【基本データ】：1945年8月17日独立宣言。国是は『Bhinneka Tunggal Ika（多様性の中の統一）』、建国五原則は『Pancasila（パンチャシラ）』。17,000以上の島々から成る世界最大の群島国家。"
+    },
+    {
+      p: "n", w: "Jepang", r: "Jepang", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "日本（東アジアの島国。インドネシアにとって最大級の貿易・投資・インフラ開発パートナー国）",
+      ex: "Jepang dikenal sebagai salah satu mitra dagang dan investor terbesar bagi pembangunan infrastruktur di Indonesia.",
+      tr: "日本はインドネシアのインフラ開発における最大の貿易相手国および投資国のひとつとして知られている。",
+      note: "■ 【雅称】：『Negeri Sakura（桜の国）』『Negeri Matahari Terbit（日出ずる国）』。\n■ 【コロケーション】：bahasa Jepang（日本語）、orang Jepang（日本人）。"
+    },
+    {
+      p: "n", w: "Tiongkok", r: "Tiongkok", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "中国、中華人民共和国（Republik Rakyat Tiongkok / RRT：インドネシア最大の貿易相手国）",
+      ex: "Volume perdagangan ekspor dan impor antara Indonesia dan Tiongkok terus meningkat dari tahun ke tahun.",
+      tr: "インドネシアと中国の間の輸出入貿易量は、年々増加し続けている。",
+      note: "■ 【Tiongkok / Tionghoa / China / Cina の使い分け】：\n・Tiongkok：「中国（国家・地理）」を指す現在の公的標準語（2014年大統領決定第12号で公式規定）。\n・Tionghoa：「中華系の（民族・文化・人々）」（例：warga Tionghoa）。\n・China：英語由来でニュース記事（Kompas等）で広く併用される。\n・雅称は『Negeri Tirai Bambu（竹のカーテンの国）』。"
+    },
+    {
+      p: "n", w: "China", r: "Tiongkok", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "中国、中華人民共和国（＝Tiongkok：ニュース記事や経済報道で Tiongkok と並んで広く使われる表記）",
+      ex: "Ekspor komoditas batu bara dan nikel Indonesia sebagian besar dikirim ke pasar China.",
+      tr: "インドネシアの石炭およびニッケル産品の輸出の大部分は、中国市場へと送られている。",
+      note: "■ 【語法】：公的文書では『Tiongkok』が正式名称だが、報道では『China』も標準的に使われる（Laut China Selatan＝南シナ海など）。"
+    },
+    {
+      p: "n", w: "Cina", r: "Tiongkok", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "中国、中華系の（※現在は公的・丁寧な呼称として国家には Tiongkok、民族・文化には Tionghoa を用いる）",
+      ex: "Sejak tahun 2014, pemerintah secara resmi menggunakan istilah Tiongkok untuk menggantikan sebutan Cina.",
+      tr: "2014年以降、政府は「Cina」という呼称に代えて公式に「Tiongkok」という用語を使用している。",
+      note: "■ 【背景】：2014年の大統領決定により、公的呼称は国家が『Tiongkok』、民族・文化が『Tionghoa』に統一された。"
+    },
+    {
+      p: "n", w: "Korea Selatan", r: "Korea", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "韓国、大韓民国（略称は Korsel。K-POPやドラマ、EV・鉄鋼・化学投資で存在感が大きい国）",
+      ex: "Musik pop dan drama televisi asal Korea Selatan sangat digemari oleh generasi muda di Indonesia.",
+      tr: "韓国発のポップミュージックやテレビドラマは、インドネシアの若い世代に大人気だ。",
+      note: "■ 【略称と雅称】：ニュース見出しでは『Korsel（Korea Selatan）』と略される。雅称は『Negeri Ginseng（高麗人参の国）』。"
+    },
+    {
+      p: "singkatan", w: "Korsel", r: "Korea Selatan", alts: ["korea selatan"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "韓国、大韓民国（Korea Selatan の合成アクロニム）",
+      ex: "Tim bulu tangkis Indonesia akan menghadapi wakil Korsel pada pertandingan babak semifinal besok.",
+      tr: "インドネシアのバドミントンチームは、明日の準決勝で韓国（Korsel）代表と対戦する。",
+      note: "■ 【対になる略語】：Korsel（Korea Selatan＝韓国） ⇔ Korut（Korea Utara＝北朝鮮）。"
+    },
+    {
+      p: "n", w: "Korea Utara", r: "Korea", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "北朝鮮、朝鮮民主主義人民共和国（略称は Korut）",
+      ex: "Situasi keamanan di Semenanjung Korea kembali menjadi perhatian setelah uji coba rudal Korea Utara.",
+      tr: "北朝鮮のミサイル発射実験を受け、朝鮮半島の安全保障情勢が再び注目を集めている。",
+      note: "■ 【外交】：インドネシアは非同盟運動の伝統により、韓国（Korsel）と北朝鮮（Korut）の双方と外交関係を維持している。"
+    },
+    {
+      p: "singkatan", w: "Korut", r: "Korea Utara", alts: ["korea utara"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "北朝鮮（Korea Utara の合成アクロニム）",
+      ex: "Kedutaan Besar RI di Pyongyang memfasilitasi hubungan diplomatik antara Indonesia dan Korut.",
+      tr: "平壌のインドネシア共和国大使館は、インドネシアと北朝鮮（Korut）の間の外交関係を取り持っている。",
+      note: "■ 【正式名称】：KORea UTara（北朝鮮）。"
+    },
+    {
+      p: "n", w: "Taiwan", r: "Taiwan", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+      m: "台湾（東アジアの島・地域。インドネシア人海外労働者［PMI］の主要な就労先であり重要な貿易パートナー）",
+      ex: "Ratusan ribu pekerja migran asal Indonesia bekerja di sektor manufaktur dan perawatan lansia di Taiwan.",
+      tr: "数十万人のインドネシア出身海外労働者が、台湾の製造業および高齢者介護セクターで働いている。",
+      note: "■ 【経済】：台北とジャカルタに経済貿易代表部（KDEI / TETO）を置いて活発な経済・労働交流を行っている。"
+    },
+    {
+      p: "n", w: "Singapura", r: "Singapura", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+      m: "シンガポール（リアウ諸島州バタム島の対岸に位置する都市国家。インドネシアへの最大の直接投資元国）",
+      ex: "Dari Pulau Batam di Kepulauan Riau, kita dapat menyeberang ke Singapura dengan kapal feri hanya dalam waktu satu jam.",
+      tr: "リアウ諸島州のバタム島からは、フェリーでわずか1時間でシンガポールへ渡ることができる。",
+      note: "■ 【語源】：サンスクリット語の『Singha（ライオン）』＋『Pura（都市）』＝「ライオンの都（Negeri Singa）」。"
+    },
+    {
+      p: "n", w: "Malaysia", r: "Malaysia", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "マレーシア（カリマンタン島で陸上の国境を接し、マラッカ海峡を挟んでスマトラ島と向かい合う隣国）",
+      ex: "Indonesia dan Malaysia disebut sebagai negara serumpun karena memiliki akar bahasa dan budaya Melayu yang sangat dekat.",
+      tr: "インドネシアとマレーシアは、非常に近いマレーの言語と文化のルーツを持っているため「同根の国」と呼ばれる。",
+      note: "■ 【必須表現】：ニュースでは『Negeri Jiran（隣国）』や『negara serumpun（同根の国）』と呼ばれる。"
+    },
+    {
+      p: "n", w: "Thailand", r: "Thailand", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "タイ（東南アジア大陸部の中心国。1967年にインドネシア等とともにASEANを創設した原加盟国）",
+      ex: "Thailand dan Indonesia bekerja sama erat dalam menjaga stabilitas ekonomi dan pangan di kawasan Asia Tenggara.",
+      tr: "タイとインドネシアは、東南アジア地域の経済と食料の安定を守るため緊密に協力している。",
+      note: "■ 【雅称】：『Negeri Gajah Putih（白象の国）』。文語・歴史表記では『Muangthai』とも呼ばれる。"
+    },
+    {
+      p: "n", w: "Filipina", r: "Filipina", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "フィリピン（スラウェシ海の北に位置する東南アジアの群島国家。首都はマニラ Manila）",
+      ex: "Sama seperti Indonesia, Filipina juga merupakan negara kepulauan besar yang terletak di kawasan Asia Tenggara.",
+      tr: "インドネシアと同様に、フィリピンも東南アジア地域に位置する大きな群島国家である。",
+      note: "■ 【正書法】：英語の Philippines に対し、インドネシア語では F で始まる『Filipina』と綴る。"
+    },
+    {
+      p: "n", w: "Vietnam", r: "Vietnam", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+      m: "ベトナム（インドシナ半島東岸のASEAN加盟国。首都はハノイ Hanoi）",
+      ex: "Pertumbuhan sektor manufaktur dan ekspor elektronik di Vietnam berlangsung sangat pesat dalam satu dekade terakhir.",
+      tr: "ベトナムにおける製造業セクターと電子機器輸出の成長は、過去10年間で非常に急速に進んでいる。",
+      note: "■ 【関係】：東南アジアにおいてインドネシアと並び高い経済成長を続ける製造業・農水産輸出国。"
+    },
+    {
+      p: "n", w: "Kamboja", r: "Kamboja", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "①カンボジア（東南アジア大陸部の王国・首都プノンペン） ②（bunga kamboja で）プルメリアの花",
+      ex: "Indonesia pernah berperan aktif sebagai mediator dalam proses perdamaian konflik di Kamboja melalui Jakarta Informal Meeting.",
+      tr: "インドネシアはかつて「ジャカルタ非公式会合（JIM）」を通じて、カンボジア紛争の和平プロセスで積極的な仲介役を果たした。",
+      note: "■ 【2つの意味】：①国名の『Kamboja（カンボジア）』、②南国の花プルメリア『bunga kamboja』。"
+    },
+    {
+      p: "n", w: "Laos", r: "Laos", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "ラオス（東南アジアで唯一の海に面していない内陸国・ASEAN加盟国。首都はビエンチャン）",
+      ex: "Laos merupakan satu-satunya negara anggota ASEAN di kawasan Asia Tenggara yang tidak memiliki wilayah laut.",
+      tr: "ラオスは東南アジア地域のASEAN加盟国の中で、海域を持たない唯一の国（内陸国）である。",
+      note: "■ 【特徴】：メコン川流域に位置し、水力発電による電力輸出が盛ん。"
+    },
+    {
+      p: "n", w: "Myanmar", r: "Myanmar", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "ミャンマー（東南アジア西端のASEAN加盟国。旧称ビルマ Birma / Burma）",
+      ex: "Para menteri luar negeri ASEAN menggelar pertemuan khusus untuk membahas penyelesaian krisis kemanusiaan di Myanmar.",
+      tr: "ASEAN外相たちは、ミャンマーにおける人道危機の解決を議論するため特別会合を開催した。",
+      note: "■ 【歴史表記】：旧称はインドネシア語で『Birma（ビルマ）』。"
+    },
+    {
+      p: "n", w: "Brunei Darussalam", r: "Brunei", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "ブルネイ・ダルサラーム国（カリマンタン島北岸に位置するイスラム君主国・ASEAN加盟国）",
+      ex: "Brunei Darussalam merupakan negara di Pulau Kalimantan yang memiliki pendapatan per kapita tinggi dari sektor minyak dan gas.",
+      tr: "ブルネイ・ダルサラームはカリマンタン島に位置する国で、石油・天然ガス部門による高い一人当たり所得を有している。",
+      note: "■ 【語源】：『Darussalam』はアラビア語で「平和の郷」の意。"
+    },
+    {
+      p: "n", w: "Timor Leste", r: "Timor", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "東ティモール（ティモール島東半分を占める共和国・首都ディリ Dili。2002年独立）",
+      ex: "Pos lintas batas negara di Kabupaten Belu menghubungkan Provinsi Nusa Tenggara Timur dengan negara Timor Leste.",
+      tr: "ベル県の国境検問所は、東ヌサ・トゥンガラ州と東ティモール国を結んでいる。",
+      note: "■ 【歴史】：1976〜1999年のインドネシア統治時代には『東ティモール州（Timor Timur / Timtim）』と呼ばれた。"
+    },
+    {
+      p: "n", w: "India", r: "India", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "インド（南アジアの大国。古代よりヒンドゥー・仏教文化やサンスクリット語彙を群島にもたらした国）",
+      ex: "Pengaruh kebudayaan Hindu dan Buddha dari India tampak jelas pada arsitektur candi-candi kuno di Pulau Jawa.",
+      tr: "インドからのヒンドゥー教および仏教文化の影響は、ジャワ島の古代寺院の建築に明確に表れている。",
+      note: "■ 【重要区別】：国名のインドは『India』、インド洋は H が付く『Samudra Hindia』。"
+    },
+    {
+      p: "n", w: "Australia", r: "Australia", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "オーストラリア、豪州（インドネシアの南に隣接する大陸国家。雅称は Negeri Kanguru）",
+      ex: "Karena letaknya yang berdekatan di sebelah selatan, banyak pelajar Indonesia yang melanjutkan kuliah ke Australia.",
+      tr: "南側に隣接して位置しているため、多くのインドネシア人学生がオーストラリアへ進学・留学する。",
+      note: "■ 【雅称】：『Negeri Kanguru（カンガルーの国）』。"
+    },
+    {
+      p: "n", w: "Selandia Baru", r: "Selandia", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "ニュージーランド（英語の New Zealand にあたるインドネシア語国名）",
+      ex: "Indonesia mengimpor berbagai produk susu dan keju berkualitas tinggi dari peternakan di Selandia Baru.",
+      tr: "インドネシアはニュージーランドの牧場から、高品質な様々な乳製品やチーズを輸入している。",
+      note: "■ 【語源】：オランダのゼーラント州（Zeeland ➔ ラテン語名 Nova Zeelandia）の前半が音変化して『Selandia』、New が『Baru』となった重要国名。"
+    },
+    {
+      p: "n", w: "Papua Nugini", r: "Papua", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "パプアニューギニア（ニューギニア島の東半分を占め、インドネシアのパプアと陸上国境を接する隣国。略称 PNG）",
+      ex: "Warga di daerah perbatasan Papua sering berbelanja di pasar tradisional lintas batas antara Indonesia dan Papua Nugini.",
+      tr: "パプアの国境地域の住民は、インドネシアとパプアニューギニアの間の国境越え伝統市場でしばしば買い物をする。",
+      note: "■ 【表記】：New Guinea を音訳して『Nugini』と綴る。略称は『PNG』。"
+    },
+    {
+      p: "n", w: "Arab Saudi", r: "Arab", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "サウジアラビア（イスラム教の二大聖地メッカとメディナを擁する中東の王国）",
+      ex: "Setiap tahun lebih dari dua ratus ribu jemaah asal Indonesia berangkat ke Arab Saudi untuk menunaikan ibadah haji.",
+      tr: "毎年、インドネシアから20万人以上の巡礼者がハッジ（大巡礼）を果たすためにサウジアラビアへ出発する。",
+      note: "■ 【語順】：英語と語順が逆になり『Arab Saudi（サウド家のアラブ）』となる。聖地は Mekah（メッカ）と Madinah（メディナ）。"
+    },
+    {
+      p: "n", w: "Uni Emirat Arab", r: "Arab", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+      m: "アラブ首長国連邦（アブダビやドバイなど7首長国から成る連邦国家。略称は UEA＝英語の UAE）",
+      ex: "Pemerintah Indonesia menjalin kerja sama investasi energi terbarukan dan infrastruktur dengan Uni Emirat Arab.",
+      tr: "インドネシア政府はアラブ首長国連邦（UEA）と、再生可能エネルギーおよびインフラ投資の協力関係を結んでいる。",
+      note: "■ 【略語】：インドネシア語では『UEA（Uni Emirat Arab）』と略される。"
+    },
+    {
+      p: "n", w: "Qatar", r: "Qatar", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+      m: "カタール（ペルシア湾に面する中東の天然ガス大国・首都ドーハ Doha）",
+      ex: "Tim nasional sepak bola usia muda Indonesia tampil mengesankan dalam turnamen Piala Asia yang digelar di Qatar.",
+      tr: "サッカーのインドネシア若手代表チームは、カタールで開催されたアジアカップ大会で印象的な活躍を見せた。",
+      note: "■ 【特徴】：世界有数のLNG輸出国であり、国際スポーツ大会や外交仲介の舞台として頻出。"
+    },
+    {
+      p: "n", w: "Mesir", r: "Mesir", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "エジプト（北アフリカ・中東の共和国・首都カイロ Kairo。1947年に世界で最初にインドネシア独立を公式承認した国）",
+      ex: "Mesir adalah negara pertama di dunia yang secara resmi mengakui kedaulatan kemerdekaan Republik Indonesia pada tahun 1947.",
+      tr: "エジプトは1947年に、インドネシア共和国の独立主権を世界で最初に公式承認した国である。",
+      note: "■ 【語源】：英語の Egypt とは全く異なり、アラビア語名『Misr（ミスル）』に由来して『Mesir』となる最重要国名。"
+    },
+    {
+      p: "n", w: "Turki", r: "Turki", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "トルコ（アジアとヨーロッパにまたがる共和国。首都アンカラ、最大都市イスタンブール）",
+      ex: "Kota Istanbul di Turki memiliki keunikan geografis karena terletak di antara Benua Eropa dan Benua Asia.",
+      tr: "トルコのイスタンブール市は、ヨーロッパ大陸とアジア大陸の間に位置しているため地理的な独自性を持っている。",
+      note: "■ 【歴史】：16世紀にアチェ・スルタン国がオスマン帝国と軍事・交易同盟を結んだ歴史的つながりがある。"
+    },
+    {
+      p: "n", w: "Palestina", r: "Palestina", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "パレスチナ（インドネシアが1945年憲法理念に基づき一貫して独立を強く支持している中東の国家）",
+      ex: "Indonesia secara konsisten mendukung kemerdekaan penuh bangsa Palestina di berbagai forum internasional.",
+      tr: "インドネシアは様々な国際フォーラムにおいて、パレスチナ民族の完全な独立を一貫して支持している。",
+      note: "■ 【外交】：1955年のバンドン会議以来、インドネシア外交が最も重視する連帯国のひとつ。"
+    },
+    {
+      p: "n", w: "Israel", r: "Israel", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "イスラエル（中東の地中海東岸に位置する国家。インドネシアとは正式な外交関係がない）",
+      ex: "Dewan Keamanan PBB menggelar sidang darurat untuk membahas gencatan senjata dalam konflik antara Israel dan Palestina.",
+      tr: "国連安全保障理事会は、イスラエルとパレスチナの間の紛争における停戦を議論するため緊急会合を開催した。",
+      note: "■ 【背景】：インドネシア政府はパレスチナの完全独立が実現するまでイスラエルと国交を結ばない立場をとっている。"
+    },
+    {
+      p: "n", w: "Iran", r: "Iran", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "イラン（中東・西アジアのイスラム共和国・旧称ペルシア Persia。首都はテヘラン Teheran）",
+      ex: "Ketegangan geopolitik di kawasan Timur Tengah yang melibatkan Iran memengaruhi fluktuasi harga minyak dunia.",
+      tr: "イランが関わる中東地域の地政学的緊張は、世界の原油価格の変動に影響を及ぼしている。",
+      note: "■ 【言語的影響】：ペルシア語からは bandar（港町）、pasar（市場）、anggur（ブドウ）、pahlawan（英雄）などがインドネシア語に借用された。"
+    },
+    {
+      p: "n", w: "Irak", r: "Irak", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "イラク（中東のティグリス・ユーフラテス川流域に位置する共和国。首都はバグダッド Bagdad）",
+      ex: "Tim nasional sepak bola Indonesia beberapa kali bertemu dengan tim Irak dalam babak kualifikasi Piala Dunia.",
+      tr: "サッカーのインドネシア代表チームは、ワールドカップ予選においてイラク代表と何度か対戦している。",
+      note: "■ 【正書法】：英語の Iraq に対し、末尾を k にした『Irak』と綴る。"
+    },
+    {
+      p: "n", w: "Maroko", r: "Maroko", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "モロッコ（北アフリカ北西端の王国・首都ラバト。14世紀にアチェを訪れた大旅行家イブン・バットゥータの出身国）",
+      ex: "Pada abad keempat belas, penjelajah asal Maroko bernama Ibnu Battuta pernah singgah di Kesultanan Samudera Pasai.",
+      tr: "14世紀に、イブン・バットゥータという名のモロッコ出身の探検家がサムドラ・パサイ王国に立ち寄った。",
+      note: "■ 【歴史】：スカルノ大統領がモロッコ独立を強く支援したことから、首都ラバトには「スカルノ通り」がある。"
+    },
+    {
+      p: "n", w: "Afrika Selatan", r: "Afrika", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "南アフリカ共和国（アフリカ大陸最南端の国家・略称は Afsel）",
+      ex: "Presiden Nelson Mandela dari Afrika Selatan sangat mengagumi motif batik Indonesia dan sering mengenakannya dalam acara resmi.",
+      tr: "南アフリカのネルソン・マンデラ大統領はインドネシアのバティック文様を非常に愛し、公式行事でも好んで着用した。",
+      note: "■ 【歴史】：17世紀にVOCに抵抗してケープタウンへ流刑となったマカッサルの高僧シェイク・ユスフらが南アフリカのイスラム共同体（ケープ・マレー）の礎を築いた。"
+    },
+    {
+      p: "n", w: "Belanda", r: "Belanda", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "オランダ（西ヨーロッパの王国・首都アムステルダム。歴史・法制・近代語彙でインドネシアと深い関わりを持つ国）",
+      ex: "Banyak kosakata dalam bahasa Indonesia, terutama istilah hukum, administrasi, dan teknik, yang diserap dari bahasa Belanda.",
+      tr: "インドネシア語の多くの語彙、特に法律・行政・技術用語は、オランダ語から吸収（借用）されたものだ。",
+      note: "■ 【語源】：Holland ➔ ポルトガル語 Holanda ➔ マレー語 Wolanda / Belanda。\n■ 【関連語】：Hindia Belanda（オランダ領東インド）、Negeri Kincir Angin（風車の国）。"
+    },
+    {
+      p: "n", w: "Inggris", r: "Inggris", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+      m: "①イギリス、英国（Kerajaan Inggris / Britania Raya） ②（bahasa Inggris で）英語",
+      ex: "Kemampuan berbahasa Inggris yang baik menjadi nilai tambah yang sangat penting saat melamar pekerjaan.",
+      tr: "優れた英語力は、就職の応募をする際に非常に重要なプラス評価（付加価値）となる。",
+      note: "■ 【語源】：ポルトガル語の Inglês（イギリスの・英語）に由来。"
+    },
+    {
+      p: "n", w: "Prancis", r: "Prancis", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "フランス（西ヨーロッパの共和国・首都パリ Paris。KBBI標準語綴りは e を入れない Prancis）",
+      ex: "Menara Eiffel di Kota Paris merupakan ikon pariwisata paling terkenal dari negara Prancis.",
+      tr: "パリ市にあるエッフェル塔は、フランスという国で最も有名な観光の象徴だ。",
+      note: "■ 【正書法】：現在のKBBI標準語形（Kata Baku）は p と r の間に e を入れない『Prancis』。"
+    },
+    {
+      p: "n", w: "Perancis", r: "Prancis", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "フランス（※非標準・旧慣用綴り：現在のKBBI標準語形は e のない Prancis）",
+      ex: "Kedutaan besar negara tersebut menggelar festival film dan kuliner khas Prancis di Jakarta.",
+      tr: "同国の大使館はジャカルタで、フランス特有の映画とグルメのフェスティバルを開催した。",
+      note: "■ 【正書法】：標準語は『Prancis』。"
+    },
+    {
+      p: "n", w: "Jerman", r: "Jerman", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+      m: "ドイツ（中央ヨーロッパ最大の経済・工業大国・首都ベルリン Berlin）",
+      ex: "Presiden ketiga Republik Indonesia, B.J. Habibie, pernah menempuh studi teknik penerbangan dan bekerja di Jerman.",
+      tr: "インドネシア共和国の第3代大統領 B.J. ハビビは、かつてドイツで航空工学を学び働いていた。",
+      note: "■ 【雅称】：『Negeri Panser（戦車の国）』。"
+    },
+    {
+      p: "n", w: "Spanyol", r: "Spanyol", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "スペイン（南西ヨーロッパのイベリア半島に位置する王国・首都マドリード Madrid）",
+      ex: "Pada abad keenam belas, para pelaut dari Portugis dan Spanyol datang ke Kepulauan Maluku untuk mencari rempah-rempah.",
+      tr: "16世紀に、ポルトガルやスペインからの船乗りたちが香辛料を求めてマルク諸島へやって来た。",
+      note: "■ 【歴史】：16世紀に北マルクのティドレ島を拠点に香辛料交易を行った。"
+    },
+    {
+      p: "n", w: "Portugis", r: "Portugis", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+      m: "①ポルトガル人、ポルトガル語（bahasa Portugis） ②（歴史文脈で）ポルトガル勢力、ポルトガル国（＝Portugal）",
+      ex: "Kata-kata sehari-hari seperti meja, sepatu, jendela, dan keju dalam bahasa Indonesia berasal dari bahasa Portugis.",
+      tr: "インドネシア語における「机」「靴」「窓」「チーズ」のような日常語は、ポルトガル語に由来している。",
+      note: "■ 【ポルトガル語由来の日常借用語】：Minggu（日曜）、meja（机）、kemeja（シャツ）、sepatu（靴）、jendela（窓）、keju（チーズ）、mentega（バター）、sabun（石けん）、bendera（旗）、gereja（教会）、boneka（人形）など。"
+    },
+    {
+      p: "n", w: "Portugal", r: "Portugis", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "ポルトガル（イベリア半島西部の共和国・首都リスボン Lisabon）",
+      ex: "Tim nasional sepak bola Portugal berhasil meraih gelar juara dalam turnamen Piala Eropa.",
+      tr: "サッカーのポルトガル代表チームは、ヨーロッパ選手権大会で優勝タイトルを獲得した。",
+      note: "■ 【使い分け】：現代の国家名には『Portugal』、歴史上の勢力や言語・民族には『Portugis』を用いる。"
+    },
+    {
+      p: "n", w: "Italia", r: "Italia", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+      m: "イタリア（南ヨーロッパの共和国・首都ローマ Roma）",
+      ex: "Masakan khas Italia seperti pasta dan piza sangat populer di berbagai restoran kota besar.",
+      tr: "パスタやピザのようなイタリア料理は、大都市の様々なレストランで非常に人気がある。",
+      note: "■ 【正書法】：イタリア語原音そのままの『Italia』。"
+    },
+    {
+      p: "n", w: "Yunani", r: "Yunani", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+      m: "ギリシャ（南東ヨーロッパの共和国・首都アテネ Athena。西洋哲学・民主主義・オリンピック発祥の地）",
+      ex: "Konsep demokrasi dan ajang olahraga Olimpiade berakar dari peradaban kuno di Yunani.",
+      tr: "民主主義の概念やオリンピックのスポーツ祭典は、ギリシャの古代文明にルーツを持っている。",
+      note: "■ 【語源】：英語の Greece と全く異なり、古代ギリシャの「イオニア地方（Ionia）」を指すアラビア語・ペルシア語『Yunan』に由来する超重要国名。"
+    },
+    {
+      p: "n", w: "Rusia", r: "Rusia", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "ロシア（東ヨーロッパから北アジアにまたがる世界最大の面積を持つ連邦国家・首都モスクワ Moskow）",
+      ex: "Rusia merupakan negara dengan wilayah daratan terluas di dunia yang membentang dari Eropa Timur hingga Asia Utara.",
+      tr: "ロシアは東ヨーロッパから北アジアまで広がる、世界最大の陸地面積を持つ国である。",
+      note: "■ 【正書法】：s は1つで『Rusia（Federasi Rusia）』。"
+    },
+    {
+      p: "n", w: "Ukraina", r: "Ukraina", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+      m: "ウクライナ（東ヨーロッパの黒海北岸に位置する共和国・世界有数の小麦輸出国）",
+      ex: "Gangguan pasokan gandum dari Ukraina sempat memicu kenaikan harga bahan baku mi instan di pasar global.",
+      tr: "ウクライナからの小麦供給の混乱は、かつて世界市場における即席麺の原材料価格の上昇を誘発した。",
+      note: "■ 【経済】：インドネシアの即席麺やパンの原料となる小麦（gandum）の主要な輸入元国のひとつ。"
+    },
+    {
+      p: "n", w: "Swiss", r: "Swiss", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+      m: "スイス（中央ヨーロッパのアルプス山脈に位置する永世中立の連邦国家・首都ベルン、国際機関都市ジュネーブ Jenewa）",
+      ex: "Indonesia dan Swiss telah menandatangani perjanjian kemitraan ekonomi komprehensif untuk meningkatkan perdagangan.",
+      tr: "インドネシアとスイスは、貿易を拡大するための包括的経済連携協定（CEPA）に署名した。",
+      note: "■ 【表記】：Switzerland ではなく『Swiss』がインドネシア語の公式国名。"
+    },
+    {
+      p: "n", w: "Swedia", r: "Swedia", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+      m: "スウェーデン（北ヨーロッパのスカンディナビア半島に位置する王国・首都ストックホルム）",
+      ex: "Penghargaan Nobel di bidang fisika, kimia, dan sastra diserahkan setiap tahun di Stockholm, Swedia.",
+      tr: "物理学・化学・文学分野のノーベル賞は毎年、スウェーデンのストックホルムで授与される。",
+      note: "■ 【表記】：Sweden ではなく『Swedia』と綴る。"
+    },
+    {
+      p: "n", w: "Belgia", r: "Belgia", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "ベルギー（西ヨーロッパの王国・首都ブリュッセル Brussel。欧州連合［Uni Eropa］の本部所在地）",
+      ex: "Markas besar Uni Eropa terletak di Kota Brussel yang merupakan ibu kota negara Belgia.",
+      tr: "欧州連合（EU）の本部は、ベルギーの首都であるブリュッセル市に位置している。",
+      note: "■ 【歴史】：1947年の独立戦争停戦を仲介した国連三国委員会（KTN：豪・ベルギー・米）の一員。"
+    },
+    {
+      p: "n", w: "Polandia", r: "Polandia", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "ポーランド（中央ヨーロッパの共和国・首都ワルシャワ Warsawa）",
+      ex: "Bendera negara Polandia memiliki warna putih di bagian atas dan merah di bagian bawah, berkebalikan dengan bendera Indonesia.",
+      tr: "ポーランドの国旗は上が白で下が赤の配色をしており、インドネシアの国旗と上下逆になっている。",
+      note: "■ 【特徴】：赤白二色旗の上下がインドネシア国旗（Merah Putih）とちょうど反対の国。"
+    },
+    {
+      p: "n", w: "Amerika Serikat", r: "Amerika", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "アメリカ合衆国（北アメリカ大陸の連邦共和国・首都ワシントンD.C.。略称は AS）",
+      ex: "Nilai tukar rupiah terhadap dolar Amerika Serikat mengalami penguatan pada perdagangan pagi ini.",
+      tr: "米ドルに対するルピアの為替レートは、今朝の取引で上昇（ルピア高）を記録した。",
+      note: "■ 【略語】：ニュース見出しでは必ず『AS（Amerika Serikat）』と略される。雅称は『Negeri Paman Sam』。"
+    },
+    {
+      p: "singkatan", w: "AS", r: "Amerika Serikat", alts: ["amerika serikat"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "アメリカ合衆国（Amerika Serikat の頭文字略語＝英語の US / USA）",
+      ex: "Bank sentral AS memutuskan untuk mempertahankan tingkat suku bunga acuan pada bulan ini.",
+      tr: "米国（AS）の中央銀行は、今月の政策金利を据え置くことを決定した。",
+      note: "■ 【正式名称】：Amerika Serikat。"
+    },
+    {
+      p: "n", w: "Kanada", r: "Kanada", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+      m: "カナダ（北アメリカ大陸北部の連邦国家・首都オタワ Ottawa）",
+      ex: "Indonesia mengimpor gandum berkualitas tinggi dari Kanada untuk memenuhi kebutuhan industri tepung terigu dalam negeri.",
+      tr: "インドネシアは国内の小麦粉産業の需要を満たすため、カナダから高品質な小麦を輸入している。",
+      note: "■ 【正書法】：頭文字を K にして『Kanada』と綴る。"
+    },
+    {
+      p: "n", w: "Meksiko", r: "Meksiko", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "メキシコ（北アメリカ南部・ラテンアメリカの連邦共和国・首都メキシコシティ）",
+      ex: "Tanaman jagung, cabai, dan kakao pada awalnya berasal dari peradaban kuno di kawasan Meksiko dan Amerika Tengah.",
+      tr: "トウモロコシ、唐辛子、カカオの植物は、もともとメキシコおよび中央アメリカ地域の古代文明に由来している。",
+      note: "■ 【正書法】：x を ks に置き換えて『Meksiko』と綴る。"
+    },
+    {
+      p: "n", w: "Brasil", r: "Brasil", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+      m: "ブラジル（南アメリカ最大の連邦共和国・首都ブラジリア。アマゾン熱帯雨林を擁する世界第1位の生物多様性大国）",
+      ex: "Hutan tropis Indonesia memiliki tingkat keanekaragaman hayati darat tertinggi kedua di dunia setelah Brasil.",
+      tr: "インドネシアの熱帯林は、ブラジルに次いで世界で2番目に高い陸上生物多様性の水準を誇っている。",
+      note: "■ 【正書法】：英語の Brazil（z）ではなく、s で『Brasil』と綴るのが標準語。"
+    },
+    {
+      p: "n", w: "Asia Tenggara", r: "Asia", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "東南アジア（インドネシアをはじめASEAN加盟国が位置する地域＝Southeast Asia）",
+      ex: "Kawasan Asia Tenggara dikenal sebagai salah satu wilayah dengan pertumbuhan ekonomi paling dinamis di dunia.",
+      tr: "東南アジア地域は、世界で最もダイナミックな経済成長を遂げている地域のひとつとして知られている。",
+      note: "■ 【アジア各地域】：Asia Tenggara（東南アジア）、Asia Timur（東アジア）、Asia Selatan（南アジア）、Asia Tengah（中央アジア）、Asia Barat / Timur Tengah（西アジア／中東）。"
+    },
+    {
+      p: "n", w: "Timur Tengah", r: "timur", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "中東（西アジアから北アフリカ北東部にかけての地域＝Middle East。略称は Timteng）",
+      ex: "Perkembangan situasi politik di kawasan Timur Tengah selalu dipantau secara cermat oleh para pelaku pasar energi.",
+      tr: "中東地域における政治情勢の推移は、エネルギー市場の関係者たちによって常に注意深く監視されている。",
+      note: "■ 【語構成】：timur（東）+ tengah（中）＝中東。"
+    },
+    {
+      p: "n", w: "Uni Eropa", r: "Eropa", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "欧州連合、ヨーロッパ連合（略称は UE＝英語の EU）",
+      ex: "Pemerintah Indonesia melakukan perundingan dengan pihak Uni Eropa terkait kebijakan perdagangan minyak kelapa sawit.",
+      tr: "インドネシア政府はアブラヤシ（パーム油）の貿易政策に関して、欧州連合（EU）側と交渉を行っている。",
+      note: "■ 【略語】：インドネシア語では『UE（Uni Eropa）』。"
+    },
+    {
+      p: "n", w: "Eropa", r: "Eropa", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "ヨーロッパ、欧州（Benua Eropa＝ヨーロッパ大陸）",
+      ex: "Banyak bangunan bersejarah di kawasan Kota Tua Jakarta yang mengadopsi gaya arsitektur klasik Eropa.",
+      tr: "ジャカルタ旧市街エリアにある多くの歴史的建造物は、ヨーロッパの古典建築様式を取り入れている。",
+      note: "■ 【正書法】：先頭を E 1文字にして『Eropa』と綴る。"
+    },
+    {
+      p: "n", w: "Samudra Hindia", r: "samudra", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+      m: "インド洋（スマトラ島西岸・ジャワ島南岸に面する大洋）",
+      ex: "Gelombang laut di perairan Samudra Hindia sebelah selatan Pulau Jawa cenderung lebih tinggi dibandingkan di Laut Jawa.",
+      tr: "ジャワ島南側のインド洋海域における海の波は、ジャワ海に比べて高くなる傾向がある。",
+      note: "■ 【地理】：インドネシアは2つの大陸（アジア・オーストラリア）と2つの大洋（インド洋 Samudra Hindia・太平洋 Samudra Pasifik）の十字路（posisi silang）に位置する。"
+    },
+    {
+      p: "n", w: "Samudra Pasifik", r: "samudra", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+      m: "太平洋（パプア北岸や北マルクの北東に広がる世界最大の大洋。別名 Lautan Teduh）",
+      ex: "Indonesia terletak di jalur Cincin Api Pasifik sehingga memiliki banyak gunung berapi aktif di sepanjang kepulauannya.",
+      tr: "インドネシアは環太平洋火山帯上に位置しているため、群島に沿って多くの活火山を有している。",
+      note: "■ 【コロケーション】：Cincin Api Pasifik（環太平洋火山帯）。"
+    },
+    {
+      p: "singkatan", w: "RRT", r: "Republik Rakyat Tiongkok", alts: ["republik rakyat tiongkok"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "中華人民共和国（Republik Rakyat Tiongkok の公式略称＝英語の PRC）",
+      ex: "Hubungan diplomatik antara Republik Indonesia dan RRT pertama kali dibuka pada tahun 1950.",
+      tr: "インドネシア共和国と中華人民共和国（RRT）の間の外交関係は、1950年に初めて開設された。",
+      note: "■ 【正式名称】：Republik Rakyat Tiongkok。"
+    },
+    {
+      p: "singkatan", w: "UEA", r: "Uni Emirat Arab", alts: ["uni emirat arab"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+      m: "アラブ首長国連邦（Uni Emirat Arab の頭文字略語＝英語の UAE）",
+      ex: "Masjid Raya Sheikh Zayed di Kota Solo merupakan hadiah persahabatan dari pemerintah UEA kepada Indonesia.",
+      tr: "ソロ市にあるシェイク・ザーイド大モスクは、アラブ首長国連邦（UEA）政府からインドネシアへの友好の贈り物である。",
+      note: "■ 【正式名称】：Uni Emirat Arab。"
+    },
+    {
+      p: "singkatan", w: "PNG", r: "Papua Nugini", alts: ["papua nugini"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "パプアニューギニア（Papua Nugini の略称）",
+      ex: "Pemerintah Indonesia dan PNG sepakat meningkatkan kerja sama keamanan dan ekonomi di wilayah perbatasan darat.",
+      tr: "インドネシア政府とパプアニューギニア（PNG）政府は、陸上国境地域における安全保障と経済の協力を強化することで合意した。",
+      note: "■ 【正式名称】：Papua Nugini。"
+    },
+    {
+      p: "singkatan", w: "Afsel", r: "Afrika Selatan", alts: ["afrika selatan"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+      m: "南アフリカ共和国（Afrika Selatan の合成アクロニム）",
+      ex: "Pertemuan tingkat tinggi negara-negara berkembang digelar di Johannesburg, Afsel.",
+      tr: "発展途上国の首脳会合が、南アフリカ（Afsel）のヨハネスブルグで開催された。",
+      note: "■ 【正式名称】：AFrika SELatam。"
+    }
+  ];
+
+  const COUNTRIES_RESCUE_ACRO = [
+    { acro: "Korsel", full: "korea selatan", alts: [], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "韓国、大韓民国", exp: "■ 【正式名称】：KORea SELatam。" },
+    { acro: "Korut", full: "korea utara", alts: [], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "北朝鮮", exp: "■ 【正式名称】：KORea UTara。" },
+    { acro: "AS", full: "amerika serikat", alts: [], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "アメリカ合衆国（米国）", exp: "■ 【正式名称】：Amerika Serikat。" },
+    { acro: "RRT", full: "republik rakyat tiongkok", alts: [], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "中華人民共和国（中国）", exp: "■ 【正式名称】：Republik Rakyat Tiongkok。" },
+    { acro: "UEA", full: "uni emirat arab", alts: [], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物", tr: "アラブ首長国連邦（UAE）", exp: "■ 【正式名称】：Uni Emirat Arab。" },
+    { acro: "PNG", full: "papua nugini", alts: [], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "パプアニューギニア", exp: "■ 【正式名称】：Papua Nugini。" },
+    { acro: "Afsel", full: "afrika selatan", alts: [], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "南アフリカ共和国", exp: "■ 【正式名称】：AFrika SELatam。" }
+  ];
+
+  for (let i = 0; i < COUNTRIES_RESCUE_LIST.length; i++) {
+    const it = COUNTRIES_RESCUE_LIST[i];
+    persistentAdded.set(it.w.trim().toLowerCase(), it);
+  }
+  for (let i = 0; i < COUNTRIES_RESCUE_ACRO.length; i++) {
+    const a = COUNTRIES_RESCUE_ACRO[i];
+    persistentAcro.set(a.acro.trim().toLowerCase(), a);
+  }
+
+  // 3. これまでの全追加語＋今後の wiAddPack 追加語を1語も漏らさず d.vocab / d.acro / d.singkatan に同期する関数
+  function forceRestoreAllPersistentPacks() {
+    // d.vocab.push を常に純正に保つ
+    if (d.vocab.push !== Array.prototype.push) {
+      d.vocab.push = Array.prototype.push;
+    }
+
+    const existingIndexByKey = new Map();
+    for (let i = 0; i < d.vocab.length; i++) {
+      const it = d.vocab[i];
+      if (it && it.w) {
+        existingIndexByKey.set(it.w.trim().toLowerCase(), i);
+      }
+    }
+
+    persistentAdded.forEach(function(item, key) {
+      if (item.dictOnly === true || item.tier === 3) {
+        dictOnlySet.add(key);
+      }
+      if (item.topicCat) {
+        catMap.set(key, item.topicCat);
+      }
+      if (existingIndexByKey.has(key)) {
+        const idx = existingIndexByKey.get(key);
+        Object.assign(d.vocab[idx], item);
+        vMap.set(key, d.vocab[idx]);
+      } else {
+        const cloned = Object.assign({}, item);
+        Array.prototype.push.call(d.vocab, cloned);
+        existingIndexByKey.set(key, d.vocab.length - 1);
+        vMap.set(key, cloned);
+      }
+
+      if (item.p === "singkatan" && Array.isArray(d.singkatan)) {
+        if (!d.singkatan.some(s => s && s.w && s.w.trim().toLowerCase() === key)) {
+          d.singkatan.push(item);
+        }
+      }
+    });
+
+    if (Array.isArray(d.acro)) {
+      const existingAcroKeys = new Set();
+      for (let i = 0; i < d.acro.length; i++) {
+        if (d.acro[i] && d.acro[i].acro) {
+          existingAcroKeys.add(d.acro[i].acro.trim().toLowerCase());
+        }
+      }
+      persistentAcro.forEach(function(aItem, aKey) {
+        if (aItem.dictOnly === true || aItem.tier === 3) {
+          dictOnlySet.add(aKey);
+        }
+        if (!existingAcroKeys.has(aKey)) {
+          d.acro.push(Object.assign({}, aItem));
+          existingAcroKeys.add(aKey);
+        }
+      });
+    }
+
+    // 検索エンジンのキャッシュリビジョンを強制更新して再構築
+    window.__wiDataRevision = (window.__wiDataRevision || 0) + 10;
+    if (typeof window.__reloadWhatsIndo === "function") {
+      try { window.__reloadWhatsIndo(); } catch (e) {}
+    }
+  }
+
+  // 4. 今後の window.wiAddPack もすべてこの永続復元エンジンを通るようにアップグレード
+  window.wiAddPack = function(pack) {
+    if (pack && Array.isArray(pack.vocab)) {
+      for (let i = 0; i < pack.vocab.length; i++) {
+        const it = pack.vocab[i];
+        if (it && it.w) {
+          persistentAdded.set(it.w.trim().toLowerCase(), it);
+        }
+      }
+    }
+    if (pack && Array.isArray(pack.acro)) {
+      for (let i = 0; i < pack.acro.length; i++) {
+        const a = pack.acro[i];
+        if (a && a.acro) {
+          persistentAcro.set(a.acro.trim().toLowerCase(), a);
+        }
+      }
+    }
+    forceRestoreAllPersistentPacks();
+  };
+  window.wiAddPack.__wiPersistUpgraded = true;
+
+  // 5. 即時実行 ＋ 過去パッチの遅延削除タイマー（35ms / 50ms / 90ms / 125ms）の直後にすべて再実行して100%勝利させる
+  forceRestoreAllPersistentPacks();
+  [60, 140, 220, 380].forEach(function(ms) {
+    setTimeout(forceRestoreAllPersistentPacks, ms);
+  });
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function() {
+      forceRestoreAllPersistentPacks();
+      [60, 140, 220, 380].forEach(function(ms) {
+        setTimeout(forceRestoreAllPersistentPacks, ms);
+      });
+    });
+  }
+})();
+/* =====================================================================
+   WhatsIndo 辞書専用パック 第7弾：【インドネシアの動植物・固有種・熱帯果樹・香辛料・国花・樹木】（全52語）
+   - すべて問題には一切出題せず（dictOnly: true, tier: 3）、辞書検索・A〜Z辞書・Kompas連動のみに表示
+   - ループやタイマーを一切増やさない超軽量・負荷ゼロのデータ登録パック
+   ===================================================================== */
+(function() {
+  const d = window.WHATSINDO_EXTERNAL_DATA;
+  if (!d) return;
+
+  const dictOnlySet = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+
+  const PACK_PART7_FLORA_FAUNA = {
+    vocab: [
+      // ==================== 1. インドネシアの固有動物・保護動物（15語） ====================
+      {
+        p: "n", w: "orang utan", r: "orang", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "オランウータン（スマトラ島とカリマンタン島の熱帯雨林にのみ生息する大型類人猿。マレー・インドネシア語の「森の人」が世界共通名の語源）",
+        ex: "Pusat rehabilitasi di Kalimantan Tengah merawat anak orang utan yang kehilangan induknya akibat kebakaran hutan.",
+        tr: "中部カリマンタン州のリハビリセンターは、森林火災で母親を失った子どものオランウータンを保護・飼育している。",
+        note: [
+          "■ 【語源と正書法】：『orang（人）』＋『hutan（森）』＝「森の人」に由来し、世界中の言語でそのまま orangutan として使われている。KBBI標準語見出しは2語に分ける **『orang utan』**（1語の orangutan も広く使われる）。",
+          "■ 【3つの固有種】：ボルネオオランウータン（カリマンタン）、スマトラオランウータン（北スマトラ・アチェ）、および2017年に新種認定された世界で最も希少なタパヌリオランウータン（北スマトラ州バタン・トル森）の3種すべてがインドネシアに生息する。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "harimau", r: "harimau", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "トラ、虎（＝macan：インドネシアでは現在スマトラトラ［harimau sumatra］のみが野生で生存する絶滅危惧の頂点捕食者）",
+        ex: "Populasi harimau sumatra di alam liar terus menyusut akibat penyempitan habitat dan perburuan liar.",
+        tr: "野生におけるスマトラトラの個体数は、生息地の縮小と密猟によって減少し続けている。",
+        note: [
+          "■ 【歴史と生態】：かつてインドネシアにはバリトラ（1930年代絶滅）、ジャワトラ（1980年代絶滅宣言）、スマトラトラの3亜種がいたが、現在はスマトラトラのみが生存している。",
+          "■ 【重要ことわざ】：\n・Harimau mati meninggalkan belang, gajah mati meninggalkan gading, manusia mati meninggalkan nama.（虎は死して縞皮を残し、象は死して牙を残し、人は死して名を残す）"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "badak", r: "badak", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "サイ、犀（ジャワ島西端ウジュン・クロンに生息する一角のジャワサイと、スマトラ島に生息する二角のスマトラサイの2種が保護されている）",
+        ex: "Badak jawa bercula satu merupakan salah satu mamalia paling langka di dunia yang dilindungi secara ketat.",
+        tr: "一角のジャワサイは、厳重に保護されている世界で最も希少な哺乳類のひとつである。",
+        note: [
+          "■ 【関連語と慣用表現】：\n・cula badak：サイの角（角が1本のジャワサイは badak bercula satu、角が2本のスマトラサイは badak bercula dua）\n・muka badak（慣用句）：サイの顔（皮膚が分厚いことから）➔「面の皮が厚い、厚顔無恥な、全く恥を知らない（＝tidak tahu malu / tebal muka）」"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "gajah", r: "gajah", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "①ゾウ、象（スマトラゾウ gajah sumatra 等） ②（チェス catur の駒の）ビショップ",
+        ex: "Taman Nasional Way Kambas di Provinsi Lampung terkenal sebagai pusat konservasi gajah sumatra.",
+        tr: "ランプン州のウェイ・カンバス国立公園は、スマトラゾウの保護拠点として有名だ。",
+        note: [
+          "■ 【部位と有名ことわざ】：\n・gading gajah：象牙（ことわざ：Tak ada gading yang tak retak＝ひびのない象牙はない ➔ この世に完璧で欠点のないものはない）\n・belalai gajah：象の長い鼻\n・Semut di seberang lautan tampak, gajah di pelupuk mata tiada tampak.（海の向こうのアリは見えるのに、まぶたの前のゾウは見えない ➔ 他人の小さな欠点にはすぐ気づくのに、自分の大きな過ちには気づかない）"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "cenderawasih", r: "cenderawasih", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "極楽鳥、フウチョウ（パプアおよびマルク諸島の熱帯林に生息する、雄が黄金や赤の極めて優美な飾り羽を持つ鳥。「天国の鳥」と称される）",
+        ex: "Burung cenderawasih dari Papua dijuluki sebagai burung surga karena keindahan bulu dan tarian kawinnya.",
+        tr: "パプアの極楽鳥（チュンドラワシ）は、羽の美しさと求愛ダンスから「天国の鳥」と称されている。",
+        note: "■ 【正書法と文化】：標準語綴りは e の入った **『cenderawasih』**（口語では cendrawasih）。パプア州の象徴であり、パプア最古の国立大学『チュンドラワシ大学（Universitas Cenderawasih / Uncen：ジャヤプラ）』の名にもなっている。"
+      },
+      {
+        p: "n", w: "jalak bali", r: "jalak", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "カンムリシロムク（バリ島北西部の西バリ国立公園周辺にのみ生息するバリ州の象徴鳥。全身が純白の羽毛で覆われ、目の周りが鮮やかな青色をした絶滅危惧の希少鳥）",
+        ex: "Program penangkaran berhasil meningkatkan jumlah burung jalak bali yang dilepasliarkan kembali ke Taman Nasional Bali Barat.",
+        tr: "保護繁殖プログラムにより、西バリ国立公園へ再び野生復帰するカンムリシロムクの数を増やすことに成功した。",
+        note: "■ 【別名】：バリ語では『Curik Bali（チュリック・バリ）』と呼ばれる。一般的なムクドリ類は『burung jalak』。"
+      },
+      {
+        p: "n", w: "elang jawa", r: "elang", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "ジャワクマタカ（ジャワ島の山岳森林に生息する冠羽を持った大型猛禽類。インドネシアの国章「ガルーダ・パンチャシラ」のモデルとなり、国の象徴鳥に指定されている）",
+        ex: "Burung elang jawa ditetapkan sebagai satwa simbol nasional karena kemiripannya dengan sosok Garuda Pancasila.",
+        tr: "ジャワクマタカは、国章ガルーダ・パンチャシラとの類似性から国家象徴動物に指定されている。",
+        note: "■ 【語彙】：『elang』はワシ・タカ類の総称（rajawali とも呼ばれる）。後頭部にピンと立った美しい冠羽（jambul）があるのがジャワクマタカの特徴。"
+      },
+      {
+        p: "n", w: "rangkong", r: "rangkong", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "サイチョウ、犀鳥（＝enggang：頭部に大きな兜状の突起［カスク］とくちばしを持つ大型の熱帯鳥。カリマンタンのダヤック族にとって天界と人間界を結ぶ神聖な象徴鳥）",
+        ex: "Burung rangkong atau enggang memiliki peran ekologis yang sangat penting sebagai penyebar biji pohon hutan hujan.",
+        tr: "サイチョウ（ランコン／ウンガン）は、熱帯雨林の樹木の種子散布者として極めて重要な生態学的役割を担っている。",
+        note: "■ 【別名と文化】：カリマンタンなどでは **『burung enggang（ウンガン）』** とも呼ばれ、西カリマンタン州などの州鳥であり、ダヤック族の伝統冠や舞踊・彫刻の最重要モチーフとなっている。"
+      },
+      {
+        p: "n", w: "bekantan", r: "bekantan", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "テングザル（カリマンタン島［ボルネオ島］の河口マングローブ林や湿地林にのみ生息する固有種。雄の鼻が大きく長く垂れ下がり、泳ぎが得意な赤褐色のサル）",
+        ex: "Wisatawan menyusuri sungai di Kalimantan Selatan untuk mengamati kawanan bekantan di atas pohon bakau.",
+        tr: "観光客はマングローブの樹上にいるテングザルの群れを観察するため、南カリマンタン州の川を舟で進んだ。",
+        note: "■ 【特徴と俗称】：南カリマンタン州の象徴動物であり、ジャカルタのテーマパーク「アンチョール（Dufan）」のマスコットキャラクターとしても有名。長い鼻と赤みがかった毛、太鼓腹の特徴から、昔現地の人々から冗談めかして『monyet belanda（オランダ人のサル）』と呼ばれた逸話がある。"
+      },
+      {
+        p: "n", w: "anoa", r: "anoa", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "アノア（スラウェシ島とブトン島の森林にのみ生息する固有種。体高70〜80cmほどの世界最小の野生水牛であり、真っ直ぐ後ろに伸びる鋭い角を持つ）",
+        ex: "Anoa merupakan mamalia endemik Pulau Sulawesi yang bentuk tubuhnya menyerupai kerbau berukuran kecil.",
+        tr: "アノアはスラウェシ島固有の哺乳類であり、その体形は小型の水牛に似ている。",
+        note: "■ 【生態】：低地林に棲む低地アノア（anoa dataran rendah）と山岳林に棲む山地アノア（anoa pegunungan）の2種がおり、小柄ながら非常に気性が激しく単独で行動する。"
+      },
+      {
+        p: "n", w: "babirusa", r: "babirusa", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "バビルサ（スラウェシ島および周辺島嶼にのみ生息するイノシシ科の固有動物。雄の上顎の犬歯が皮膚を突き破って額に向かって大きく湾曲して伸びる特異な姿で知られる）",
+        ex: "Keunikan babirusa jantan terletak pada taring atasnya yang tumbuh menembus moncong dan melengkung ke arah dahi.",
+        tr: "雄のバビルサの独自性は、上顎の牙が鼻面を突き破って生え、額に向かって湾曲している点にある。",
+        note: "■ 【語源】：『babi（豚・イノシシ）』＋『rusa（鹿）』＝「鹿のような角（牙）を持つイノシシ」というマレー・インドネシア語名がそのまま英語や学名（Babyrousa）になっている。"
+      },
+      {
+        p: "n", w: "tarsius", r: "tarsius", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "メガネザル、タルシウス（スラウェシ島やバンカ・ブリトゥン諸島に生息する体長10〜15cmほどの世界最小級の夜行性霊長類。巨大な目と180度回転する首を持つ）",
+        ex: "Tarsius di Taman Nasional Tangkoko, Sulawesi Utara, keluar dari lubang pohon pada malam hari untuk berburu serangga.",
+        tr: "北スラウェシ州タンココ国立公園のメガネザル（タルシウス）は、昆虫を狩るために夜間に木の洞から出てくる。",
+        note: "■ 【別名】：バンカ・ブリトゥン諸島に棲む種は『メンティリン（mentilin）』、北スラウェシ（ミナハサ）では『タンカシ（tangkasi）』とも呼ばれる。一生を一夫一婦（monogami）で過ごす珍しい霊長類。"
+      },
+      {
+        p: "n", w: "kancil", r: "kancil", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "マメジカ、カンチル（東南アジアの森林に生息するウサギほどの大きさの世界最小の偶蹄類［反芻動物］。インドネシアの昔話ではワニやトラを知恵で出し抜く賢い主人公として登場する）",
+        ex: "Dongeng Si Kancil yang cerdik mengelabui buaya di sungai sangat populer di kalangan anak-anak Indonesia.",
+        tr: "賢いカンチル（マメジカ）が川のワニを騙して渡る昔話は、インドネシアの子どもたちの間で非常に人気がある。",
+        note: "■ 【文化・比喩】：童話『Si Kancil（カンチル君）』の物語から、インドネシア語では「小柄だが非常に機転が利き悪知恵が働く人」の比喩（cerdik seperti kancil）として使われる。"
+      },
+      {
+        p: "n", w: "pesut", r: "pesut", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "カワゴンドウ、カワイルカ（特に東カリマンタン州のマハカム川流域に生息する丸い頭部を持った絶滅危惧の淡水イルカ『プスト・マハカム pesut Mahakam』）",
+        ex: "Pesut Mahakam merupakan mamalia air tawar yang sangat langka dan menjadi maskot Provinsi Kalimantan Timur.",
+        tr: "マハカム・カワイルカは非常に希少な淡水哺乳類であり、東カリマンタン州のマスコットとなっている。",
+        note: "■ 【特徴】：海にいる一般的なイルカは『lumba-lumba（ルンバルンバ）』、クジラは『paus（パウス）』、マハカム川などの淡水・汽水域に棲むくちばしのない丸頭のイルカは『pesut（プスト）』と呼び分ける。"
+      },
+      {
+        p: "n", w: "penyu", r: "penyu", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "ウミガメ、海亀（四肢がヒレ状に進化して一生を海で過ごすカメ。アオウミガメ［penyu hijau］やオサガメ［penyu belimbing］などインドネシアに6種が生息）",
+        ex: "Para relawan melepaskan ratusan tukik atau anak penyu yang baru menetas menuju laut lepas di tepi pantai.",
+        tr: "ボランティアたちは、孵化したばかりのウミガメの赤ちゃん（トゥキック）数百匹を浜辺から外海へと放流した。",
+        note: [
+          "■ 【penyu と kura-kura の厳密な使い分け】：\n・**penyu**：海に棲む「ウミガメ」（脚がオール状のヒレになっており、頭を甲羅に引っ込められない。ウミガメの赤ちゃんは **『tukik』** と呼ばれる）\n・**kura-kura**：陸や川の淡水に棲む「リクガメ・イシガメ類」（歩行用の脚を持ち、頭を甲羅の中に引っ込める）\n・**bulus / labi-labi**：甲羅が柔らかい淡水の「スッポン」"
+        ].join("\n")
+      },
+
+      // ==================== 2. 身近な動物・鳥・昆虫・魚介類（14語） ====================
+      {
+        p: "n", w: "kerbau", r: "kerbau", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "水牛（古来より水田の耕作を担ってきた家畜であり、ミナンカバウ族やトラジャ族の建築・儀礼において最高位の文化的象徴とされる動物）",
+        ex: "Sebelum adanya traktor mesin, para petani di pedesaan mengandalkan tenaga kerbau untuk membajak sawah.",
+        tr: "機械のトラクターが登場する前、農村の農家たちは水田を耕すために水牛の力を頼りにしていた。",
+        note: "■ 【文化・慣用句】：ソロ王宮で神聖視される白い水牛『Kebo Bule（クボ・ブレ）』や、トラジャの葬祭で最高級の価値を持つまだら模様の水牛が有名。なお慣用句『kumpul kebo（水牛の群れのように暮らす）』は「婚姻届を出さずに同棲する」という口語表現。"
+      },
+      {
+        p: "n", w: "macan tutul", r: "macan", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "ヒョウ、豹（ジャワ島の森林に生息する唯一の大型ネコ科肉食獣であるジャワヒョウ［macan tutul jawa］。黒い個体はクロヒョウ［macan kumbang］と呼ばれる）",
+        ex: "Kamera jebak yang dipasang peneliti berhasil merekam keberadaan macan tutul jawa di kawasan hutan Gunung Gede.",
+        tr: "研究者が設置したセンサーカメラは、グデ山の森林区域におけるジャワヒョウの生息を記録することに成功した。",
+        note: "■ 【語構成】：『macan（トラ・大型ネコ科猛獣）』＋『tutul（斑点・水玉模様）』＝斑点のあるトラ（ヒョウ）。西ジャワ州の象徴動物。"
+      },
+      {
+        p: "n", w: "kelelawar", r: "kelelawar", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "コウモリ、蝙蝠（夜行性の翼手目哺乳類の総称。特に果物を食べる大型のオオコウモリは kalong とも呼ばれる）",
+        ex: "Ribuan kelelawar tampak terbang keluar dari mulut gua kapur itu saat matahari mulai terbenam.",
+        tr: "太陽が沈み始めると、その石灰岩の洞窟の入り口から数千匹のコウモリが飛び出してくるのが見えた。",
+        note: "■ 【生態学的役割】：ドリアンやペタイなどの熱帯果樹の花粉を夜間に媒介する（受粉を助ける）極めて重要な動物。"
+      },
+      {
+        p: "n", w: "cicak", r: "cicak", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "ヤモリ、家守（＝cecak：インドネシアの家庭の壁や天井に必ずいる、蚊や小さな虫を食べてくれる体長10cmほどの小型ヤモリ）",
+        ex: "Seekor cicak merayap dengan tenang di dinding kamar sambil mengincar nyamuk yang sedang terbang.",
+        tr: "1匹のヤモリが飛んでいる蚊を狙いながら、部屋の壁を静かに這っている。",
+        note: [
+          "■ 【正書法と文化・政治比喩】：\n・KBBIの第一見出しは『cecak』だが、童謡『Cicak-Cicak di Dinding（壁のヤモリさん）』をはじめ日常・ニュースでは **『cicak』** が圧倒的に広く使われる（なお「トッケイ！」と大声で鳴く30cm近い大型のトッケイヤモリは **『tokek』** と呼ばれる）。\n・**【政治ニュースの超重要比喩：Cicak vs Buaya（ヤモリ対ワニ）】**：2009年以降、比較的小規模な組織である汚職撲滅委員会（KPK＝ヤモリ cicak）が、巨大な権力を持つ警察や大物権力者（ワニ buaya）の汚職に立ち向かう対立構図を指す歴史的流行語としてKompas等の政治記事で頻繁に使われる！"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "buaya", r: "buaya", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "①ワニ、鰐（イリエワニ buaya muara 等） ②（比喩で）悪党、女たらし、プレイボーイ（buaya darat）",
+        ex: "Warga diminta tidak berenang di muara sungai tersebut karena merupakan habitat alami buaya muara.",
+        tr: "その河口はイリエワニの自然の生息地であるため、住民はそこで泳がないよう求められている。",
+        note: [
+          "■ 【テスト・日常で超頻出の慣用句】：\n・**buaya darat（陸のワニ）**：女たらし、遊び人、プレイボーイ、悪党\n・**air mata buaya（ワニの涙）**：嘘泣き、見せかけの偽善的な同情\n・**roti buaya（ワニ型パン）**：ワニは生涯一夫一婦で伴侶に忠実とされることから、ジャカルタ先住民ブタウィ族（Suku Betawi）の結婚式で新郎が新婦へ「一生の貞節と繁栄の誓い」として贈るワニの形をした大きなパン！"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "bunglon", r: "bunglon", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "①カメレオン、樹上トカゲ（周囲の環境に合わせて体色を変化させる爬虫類） ②（比喩で）自分の利益のために節操なく主義や立場をコロコロ変える日和見主義者",
+        ex: "Politikus yang sering berpindah kubu demi mencari keuntungan pribadi sering dijuluki sebagai manusia bunglon.",
+        tr: "個人の利益を求めて頻繁に陣営を乗り換える政治家は、しばしば「カメレオン人間（日和見主義者）」と揶揄される。",
+        note: "■ 【コロケーション】：bersifat seperti bunglon（カメレオンのように都合よく態度・立場を変える）。"
+      },
+      {
+        p: "n", w: "merpati", r: "merpati", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "ハト、鳩（＝burung dara：平和や郵便・夫婦の貞節の象徴とされる鳥）",
+        ex: "Pelepasan sepasang burung merpati putih menjadi simbol harapan akan perdamaian dan kerukunan.",
+        tr: "つがいの白いハトの放鳥が、平和と調和への願いの象徴となった。",
+        note: [
+          "■ 【慣用句と文化】：\n・**merpati pos**：伝書鳩（インドネシア郵便 Pos Indonesia のロゴマークもオレンジ色の伝書鳩！）\n・**Merpati tak pernah ingkar janji**：「ハトは決して約束を裏切らない」（一度つがいになると生涯相手を変えず、遠くからでも必ず巣へ戻ることから、誠実な愛の決まり文句）\n・**jinak-jinak merpati**：「ハトのように人懐っこそうに見えて、近づくとサッと逃げる」➔ 親しみやすそうでいて簡単にはなびかない気高い女性のたとえ。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "gagak", r: "gagak", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "カラス、烏（burung gagak）",
+        ex: "Suara burung gagak hitam terdengar nyaring dari atas dahan pohon tua di pinggir hutan.",
+        tr: "森の端にある老木の枝の上から、黒いカラスの鳴き声が甲高く聞こえた。",
+        note: "■ 【ことわざ】：Burung gagak itu jika dimandikan dengan air mawar sekalipun, tidak akan menjadi putih bulunya.（カラスはたとえバラ水で洗ったとしても羽が白くはならない ➔ 生まれつきの悪癖や本質は外見を取り繕っても簡単には変わらない）。"
+      },
+      {
+        p: "n", w: "bangau", r: "bangau", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "コウノトリ、サギ（水田や湿地に棲む首と脚の長い大型水鳥の総称。白サギは特に kuntul とも呼ばれる）",
+        ex: "Sekawanan burung bangau putih tampak mencari ikan kecil dan katak di area persawahan yang baru dibajak.",
+        tr: "白いサギの群れが、耕されたばかりの水田エリアで小魚やカエルを探しているのが見えた。",
+        note: "■ 【ことわざ】：Setinggi-tinggi terbang bangau, akhirnya hinggap di punggung kerbau juga.（サギがどれほど空高く飛ぼうとも、最後はやはり水牛の背中に降り立つ ➔ どれほど遠く外国や都会へ出かけても、人は最後には自分の故郷へ帰るものだ）。"
+      },
+      {
+        p: "n", w: "kunang-kunang", r: "kunang", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "ホタル、蛍（夜間に腹部を光らせて飛ぶ甲虫。また berkunang-kunang で「貧血や疲労で目がチカチカする・めまいがする」）",
+        ex: "Cahaya ribuan kunang-kunang yang berkelap-kelip di tepi sungai pada malam hari tampak sangat indah.",
+        tr: "夜に川辺で点滅する数千匹のホタルの光は、非常に美しく見えた。",
+        note: [
+          "■ 【超重要派生動詞：berkunang-kunang】：\nホタルの光が目の前でチカチカ飛び交う様子から、**『Matanya berkunang-kunang（彼の目がチカチカする＝立ちくらみや高熱・貧血で目が回って星が飛ぶように見える）』** という体調表現として試験や日常会話で頻繁に使われる！"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "belalang", r: "belalang", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "バッタ、イナゴ、カマキリ類（草食のバッタ類。なおカマキリは belalang sembah＝「お祈りバッタ」と呼ばれる）",
+        ex: "Petani harus mewaspadai serangan hama belalang dalam jumlah besar yang dapat merusak daun tanaman jagung.",
+        tr: "農家はトウモロコシの葉を食い荒らす恐れのある大量のバッタの害虫被害に警戒しなければならない。",
+        note: "■ 【関連表現】：『belalang sembah（お祈りをするバッタ＝カマキリ）』、『mata belalang（バッタのように大きく見開いた目 ➔ 動詞 membeliak / membelalak＝目をカッと見開く）』。"
+      },
+      {
+        p: "n", w: "capung", r: "capung", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "トンボ、蜻蛉（水辺を飛ぶ昆虫。小型の軽飛行機を比喩的に pesawat capung と呼ぶこともある）",
+        ex: "Kehadiran banyak capung di sekitar kolam menandakan bahwa kualitas air dan udara di tempat itu masih bersih.",
+        tr: "池の周りに多くのトンボがいることは、その場所の水質と空気がまだきれいであることを示している。",
+        note: "■ 【地方語由来の別名】：ジャワ語系では『kinjeng』、スマトラ・マレー系では『sibur-sibur』とも呼ばれる。"
+      },
+      {
+        p: "n", w: "cakalang", r: "cakalang", dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理",
+        m: "カツオ、鰹（インドネシア東部のスラウェシ海・マルク海・太平洋で多く水揚げされる回遊魚。マナド名物の燻製「チャカラン・フフ」などで有名）",
+        ex: "Ikan cakalang asap atau cakalang fufu merupakan kuliner khas yang sangat terkenal dari Kota Manado.",
+        tr: "カツオの燻製、すなわち「チャカラン・フフ」は、マナド市の非常に有名な名物料理である。",
+        note: [
+          "■ 【インドネシアのマグロ・カツオ類3兄弟の区別】：\n① **ikan tuna**：大型のマグロ（キハダマグロ・メバチマグロ等：輸出用やステーキ・刺身用）\n② **ikan cakalang**：カツオ（腹に縦縞があり、東インドネシアで最も好まれる魚）\n③ **ikan tongkol**：スマ、ヒラソウダ、マルソウダなどの小型マグロ・ソウダガツオ類（ジャワやスマトラの庶民の食堂・ワルンで最も日常的に食べられている魚！）"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "lele", r: "lele", dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理",
+        m: "ナマズ、鯰（ヒゲのある淡水魚。インドネシア全土で養殖され、カリッと素揚げにしてサンバルと食べる屋台定食「プチェル・レレ」は国民的ルフード）",
+        ex: "Warung tenda pecel lele di pinggir jalan selalu ramai dikunjungi warga pada malam hari.",
+        tr: "道端にある「プチェル・レレ（揚げナマズ定食）」のテント屋台は、夜になると常に市民で賑わっている。",
+        note: "■ 【食文化】：泥臭さが全くなく白身で淡白な養殖ナマズ（ikan lele）にウコンとニンニクの下味をつけて油でカラッと揚げ、生野菜とトマトサンバルを添える『Pecel Lele（東ジャワ・ラモンガン発祥の屋台料理）』は学生や庶民の夕食の絶対定番。"
+      },
+
+      // ==================== 3. 熱帯フルーツ・有用植物・香辛料（14語） ====================
+      {
+        p: "n", w: "durian", r: "duri", dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理",
+        m: "ドリアン（硬いトゲ［duri］に覆われた殻の中に、強い芳香と濃厚でクリーミーな甘みを持つ果肉が詰まった熱帯果実。「果物の王様 Raja Buah」）",
+        ex: "Meskipun baunya sangat menyengat, buah durian memiliki tekstur daging yang lembut dan rasa manis yang khas.",
+        tr: "匂いは非常に強烈であるにもかかわらず、ドリアンの実はなめらかな果肉の食感と独特の甘みを持っている。",
+        note: [
+          "■ 【語構成と重要慣用句】：\n・語構成：『duri（トゲ・茨）』＋『-an』＝トゲだらけの実。ホテルや飛行機・MRT車内には持ち込み禁止（Dilarang membawa durian）の標識がある。\n・**mendapat durian runtuh（落ちてきたドリアンを拾う）**：「思いがけない幸運や大金が突然舞い込む（＝棚からぼた餅）」を表す超有名慣用句！"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "manggis", r: "manggis", dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理",
+        m: "マンゴスチン（厚い紫紅色の果皮の中に、純白で上品な甘酸っぱさの果肉が房状に入った熱帯果実。ドリアンと対をなす「果物の女王 Ratu Buah」）",
+        ex: "Buah manggis asal Indonesia banyak diekspor ke luar negeri karena rasanya yang manis segar dan kaya antioksidan.",
+        tr: "インドネシア産のマンゴスチンは、爽やかな甘みと豊富な抗酸化物質から海外へ多く輸出されている。",
+        note: "■ 【豆知識となぞなぞ】：果実の底にある花びら状の模様（ガクの名残）の数と、中に入っている白い果肉の房の数が必ず一致する不思議な特徴があり、子どもたちの遊び（tebak-tebakan manggis）や、「外見は黒くても中身は純白で嘘がない（正直さの象徴）」という比喩に使われる。"
+      },
+      {
+        p: "n", w: "rambutan", r: "rambut", dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理",
+        m: "ランブータン（赤い果皮の表面に柔らかい毛［rambut］が密集して生えたムクロジ科の熱帯果樹。中にはライチに似た半透明で甘い果肉が入っている）",
+        ex: "Pohon rambutan di halaman rumah nenek sedang berbuah lebat dengan warna merah yang ranum.",
+        tr: "祖母の家の庭にあるランブータンの木は、熟した赤い実をたわわに実らせている。",
+        note: "■ 【語構成】：インドネシア語の『rambut（髪の毛・毛）』＋接尾辞『-an』＝「毛の生えた実」がそのまま英語や日本語（ランブータン）の世界共通名称になっている！"
+      },
+      {
+        p: "n", w: "salak", r: "salak", dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理",
+        m: "サラック、スネークフルーツ（茶色く輝く蛇の鱗のような皮を持つヤシ科の果実。果肉はリンゴや栗のようなサクサクした食感と甘酸っぱさがある）",
+        ex: "Salak pondoh dari lereng Gunung Merapi di Yogyakarta terkenal memiliki rasa yang manis meskipun masih muda.",
+        tr: "ジョグジャカルタのムラピ山麓産の「サラック・ポンドック」は、若い実であっても甘い味がすることで有名だ。",
+        note: "■ 【代表品種と語彙】：ジョグジャカルタ・スレマン名物の渋みがなく甘い『サラック・ポンドック（salak pondoh）』や、バリ島カランアセム名物の『サラック・バリ（salak gula pasir）』が有名。なお同音異義語で犬の「吠え声・吠える（menyalak）」という意味もある。"
+      },
+      {
+        p: "n", w: "nangka", r: "nangka", dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理",
+        m: "ジャックフルーツ、パラミツ（幹に直接ぶら下がって実る重さ10〜30kgにもなる世界最大の樹上果実。熟した黄色い果肉は甘い果物として、未熟な若い実は野菜・煮込み料理の具材として使われる）",
+        ex: "Buah nangka yang sudah matang berwarna kuning cerah dan sering dijadikan campuran es campur atau kolak.",
+        tr: "熟したジャックフルーツ（ナンカ）の実は鮮やかな黄色をしており、しばしばエス・チャンプル（かき氷）やコラックの具材にされる。",
+        note: "■ 【食文化とことわざ】：\n・未熟な若い実（nangka muda / gori）は、ジョグジャカルタの名物料理『グドゥッ（gudeg）』やパダン料理のココナッツカレー煮込み（gulai nangka）の主原料となる。\n・ことわざ：Orang lain yang makan nangka, awak yang kena getahnya.（他人がジャックフルーツを食べたのに、自分がそのネバネバした樹液［getah］をつけられる ➔ 他人がしでかした悪事や失敗の巻き添え・濡れ衣を自分が被る）。"
+      },
+      {
+        p: "n", w: "sirsak", r: "sirsak", dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理",
+        m: "サワーソップ、トゲバンレイシ（緑色の柔らかいトゲがある大きな果実で、白い果肉はヨーグルトやイチゴに似た爽やかな酸味と甘みがありジュースとして大人気）",
+        ex: "Jus sirsak dingin sangat menyegarkan karena perpaduan rasa manis dan asamnya yang khas.",
+        tr: "冷たいサワーソップ（シルサック）ジュースは、独特の甘みと酸味の調和によって非常に爽やかだ。",
+        note: "■ 【語源】：オランダ語の『zuurzak（酸っぱい袋）』がインドネシア語音化して **『sirsak』** となった（別名『nangka belanda＝オランダのジャックフルーツ』とも呼ばれる）。"
+      },
+      {
+        p: "n", w: "pepaya", r: "pepaya", dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理",
+        m: "パパイヤ（一年中実をつける熱帯の代表的な果物。オレンジ色の甘い果肉は朝食や消化促進の定番であり、若い葉や花も伝統野菜料理として重宝される）",
+        ex: "Buah pepaya mengandung banyak serat dan vitamin yang sangat baik untuk melancarkan pencernaan.",
+        tr: "パパイヤの果実は食物繊維とビタミンを多く含んでおり、消化をスムーズにするのに非常に良い。",
+        note: "■ 【食文化】：果肉を果物として食べるだけでなく、ほろ苦いパパイヤの葉（daun pepaya）や花（bunga pepaya）を炒め物やパダン料理の付け合わせ野菜として食べる文化が全国にある。"
+      },
+      {
+        p: "n", w: "markisa", r: "markisa", dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理",
+        m: "パッションフルーツ（中にゼリー状の甘酸っぱい果肉と種が詰まった果実。北スマトラ州ブラスタギや南スラウェシ州マカッサルの濃厚シロップが名産）",
+        ex: "Sirup buah markisa asli dari Medan dan Makassar sangat populer dijadikan oleh-oleh khas daerah.",
+        tr: "メダンやマカッサル産の本物のパッションフルーツ（マルキサ）シロップは、地域の名物土産として非常に人気がある。",
+        note: "■ 【特徴】：爽やかな酸味と強いトロピカルな香りがあり、水や氷で割って飲む『sirup markisa（マルキサ・シロップ）』は定番の手土産。"
+      },
+      {
+        p: "n", w: "alpukat", r: "alpukat", dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理",
+        m: "アボカド（KBBI標準見出しは avokad だが、日常・メニュー・報道ではほぼ100% alpukat が使われる。インドネシアでは主に甘いデザートやジュースとして食される）",
+        ex: "Jus alpukat yang diberi sedikit susu kental manis cokelat merupakan minuman favorit di banyak rumah makan.",
+        tr: "チョコレート味のコンデンスミルク（練乳）を少し加えたアボカドジュースは、多くの食堂で人気の飲み物だ。",
+        note: [
+          "■ 【日本や欧米との食文化の違い！】：\n日本や欧米ではアボカドはサラダや醤油・塩味のお惣菜として食べられるが、**インドネシアではアボカド（alpukat）は完全に「甘いフルーツ・スイーツ」扱い**！氷と砂糖（またはガムシロップ）と一緒にミキサーにかけて濃厚なシェイク状にし、グラスの内側にチョコレート練乳を垂らした **『Jus Alpukat（アボカドジュース）』** や、かき氷『Es Teler（エス・テレール）』の具材として楽しむ。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "sagu", r: "sagu", dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理",
+        m: "サゴヤシ、サゴ澱粉（湿地帯に自生するサゴヤシの幹の髄から採取される澱粉。マルク諸島やパプア、リアウ諸島などにおける伝統的な主食）",
+        ex: "Papeda merupakan makanan pokok khas Papua dan Maluku yang terbuat dari tepung sagu dan disajikan bersama kuah ikan kuning.",
+        tr: "「パペダ」はサゴ澱粉から作られ、黄色い魚スープと一緒に提供されるパプアおよびマルク特有の主食である。",
+        note: "■ 【食文化と食料安全保障】：サゴ澱粉に熱湯を注いでかき混ぜ、糊（お餅）のように透明で粘り気のある状態にした伝統主食が **『パペダ（Papeda）』**。また焼き菓子の『クエ・サグ（kue sagu）』や主食の多様化（diversifikasi pangan）を支える重要資源としても注目されている。"
+      },
+      {
+        p: "n", w: "singkong", r: "singkong", dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理",
+        m: "キャッサバ、タピオカ芋（＝ubi kayu / ketela pohon：乾燥や痩せた土地にも強い根菜。揚げ芋・チップス・発酵菓子タペ・タピオカ粉の原料となり、若葉も野菜として食べられる）",
+        ex: "Singkong rebus dan keripik singkong pedas merupakan camilan tradisional yang digemari masyarakat luas.",
+        tr: "茹でたキャッサバと辛いキャッサバチップスは、広く人々に親しまれている伝統的なおやつだ。",
+        note: "■ 【利用法】：芋を蒸して酵母で甘く発酵させた『タペ・シンコン（tape singkong：西ジャワでは peuyeum プユム）』、薄切りにして揚げた『クリピック・シンコン（keripik singkong）』、澱粉を抽出した『タピオカ粉（tepung tapioka / aci）』、そしてパダン料理に欠かせない茹でたキャッサバの葉『ダウン・シンコン（daun singkong）』など余すところなく利用される。"
+      },
+      {
+        p: "n", w: "pandan", r: "pandan", dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理",
+        m: "パンダン、ニオイタコノキ（細長い緑の葉［daun pandan］がバニラや炊きたての香り米のような甘い芳香を放ち、インドネシアのお菓子やご飯・飲み物の香り付け・緑色の着色に欠かせない植物）",
+        ex: "Ibu memasukkan dua lembar daun pandan yang disimpul ke dalam rebusan santan agar aromanya harum.",
+        tr: "母は香りが良くなるよう、結んだパンダンの葉を2枚、ココナッツミルクの鍋の中に入れた。",
+        note: "■ 【別名と用途】：「東洋のバニラ」とも呼ばれ、コラックやチェンドル、緑色のシフォンケーキ（bolu pandan）、ココナッツライス（nasi uduk / nasi kuning）を炊く際に葉をキュッと結んで一緒に入れる。また海岸や山に生える別種のトゲのあるパンダン（pandan duri）の葉は、乾燥させてゴザ（tikar pandan）や帽子・バッグを編む工芸材料になる。"
+      },
+      {
+        p: "n", w: "cengkeh", r: "cengkeh", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "クローブ、丁子（ちょうじ）（KBBI標準見出しは cengkih だが日常・報道では cengkeh も多用。北マルク［テルナテ・ティドレ］原産の香辛料であり、インドネシア特有のクレテックタバコの原料）",
+        ex: "Sebagian besar hasil panen cengkeh di Indonesia diserap oleh industri pembuatan rokok kretek dalam negeri.",
+        tr: "インドネシアにおけるクローブ（丁子）の収穫量の大部分は、国内のクレテックタバコ製造産業によって消費されている。",
+        note: "■ 【歴史と経済】：大航海時代に世界中で北マルクのいくつかの小島にしか自生していなかった幻のスパイス（花の蕾を乾燥させたもの）。現代では料理や薬用だけでなく、タバコの葉に刻んだクローブを混ぜてパチパチ（kretek-kretek）と音を立てて燃えるインドネシア独自の丁子タバコ **『ロコッ・クレテック（rokok kretek）』** の主原料として巨大な国内市場を持つ。"
+      },
+      {
+        p: "n", w: "pala", r: "pala", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "ナツメグ、肉豆蔲（にくずく）（マルク諸島のバンダ諸島を原産とする香辛料。1つの果実から種子の「ナツメグ」と、種を包む赤い網目状仮種皮の「メース［bunga pala］」の2種類の高価なスパイスが採れる）",
+        ex: "Pada abad ketujuh belas, buah pala dari Kepulauan Banda di Maluku bernilai lebih mahal daripada emas di pasar Eropa.",
+        tr: "17世紀において、マルクのバンダ諸島産のナツメグ（パラ）の実は、ヨーロッパ市場で金よりも高価な価値を持っていた。",
+        note: "■ 【世界史の豆知識】：1667年のブレダ条約において、オランダが世界唯一のナツメグ産地だったバンダ諸島のラン島（Pulau Run）の領有権をイギリスから完全に譲り受ける見返りとして、北米のニューアムステルダム（現在の**ニューヨーク・マンハッタン島**！）をイギリスへ引き渡したという世界史上の驚きのエピソードで知られる香辛料。"
+      },
+
+      // ==================== 4. インドネシアの国花・象徴樹木（9語） ====================
+      {
+        p: "n", w: "melati", r: "melati", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "ジャスミン、マツリカ（純白の小花から気品ある甘い香りを放つ花。インドネシアの3大国花のうち最高位の「国の花［Puspa Bangsa］」に指定され、純潔と誠実の象徴として結婚式の衣装や髪飾りに使われる）",
+        ex: "Bunga melati putih ditetapkan sebagai Puspa Bangsa Indonesia dan selalu digunakan dalam rangkaian upacara pernikahan adat.",
+        tr: "白いジャスミン（ムラティ）の花はインドネシアの「国の花（プスパ・バンサ）」に指定されており、伝統結婚式の装花として常に用いられる。",
+        note: [
+          "■ 【インドネシアの3大国花（Tiga Puspa Nasional：1990年大統領決定で制定）】：\n① **Puspa Bangsa（国の花・民族の花）**：**Melati Putih**（マツリカ／アラビアジャスミン：純潔・優雅・素朴さの象徴）\n② **Puspa Pesona（魅惑の花）**：**Anggrek Bulan**（コチョウラン／胡蝶蘭：熱帯の美の象徴）\n③ **Puspa Langka（希少な花）**：**Padma Raksasa / Rafflesia arnoldii**（ラフレシア：世界最大の希少花の象徴）"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "anggrek", r: "anggrek", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "ラン、蘭（熱帯雨林の樹上などに着生する美しい花。特に純白の大輪を咲かせる胡蝶蘭『アングレック・ブラン anggrek bulan』はインドネシアの国花「魅惑の花 Puspa Pesona」に指定されている）",
+        ex: "Hutan tropis Indonesia merupakan rumah bagi ribuan spesies bunga anggrek liar yang sangat indah.",
+        tr: "インドネシアの熱帯林は、非常に美しい数千種の野生ランの生息地となっている。",
+        note: "■ 【代表種】：『anggrek bulan（月のラン＝胡蝶蘭）』、『anggrek hitam（東カリマンタン州の象徴である希少な黒ラン）』。"
+      },
+      {
+        p: "n", w: "raflesia", r: "raflesia", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "ラフレシア（スマトラ島のブンクル州などの熱帯雨林に自生する、直径1メートル・重さ10kgにも達する世界最大の単一花。葉や茎・根を持たない寄生植物で、国花「希少な花 Puspa Langka」に指定）",
+        ex: "Bunga raflesia yang mekar sempurna di hutan Bengkulu hanya bertahan selama kurang lebih lima hingga tujuh hari.",
+        tr: "ブンクルの森で完全に開花したラフレシアの花は、およそ5日から7日間しか持たない。",
+        note: [
+          "■ 【ラフレシア（Raflesia）とスマトラオオコンニャク（Bunga Bangkai）の違い】：\nよく混同されるが全く別の植物！\n・**Raflesia (Padma Raksasa)**：ブドウ科のツル植物に寄生し、地面にペタッと平らに広がる5枚の赤い肉厚の花びらを持つ「世界最大の単一の花」。\n・**Bunga Bangkai (Amorphophallus titanum)**：サトイモ科の『スマトラオオコンニャク（ショクダイオオコンニャク）』。巨大な芋（球茎）から高さ2〜3メートルもの塔のような花序が天に向かってそびえ立つ「世界最大の花序を持つ植物」。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "teratai", r: "teratai", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "ハス（蓮）、スイレン（睡蓮）（池や沼の水面に丸い葉と美しい白・ピンクの花を浮かべる水生植物。仏教やヒンドゥー教において泥水に染まらない清浄さと悟りの象徴とされる）",
+        ex: "Bunga teratai berwarna merah muda tampak mekar indah di permukaan kolam taman istana.",
+        tr: "ピンク色のハス（スイレン）の花が、宮殿庭園の池の水面に美しく咲いているのが見えた。",
+        note: "■ 【語彙】：植物学上は、葉や花が水面から高く立ち上がる「ハス（蓮）」を『seroja / lotus』、水面に浮かぶ「スイレン（睡蓮）」を『teratai』と分けることもあるが、日常のインドネシア語ではどちらも広く **『bunga teratai』** と呼ぶ。"
+      },
+      {
+        p: "n", w: "kembang sepatu", r: "sepatu", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "ハイビスカス、ブッソウゲ（仏桑花）（熱帯の庭や生け垣で一年中鮮やかな赤い5弁の花を咲かせる低木＝bunga raya）",
+        ex: "Pagar halaman sekolah itu dihiasi deretan tanaman kembang sepatu yang sedang berbunga merah cerah.",
+        tr: "その学校の校庭の垣根は、鮮やかな赤い花を咲かせているハイビスカスの並木で彩られている。",
+        note: "■ 【なぜ「靴の花（kembang sepatu）」と呼ぶのか？】：赤い花びらに含まれる粘液と色素を使って、革靴（sepatu）を磨いてツヤを出したことから英語でも Shoe Flower、インドネシア語でも **『kembang sepatu（または bunga sepatu）』** と呼ばれる！（なお隣国マレーシアでは『bunga raya＝偉大な花』と呼ばれ国花になっている）。"
+      },
+      {
+        p: "n", w: "beringin", r: "beringin", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "ガジュマル、ベンガルボダイジュ（枝から無数の気根を垂らして巨大な樹冠を広げるイチジク属の常緑大木。王宮前広場の象徴樹であり、パンチャシラ第3原則「インドネシアの統一」およびゴルカル党のシンボル）",
+        ex: "Di tengah alun-alun utara Keraton Yogyakarta berdiri sepasang pohon beringin besar yang dikeramatkan warga.",
+        tr: "ジョグジャカルタ王宮の北広場（アルンアルン）の中央には、市民から神聖視されている一対の大きなガジュマルの木が立っている。",
+        note: "■ 【文化的象徴】：どんな人でもその広い木陰に入って雨や日差しから守られる（庇護・包容力＝mengayomi）ことから、国章ガルーダの盾の右上にある **パンチャシラ第3原則『Persatuan Indonesia（インドネシアの統一）』** の象徴とされている。"
+      },
+      {
+        p: "n", w: "jati", r: "jati", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "①チークの木、チーク材（kayu jati：木目が美しく油分を含んで耐久性と耐水性に優れ、シロアリにも強い最高級木材。中部・東ジャワが主産地） ②（※同音異義語で）本来の、真の（jati diri＝アイデンティティ・本領）",
+        ex: "Meja dan kursi buatan pengrajin Jepara itu sangat awet karena menggunakan kayu jati tua berkualitas tinggi.",
+        tr: "ジュパラの職人が作ったその机と椅子は、高品質な老齢チーク材を使用しているため非常に長持ちする。",
+        note: [
+          "■ 【2つの重要な意味】：\n① **木材の kayu jati（チーク材）**：ジュパラ（Jepara）やブロラ（Blora）産のチーク材は世界最高峰の家具・建築・造船用木材として輸出される。\n② **本質・真実の jati**：『jati diri（自己のアイデンティティ・本来の姿：menemukan jati diri bangsa）』、『sejati（真の・本物の：sahabat sejati＝真の友）』。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "mahoni", r: "mahoni", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "マホガニー（赤褐色の美しい木肌を持ち、チーク材と並んで高級家具やギター・バイオリンなどの楽器製造、都市の街路樹として広く植えられる樹木）",
+        ex: "Selain kayu jati, para pengrajin mebel juga banyak menggunakan kayu mahoni untuk diekspor ke Eropa.",
+        tr: "チーク材のほか、家具職人たちはヨーロッパへ輸出するためにマホガニー材も多く使用している。",
+        note: "■ 【コロケーション】：pohon mahoni（マホガニーの木）、kayu mahoni（マホガニー材）。"
+      },
+      {
+        p: "n", w: "cendana", r: "cendana", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "ビャクダン、白檀（サンダルウッド：kayu cendana。心材が気品ある甘い芳香を放ち、古くから東ヌサ・トゥンガラ州［ティモール島・スンバ島］の名産として扇子・仏像彫刻・お香・香油に珍重される香木）",
+        ex: "Kipas tangan yang diukir dari kayu cendana asli tetap mengeluarkan aroma harum yang lembut selama bertahun-tahun.",
+        tr: "本物の白檀（チュンダナ）の木から彫られた扇子は、何年経っても柔和で芳しい香りを放ち続ける。",
+        note: [
+          "■ 【歴史と政治ニュースでの比喩】：\n・古来よりティモール島やスンバ島は白檀（kayu cendana）の産地として世界的に知られた。\n・また現代の政治・歴史ニュースで **『Keluarga Cendana（チュンダナ一族）』** と言えば、第2代スハルト大統領の私邸が中央ジャカルタのメンテン地区 **「チュンダナ通り（Jalan Cendana）」** にあったことから、「スハルト元大統領一族」を指す代名詞として使われる！"
+        ].join("\n")
+      }
+    ]
+  };
+
+  PACK_PART7_FLORA_FAUNA.vocab.forEach(function(it) {
+    dictOnlySet.add(it.w.trim().toLowerCase());
+  });
+
+  if (typeof window.wiAddPack === "function") {
+    window.wiAddPack(PACK_PART7_FLORA_FAUNA);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 辞書専用パック 第8弾：【政府省庁・国家機関・主要国営企業(BUMN)・金融証券指標・交通機関】（全50語）
+   - すべて問題には一切出題せず（dictOnly: true, tier: 3）、辞書検索・A〜Z辞書・Kompas連動のみに表示
+   - ループやタイマーを一切増やさない超軽量・負荷ゼロのデータ登録パック
+   ===================================================================== */
+(function() {
+  const d = window.WHATSINDO_EXTERNAL_DATA;
+  if (!d) return;
+
+  const dictOnlySet = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+
+  const PACK_PART8_INSTITUTIONS_ECONOMY = {
+    vocab: [
+      // ==================== 1. 主要政府省庁アクロニム（14語） ====================
+      {
+        p: "singkatan", w: "Kemenlu", r: "Kementerian Luar Negeri", alts: ["kementerian luar negeri", "kemlu"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "外務省（Kementerian Luar Negeri の合成アクロニム。公式略称として Kemlu も併用される）",
+        ex: "Juru bicara Kemenlu memastikan bahwa seluruh warga negara Indonesia di wilayah konflik tersebut dalam keadaan aman.",
+        tr: "外務省（Kemenlu）の報道官は、その紛争地域にいるすべてのインドネシア国民が無事であることを確認した。",
+        note: "■ 【正式名称】：Kementerian Luar Negeri（外務大臣は Menlu＝Menteri Luar Negeri）。"
+      },
+      {
+        p: "singkatan", w: "Kemendagri", r: "Kementerian Dalam Negeri", alts: ["kementerian dalam negeri"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "内務省（地方自治体・州知事や県知事の行政監督、および住民登録証［e-KTP］などの住民行政を管轄する省）",
+        ex: "Kemendagri menginstruksikan seluruh kepala daerah untuk mengendalikan inflasi pangan di wilayah masing-masing.",
+        tr: "内務省（Kemendagri）はすべての地方首長に対し、各地域における食品インフレを抑制するよう指示した。",
+        note: "■ 【正式名称】：KEMENterian DAlam neGeRI（内務大臣は Mendagri＝Menteri Dalam Negeri）。"
+      },
+      {
+        p: "singkatan", w: "Kemenhan", r: "Kementerian Pertahanan", alts: ["kementerian pertahanan", "kemhan"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "国防省（Kementerian Pertahanan の合成アクロニム。Kemhan とも略される）",
+        ex: "Kemenhan terus memperkuat modernisasi alat utama sistem senjata TNI demi menjaga kedaulatan negara.",
+        tr: "国防省（Kemenhan）は国家の主権を守るため、インドネシア国軍の主要兵器システム（Alutsista）の近代化を強化し続けている。",
+        note: "■ 【正式名称】：KEMENterian pertaHANan（国防大臣は Menhan＝Menteri Pertahanan）。"
+      },
+      {
+        p: "singkatan", w: "Kemenag", r: "Kementerian Agama", alts: ["kementerian agama"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "宗教省（公認6宗教の宗教行政、ハッジ巡礼団の派遣管理、イスラム学校［マドラサ］や宗教大学、断食月・レバラン開始日の決定会議［Sidang Isbat］などを管轄する省）",
+        ex: "Kemenag akan menggelar sidang isbat pada petang ini untuk menetapkan tanggal satu Syawal.",
+        tr: "宗教省（Kemenag）はシャワル月1日（レバランの日）を決定するため、本日の夕方にイスバット会議（新月観測判定会議）を開催する。",
+        note: "■ 【正式名称】：KEMENterian AGama（宗教大臣は Menag＝Menteri Agama）。"
+      },
+      {
+        p: "singkatan", w: "Kemensos", r: "Kementerian Sosial", alts: ["kementerian sosial"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "社会省（貧困層への社会扶助［bansos］、災害被災者の生活支援、児童・高齢者・障がい者福祉などを管轄する省）",
+        ex: "Kemensos menyalurkan bantuan logistik dan mendirikan dapur umum bagi warga yang terdampak banjir.",
+        tr: "社会省（Kemensos）は洪水の被災住民に対して救援物資を配分し、炊き出し所（共同炊事場）を設置した。",
+        note: "■ 【正式名称】：KEMENterian SOSial（社会大臣は Mensos＝Menteri Sosial）。"
+      },
+      {
+        p: "singkatan", w: "Kemnaker", r: "Kementerian Ketenagakerjaan", alts: ["kementerian ketenagakerjaan", "kemenaker"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "労働省（雇用政策、最低賃金［UMP/UMK］や祝祭日手当［THR］の基準、労働安全、職業訓練などを管轄する省。Kemenaker とも表記）",
+        ex: "Kemnaker menerbitkan surat edaran mengenai kewajiban perusahaan membayar tunjangan hari raya tepat waktu.",
+        tr: "労働省（Kemnaker）は、企業が期限通りに祝祭日手当（THR）を支払う義務に関する通達を発出した。",
+        note: "■ 【正式名称】：KEMenterian keteNAgakerjaan（労働大臣は Menaker＝Menteri Ketenagakerjaan）。"
+      },
+      {
+        p: "singkatan", w: "Kemenperin", r: "Kementerian Perindustrian", alts: ["kementerian perindustrian"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "工業省、産業省（国内の製造業振興、工業団地の開発、国産化率［TKDN］基準、資源の下流化［hilirisasi］などを管轄する省）",
+        ex: "Kemenperin mendorong peningkatan penggunaan komponen dalam negeri pada industri perakitan kendaraan bermotor.",
+        tr: "工業省（Kemenperin）は自動車組立産業における国産部品の使用率（TKDN）向上を推進している。",
+        note: "■ 【正式名称】：KEMENterian PERINdustrian（工業大臣は Menperin＝Menteri Perindustrian）。"
+      },
+      {
+        p: "singkatan", w: "Kemendag", r: "Kementerian Perdagangan", alts: ["kementerian perdagangan"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "商業省、貿易省（国内外の商業流通、生活必需品の市場価格安定、輸出入規制、自由貿易協定などを管轄する省）",
+        ex: "Kemendag bekerja sama dengan pemerintah daerah menggelar operasi pasar murah untuk menjaga harga beras.",
+        tr: "商業省（Kemendag）は米の価格を維持するため、地方自治体と協力して低価格市場オペレーション（放出販売）を実施した。",
+        note: "■ 【正式名称】：KEMENterian perDAGangan（商業大臣は Mendag＝Menteri Perdagangan）。"
+      },
+      {
+        p: "singkatan", w: "Kementan", r: "Kementerian Pertanian", alts: ["kementerian pertanian"], dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "農業省（米やトウモロコシなどの食料生産、農家への補助金付き肥料・優良種子の配分、畜産・プランテーションを管轄する省）",
+        ex: "Kementan menambah alokasi pupuk bersubsidi bagi para petani guna meningkatkan produksi beras nasional.",
+        tr: "農業省（Kementan）は国の米生産量を増やすため、農家向けの補助金付き肥料の割当量を増やした。",
+        note: "■ 【正式名称】：KEMENterian perTANian（農業大臣は Mentan＝Menteri Pertanian）。"
+      },
+      {
+        p: "singkatan", w: "KLHK", r: "Kementerian Lingkungan Hidup dan Kehutanan", alts: ["kementerian lingkungan hidup dan kehutanan"], dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "環境林業省（自然環境保護、国立公園管理、森林火災対策、温室効果ガス排出削減、廃棄物規制などを管轄する省）",
+        ex: "Tim patroli KLHK bersama warga setempat berhasil mencegah kebakaran hutan dan lahan gambut pada musim kemarau.",
+        tr: "環境林業省（KLHK）のパトロール隊は地域住民とともに、乾季における森林および泥炭地の火災を防ぐことに成功した。",
+        note: "■ 【正式名称】：Kementerian Lingkungan Hidup（環境）dan Kehutanan（林業）。"
+      },
+      {
+        p: "singkatan", w: "Kemenparekraf", r: "Kementerian Pariwisata dan Ekonomi Kreatif", alts: ["kementerian pariwisata dan ekonomi kreatif"], dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "観光・クリエイティブ経済省（国内外の観光プロモーション、観光村［desa wisata］の育成、映画・音楽・工芸・料理などのクリエイティブ産業を管轄する省）",
+        ex: "Kemenparekraf memberikan penghargaan kepada puluhan desa wisata terbaik dari berbagai provinsi di Indonesia.",
+        tr: "観光・クリエイティブ経済省（Kemenparekraf）は、インドネシア各州の優れた数十の観光村に表彰を授与した。",
+        note: "■ 【正式名称】：KEMENterian PARiwisata dan Ekonomi KReAtiF（大臣は Menparekraf）。インドネシア観光の公式ブランドスローガンは『Pesona Indonesia / Wonderful Indonesia』。"
+      },
+      {
+        p: "singkatan", w: "Kominfo", r: "Kementerian Komunikasi dan Informatika", alts: ["kementerian komunikasi dan informatika", "kemenkominfo", "komdigi"], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "通信情報省（通信インフラ網・衛星、放送周波数、インターネット規制、デジタル化推進などを管轄する省 ※2024年後半以降は通信デジタル省 Komdigi とも呼ばれる）",
+        ex: "Kominfo membangun ribuan menara pemancar sinyal telekomunikasi di daerah tertinggal, terdepan, dan terluar.",
+        tr: "通信情報省（Kominfo）は後発・最前線・最外縁地域（3T地域）に数千基の通信電波塔を建設している。",
+        note: "■ 【正式名称】：Kementerian KOMunikasi dan INFOrmatika（Kemenkominfo。2024年10月の省庁再編により Kementerian Komunikasi dan Digital＝略称 **Komdigi** へ改称）。"
+      },
+      {
+        p: "singkatan", w: "PUPR", r: "Pekerjaan Umum dan Perumahan Rakyat", alts: ["pekerjaan umum dan perumahan rakyat", "kementerian pekerjaan umum dan perumahan rakyat"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "公共事業・国民住宅（Kementerian PUPR＝公共事業・国民住宅省。全国の高速道路・国道・橋・ダム・灌漑・新首都IKN建設・公共住宅を担うインフラ中核省庁）",
+        ex: "Kementerian PUPR menyelesaikan pembangunan puluhan bendungan baru untuk memperkuat ketahanan air dan pangan.",
+        tr: "公共事業・国民住宅省（Kementerian PUPR）は、水と食料の安全保障を強化するために数十基の新しいダムの建設を完了した。",
+        note: "■ 【正式名称】：Kementerian Pekerjaan Umum（公共事業）dan Perumahan Rakyat（国民住宅）。"
+      },
+      {
+        p: "singkatan", w: "Kemenkumham", r: "Kementerian Hukum dan Hak Asasi Manusia", alts: ["kementerian hukum dan hak asasi manusia"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "法務人権省（法令審査、法人登記、知的財産権［特許・商標・著作権］、入国管理［パスポート・ビザ・イミグレーション］、矯正施設［刑務所］を管轄する省）",
+        ex: "Direktorat Jenderal Imigrasi di bawah Kemenkumham meluncurkan layanan paspor elektronik di seluruh kantor imigrasi.",
+        tr: "法務人権省（Kemenkumham）傘下の入国管理総局は、全入国管理局で電子パスポートサービスを開始した。",
+        note: "■ 【正式名称】：KEMENterian huKUM dan Hak Asasi Manusia。"
+      },
+
+      // ==================== 2. 重要国家機関・司法・選挙・防災・統計機関（12語） ====================
+      {
+        p: "singkatan", w: "MA", r: "Mahkamah Agung", alts: ["mahkamah agung"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "最高裁判所（民事・刑事・宗教・軍事・行政訴訟の上告審［kasasi］を管轄するインドネシアの最高司法機関）",
+        ex: "Mahkamah Agung atau MA menolak permohonan kasasi yang diajukan oleh terdakwa kasus penggelapan pajak tersebut.",
+        tr: "最高裁判所（MA）は、その脱税事件の被告人によって提出された上告申請を棄却した。",
+        note: [
+          "■ 【インドネシアの3大司法機関（MA / MK / KY）の役割分担】：\n① **MA (Mahkamah Agung：最高裁判所)**：一般裁判所・宗教裁判所・軍事裁判所・行政裁判所の頂点として、個別の事件の上告審（kasasi）・再審（peninjauan kembali / PK）および政令・規則の法令審査を裁く。\n② **MK (Mahkamah Konstitusi：憲法裁判所)**：法律（Undang-Undang）が1945年憲法に違反していないかの「違憲審査（uji materi）」、および大統領選・総選挙の結果をめぐる紛争を裁く。\n③ **KY (Komisi Yudisial：司法委員会)**：最高裁判事候補の推薦や、裁判官の倫理・品位・不正の監視を担う独立機関。"
+        ].join("\n")
+      },
+      {
+        p: "singkatan", w: "KY", r: "Komisi Yudisial", alts: ["komisi yudisial"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "司法委員会（最高裁判事の選出推薦および全国の裁判官の倫理・綱紀粛正を監督する憲法上の独立機関）",
+        ex: "Komisi Yudisial atau KY melakukan seleksi ketat terhadap para calon hakim agung yang akan diajukan ke DPR.",
+        tr: "司法委員会（KY）は、国会（DPR）へ推薦される最高裁判事候補者たちに対して厳格な選考を実施している。",
+        note: "■ 【正式名称】：Komisi Yudisial（yudisial＝司法の）。"
+      },
+      {
+        p: "singkatan", w: "Kejagung", r: "Kejaksaan Agung", alts: ["kejaksaan agung"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "最高検察庁（インドネシアの検察機関［Kejaksaan］の頂点。刑事事件の公訴提起や、大型経済犯罪・汚職事件の特別捜査・資産没収を行う。トップは検事総長 Jaksa Agung）",
+        ex: "Tim penyidik Kejagung menyita sejumlah aset tanah dan bangunan terkait kasus korupsi tata niaga komoditas tambang.",
+        tr: "最高検察庁（Kejagung）の捜査チームは、鉱物資源取引の汚職事件に関連して複数の土地および建物の資産を押収した。",
+        note: "■ 【正式名称】：KEJaksaan aGUNG。高等検察庁（州レベル）は『Kejati（Kejaksaan Tinggi）』、地方検察庁（市・県レベル）は『Kejari（Kejaksaan Negeri）』と略される。"
+      },
+      {
+        p: "singkatan", w: "Bawaslu", r: "Badan Pengawas Pemilihan Umum", alts: ["badan pengawas pemilihan umum", "badan pengawas pemilu"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "総選挙監督庁（選挙運動の違反・買収［politik uang］・公務員の中立違反などを監視し取り締まる独立選挙監視機関）",
+        ex: "Bawaslu menindaklanjuti laporan masyarakat mengenai dugaan pelanggaran aturan kampanye di media sosial.",
+        tr: "総選挙監督庁（Bawaslu）は、SNSにおける選挙運動規則違反の疑いに関する市民からの通報に対応した。",
+        note: [
+          "■ 【選挙を運営する3大独立機関】：\n① **KPU (Komisi Pemilihan Umum)**：総選挙委員会（名簿登録・投票・開票の実施運営）\n② **Bawaslu (Badan Pengawas Pemilu)**：総選挙監督庁（不正や選挙違反の監視・摘発）\n③ **DKPP (Dewan Kehormatan Penyelenggara Pemilu)**：選挙運営者倫理評議会（KPUやBawaslu委員の倫理違反・不正を裁く機関）"
+        ].join("\n")
+      },
+      {
+        p: "singkatan", w: "BPK", r: "Badan Pemeriksa Keuangan", alts: ["badan pemeriksa keuangan"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "会計検査院（中央政府・地方自治体・国営企業［BUMN］などの国家財政・予算執行を監査する憲法上の最高独立監査機関）",
+        ex: "Laporan keuangan kementerian tersebut berhasil meraih opini Wajar Tanpa Pengecualian berdasarkan hasil audit BPK.",
+        tr: "同省の財務報告書は、会計検査院（BPK）の監査結果に基づき「無限定適正意見（WTP）」を獲得した。",
+        note: "■ 【正式名称】：Badan Pemeriksa Keuangan。監査で問題がない最高評価は『WTP（Wajar Tanpa Pengecualian＝無限定適正意見）』と呼ばれる。※なお自動車・バイクの所有者台帳は『BPKB』。"
+      },
+      {
+        p: "singkatan", w: "BPS", r: "Badan Pusat Statistik", alts: ["badan pusat statistik"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "中央統計局（人口国勢調査［sensus penduduk］、経済成長率、インフレ率、輸出入貿易統計、失業率・貧困率などの公式国家統計を発表する政府機関）",
+        ex: "Berdasarkan data yang dirilis oleh BPS, tingkat inflasi tahunan Indonesia tetap terkendali sesuai target.",
+        tr: "中央統計局（BPS）が公表したデータによると、インドネシアの年間インフレ率は目標通りに抑制されている。",
+        note: "■ 【正式名称】：Badan Pusat Statistik。経済・社会ニュースで「Menurut data BPS,...（中央統計局のデータによると…）」としてほぼ毎日引用される最重要機関。"
+      },
+      {
+        p: "singkatan", w: "BNPB", r: "Badan Nasional Penanggulangan Bencana", alts: ["badan nasional penanggulangan bencana"], dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "国家災害対策庁（地震・津波・火山噴火・洪水・森林火災などの自然災害における防災計画・緊急救援・復旧指揮を統括する政府機関）",
+        ex: "Kepala BNPB meninjau langsung lokasi terdampak gempa bumi untuk memastikan penyaluran bantuan darurat berjalan lancar.",
+        tr: "国家災害対策庁（BNPB）の長官は、緊急支援物資の配分が順調に進んでいるか確認するため地震の被災地を直接視察した。",
+        note: "■ 【正式名称】：Badan Nasional Penanggulangan Bencana。各州・市・県レベルに置かれる「地方災害対策局」は **『BPBD（Badan Penanggulangan Bencana Daerah）』** と呼ばれる。"
+      },
+      {
+        p: "singkatan", w: "Basarnas", r: "Badan Nasional Pencarian dan Pertolongan", alts: ["badan nasional pencarian dan pertolongan", "badan sar nasional"], dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "国家捜索救助庁（海難事故・航空機事故・山岳遭難・自然災害などにおいて人命の捜索と救出［SAR］を専門に行う政府機関）",
+        ex: "Tim SAR gabungan yang dipimpin oleh Basarnas berhasil mengevakuasi seluruh awak kapal nelayan yang tenggelam.",
+        tr: "国家捜索救助庁（Basarnas）が率いる合同捜索救助チームは、沈没した漁船の乗組員全員を救出することに成功した。",
+        note: "■ 【語構成】：旧称の BAdan SAR NASional（国家SAR庁：現在は Badan Nasional Pencarian dan Pertolongan）のアクロニム。オレンジ色の制服が特徴。"
+      },
+      {
+        p: "singkatan", w: "BPOM", r: "Badan Pengawas Obat dan Makanan", alts: ["badan pengawas obat dan makanan"], dictOnly: true, tier: 3, topicCat: "🏥 健康・身体・感情",
+        m: "医薬品・食品監督庁（医薬品、ワクチン、化粧品、加工食品の安全性審査・流通許可・違法有害製品の摘発を行う政府機関＝米国のFDAに相当）",
+        ex: "BPOM menarik peredaran sejumlah produk kosmetik ilegal yang terbukti mengandung bahan berbahaya merkuri.",
+        tr: "医薬品・食品監督庁（BPOM）は、有害物質である水銀を含んでいることが立証された複数の違法化粧品の流通を回収（差し止め）した。",
+        note: "■ 【正式名称】：Badan Pengawas Obat dan Makanan（口語では Badan POM とも読まれる）。"
+      },
+      {
+        p: "singkatan", w: "Komnas HAM", r: "Komisi Nasional Hak Asasi Manusia", alts: ["komisi nasional hak asasi manusia"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "国家人権委員会（基本的人権の擁護・啓発および人権侵害事件の独自調査・勧告を行う独立国家機関）",
+        ex: "Komnas HAM menurunkan tim investigasi independen untuk menyelidiki dugaan pelanggaran hak asasi manusia.",
+        tr: "国家人権委員会（Komnas HAM）は、人権侵害の疑いを調査するために独立調査チームを派遣した。",
+        note: "■ 【関連機関】：女性に対する暴力や人権を専門に扱う国家機関は『Komnas Perempuan（国家女性人権委員会）』、児童保護は『KPAI（Komisi Perlindungan Anak Indonesia）』。"
+      },
+      {
+        p: "singkatan", w: "BNN", r: "Badan Narkotika Nasional", alts: ["badan narkotika nasional"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "国家麻薬対策庁（麻薬・覚醒剤・違法薬物の密輸取締り、捜査、防止啓発、および依存症者のリハビリテーションを担う政府機関）",
+        ex: "Petugas BNN bekerja sama dengan Bea Cukai berhasil menggagalkan penyelundupan narkotika jaringan internasional.",
+        tr: "国家麻薬対策庁（BNN）の係員は税関と協力し、国際組織による麻薬密輸を阻止することに成功した。",
+        note: "■ 【正式名称】：Badan Narkotika Nasional。"
+      },
+      {
+        p: "singkatan", w: "BIN", r: "Badan Intelijen Negara", alts: ["badan intelijen negara"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "国家情報庁（国内外の安全保障・テロ防止・国家機密に関するインテリジェンス活動と大統領への情報報告を統括する政府機関）",
+        ex: "BIN memperkuat deteksi dini terhadap berbagai potensi ancaman keamanan siber dan terorisme menjelang KTT internasional.",
+        tr: "国家情報庁（BIN）は国際首脳会議を前に、サイバーセキュリティやテロの様々な潜在的脅威に対する早期探知を強化している。",
+        note: "■ 【正式名称】：Badan Intelijen Negara。"
+      },
+
+      // ==================== 3. 主要国営企業（BUMN）・4大銀行・インフラ企業（12語） ====================
+      {
+        p: "n", w: "Pertamina", r: "Pertamina", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "プルタミナ（インドネシア最大の国営石油・天然ガス会社。油田・ガス田の探鉱開発から製油所運営、全国のガソリンスタンド［SPBU］での燃料販売、地熱発電までを担う）",
+        ex: "Pertamina menjamin pasokan bahan bakar minyak dan elpiji di seluruh SPBU tetap aman selama masa mudik Lebaran.",
+        tr: "プルタミナはレバラン帰省期間中、全国のガソリンスタンド（SPBU）における石油燃料およびLPGガスの供給が十分に確保されていることを保証した。",
+        note: "■ 【語源】：PERusahaan perTAMbangan MINyak dan gas bumi negAra（国家石油天然ガス鉱業公社）の合成アクロニム。販売する主要ガソリンブランドに Pertalite（オクタン価90）や Pertamax（オクタン価92/95/98）がある。"
+      },
+      {
+        p: "n", w: "Garuda Indonesia", r: "Garuda", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "ガルーダ・インドネシア航空（インドネシアの国営フラッグ・キャリア航空会社。格安航空会社［LCC］のシティリンク Citilink を傘下に持つ）",
+        ex: "Maskapai penerbangan nasional Garuda Indonesia menambah frekuensi penerbangan langsung menuju Jepang dan Australia.",
+        tr: "国営航空会社のガルーダ・インドネシア航空は、日本およびオーストラリア向けの直行便の運航便数を増やした。",
+        note: "■ 【歴史】：1949年1月、独立戦争の最中にアチェ市民からの募金で購入されたダグラスDC-3型機『Seulawah（スラワ号）』による初飛行を起源とし、ヒンドゥー神話の神鳥ガルーダを社名・尾翼ロゴに冠する。"
+      },
+      {
+        p: "singkatan", w: "Bulog", r: "Badan Urusan Logistik", alts: ["badan urusan logistik", "perum bulog"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "国家食糧調達庁、食糧公社（Perum Bulog：国内の米の備蓄管理、農家からの籾・米の買い支え、市場価格高騰時の政府備蓄米［SPHP］の放出などを担う国営公社）",
+        ex: "Perum Bulog menyerap gabah hasil panen petani lokal untuk memperkuat cadangan beras pemerintah di gudang nasional.",
+        tr: "国家食糧調達庁（Bulog）は、全国の倉庫にある政府備蓄米を強化するために地元農家の収穫した籾（もみ）を買い上げた。",
+        note: "■ 【正式名称】：Badan Urusan Logistik（現在は公共企業体 Perum Bulog）。食料安全保障・米価ニュースで100%登場する必須機関。"
+      },
+      {
+        p: "n", w: "Telkom", r: "Telkom", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "テルコム、テルコム・インドネシア（PT Telkom Indonesia：インドネシア最大の国営電気通信・デジタル企業。国内最大手の携帯電話事業者 Telkomsel を傘下に持つ）",
+        ex: "Telkom memperluas jaringan kabel serat optik bawah laut untuk meningkatkan kecepatan internet di wilayah timur Indonesia.",
+        tr: "テルコムはインドネシア東部地域におけるインターネット速度を向上させるため、海底光ファイバーケーブル網を拡張している。",
+        note: "■ 【株式市場】：インドネシア証券取引所（BEI）の代表的な大型優良株（ブルーチップ：銘柄コード TLKM）のひとつ。"
+      },
+      {
+        p: "singkatan", w: "Antam", r: "Aneka Tambang", alts: ["aneka tambang", "pt aneka tambang"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "アンタム（PT Aneka Tambang：ニッケル、金、ボーキサイトなどの採掘・精錬、および投資用金地金［Logam Mulia］の製造販売を行う大手国営鉱業会社）",
+        ex: "Harga emas batangan produksi Antam kembali mencatat rekor tertinggi di tengah ketidakpastian ekonomi global.",
+        tr: "アンタム（Antam）製の金地金（ゴールドバー）の価格は、世界経済の不透明感の中で再び最高値を記録した。",
+        note: "■ 【経済ニュース】：インドネシアの金価格ニュースでは常に『harga emas Antam（アンタムの金価格）』が国内標準指標として報じられる（銘柄コード ANTM）。"
+      },
+      {
+        p: "singkatan", w: "Inalum", r: "Indonesia Asahan Aluminium", alts: ["indonesia asahan aluminium"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "イナルム（PT Indonesia Asahan Aluminium：北スマトラ州トバ湖から流れるアサハン川の水力発電を利用した、東南アジア初の大型アルミニウム精錬国営企業）",
+        ex: "Pabrik peleburan Inalum di Sumatera Utara memproduksi aluminium batangan dengan memanfaatkan energi listrik tenaga air.",
+        tr: "北スマトラにあるイナルム（Inalum）の精錬工場は、水力発電の電力を活用してアルミニウム地金を生産している。",
+        note: "■ 【日尼経済協力の歴史】：1976年にインドネシア政府と日本の官民コンソーシアム（日本アサハンアルミニウム）の合弁による国家プロジェクト『アサハン計画』として設立され、2013年の契約満了に伴いインドネシア完全国営企業となった歴史あるメーカー。"
+      },
+      {
+        p: "n", w: "Bank Mandiri", r: "mandiri", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "マンディリ銀行（PT Bank Mandiri：総資産・融資規模でインドネシア最大級を誇る国営商業銀行。株式ティッカーコードは BMRI）",
+        ex: "Bank Mandiri terus memperluas layanan perbankan digital bagi nasabah ritel maupun korporasi di seluruh Indonesia.",
+        tr: "マンディリ銀行は、インドネシア全土の個人顧客および法人顧客向けにデジタルバンキングサービスを拡大し続けている。",
+        note: [
+          "■ 【設立の歴史とインドネシア4大銀行（Big 4 Banks）】：\n・アジア通貨危機最中の1998年10月、政府の銀行再編により4つの旧国営銀行（Bank Bumi Daya, Bank Dagang Negara, Bank Ekspor Impor Indonesia, Bapindo）が合併して『自立（Mandiri）』の名のもとに誕生した。\n・**インドネシア株式市場・金融界を牽引する4大銀行**：\n① **Bank Mandiri (BMRI)**：国営・法人および総合金融最大手\n② **BRI (BBRI)**：国営・中小零細企業（UMKM）および農村マイクロファイナンス最大手\n③ **BCA (BBCA)**：民間最大手（ジャルム財閥傘下・決済や富裕層リテールに圧倒的強み）\n④ **BNI (BBNI)**：国営・貿易金融や海外ネットワークに強み（これらに住宅ローンの国営銀行 **BTN** を加えた国営4行を『Himbara＝Himpunan Bank Milik Negara』と呼ぶ）。"
+        ].join("\n")
+      },
+      {
+        p: "singkatan", w: "BRI", r: "Bank Rakyat Indonesia", alts: ["bank rakyat indonesia"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "インドネシア庶民銀行（1895年に中部ジャワのプルウォケルトで創設された歴史を持つ国営銀行。全国の農村から離島まで網羅し、中小零細企業［UMKM］向け融資で世界屈指の規模を誇る）",
+        ex: "BRI menyalurkan Kredit Usaha Rakyat kepada jutaan pedagang kecil dan petani di seluruh pelosok desa.",
+        tr: "インドネシア庶民銀行（BRI）は、全国の農村の隅々にいる何百万人もの零細商人や農家へ「国民事業融資（KUR）」を提供している。",
+        note: "■ 【特徴】：離島や山間部の通信用として、銀行として世界で初めて独自の通信衛星『BRIsat（2016年打上げ）』を保有したことでも有名（銘柄コード BBRI）。"
+      },
+      {
+        p: "singkatan", w: "BNI", r: "Bank Negara Indonesia", alts: ["bank negara indonesia"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "インドネシア国家銀行（独立直後の1946年7月5日に共和国最初の中央銀行・発券銀行として創設され、後に商業銀行へ転換した大手国営銀行）",
+        ex: "BNI memiliki jaringan kantor cabang luar negeri seperti di Tokyo, Singapura, dan London untuk mendukung perdagangan internasional.",
+        tr: "インドネシア国家銀行（BNI）は国際貿易を支援するため、東京、シンガポール、ロンドンなどに海外支店網を有している。",
+        note: "■ 【正式名称】：PT Bank Negara Indonesia（創業年にちなんで BNI 46 とも親しまれる。東京・丸の内にも支店を持つ。銘柄コード BBNI）。"
+      },
+      {
+        p: "singkatan", w: "BCA", r: "Bank Central Asia", alts: ["bank central asia"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "バンク・セントラル・アジア（インドネシア最大の民間商業銀行。決済ネットワークやモバイルバンキングの利便性で高いシェアを持ち、東南アジア最大の時価総額を誇る金融機関のひとつ）",
+        ex: "Kapitalisasi pasar saham BCA merupakan salah satu yang terbesar di Bursa Efek Indonesia.",
+        tr: "BCAの株式時価総額は、インドネシア証券取引所において最大規模のひとつである。",
+        note: "■ 【正式名称】：PT Bank Central Asia（銘柄コード BBCA）。"
+      },
+      {
+        p: "n", w: "Jasa Marga", r: "marga", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "ジャサ・マルガ（PT Jasa Marga：1978年にインドネシア初の高速道路「ジャゴラウィ高速道路」とともに設立された、国内最大の国営高速道路建設・運営会社）",
+        ex: "Jasa Marga memberlakukan sistem rekayasa lalu lintas lawan arus atau contraflow untuk mengurai kemacetan di jalan tol.",
+        tr: "ジャサ・マルガは高速道路の渋滞を解消するため、対向車線活用（コントラフロー）の交通誘導システムを実施した。",
+        note: "■ 【語源】：サンスクリット・古ジャワ語由来の『jasa（奉仕・サービス）』＋『marga（道・道路＝jalan）』。"
+      },
+      {
+        p: "singkatan", w: "Pelni", r: "Pelayaran Nasional Indonesia", alts: ["pelayaran nasional indonesia"], dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "ペルニ、国営インドネシア海運（PT Pelayaran Nasional Indonesia：スマトラからマルク・パプアの離島まで全国の数十の港を結ぶ大型定期旅客船・貨物船を運航する国営海運会社）",
+        ex: "Kapal penumpang milik Pelni menjadi sarana transportasi laut utama bagi warga yang tinggal di kepulauan Maluku dan Papua.",
+        tr: "国営海運ペルニ（Pelni）の旅客船は、マルク諸島やパプアに暮らす住民にとって主要な海上交通手段となっている。",
+        note: "■ 【正式名称】：PT PELayaran Nasional Indonesia。離島の物資価格格差をなくす政府の定期貨物航路プロジェクト『Tol Laut（海の高速道路）』の主力運航会社でもある。"
+      },
+
+      // ==================== 4. 中央銀行・証券市場・金融経済用語・交通機関（12語） ====================
+      {
+        p: "singkatan", w: "BI", r: "Bank Indonesia", alts: ["bank indonesia"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "インドネシア銀行（インドネシアの中央銀行。通貨ルピアの発行、政策金利［BI-Rate］の決定、物価と為替レートの安定、決済システムの監督を担う独立機関）",
+        ex: "Rapat Dewan Gubernur BI memutuskan untuk menahan suku bunga acuan demi menjaga stabilitas nilai tukar rupiah.",
+        tr: "インドネシア銀行（BI・中央銀行）の政策委員会会合は、ルピア為替レートの安定を守るため政策金利を据え置くことを決定した。",
+        note: "■ 【重要用語】：Gubernur BI（中央銀行総裁）、BI-Rate（政策金利）、cadangan devisa（外貨準備高）。"
+      },
+      {
+        p: "singkatan", w: "OJK", r: "Otoritas Jasa Keuangan", alts: ["otoritas jasa keuangan"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "金融サービス庁（日本の金融庁に相当。銀行・証券資本市場・保険・年金・フィンテック融資などの全金融機関の許認可と監督、および金融消費者保護を担う独立機関）",
+        ex: "OJK mengingatkan masyarakat agar selalu memastikan legalitas perusahaan investasi dan pinjaman daring sebelum bertransaksi.",
+        tr: "金融サービス庁（OJK）は市民に対し、取引を行う前に投資会社やオンライン融資会社の適法性を必ず確認するよう注意喚起している。",
+        note: "■ 【BI と OJK の役割分担】：**BI（中央銀行）** は「マクロ金融政策（金利・通貨・インフレ・決済網）」を担い、**OJK（金融サービス庁）** は「個別金融機関（銀行・証券・保険・フィンテック）の健全性監督と消費者保護」を担う。"
+      },
+      {
+        p: "singkatan", w: "BEI", r: "Bursa Efek Indonesia", alts: ["bursa efek indonesia", "idx"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "インドネシア証券取引所（ジャカルタのSCBD地区にある証券取引所。英語略称は IDX＝Indonesia Stock Exchange）",
+        ex: "Jumlah investor ritel di pasar modal terus bertambah seiring dengan mudahnya pembukaan rekening saham di BEI.",
+        tr: "インドネシア証券取引所（BEI）での株式口座開設が容易になったことに伴い、資本市場における個人投資家の数は増え続けている。",
+        note: "■ 【語彙】：『bursa（取引所）』＋『efek（有価証券：株式 saham や債券 obligasi の総称）』。2007年にジャカルタ証券取引所（BEJ）とスラバヤ証券取引所（BES）が合併して誕生した。"
+      },
+      {
+        p: "singkatan", w: "IHSG", r: "Indeks Harga Saham Gabungan", alts: ["indeks harga saham gabungan"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "総合株価指数（インドネシア証券取引所［BEI］に上場する全銘柄を対象として算出される、インドネシア株式市場の代表的な株価指数。英語では JCI＝Jakarta Composite Index）",
+        ex: "IHSG ditutup menguat lebih dari satu persen pada perdagangan sore ini berkat masuknya aliran modal asing.",
+        tr: "総合株価指数（IHSG）は外国資金の流入のおかげで、本日の午後取引において1パーセント以上上昇して引けた。",
+        note: "■ 【語構成】：Indeks（指数）Harga（価格）Saham（株式）Gabungan（総合・合成）。日本の日経平均株価やTOPIXにあたり、経済ニュースで毎日報じられる指標（さらに流動性の高い代表的な優良45銘柄で構成される指数は『LQ45』や『IDX30』と呼ばれる）。"
+      },
+      {
+        p: "singkatan", w: "QRIS", r: "Quick Response Code Indonesian Standard", alts: ["quick response code indonesian standard"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "クリス（インドネシア中央銀行［BI］が策定した全国統一QRコード決済規格。1つのQRコードで全ての銀行アプリや電子マネー［GoPay/OVO/DANA等］から支払いができるシステム）",
+        ex: "Pedagang kaki lima hingga pusat perbelanjaan kini menggunakan QRIS untuk memudahkan pembayaran nontunai.",
+        tr: "露天商からショッピングセンターに至るまで、現在はキャッシュレス決済を容易にするために「QRIS（クリス）」を使用している。",
+        note: "■ 【発音と普及】：「キュリス／クリス（kris）」と発音される。現在インドネシア国内の数千万店舗に普及しているだけでなく、タイ・マレーシア・シンガポール・日本などとの国家間クロスボーダーQR決済連携も進められている。"
+      },
+      {
+        p: "singkatan", w: "KAI", r: "Kereta Api Indonesia", alts: ["kereta api indonesia", "pt kereta api indonesia"], dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "国営インドネシア鉄道（PT Kereta Api Indonesia：ジャワ島およびスマトラ島の都市間長距離列車、貨物列車、首都圏通勤電車［KAI Commuter］などを運営する国営鉄道会社）",
+        ex: "PT KAI menyediakan jutaan kursi kereta api jarak jauh untuk melayani penumpang pada masa angkutan Lebaran.",
+        tr: "国営インドネシア鉄道（PT KAI）は、レバラン輸送期間中の乗客に対応するため数百万席の長距離列車座席を用意している。",
+        note: "■ 【歴史】：イグナシウス・ジョナン社長時代（2009〜2014年）の大改革により、それまでの無賃乗車や屋根乗り・遅延を一掃し、全席指定・オンライン発券・定時運行の近代的で清潔な鉄道へと劇的な変貌を遂げた。"
+      },
+      {
+        p: "n", w: "Whoosh", r: "Whoosh", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "ウーシュ（2023年10月に開業した東南アジア初の高速鉄道「ジャカルタ・バンドン高速鉄道［KCJB］」の公式愛称。最高時速350kmでジャカルタ［ハリム駅］とバンドンを約45分で結ぶ）",
+        ex: "Kereta cepat Whoosh memangkas waktu perjalanan antara Jakarta dan Bandung dari tiga jam menjadi sekitar empat puluh lima menit.",
+        tr: "高速鉄道「Whoosh（ウーシュ）」は、ジャカルタとバンドンの間の移動時間を3時間から約45分へと短縮した。",
+        note: "■ 【名称の由来】：高速列車が風を切って走る擬音（ピューッ！）であると同時に、インドネシア語の **『Waktu Hemat, Operasi Optimal, Sistem Hebat（時間節約・最適運行・優れたシステム）』** の頭文字アクロニムになっている（運行会社は PT KCIC）。"
+      },
+      {
+        p: "n", w: "Transjakarta", r: "Jakarta", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "トランスジャカルタ（2004年に運行を開始したジャカルタ首都圏のバス高速輸送システム［BRT］。道路中央に設けられた専用レーン［busway］を走り、世界最長規模の総路線網を持つ）",
+        ex: "Jaringan bus Transjakarta memiliki jalur khusus sehingga dapat terhindar dari kemacetan lalu lintas di jalan utama.",
+        tr: "トランスジャカルタのバス網は専用レーン（バスウェイ）を持っているため、幹線道路での交通渋滞を回避することができる。",
+        note: "■ 【日常呼称】：ジャカルタ市民からは専用レーン名から取って単に **『Busway（バスウェイ：naik busway＝トランスジャカルタに乗る）』** や **『TJ』** とも呼ばれる。どこまで乗っても定額3,500ルピアという手頃な運賃で市民の足を支えている。"
+      },
+      {
+        p: "singkatan", w: "MRT", r: "Moda Raya Terpadu", alts: ["moda raya terpadu", "mass rapid transit"], dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "都市高速鉄道、地下鉄（英語の Mass Rapid Transit に対応するインドネシア語公式名称 Moda Raya Terpadu の略称。2019年にジャカルタ南北線［ブンダランHI〜ルバックブルス間］が開業）",
+        ex: "Pembangunan MRT Jakarta fase kedua sedang dikerjakan di bawah tanah dari Bundaran HI menuju kawasan Kota Tua.",
+        tr: "ジャカルタMRTの第2期建設工事は現在、ブンダランHIから旧市街（コタ・トゥア）エリアへ向けて地下で進められている。",
+        note: "■ 【特徴】：日本の円借款（JICA）と日本の建設・車両技術協力によって建設されたインドネシア初の地下鉄を含む都市高速鉄道。愛称は列車を意味する『Ratangga（ラタンガ：古ジャワ語で戦車・車両）』。"
+      },
+      {
+        p: "singkatan", w: "LRT", r: "Lintas Rel Terpadu", alts: ["lintas rel terpadu", "light rail transit"], dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "LRT、軽量軌道交通（英語の Light Rail Transit に対応するインドネシア語公式名称 Lintas Rel Terpadu の略称。主に高架軌道を走る中量都市鉄道で、パレンバンおよびジャカルタ首都圏［LRT Jabodebek］で運行）",
+        ex: "Warga Bekasi dan Cibubur kini dapat menggunakan LRT Jabodebek yang melintas di jalur layang menuju pusat Kota Jakarta.",
+        tr: "ブカシやチブブールの住民は現在、高架軌道を走ってジャカルタ中心部へ向かう「LRTジャボデベック」を利用することができる。",
+        note: "■ 【正式名称】：Lintas（軌道・路線）Rel（レール）Terpadu（統合された）。"
+      },
+      {
+        p: "singkatan", w: "ojol", r: "ojek online", alts: ["ojek online", "ojek daring"], dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "オジョル、オンライン配車バイクタクシー（ojek online の合成アクロニム。Gojek や Grab などのスマホアプリで呼ぶバイクタクシーおよびその運転手・フードデリバリーサービス）",
+        ex: "Saat jam sibuk pagi hari, banyak pekerja kantoran memesan ojol menuju stasiun agar tidak terlambat.",
+        tr: "朝のラッシュアワーには、多くの会社員が遅刻しないよう駅までオジョル（配車バイクタクシー）を呼ぶ。",
+        note: "■ 【現代インドネシアの生活インフラ】：緑色のジャケットとヘルメットがトレードマークの **『ojol（ojek online：標準語表現では ojek daring）』** は、人の移動だけでなく食事配達（GoFood / GrabFood）や書類・荷物の即時配送まで日常のあらゆる場面を支えている。"
+      },
+      {
+        p: "singkatan", w: "angkot", r: "angkutan kota", alts: ["angkutan kota", "mikrolet"], dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "アンコット、都市内乗り合いミニバス（angkutan kota の合成アクロニム。決まったルートを走り、ルート上のどこでも手を挙げて乗り降りできる庶民の小型乗り合い自動車）",
+        ex: "Para pelajar sekolah menengah biasa menaiki angkot dari ujung jalan desa menuju pusat kota.",
+        tr: "中高生たちは普段、村の道の入り口から街の中心部までアンコット（乗り合いミニバス）に乗る。",
+        note: "■ 【乗り方と文化】：乗りたい場所で手を挙げて止め、降りたい場所で運転手に **『Kiri!（左！＝左に寄せて止めてください）』** と声をかけて降りて現金を払うのがインドネシア全土のアンコットのルール。ジャカルタでは小型バス統合システム『JakLingko（マイクロトランス）』としてICカード化・エアコン化が進んでいる。"
+      }
+    ],
+    acro: [
+      { acro: "Kemenlu", full: "kementerian luar negeri", alts: ["kemlu"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "外務省", exp: "■ 【正式名称】：Kementerian Luar Negeri（大臣は Menlu）。" },
+      { acro: "Kemendagri", full: "kementerian dalam negeri", alts: [], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "内務省", exp: "■ 【正式名称】：Kementerian Dalam Negeri（大臣は Mendagri）。" },
+      { acro: "Kemenhan", full: "kementerian pertahanan", alts: ["kemhan"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "国防省", exp: "■ 【正式名称】：Kementerian Pertahanan（大臣は Menhan）。" },
+      { acro: "Kemenag", full: "kementerian agama", alts: [], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "宗教省", exp: "■ 【正式名称】：Kementerian Agama（大臣は Menag）。" },
+      { acro: "Kemensos", full: "kementerian sosial", alts: [], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "社会省", exp: "■ 【正式名称】：Kementerian Sosial（大臣は Mensos）。" },
+      { acro: "Kemnaker", full: "kementerian ketenagakerjaan", alts: ["kemenaker"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物", tr: "労働省", exp: "■ 【正式名称】：Kementerian Ketenagakerjaan（大臣は Menaker）。" },
+      { acro: "Kemenperin", full: "kementerian perindustrian", alts: [], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物", tr: "工業省、産業省", exp: "■ 【正式名称】：Kementerian Perindustrian（大臣は Menperin）。" },
+      { acro: "Kemendag", full: "kementerian perdagangan", alts: [], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物", tr: "商業省、貿易省", exp: "■ 【正式名称】：Kementerian Perdagangan（大臣は Mendag）。" },
+      { acro: "Kementan", full: "kementerian pertanian", alts: [], dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物", tr: "農業省", exp: "■ 【正式名称】：Kementerian Pertanian（大臣は Mentan）。" },
+      { acro: "KLHK", full: "kementerian lingkungan hidup dan kehutanan", alts: [], dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物", tr: "環境林業省", exp: "■ 【正式名称】：Kementerian Lingkungan Hidup dan Kehutanan。" },
+      { acro: "Kemenparekraf", full: "kementerian pariwisata dan ekonomi kreatif", alts: [], dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動", tr: "観光・クリエイティブ経済省", exp: "■ 【正式名称】：Kementerian Pariwisata dan Ekonomi Kreatif。" },
+      { acro: "Kominfo", full: "kementerian komunikasi dan informatika", alts: ["kemenkominfo", "komdigi"], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT", tr: "通信情報省（通信デジタル省 Komdigi）", exp: "■ 【正式名称】：Kementerian Komunikasi dan Informatika（現・Kementerian Komunikasi dan Digital）。" },
+      { acro: "PUPR", full: "pekerjaan umum dan perumahan rakyat", alts: ["kementerian pekerjaan umum dan perumahan rakyat"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物", tr: "公共事業・国民住宅（Kementerian PUPR＝公共事業・国民住宅省）", exp: "■ 【正式名称】：Kementerian Pekerjaan Umum dan Perumahan Rakyat。" },
+      { acro: "Kemenkumham", full: "kementerian hukum dan hak asasi manusia", alts: [], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "法務人権省", exp: "■ 【正式名称】：Kementerian Hukum dan Hak Asasi Manusia。" },
+      { acro: "MA", full: "mahkamah agung", alts: [], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "最高裁判所", exp: "■ 【正式名称】：Mahkamah Agung（違憲審査や選挙結果紛争を扱う憲法裁判所は MK＝Mahkamah Konstitusi）。" },
+      { acro: "KY", full: "komisi yudisial", alts: [], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "司法委員会", exp: "■ 【正式名称】：Komisi Yudisial。" },
+      { acro: "Kejagung", full: "kejaksaan agung", alts: [], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "最高検察庁", exp: "■ 【正式名称】：Kejaksaan Agung（トップは検事総長 Jaksa Agung）。" },
+      { acro: "Bawaslu", full: "badan pengawas pemilihan umum", alts: ["badan pengawas pemilu"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "総選挙監督庁（選挙違反の監視・摘発機関）", exp: "■ 【正式名称】：Badan Pengawas Pemilihan Umum。" },
+      { acro: "BPK", full: "badan pemeriksa keuangan", alts: [], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "会計検査院", exp: "■ 【正式名称】：Badan Pemeriksa Keuangan。" },
+      { acro: "BPS", full: "badan pusat statistik", alts: [], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物", tr: "中央統計局", exp: "■ 【正式名称】：Badan Pusat Statistik。" },
+      { acro: "BNPB", full: "badan nasional penanggulangan bencana", alts: [], dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物", tr: "国家災害対策庁", exp: "■ 【正式名称】：Badan Nasional Penanggulangan Bencana（地方は BPBD）。" },
+      { acro: "Basarnas", full: "badan nasional pencarian dan pertolongan", alts: ["badan sar nasional"], dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物", tr: "国家捜索救助庁", exp: "■ 【正式名称】：Badan Nasional Pencarian dan Pertolongan（旧 BAdan SAR NASional）。" },
+      { acro: "BPOM", full: "badan pengawas obat dan makanan", alts: [], dictOnly: true, tier: 3, topicCat: "🏥 健康・身体・感情", tr: "医薬品・食品監督庁", exp: "■ 【正式名称】：Badan Pengawas Obat dan Makanan。" },
+      { acro: "Komnas HAM", full: "komisi nasional hak asasi manusia", alts: [], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "国家人権委員会", exp: "■ 【正式名称】：Komisi Nasional Hak Asasi Manusia。" },
+      { acro: "BNN", full: "badan narkotika nasional", alts: [], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "国家麻薬対策庁", exp: "■ 【正式名称】：Badan Narkotika Nasional。" },
+      { acro: "BIN", full: "badan intelijen negara", alts: [], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "国家情報庁", exp: "■ 【正式名称】：Badan Intelijen Negara。" },
+      { acro: "Bulog", full: "badan urusan logistik", alts: ["perum bulog"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物", tr: "国家食糧調達庁（食糧公社）", exp: "■ 【正式名称】：Badan Urusan Logistik（Perum Bulog）。" },
+      { acro: "Antam", full: "aneka tambang", alts: ["pt aneka tambang"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物", tr: "アンタム（国営鉱業会社：金・ニッケル・ボーキサイト）", exp: "■ 【正式名称】：PT Aneka Tambang Tbk。" },
+      { acro: "Inalum", full: "indonesia asahan aluminium", alts: [], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物", tr: "イナルム（国営アサハン・アルミニウム精錬会社）", exp: "■ 【正式名称】：PT Indonesia Asahan Aluminium。" },
+      { acro: "BRI", full: "bank rakyat indonesia", alts: [], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物", tr: "インドネシア庶民銀行（中小零細融資最大手の国営銀行）", exp: "■ 【正式名称】：PT Bank Rakyat Indonesia Tbk。" },
+      { acro: "BNI", full: "bank negara indonesia", alts: [], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物", tr: "インドネシア国家銀行（大手国営銀行）", exp: "■ 【正式名称】：PT Bank Negara Indonesia Tbk。" },
+      { acro: "BCA", full: "bank central asia", alts: [], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物", tr: "バンク・セントラル・アジア（民間最大手銀行）", exp: "■ 【正式名称】：PT Bank Central Asia Tbk。" },
+      { acro: "Pelni", full: "pelayaran nasional indonesia", alts: [], dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動", tr: "国営インドネシア海運", exp: "■ 【正式名称】：PT Pelayaran Nasional Indonesia。" },
+      { acro: "BI", full: "bank indonesia", alts: [], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物", tr: "インドネシア銀行（中央銀行）", exp: "■ 【正式名称】：Bank Indonesia。" },
+      { acro: "OJK", full: "otoritas jasa keuangan", alts: [], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物", tr: "金融サービス庁（日本の金融庁に相当）", exp: "■ 【正式名称】：Otoritas Jasa Keuangan。" },
+      { acro: "BEI", full: "bursa efek indonesia", alts: ["idx"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物", tr: "インドネシア証券取引所（英語略称 IDX）", exp: "■ 【正式名称】：Bursa Efek Indonesia。" },
+      { acro: "IHSG", full: "indeks harga saham gabungan", alts: [], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物", tr: "総合株価指数（インドネシア証券取引所の代表的株価指数）", exp: "■ 【正式名称】：Indeks Harga Saham Gabungan（英語略称 JCI）。" },
+      { acro: "QRIS", full: "quick response code indonesian standard", alts: [], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物", tr: "クリス（インドネシア中央銀行が定めた全国統一QRコード決済規格）", exp: "■ 【正式名称】：Quick Response Code Indonesian Standard。" },
+      { acro: "KAI", full: "kereta api indonesia", alts: ["pt kereta api indonesia"], dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動", tr: "国営インドネシア鉄道", exp: "■ 【正式名称】：PT Kereta Api Indonesia。" },
+      { acro: "MRT", full: "moda raya terpadu", alts: ["mass rapid transit"], dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動", tr: "都市高速鉄道、地下鉄", exp: "■ 【正式名称】：Moda Raya Terpadu（英語 Mass Rapid Transit）。" },
+      { acro: "LRT", full: "lintas rel terpadu", alts: ["light rail transit"], dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動", tr: "LRT、軽量軌道交通（ライトレール）", exp: "■ 【正式名称】：Lintas Rel Terpadu（英語 Light Rail Transit）。" },
+      { acro: "ojol", full: "ojek online", alts: ["ojek daring"], dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動", tr: "オンライン配車バイクタクシー（Gojek / Grab 等）", exp: "■ 【正式名称】：OJek OnLine（標準語では ojek daring）。" },
+      { acro: "angkot", full: "angkutan kota", alts: [], dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動", tr: "アンコット（都市内の乗り合いミニバス）", exp: "■ 【正式名称】：ANGkutan KOTa。" }
+    ]
+  };
+
+  PACK_PART8_INSTITUTIONS_ECONOMY.vocab.forEach(function(it) {
+    dictOnlySet.add(it.w.trim().toLowerCase());
+  });
+  PACK_PART8_INSTITUTIONS_ECONOMY.acro.forEach(function(a) {
+    dictOnlySet.add(a.acro.trim().toLowerCase());
+  });
+
+  if (typeof window.wiAddPack === "function") {
+    window.wiAddPack(PACK_PART8_INSTITUTIONS_ECONOMY);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 「全分野」＆「ALL」カウント完全一致（重複カウント解消）パッチ
+   - vocab と acro の両方に入っている略語の2重カウントを解消し、実収録数にピタッと統一
+   - 略語詳細を開いた際も、例文つきの最も詳しい解説が優先表示されるよう同期
+   ===================================================================== */
+(function() {
+  const d = window.WHATSINDO_EXTERNAL_DATA;
+  if (!d || !Array.isArray(d.vocab)) return;
+
+  function deduplicateAcroAndSyncCounts() {
+    const vList = Array.isArray(d.vocab) ? d.vocab : [];
+    const aList = Array.isArray(d.acro)  ? d.acro  : [];
+    const sList = Array.isArray(d.singkatan) ? d.singkatan : [];
+
+    // 1. vocab 内の p:"singkatan" の詳しい解説・例文を singkatan / acro 側に統合し、
+    //    d.vocab からは p:"singkatan" の重複分を整理して2重カウントを解消
+    const acroMap = new Map();
+    for (let i = 0; i < aList.length; i++) {
+      const a = aList[i];
+      if (a && a.acro) acroMap.set(a.acro.trim().toLowerCase(), a);
+    }
+    const singMap = new Map();
+    for (let i = 0; i < sList.length; i++) {
+      const s = sList[i];
+      if (s && s.w) singMap.set(s.w.trim().toLowerCase(), s);
+    }
+
+    for (let i = vList.length - 1; i >= 0; i--) {
+      const it = vList[i];
+      if (!it || !it.w) continue;
+      const key = it.w.trim().toLowerCase();
+
+      if (it.p === "singkatan" && acroMap.has(key)) {
+        const aObj = acroMap.get(key);
+        // 詳しい意味・解説・カテゴリーを acro 側へ引き継ぐ
+        if (it.m && (!aObj.tr || it.m.length > aObj.tr.length)) aObj.tr = it.m;
+        if (it.note && (!aObj.exp || it.note.length > aObj.exp.length)) aObj.exp = it.note;
+        if (it.topicCat) aObj.topicCat = it.topicCat;
+        if (it.dictOnly) aObj.dictOnly = true;
+
+        // singkatan 配列側に例文・和訳を保持
+        if (singMap.has(key)) {
+          Object.assign(singMap.get(key), it);
+        } else {
+          sList.push(it);
+          singMap.set(key, it);
+        }
+
+        // d.vocab から重複エントリを外す（DB.singkatan には aList + sList から1回だけ確実に入る）
+        vList.splice(i, 1);
+      }
+    }
+
+    window.__wiDataRevision = (window.__wiDataRevision || 0) + 1;
+    if (typeof window.__reloadWhatsIndo === "function") {
+      try { window.__reloadWhatsIndo(); } catch (e) {}
+    }
+  }
+
+  deduplicateAcroAndSyncCounts();
+  setTimeout(deduplicateAcroAndSyncCounts, 420);
+})();
+/* =====================================================================
+   WhatsIndo 起動時フリーズ解消・爆速スタートアップ最適化パッチ
+   - 機能・UI・全9,086語のデータは100%そのまま維持
+   - 1. data.js 読み込み完了時点で全データを1回で確定（国名削除タイマーとの綱引きを完全終了）
+   - 2. 起動直後（0〜600ms）に旧パッチ群から発火する約150個の重複9,000語ループタイマーを自動スキップ
+   - 3. 起動時に8〜10回繰り返されていた重い buildDatabase() を「最初の1回＋最終確定1回」のみにロック
+   ===================================================================== */
+(function() {
+  const d = window.WHATSINDO_EXTERNAL_DATA;
+  if (!d || !Array.isArray(d.vocab)) return;
+
+  // -------------------------------------------------------------------
+  // 1. data.js の同期読み込み中に予約された不要な遅延再注入タイマーを一旦すべてクリア
+  //    （すでにこの時点で全単語・略語の最終データはメモリ上に揃っているため）
+  // -------------------------------------------------------------------
+  const maxSyncTimerId = window.setTimeout(function() {}, 0);
+  for (let id = 1; id <= maxSyncTimerId; id++) {
+    window.clearTimeout(id);
+  }
+
+  // -------------------------------------------------------------------
+  // 2. 起動後600msの間に DOMContentLoaded から予約される「旧世代の重複9,000語ループ」を遮断
+  //    （※最新の必要なUI初期化：V4辞書バー / V47リスニング / V5単語帳 / V3辞書ペン /
+  //      V-FINAL排除＆スター同期 / V65履歴 / V7検索 / Kompas 等はすべてそのまま通す！）
+  // -------------------------------------------------------------------
+  const REDUNDANT_STARTUP_FN_PATTERNS = [
+    "enforceAuthoritativeVocabAndCleanAll",
+    "enforcePart8CleanAndUpgrade",
+    "enforcePart9MasterSync",
+    "applyPart10VocabPack",
+    "enforcePart11Sync",
+    "purgeAndSyncDayaCompact",
+    "syncAndRebuildAllCategoriesV5",
+    "applyStep1DeepUpgrades",
+    "finalizeV53Boot",
+    "finalizeV54Boot",
+    "syncV66CategoryAndSlangBadges",
+    "syncV67CategoryCounts",
+    "bootSentenceSyncFix",
+    "checkContextJaExplanation",
+    "bootSync",
+    "bootCleanExplanationUI",
+    "bootMinimalExplanationUI",
+    "bootPerfectExpFix",
+    "bootPerfectExpFixV2",
+    "bootPerfectExpV3",
+    "syncVocabExamplesV3",
+    "bootWordbookStep1",
+    "bootCleanUnifiedPatch",
+    "bootDictAnnotationFix",
+    "bootExcludeFeature",
+    "bootExcludeV2",
+    "bootMasterSyncPatch",
+    "bootUltimateSyncFix",
+    "bootExplanationAndModeCleanPatch",
+    "bootAllFiveUpgrades",
+    "bootUnifiedUpgradePatch",
+    "bootFinalStarAndWbPatch",
+    "bootDictUpgradesV6",
+    "forceRestoreAllPersistentPacks",
+    "deduplicateAcroAndSyncCounts",
+    "triggerBatchReload"
+  ];
+
+  const bootStartTime = Date.now();
+  const nativeSetTimeout = window.setTimeout.bind(window);
+
+  window.setTimeout = function(fn, delay) {
+    // 起動後650ms以内のみ、旧パッチの重複ループタイマーをフィルタリング
+    if (Date.now() - bootStartTime < 650 && typeof fn === "function") {
+      const fnName = fn.name || "";
+      const fnStr  = fnName ? fnName : Function.prototype.toString.call(fn).slice(0, 220);
+      for (let i = 0; i < REDUNDANT_STARTUP_FN_PATTERNS.length; i++) {
+        if (fnStr.indexOf(REDUNDANT_STARTUP_FN_PATTERNS[i]) !== -1) {
+          return 0; // 重複ループをスキップ
+        }
+      }
+    }
+    return nativeSetTimeout.apply(window, arguments);
+  };
+
+  // -------------------------------------------------------------------
+  // 3. DOMContentLoaded 時に直接走る旧パッチの重複 forEach ループを無効化しつつ、
+  //    buildDatabase()（window.__reloadWhatsIndo）が起動中に何度も走るのを1回に統合！
+  // -------------------------------------------------------------------
+  let reloadTimer = null;
+  let realReloadFn = null;
+  let initialBuildDone = false;
+
+  try {
+    Object.defineProperty(window, "__reloadWhatsIndo", {
+      configurable: true,
+      get: function() {
+        return function() {
+          // 起動フェーズ中の連続呼び出しは最後の1回（80ms後）にまとめる
+          if (Date.now() - bootStartTime < 650) {
+            if (reloadTimer) window.clearTimeout(reloadTimer);
+            reloadTimer = nativeSetTimeout(function() {
+              reloadTimer = null;
+              if (typeof realReloadFn === "function" && !initialBuildDone) {
+                initialBuildDone = true;
+                realReloadFn();
+              }
+            }, 80);
+            return;
+          }
+          if (typeof realReloadFn === "function") {
+            realReloadFn();
+          }
+        };
+      },
+      set: function(fn) {
+        realReloadFn = fn;
+        // index.html の最後で buildDatabase() が直接1回呼ばれるため、それを初回ビルドとしてマーク
+        initialBuildDone = true;
+      }
+    });
+  } catch (e) {}
+})();
+/* =====================================================================
+   WhatsIndo 辞書専用パック 第9弾：【歴代大統領・民族英雄(空港/大通り/紙幣の由来)・文学巨匠】（全36語）
+   - すべて問題には一切出題せず（dictOnly: true, tier: 3）、辞書検索・A〜Z辞書・Kompas連動のみに表示
+   - ループやタイマーを一切増やさない超軽量・負荷ゼロのデータ登録パック
+   ===================================================================== */
+(function() {
+  const d = window.WHATSINDO_EXTERNAL_DATA;
+  if (!d) return;
+
+  const dictOnlySet = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+
+  const PACK_PART9_FIGURES_HEROES = {
+    vocab: [
+      // ==================== 1. インドネシア歴代8大統領と通称（12語） ====================
+      {
+        p: "n", w: "Soekarno", r: "Soekarno", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "スカルノ（インドネシア共和国初代大統領［在任1945–1967年］。モハマッド・ハッタとともに独立宣言を読み上げた「建国の父」・建国五原則パンチャシラの提唱者）",
+        ex: "Presiden pertama Republik Indonesia, Soekarno, menyampaikan pidato bersejarah pada Konferensi Asia-Afrika di Bandung tahun 1955.",
+        tr: "インドネシア共和国の初代大統領スカルノは、1955年にバンドンで開かれたアジア・アフリカ会議で歴史的な演説を行った。",
+        note: [
+          "■ 【略歴と歴史的業績（1901–1970）】：\n・東ジャワ州スラバヤ生まれ。バンドン工業高等専門学校（現・バンドン工科大学 ITB）で建築・土木工学を修め（称号 Ir.＝Insinyur）、1927年にインドネシア国民党（PNI）を結成。\n・1945年6月1日に建国五原則 **『パンチャシラ（Pancasila）』** を提唱し、同年8月17日にハッタとともに独立を宣言（Sang Proklamator）。\n・1955年のアジア・アフリカ会議（バンドン会議）を主催して第三世界の非同盟運動を牽引した。親しみを込めて **『ブン・カルノ（Bung Karno）』** と呼ばれ、10万ルピア紙幣の肖像およびジャカルタの『スカルノ・ハッタ国際空港』『ゲロラ・ブン・カルノ競技場（GBK）』にその名が冠されている（新正書法では Sukarno とも綴られる）。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Bung Karno", r: "Soekarno", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "ブン・カルノ（初代大統領スカルノ［Soekarno］に対する国民的な愛称・敬称。Bung は独立運動期に同志や兄貴分に対して使われた親愛の敬称）",
+        ex: "Stadion Utama Gelora Bung Karno di Senayan mampu menampung lebih dari tujuh puluh ribu penonton.",
+        tr: "スナヤンにあるゲロラ・ブン・カルノ・メインスタジアムは、7万人以上の観客を収容することができる。",
+        note: "■ 【語彙】：『Bung（兄貴・同志）』は独立運動期に指導者同士が対等な連帯を示すために使った敬称（Bung Karno＝スカルノ、Bung Hatta＝ハッタ、Bung Tomo＝スラバヤ戦の英雄ブン・トモ）。"
+      },
+      {
+        p: "n", w: "Soeharto", r: "Soeharto", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "スハルト（インドネシア共和国第2代大統領［在任1967–1998年］。「新秩序［Orde Baru］」体制を32年間率い、高度経済成長とインフラ整備から「開発の父」と称された一方、1998年の民主化運動で退陣）",
+        ex: "Pemerintahan Orde Baru di bawah kepemimpinan Presiden Soeharto berlangsung selama tiga puluh dua tahun hingga Mei 1998.",
+        tr: "スハルト大統領の指導下における新秩序（オルデ・バル）政権は、1998年5月まで32年間にわたって続いた。",
+        note: "■ 【歴史背景（1921–2008）】：ジョグジャカルタ近郊生まれの軍人。1965年の9月30日事件（G30S）後に実権を握り、5カ年開発計画（Repelita）による経済成長・外資導入・米の自給達成（1984年）を推進して『開発の父（Bapak Pembangunan）』と呼ばれた。1997年のアジア通貨危機を契機とした民主化（Reformasi）デモにより1998年5月21日に辞任した（新正書法では Suharto とも綴られる）。"
+      },
+      {
+        p: "n", w: "Habibie", r: "Habibie", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "ハビビ、B.J. ハビビ（インドネシア共和国第3代大統領［在任1998–1999年］。ドイツで航空工学博士号を取得し国産航空機 N-250 を開発した「技術の父」であり、報道の自由や民主選挙への移行を実現した大統領）",
+        ex: "Kisah hidup dan perjuangan B.J. Habibie dalam mengembangkan industri pesawat terbang nasional diangkat menjadi film layar lebar.",
+        tr: "国産航空機産業の発展における B.J. ハビビの生涯と奮闘の物語は、長編映画化された。",
+        note: "■ 【略歴（1936–2019）】：フルネームは Bacharuddin Jusuf Habibie。南スラウェシ州パレパレ生まれ。バンドン工科大学（ITB）からドイツのアーヘン工科大学へ留学し、航空機構造の「ハビビ理論（Faktor Habibie）」で世界的に知られる科学者となった。バンドンの国営航空機会社（IPTN／現PTDI）を創設し、大統領としてはスハルト退陣直後の混乱期に政党自由化・報道検閲撤廃・地方分権・東ティモール住民投票を断行して民主化の礎を築いた。"
+      },
+      {
+        p: "n", w: "Abdurrahman Wahid", r: "Wahid", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "アブドゥルラフマン・ワヒド（インドネシア共和国第4代大統領［在任1999–2001年］。愛称「グス・ドゥル Gus Dur」。世界最大のイスラム組織NUの議長を務め、宗教的寛容と少数派保護を貫いた「多元主義の父」）",
+        ex: "Presiden Abdurrahman Wahid dikenal luas sebagai Bapak Pluralisme karena gigih membela hak-hak kelompok minoritas.",
+        tr: "アブドゥルラフマン・ワヒド大統領は、少数派グループの権利を粘り強く擁護したことから「多元主義の父」として広く知られている。",
+        note: "■ 【業績（1940–2009）】：東ジャワ州ジョンバン生まれ（NU創設者ハシム・アシャリの孫）。中華系住民の春節（Imlek）の公的祝賀解禁と儒教（Konghucu）の公認復活、また「イリアン・ジャヤ」から現地の誇りを尊重する『パプア（Papua）』への名称変更など、多様性と人権を重んじる数々の歴史的決定を行い、宗派を超えて国民から深く愛された。"
+      },
+      {
+        p: "n", w: "Gus Dur", r: "Wahid", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "グス・ドゥル（第4代大統領アブドゥルラフマン・ワヒド［Abdurrahman Wahid］の国民的愛称。Gus は東・中部ジャワのプサントレン指導者［Kiai］の息子に対する敬称）",
+        ex: "Gaya kepemimpinan Gus Dur yang penuh humor dan merangkul semua golongan selalu dikenang oleh masyarakat.",
+        tr: "ユーモアにあふれ、あらゆる階層を包み込んだグス・ドゥルのリーダーシップは、常に人々から記憶されている。",
+        note: "■ 【語源】：『Gus（キヤイの息子への敬称：Bagus の短縮）』＋『Dur（Abdurrahman の短縮）』。彼の有名な口癖『Gitu aja kok repot!（そんなことで何を大騒ぎしてるんだい！＝気楽にいこうぜ）』は国民的フレーズとなった。"
+      },
+      {
+        p: "n", w: "Megawati", r: "Megawati", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "メガワティ、メガワティ・スカルノプトリ（インドネシア共和国第5代大統領［在任2001–2004年］。初代大統領スカルノの長女であり、インドネシア史上初の女性大統領。闘争民主党［PDIP］党首）",
+        ex: "Megawati Soekarnoputri mencatat sejarah sebagai presiden perempuan pertama di Republik Indonesia.",
+        tr: "メガワティ・スカルノプトリは、インドネシア共和国における初の女性大統領として歴史に名を刻んだ。",
+        note: "■ 【業績（1947–）】：在任中に汚職撲滅委員会（KPK）や憲法裁判所（MK）を設立し、2004年のインドネシア史上初の国民による大統領直接選挙を実現した。"
+      },
+      {
+        p: "n", w: "Susilo Bambang Yudhoyono", r: "Yudhoyono", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "スシロ・バンバン・ユドヨノ（インドネシア共和国第6代大統領［在任2004–2014年］。通称「SBY」。インドネシア史上初めて国民の直接選挙で選出され、2期10年にわたり政治・経済の安定とアチェ和平を実現した）",
+        ex: "Pada tahun 2004, Susilo Bambang Yudhoyono terpilih sebagai presiden pertama yang dipilih secara langsung oleh rakyat.",
+        tr: "2004年、スシロ・バンバン・ユドヨノは国民の直接投票によって選ばれた最初の大統領として選出された。",
+        note: "■ 【略歴（1949–）】：東ジャワ州パチタン生まれ。国軍将官・政治治安担当調整相を経て民主党（Partai Demokrat）を創設。在任中の2005年に約30年続いたアチェ紛争のヘルシンキ和平合意を達成し、マクロ経済の安定とG20での国際的地位向上を成し遂げた。"
+      },
+      {
+        p: "singkatan", w: "SBY", r: "Susilo Bambang Yudhoyono", alts: ["susilo bambang yudhoyono"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "スシロ・バンバン・ユドヨノ第6代大統領（Susilo Bambang Yudhoyono の頭文字略称）",
+        ex: "Presiden ke-6 RI yang akrab disapa SBY aktif melukis dan menulis buku setelah menyelesaikan masa jabatannya.",
+        tr: "「SBY」の愛称で親しまれる第6代インドネシア共和国大統領は、任期満了後、絵画制作や執筆活動を精力的に行っている。",
+        note: "■ 【注意】：大文字の『SBY』は①第6代大統領スシロ・バンバン・ユドヨノ、または②東ジャワ州の州都スラバヤ（Surabaya）の鉄道駅・都市略号としても使われる。"
+      },
+      {
+        p: "n", w: "Joko Widodo", r: "Widodo", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "ジョコ・ウィドド（インドネシア共和国第7代大統領［在任2014–2024年］。通称「ジョコウィ Jokowi」。家具輸出業者からソロ市長・ジャカルタ特別州知事を経て初の非エリート・非軍人出身大統領となり、全国のインフラ開発と新首都IKN計画を推進した）",
+        ex: "Selama dua periode kepemimpinannya, Presiden Joko Widodo memfokuskan pembangunan jalan tol, pelabuhan, dan hilirisasi industri.",
+        tr: "2期にわたる在任期間中、ジョコ・ウィドド大統領は高速道路や港湾の建設、ならびに産業の下流化（高付加価値化）に注力した。",
+        note: "■ 【略歴と特徴（1961–）】：中部ジャワ州スラカルタ（ソロ）生まれ、ガジャマダ大学（UGM）林学部卒。現場にアポなしで直接足を運んで市民の声を聞く『ブルスukan（blusukan＝現場視察）』の政治スタイルで圧倒的な支持を集め、MRT・高速鉄道Whoosh・トランスジャワ/スマトラ高速道路網・ニッケル精錬下流化・国民皆保険（KIS/BPJS）などを実現した。"
+      },
+      {
+        p: "n", w: "Jokowi", r: "Joko Widodo", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "ジョコウィ（第7代大統領ジョコ・ウィドド［Joko Widodo］の国民的通称・アクロニム。報道見出しでも公式に Jokowi と表記される）",
+        ex: "Gaya blusukan ke pasar tradisional dan proyek infrastruktur menjadi ciri khas kepemimpinan Jokowi.",
+        tr: "伝統市場やインフラ建設現場へ直接足を運ぶ「ブルスカン」のスタイルは、ジョコウィのリーダーシップの代名詞となった。",
+        note: "■ 【語源】：家具輸出業を営んでいた時代、フランスの取引先バイヤーが他の Joko さんたちと区別するために『Joko Widodo』を短縮して『Jokowi』と呼んだのが愛称の始まり。"
+      },
+      {
+        p: "n", w: "Prabowo Subianto", r: "Prabowo", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "プラボウォ・スビアント（インドネシア共和国第8代大統領［2024年10月就任〜］。グリンドラ党［Gerindra］創設者・党首であり、ジョコウィ政権の国防大臣を経て第8代大統領に選出された）",
+        ex: "Presiden Prabowo Subianto mencanangkan program makan bergizi gratis bagi siswa sekolah serta penguatan ketahanan pangan dan energi.",
+        tr: "プラボウォ・スビアント大統領は、児童・生徒向けの無償栄養給食プログラムならびに食料・エネルギー安全保障の強化を打ち出している。",
+        note: "■ 【背景（1951–）】：ジャカルタ生まれ。父親は独立期の著名な経済学者で財務相・商業相を歴任したスミトロ・ジョヨハディクスモ（Sumitro Djojohadikusumo）。国軍特殊部隊（Kopassus）司令官・戦略予備軍（Kostrad）司令官を歴任し、2024年2月の大統領選挙でスカルノ初代大統領やジョコウィ前大統領の路線継承と食料・国防自立を掲げて当選した。"
+      },
+
+      // ==================== 2. 民族英雄（空港・大通り・大学・紙幣の由来：18語） ====================
+      {
+        p: "n", w: "Mohammad Hatta", r: "Hatta", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "モハマッド・ハッタ（インドネシア共和国初代副大統領［1945–1956年］。スカルノとともに独立宣言に署名した「建国の父」のひとりであり、経済学者として「インドネシア協同組合の父」と称される）",
+        ex: "Soekarno dan Mohammad Hatta diabadikan sebagai nama bandara internasional utama yang melayani ibu kota Jakarta.",
+        tr: "スカルノとモハマッド・ハッタの名は、首都ジャカルタに就航する主要国際空港（スカルノ・ハッタ国際空港）の名称として永遠に刻まれている。",
+        note: "■ 【略歴（1902–1980）】：西スマトラ州ブキティンギ生まれ（ミナンカバウ人）。オランダのロッテルダム商科大学（現エラスムス大学）に留学中、インドネシア協会（Perhimpunan Indonesia）議長として独立運動を指導。愛称は **『ブン・ハッタ（Bung Hatta）』**。1949年のハーグ円卓会議ではインドネシア代表団長としてオランダから主権移譲を勝ち取った。スカルノとともに10万ルピア紙幣に描かれている。"
+      },
+      {
+        p: "n", w: "Sudirman", r: "Sudirman", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "スディルマン将軍（Jenderal Besar Sudirman：独立戦争期［1945–1950年］にインドネシア国軍の初代最高司令官を務めた国民的英雄。重病を押して輿［こし］に乗りゲリラ戦を指揮したことから国軍の精神的象徴とされ、全国の都市のメイン大通りの名になっている）",
+        ex: "Kawasan bisnis utama di pusat Kota Jakarta membentang di sepanjang Jalan Jenderal Sudirman hingga Jalan M.H. Thamrin.",
+        tr: "ジャカルタ市中心部の主要なビジネス街は、スディルマン将軍通りから M.H. タムリン通りに沿って広がっている。",
+        note: "■ 【歴史（1916–1950）】：中部ジャワ州プルバリンガ生まれ。ムハマディヤの教師から郷土防衛義勇軍（PETA）大団長を経て、わずか29歳で国軍最高司令官（Panglima Besar）に選出された。1948年末にオランダ軍が臨時首都ジョグジャカルタを占領した際、肺結核で片肺を失いながらも7ヶ月間にわたり山岳ジャングルでゲリラ戦（Perang Gerilya）を指揮し、独立の灯を守り抜いた。ジャカルタをはじめインドネシアのほぼ全ての都市の一番大きな目抜き通りは『Jalan Jenderal Sudirman（スディルマン通り）』と名付けられている。"
+      },
+      {
+        p: "n", w: "Kartini", r: "Kartini", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "カルティニ、R.A. カルティニ（1879–1904年：中部ジャワ州ジュパラ出身の女性解放・女子教育の先駆者で民族英雄。誕生日の4月21日は「カルティニの日」として全国で祝われる）",
+        ex: "Surat-surat pemikiran R.A. Kartini dikumpulkan dalam sebuah buku terkenal berjudul \"Habis Gelap Terbitlah Terang\".",
+        tr: "R.A. カルティニの思想を綴った書簡群は、『闇を越えて光へ』という題の有名な本にまとめられた。",
+        note: "■ 【歴史と著作】：ジュパラ県知事の娘（R.A.＝Raden Adjeng はジャワ貴族の未婚女性称号）。封建的な慣習により進学を断念させられた境遇の中でオランダ人の友人たちと文通を重ね、女性の教育権と自立・一夫多妻制批判・民族の覚醒を訴えた。25歳で早世した後にオランダで出版された書簡集のインドネシア語訳タイトル **『Habis Gelap Terbitlah Terang（暗闇が去れば光が昇る＝闇を越えて光へ）』** は不朽の名著。"
+      },
+      {
+        p: "n", w: "Ki Hajar Dewantara", r: "Dewantara", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "キ・ハジャル・デワンタラ（1889–1959年：インドネシア近代教育の父・初代教育文化大臣。植民地時代に民族教育機関「タマン・シスワ」を創設し、誕生日の5月2日は「国家教育の日」に制定されている）",
+        ex: "Semboyan pendidikan \"Tut Wuri Handayani\" yang menjadi lambang Kementerian Pendidikan berasal dari ajaran Ki Hajar Dewantara.",
+        tr: "教育省のシンボルとなっている教育標語「トゥット・ウリ・ハンダヤニ（後ろから見守り励ます）」は、キ・ハジャル・デワンタラの教えに由来している。",
+        note: [
+          "■ 【略歴と教育三原則（1889–1959）】：\n・ジョグジャカルタ王族（パクアラム家）出身（本名 Suwardi Suryaningrat）。1913年にオランダ植民地政府を痛烈に批判した論説『もし私がオランダ人だったら（Als ik eens Nederlander was）』を書いてオランダへ流刑となり、帰国後の1922年にジョグジャカルタで民族教育学校 **『タマン・シスワ（Taman Siswa＝生徒の庭）』** を創設。\n・彼が提唱したジャワ語の教育指導者三原則：\n① *Ing ngarsa sung tuladha*（前に立っては模範を示し）\n② *Ing madya mangun karsa*（中にあっては意欲を喚起し）\n③ ***Tut wuri handayani***（後ろにあっては見守り力を与える）"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Tut Wuri Handayani", r: "Tut Wuri Handayani", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "後ろから見守り励ます（教育の父キ・ハジャル・デワンタラが提唱した教育理念であり、インドネシア教育省の公式紋章・全国すべての小中高生の制服の校章に記されている標語）",
+        ex: "Logo Tut Wuri Handayani terpasang pada saku seragam sekolah siswa dari tingkat sekolah dasar hingga menengah atas.",
+        tr: "「トゥット・ウリ・ハンダヤニ」のロゴは、小学校から高校に至るまで生徒の学校制服のポケットに付けられている。",
+        note: "■ 【意味】：ジャワ語で『tut wuri（後ろから付き従い見守る）』＋『handayani（力・勇気・影響を与える）』＝「教師や親は子どもの自主性を尊重し、後ろから温かく見守りながら背中を押す」というインドネシア教育の根本理念。"
+      },
+      {
+        p: "n", w: "Diponegoro", r: "Diponegoro", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "ディポヌゴロ王子（Pangeran Diponegoro［1785–1855年］：ジョグジャカルタ王宮の王子であり、1825〜1830年の「ジャワ戦争」でオランダ植民地軍に対して最大規模の抵抗戦を率いた民族英雄）",
+        ex: "Perang Jawa yang dipimpin oleh Pangeran Diponegoro selama lima tahun sangat menguras kas keuangan pemerintah kolonial Belanda.",
+        tr: "ディポヌゴロ王子が5年間にわたって率いたジャワ戦争は、オランダ植民地政府の財政を極度に疲弊させた。",
+        note: "■ 【歴史と世界記憶遺産】：オランダが王子の領地と先祖の墓を横切る道路を無断で建設したことに憤慨して蜂起。1830年にマゲランでの和平交渉の席でオランダ軍に騙まし討ちの形で捕らえられ、スラウェシのマナド、次いでマカッサル（ロッテルダム要塞）へ流刑となりその地で没した。彼が流刑中に記した自伝『ババッド・ディポヌゴロ（Babad Diponegoro）』はユネスコ「世界の記憶」に登録されており、中部ジャワの国軍管区（Kodam IV/Diponegoro）や国立ディポヌゴロ大学（Undip）の名になっている。"
+      },
+      {
+        p: "n", w: "Imam Bonjol", r: "Bonjol", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "トゥアンク・イマーム・ボンジョル（Tuanku Imam Bonjol［1772–1864年］：西スマトラのイスラム指導者であり、1821〜1837年の「パドリ戦争」でオランダ植民地軍と戦ったミナンカバウの民族英雄。旧5,000ルピア紙幣の肖像）",
+        ex: "Benteng pertahanan Tuanku Imam Bonjol di Sumatera Barat baru dapat ditembus Belanda setelah dikepung selama bertahun-tahun.",
+        tr: "西スマトラにおけるトゥアンク・イマーム・ボンジョルの防衛要塞は、何年にもわたる包囲の末にようやくオランダ軍に突破された。",
+        note: "■ 【歴史】：西スマトラの赤道直下の町ボンジョル（Bonjol）を拠点に、当初対立していた慣習派（Kaum Adat）と宗教改革派（Kaum Padri）を団結させてオランダ軍と戦った英雄。ジャカルタの中心部（日本大使館や外交街があるメンテン地区のメイン通り Jalan Imam Bonjol）にもその名が付けられている。"
+      },
+      {
+        p: "n", w: "Cut Nyak Dhien", r: "Cut Nyak Dhien", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "チュ・ニャ・ディン（1848–1908年：アチェ戦争において夫トゥク・ウマルとともに、また夫の戦死後もジャングルでオランダ軍に対するゲリラ戦を率い続けたアチェの女性民族英雄。旧10,000ルピア紙幣の肖像）",
+        ex: "Semangat juang Cut Nyak Dhien dalam memimpin perlawanan rakyat Aceh terhadap Belanda menjadi inspirasi bagi kaum perempuan Indonesia.",
+        tr: "オランダに対するアチェ民衆の抵抗を率いたチュ・ニャ・ディンの闘志は、インドネシアの女性たちにとって大きな鼓舞となっている。",
+        note: "■ 【称号と歴史】：『Cut（チュ）』はアチェ貴族女性、夫『Teuku Umar（トゥク・ウマル）』の『Teuku』はアチェ貴族男性の称号。晩年は失明と病に苦しみながら山中で戦い続け、捕らえられた後に西ジャワ州スメダン（Sumedang）へ流刑となり、現地の人々から「聖なる王妃（Ibu Perbu）」と敬われながら没した（もう一人のアチェ女性英雄『Cut Nyak Meutia チュ・ニャ・ムティア』は現在の1,000ルピア紙幣の肖像）。"
+      },
+      {
+        p: "n", w: "Sultan Hasanuddin", r: "Hasanuddin", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "スルタン・ハサヌディン（1631–1670年：南スラウェシのゴワ・タッロ王国［マカッサル］第16代国王。オランダ東インド会社［VOC］の香料貿易独占に対して勇敢に戦い、オランダ人から「東の闘鶏」と畏敬された民族英雄）",
+        ex: "Karena keberaniannya melawan monopoli VOC, Sultan Hasanuddin dari Makassar dijuluki sebagai Ayam Jantan dari Timur.",
+        tr: "オランダ東インド会社（VOC）の独占に立ち向かったその勇敢さから、マカッサルのスルタン・ハサヌディンは「東の闘鶏」と称された。",
+        note: "■ 【異名と現代の施設】：異名は **『Ayam Jantan dari Timur（東の闘鶏）』**。マカッサルの国際空港『スルタン・ハサヌディン国際空港（Bandara Internasional Sultan Hasanuddin）』および東部インドネシア最大の国立大学『ハサヌディン大学（Unhas）』の名に冠されている。"
+      },
+      {
+        p: "n", w: "Pattimura", r: "Pattimura", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "パティムラ（Kapitan Pattimura／本名 Thomas Matulessy［1783–1817年］：マルク諸島のサパルア島でオランダ植民地軍の圧政と香料独占に対して蜂起し、ドゥールステーデ要塞を陥落させたマルクの民族英雄）",
+        ex: "Wajah pahlawan nasional Kapitan Pattimura dari Maluku sangat dikenal masyarakat karena menghiasi uang kertas pecahan seribu rupiah.",
+        tr: "マルク出身の民族英雄カピタン・パティムラの顔は、1,000ルピア紙幣を飾っていたことから人々に非常によく知られている。",
+        note: "■ 【象徴】：山刀（parang）と盾（salawaku）を手に戦う姿が旧1,000ルピア紙幣に長らく描かれた。マルク州アンボンの『パティムラ空港（Bandara Pattimura）』および国立『パティムラ大学（Unpatti）』の名になっている。"
+      },
+      {
+        p: "n", w: "I Gusti Ngurah Rai", r: "Ngurah Rai", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "イ・グスティ・ングラ・ライ（1917–1946年：バリ島の独立戦争において青年部隊「チュン・ワナラ」を率い、1946年11月20日のマルガラナの戦いでオランダ軍に対して最後の一兵まで玉砕戦［ププタン］を敢行したバリの民族英雄）",
+        ex: "Nama pahlawan nasional I Gusti Ngurah Rai diabadikan menjadi nama bandara internasional di Pulau Bali.",
+        tr: "民族英雄イ・グスティ・ングラ・ライの名は、バリ島の国際空港の名称として永遠に刻まれている。",
+        note: "■ 【象徴】：バリの玄関口『イ・グスティ・ングラ・ライ国際空港（Bandara Internasional I Gusti Ngurah Rai）』および旧50,000ルピア紙幣の肖像として知られる。"
+      },
+      {
+        p: "n", w: "Djuanda", r: "Djuanda", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "ジュアンダ・カルタウィジャヤ（Ir. H. Djuanda Kartawidjaja［1911–1963年］：西ジャワ州タシクマラヤ出身の首相・政治家。1957年12月13日に「島と島の間の海はすべてインドネシアの主権領海である」とする歴史的な『ジュアンダ宣言』を発し、群島国家の領土を倍増させた民族英雄）",
+        ex: "Deklarasi Djuanda pada tahun 1957 menyatukan seluruh perairan di antara pulau-pulau Indonesia menjadi satu kesatuan wilayah yang utuh.",
+        tr: "1957年の「ジュアンダ宣言」は、インドネシアの島々の間にあるすべての海域をひとつの不可分な領域へと統合した。",
+        note: [
+          "■ 【歴史的意義（国連海洋法条約の礎）】：\nそれまでオランダ領時代の法律で「各島の海岸から3海里のみが領海で、ジャワ海などの島々の間の海はすべて国際公海」とされていたものを、1957年12月13日の **『ジュアンダ宣言（Deklarasi Djuanda）』** によって「最も外側の島々を結ぶ直線基線の内側の海はすべてインドネシアの領海である」と宣言し、後の1982年国連海洋法条約（UNCLOS）における「群島国家（Archipelagic State）原則」として国際法で承認された。\n・12月13日は『ヌサンタラの日（Hari Nusantara）』とされ、現行50,000ルピア紙幣の肖像および東ジャワ州スラバヤの **『ジュアンダ国際空港（Bandara Internasional Juanda）』**、ボゴールの『ジュアンダ大森林公園』にその名が冠されている。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "M.H. Thamrin", r: "Thamrin", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "ムハマッド・フスニ・タムリン（Mohammad Husni Thamrin［1894–1941年］：バタヴィア［ブタウィ族］出身の民族運動家・政治家。植民地議会［Volksraad］で初めてインドネシア語による演説と「インドネシア」呼称の公的採用を勝ち取った英雄）",
+        ex: "Bundaran Hotel Indonesia terletak di pertemuan antara Jalan Jenderal Sudirman dan Jalan M.H. Thamrin di pusat Kota Jakarta.",
+        tr: "ホテル・インドネシア・ロータリー（ブンダランHI）は、ジャカルタ中心部のスディルマン通りと M.H. タムリン通りの交差点に位置している。",
+        note: "■ 【象徴】：ジャカルタ中心部のモナス（独立記念塔）からブンダランHIまでを南北に貫く最高格式のメインストリート『タムリン通り（Jalan M.H. Thamrin：日本大使館や主要銀行本部・高級ホテルが立ち並ぶ通り）』の由来であり、現行2,000ルピア紙幣の肖像。"
+      },
+      {
+        p: "n", w: "Hasyim Asy'ari", r: "Hasyim", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "ハシム・アシャリ師（K.H. Hasyim Asy'ari［1871–1947年］：東ジャワ州ジョンバンにトゥブイレン寄宿塾を開き、1926年に世界最大の伝統派イスラム組織「ナフダトゥル・ウラマー［NU］」を創設した最高指導者・民族英雄）",
+        ex: "Pada bulan Oktober 1945, K.H. Hasyim Asy'ari mengeluarkan Resolusi Jihad yang mengobarkan semangat rakyat Surabaya mempertahankan kemerdekaan.",
+        tr: "1945年10月、ハシム・アシャリ師は「ジハード決議」を発し、独立を守り抜こうとするスラバヤ市民の闘志を奮い立たせた。",
+        note: "■ 【歴史】：1945年10月22日に「祖国と独立を再侵略者から守る戦いはすべてのムスリムの宗教的義務（fardu ain）である」とする『ジハード決議（Resolusi Jihad）』を発出し、11月10日のスラバヤの戦いの原動力となった（10月22日は現在の「国家サントリの日」）。第4代大統領グス・ドゥルの祖父。"
+      },
+      {
+        p: "n", w: "Ahmad Dahlan", r: "Dahlan", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "アフマッド・ダフラン師（K.H. Ahmad Dahlan［1868–1923年］：ジョグジャカルタ王宮の宗教官出身で、1912年に近代派イスラム改革組織「ムハマディヤ［Muhammadiyah］」を創設した教育・社会福祉の先駆者・民族英雄）",
+        ex: "K.H. Ahmad Dahlan mendirikan organisasi Muhammadiyah di Yogyakarta untuk memajukan pendidikan modern dan pelayanan kesehatan umat.",
+        tr: "アフマッド・ダフラン師は、近代教育と人々の医療サービスを発展させるためにジョグジャカルタでムハマディヤ組織を創設した。",
+        note: "■ 【業績】：イスラム教の教えを近代科学・学校教育・病院や孤児院などの実践的社会福祉事業と結びつけた改革者。妻のシティ・ワリダ（Nyai Ahmad Dahlan）も女性組織『アイシヤ（Aisyiyah）』を創設し、夫妻ともに民族英雄に認定されている。"
+      },
+      {
+        p: "n", w: "Dewi Sartika", r: "Sartika", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "デウィ・サルティカ（Raden Dewi Sartika［1884–1947年］：西ジャワ州バンドン出身のスンダの女性教育先駆者・民族英雄。1904年にバンドンでインドネシア初の女子学校「サコラ・イストリ」を創設した）",
+        ex: "Raden Dewi Sartika merintis pendidikan bagi kaum perempuan di Jawa Barat dengan mendirikan Sakola Istri di Bandung pada tahun 1904.",
+        tr: "ラデン・デウィ・サルティカは1904年にバンドンで「サコラ・イストリ（女子学校）」を設立し、西ジャワにおける女性教育を切り開いた。",
+        note: "■ 【歴史】：中部ジャワのカルティニと並び称される西ジャワ（スンダ地方）の女性教育の母。バンドン市庁舎のペン・ドポに最初の女子学校『Sakola Istri（後に Sakola Kautamaan Istri と改称）』を開き、読み書き・算数・裁縫・家政を通じて女性の自立に貢献した。"
+      },
+      {
+        p: "n", w: "Sisingamangaraja", r: "Sisingamangaraja", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "シシンガマンガラジャ12世（Sisingamangaraja XII［1845–1907年］：北スマトラ州トバ湖周辺のバタック族の神聖な祭司王であり、30年間にわたりオランダ植民地軍に対してバタック戦争を戦い抜いた民族英雄）",
+        ex: "Pahlawan nasional Sisingamangaraja XII memimpin perlawanan rakyat Batak di sekitar Danau Toba hingga gugur di medan pertempuran.",
+        tr: "民族英雄シシンガマンガラジャ12世は、戦場で斃れるまでトバ湖周辺のバタック民衆の抵抗戦を率いた。",
+        note: "■ 【語源と象徴】：『偉大なる獅子王（Si-Singa-Mangaraja）』の意。北スマトラ州シボルンボルンの空港名や、南ジャカルタのMRT駅・大通り名（Jalan Sisingamangaraja：ASEAN事務局本部所在地）として知られる。"
+      },
+      {
+        p: "n", w: "Sam Ratulangi", r: "Ratulangi", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "サム・ラトゥランギ（Dr. Gerungan Saul Samuel Jacob Ratulangi［1890–1949年］：北スラウェシ州ミナハサ出身の物理数学博士・独立運動家・初代スラウェシ州知事。「人間は他の人間を生かすために生きる」という哲学で知られる民族英雄）",
+        ex: "Falsafah \"Si Tou Timou Tumou Tou\" yang berarti manusia hidup untuk memanusiakan orang lain dipopulerkan oleh Sam Ratulangi.",
+        tr: "「人は他者を人として生かすために生きる」を意味する哲学『シ・トウ・ティモウ・トゥモウ・トウ』は、サム・ラトゥランギによって広められた。",
+        note: "■ 【象徴】：1919年にスイスのチューリッヒ大学で理学博士号を取得した知識人。北スラウェシ州の州都マナドの『サム・ラトゥランギ国際空港（Bandara Internasional Sam Ratulangi）』および国立『サム・ラトゥランギ大学（Unsrat）』、現行20,000ルピア紙幣の肖像として知られる。"
+      },
+
+      // ==================== 3. 近代文学・詩・音楽・漫画の巨匠（6語） ====================
+      {
+        p: "n", w: "Pramoedya Ananta Toer", r: "Pramoedya", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "プラムディヤ・アナンタ・トゥール（1925–2006年：中部ジャワ州ブロラ出身のインドネシア最高峰の小説家。流刑地のブル島で口述創作した歴史大作『人間の大地［Bumi Manusia］』をはじめとする「ブル島四部作」で世界的に知られる）",
+        ex: "Novel \"Bumi Manusia\" karya Pramoedya Ananta Toer telah diterjemahkan ke dalam lebih dari empat puluh bahasa di dunia.",
+        tr: "プラムディヤ・アナンタ・トゥール作の小説『人間の大地』は、世界の40以上の言語に翻訳されている。",
+        note: [
+          "■ 【代表作と文学史的意義】：\n・通称は **『プラム（Pram）』**。幾度もノーベル文学賞候補に挙げられた東南アジア近代文学の巨匠。\n・スハルト政権下に政治犯としてマルクのブル島（Pulau Buru）へ14年間収監された際、紙とペンを禁じられた中で仲間の囚人たちに毎晩語り聞かせて生まれ、後に出版されたのが不朽の名作 **『ブル島四部作（Tetralogi Buru：①Bumi Manusia［人間の大地］、②Anak Semua Bangsa［すべての民族の子］、③Jejak Langkah［足跡］、④Rumah Kaca［ガラスの家］）』**。植民地時代のジャワ人青年ミンケ（Minke：新聞の先駆者ティルト・アディ・スリヨがモデル）の目覚めと苦闘を描き、2019年に大ヒット映画化もされた。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Chairil Anwar", r: "Chairil", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "ハイリル・アンワル（1922–1949年：北スマトラ州メダン出身の革命詩人。従来の定型美文を打ち破り、情熱的で口語的な自由詩『Aku（俺）』を発表して近代インドネシア文学「45年世代」の旗手となった天才詩人）",
+        ex: "Larik puisi \"Aku ini binatang jalang dari kumpulannya terbuang\" dan \"Aku mau hidup seribu tahun lagi\" merupakan karya legendaris Chairil Anwar.",
+        tr: "「俺は群れから追われた野獣だ」そして「俺はあと千年生き抜いてやる」という詩の一節は、ハイリル・アンワルの伝説的な作品である。",
+        note: "■ 【文学史の重要知識】：独立革命期に新しい口語表現と個人の強烈な自我を打ち出した文学運動 **『45年世代（Angkatan '45）』** の代表格。1943年に発表した代表詩 **『Aku（俺／私）』** の中の一節から、彼は『Si Binatang Jalang（荒ぶる野獣）』と異名をとった（他にスカルノとハッタに捧げた詩『Karawang-Bekasi』も有名）。わずか26歳で早世したが、彼の命日（4月28日）はインドネシアの「全国詩の日（Hari Puisi Nasional）」となっている。"
+      },
+      {
+        p: "n", w: "Hamka", r: "Hamka", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "ハムカ、ブヤ・ハムカ（Buya Hamka［1908–1981年］：西スマトラ州マニンジャウ湖畔出身のイスラム高僧・小説家・ジャーナリスト・民族英雄。ムハマディヤ指導者およびMUI［ウラマー評議会］初代議長を務め、純愛悲劇小説『ファン・デル・ヴィク号の沈没』を著した）",
+        ex: "Novel klasik \"Tenggelamnya Kapal Van der Wijck\" dan \"Di Bawah Lindungan Ka'bah\" merupakan karya sastra terkenal dari Buya Hamka.",
+        tr: "古典小説『ファン・デル・ヴィク号の沈没』と『カアバの庇護のもとに』は、ブヤ・ハムカの有名な文学作品である。",
+        note: "■ 【語源と業績】：本名 **H**aji **A**bdul **M**alik **K**arim **A**mrullah の頭文字アクロニムが『HAMKA』（『Buya』はミナンカバウ語で父・高僧への最高の敬称）。封建的な氏族・身分制度の中で引き裂かれる男女の悲恋を描いた小説『Tenggelamnya Kapal Van der Wijck（1938年）』や、獄中で完成させた全30巻のクルアーン注釈書『Tafsir Al-Azhar』で知られる。"
+      },
+      {
+        p: "n", w: "W.R. Supratman", r: "Supratman", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "W.R. スプラプトマン（Wage Rudolf Supratman［1903–1938年］：インドネシア共和国国歌『インドネシア・ラヤ［Indonesia Raya］』の作詞・作曲家であり民族英雄）",
+        ex: "Pada penutupan Kongres Pemuda Kedua tahun 1928, W.R. Supratman memperdengarkan lagu Indonesia Raya untuk pertama kalinya dengan gesekan biola.",
+        tr: "1928年の第2回青年会議（「青年の誓い」）の閉会時に、W.R. スプラプトマンはバイオリンの演奏によって初めて『インドネシア・ラヤ』の楽曲を披露した。",
+        note: "■ 【記念日】：彼の誕生日である3月9日は、インドネシアの『国家音楽の日（Hari Musik Nasional）』に制定されている。"
+      },
+      {
+        p: "n", w: "Ismail Marzuki", r: "Marzuki", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "イスマイル・マルズキ（1914–1958年：ジャカルタ［ブタウィ］出身の国民的作曲家・民族英雄。『Halo-Halo Bandung』『Rayuan Pulau Kelapa』『Gugur Bunga』など現在も全国民に歌い継がれる数々の愛国歌・名曲を作曲した）",
+        ex: "Pusat kesenian dan kebudayaan Taman Ismail Marzuki di Cikini, Jakarta Pusat, dinamai untuk menghormati jasa komponis besar Ismail Marzuki.",
+        tr: "中央ジャカルタ・チキニにある芸術文化センター「タマン・イスマイル・マルズキ（TIM）」は、大作曲家イスマイル・マルズキの功績を称えて名付けられた。",
+        note: "■ 【代表曲と施設】：バンドン火の海事件を歌った行進曲『Halo-Halo Bandung』、ヤシの島の美しさを讃える『Rayuan Pulau Kelapa』、独立の英霊を悼む『Gugur Bunga』、クロンチョンやジャズの名曲など生涯で200曲以上を作曲。ジャカルタ最大の芸術文化複合施設・プラネタリウム・劇場である **『タマン・イスマイル・マルズキ（Taman Ismail Marzuki / 略称 TIM）』** にその名が冠されている。"
+      },
+      {
+        p: "n", w: "R.A. Kosasih", r: "Kosasih", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "R.A. コサシ（Raden Ahmad Kosasih［1919–2012年］：西ジャワ州ボゴール出身でバンドンで活躍した「インドネシア漫画［Komik］の父」。ワヤン影絵・人形劇の古典『マハーバーラタ』『ラーマーヤナ』や女性英雄『スリ・アシ』を劇画漫画化して国民的ブームを築いた）",
+        ex: "R.A. Kosasih dijuluki sebagai Bapak Komik Indonesia berkat karya-karya komik wayang Mahabharata dan Ramayana yang sangat legendaris.",
+        tr: "R.A. コサシは、『マハーバーラタ』や『ラーマーヤナ』といった伝説的なワヤン漫画作品によって「インドネシア漫画の父」と称されている。",
+        note: "■ 【文化的功績】：1954年にインドネシア初のスーパーヒロイン漫画『Sri Asih（スリ・アシ：2022年に実写映画化）』を発表し、さらに西ジャワの立体木偶『ワヤン・ゴレック（Wayang Golek）』の造形をもとに『Mahabharata』『Ramayana』『Bharatayuddha』を精緻な白黒ペン画で漫画化。インドネシアの何世代もの読者が彼の漫画を通じてワヤンの物語と哲学を学んだ。"
+      }
+    ],
+    acro: [
+      {
+        acro: "SBY",
+        full: "susilo bambang yudhoyono",
+        alts: [],
+        dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        tr: "スシロ・バンバン・ユドヨノ（インドネシア共和国第6代大統領）",
+        exp: "■ 【正式名称】：Susilo Bambang Yudhoyono（在任2004–2014年：インドネシア初の直接選挙で選出された大統領）。"
+      }
+    ]
+  };
+
+  PACK_PART9_FIGURES_HEROES.vocab.forEach(function(it) {
+    dictOnlySet.add(it.w.trim().toLowerCase());
+  });
+  PACK_PART9_FIGURES_HEROES.acro.forEach(function(a) {
+    dictOnlySet.add(a.acro.trim().toLowerCase());
+  });
+
+  if (typeof window.wiAddPack === "function") {
+    window.wiAddPack(PACK_PART9_FIGURES_HEROES);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 辞書専用パック 第10弾：【法令階層・地方行政(RT/RW)・身分証・税制・ビジネス制度略語】（全40語）
+   - すべて問題には一切出題せず（dictOnly: true, tier: 3）、辞書検索・A〜Z辞書・Kompas連動のみに表示
+   - ループやタイマーを一切増やさない超軽量・負荷ゼロのデータ登録パック
+   ===================================================================== */
+(function() {
+  const d = window.WHATSINDO_EXTERNAL_DATA;
+  if (!d) return;
+
+  const dictOnlySet = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+
+  const PACK_PART10_LAW_ADMIN_BIZ = {
+    vocab: [
+      // ==================== 1. 法令のピラミッド階層・主要法典（13語） ====================
+      {
+        p: "singkatan", w: "UUD 1945", r: "Undang-Undang Dasar 1945", alts: ["undang-undang dasar 1945", "uud 45"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "1945年憲法（インドネシア共和国の最高法規。独立翌日の1945年8月18日に制定され、民主化期の1999〜2002年に4次の改正が行われた現行憲法）",
+        ex: "Mahkamah Konstitusi berwenang menguji apakah suatu undang-undang bertentangan dengan UUD 1945 atau tidak.",
+        tr: "憲法裁判所（MK）は、ある法律が1945年憲法（UUD 1945）に違反しているかどうかを審査する権限を持つ。",
+        note: [
+          "■ 【インドネシアの法令ピラミッド階層（上位から強い順：法律第12号/2011年）】：\n1. **UUD 1945**：1945年憲法（最高法規）\n2. **Tap MPR**：国民協議会決定（Ketetapan MPR）\n3. **UU (Undang-Undang)**：法律（国会 DPR と大統領が共同制定） ／ **Perppu**：緊急政令（法律と同格）\n4. **PP (Peraturan Pemerintah)**：政令・政府規則（UUを実施するための細則）\n5. **Perpres (Peraturan Presiden)**：大統領令\n6. **Perda Provinsi**：州条例（Peraturan Daerah Provinsi）\n7. **Perda Kabupaten/Kota**：県・市条例（Peraturan Daerah Kabupaten/Kota）"
+        ].join("\n")
+      },
+      {
+        p: "singkatan", w: "UU", r: "Undang-Undang", alts: ["undang-undang"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "法律（国民議会［DPR］と大統領の共同承認によって制定される国の法律）",
+        ex: "Pemerintah dan DPR sepakat mengesahkan RUU tersebut menjadi UU dalam rapat paripurna hari ini.",
+        tr: "政府と国会（DPR）は本日の本会議において、その法案（RUU）を法律（UU）として可決・成立させることで合意した。",
+        note: "■ 【正式名称】：Undang-Undang。成立前の「法案」は **『RUU（Rancangan Undang-Undang）』** と呼ばれる。"
+      },
+      {
+        p: "singkatan", w: "RUU", r: "Rancangan Undang-Undang", alts: ["rancangan undang-undang"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "法案、法律案（国会［DPR］で審議され、可決されると法律［UU］になる草案）",
+        ex: "Komisi terkait di DPR masih menggelar rapat dengar pendapat umum untuk membahas pasal-pasal dalam RUU tersebut.",
+        tr: "国会の関連委員会は、その法案（RUU）の各条文を議論するため引き続き公聴会を開催している。",
+        note: "■ 【語構成】：Rancangan（案・設計・草案）+ Undang-Undang（法律）。"
+      },
+      {
+        p: "singkatan", w: "Perppu", r: "Peraturan Pemerintah Pengganti Undang-Undang", alts: ["peraturan pemerintah pengganti undang-undang", "perpu"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "緊急政令、法律代位政府規則（国家の緊急事態において、大統領が国会の事前承認なしに法律［UU］と同等の効力を持たせて発포できる特別政令）",
+        ex: "Presiden menerbitkan Perppu untuk mengatasi situasi kegentingan yang memaksa di bidang ekonomi.",
+        tr: "大統領は経済分野における差し迫った緊急事態に対処するため、緊急政令（Perppu）を発布した。",
+        note: "■ 【憲法上のルール】：発行後、次の国会（DPR）会期中に承認されれば正式な法律（UU）となり、否決されれば失効する。"
+      },
+      {
+        p: "singkatan", w: "PP", r: "Peraturan Pemerintah", alts: ["peraturan pemerintah"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "政令、政府規則（法律［UU］の規定を具体的に施行・運用するために大統領が定める規則）",
+        ex: "Ketentuan teknis mengenai pelaksanaan undang-undang tersebut akan diatur lebih lanjut melalui Peraturan Pemerintah atau PP.",
+        tr: "その法律の施行に関する技術的規定は、政令（PP）を通じてさらに詳しく定められる予定だ。",
+        note: "■ 【正式名称】：Peraturan Pemerintah。"
+      },
+      {
+        p: "singkatan", w: "Perpres", r: "Peraturan Presiden", alts: ["peraturan presiden"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "大統領令（法律［UU］や政令［PP］の委任に基づき、または行政権の執行のために大統領が制定する一般的な法規）",
+        ex: "Presiden menandatangani Perpres tentang percepatan pengembangan kendaraan bermotor listrik berbasis baterai.",
+        tr: "大統領はバッテリー式電気自動車の開発加速に関する大統領令（Perpres）に署名した。",
+        note: [
+          "■ 【Perpres（大統領令）と Keppres（大統領決定）の違い】：\n・**Perpres (Peraturan Presiden)**：国民や行政全般に対して継続的に適用される一般的な**「法規・ルール（Regeling）」**\n・**Keppres (Keputusan Presiden)**：特定の人物の任命（大臣や委員会メンバー等）、特定の日を祝日に指定する、特定のプロジェクト委員会を設置するなど、個別具体的な決定を下す**「行政処分・決定（Beschikking）」**"
+        ].join("\n")
+      },
+      {
+        p: "singkatan", w: "Keppres", r: "Keputusan Presiden", alts: ["keputusan presiden"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "大統領決定（人事任命、特別チーム設置、祝日の指定など、個別具体的な事項に対して大統領が下す公式決定）",
+        ex: "Melalui Keppres Nomor 12 Tahun 2014, pemerintah meresmikan penggunaan istilah Tiongkok untuk menggantikan sebutan Cina.",
+        tr: "2014年大統領決定（Keppres）第12号を通じて、政府は「Cina」という呼称に代えて「Tiongkok」という用語の使用を公式化した。",
+        note: "■ 【正式名称】：KEPutusan PRESiden。"
+      },
+      {
+        p: "singkatan", w: "Inpres", r: "Instruksi Presiden", alts: ["instruksi presiden"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "大統領訓令、大統領指示（大統領から各省庁大臣・軍警察長官・地方首長など行政機関に対して具体的な政策実行を命じる業務指示）",
+        ex: "Presiden mengeluarkan Inpres untuk mempercepat perbaikan jalan rusak di berbagai kabupaten dan kota.",
+        tr: "大統領は全国の県や市における破損道路の改修を加速させるため、大統領訓令（Inpres）を発出した。",
+        note: "■ 【正式名称】：INstruksi PRESiden（スハルト時代には全国の小学校建設 SD Inpres などで広く知られた）。"
+      },
+      {
+        p: "singkatan", w: "Permen", r: "Peraturan Menteri", alts: ["peraturan menteri"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "大臣令、省令（各省の大臣が所管分野の行政・規制のために発出する規則） ※小文字の一般名詞 permen は「飴・キャンディ」",
+        ex: "Aturan baru mengenai impor barang kiriman pekerja migran tertuang dalam Permen Perdagangan yang baru.",
+        tr: "海外労働者の送付荷物の輸入に関する新ルールは、新しい商業大臣令（Permen）に盛り込まれている。",
+        note: "■ 【省庁別の派生略語】：財務大臣令は『PMK（Peraturan Menteri Keuangan）』、商業大臣令は『Permendag』、内務大臣令は『Permendagri』のように省庁略称と合体してニュースに頻出する。なお小文字の『permen（オランダ語 pepermunt 由来）』は「キャンディ・飴（permen karet＝チューインガム）」。"
+      },
+      {
+        p: "singkatan", w: "Perda", r: "Peraturan Daerah", alts: ["peraturan daerah"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "地方条例、条例（州または県・市の地方議会［DPRD］と地方首長が共同で制定する地域の条例）",
+        ex: "Pemerintah kota bersama DPRD setempat mengesahkan Perda tentang pengelolaan sampah dan kawasan tanpa rokok.",
+        tr: "市政府は地元の地方議会（DPRD）とともに、ごみ管理および禁煙区域に関する地方条例（Perda）を可決した。",
+        note: "■ 【関連語】：地方条例（Perda）の取り締まりや治安維持を担当する自治体の専門警備隊は **『Satpol PP（Satuan Polisi Pamong Praja＝地方行政警察隊）』** と呼ばれる。"
+      },
+      {
+        p: "singkatan", w: "SE", r: "Surat Edaran", alts: ["surat edaran", "sarjana ekonomi"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "①通達、回覧文書（Surat Edaran：官庁や企業・大学などが管轄組織へルールや運用指針を周知する公式文書） ②経済学士（Sarjana Ekonomi：S.E.）",
+        ex: "Kementerian mengeluarkan SE mengenai pengaturan jam kerja pegawai selama bulan suci Ramadan.",
+        tr: "省は聖なるラマダン月における職員の勤務時間調整に関する通達（SE）を発出した。",
+        note: "■ 【正式名称】：Surat Edaran（語幹 edar＝回る・循環する）。"
+      },
+      {
+        p: "singkatan", w: "KUHP", r: "Kitab Undang-Undang Hukum Pidana", alts: ["kitab undang-undang hukum pidana"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "刑法典、刑法（犯罪の構成要件と刑罰を定めた基本法典。2022年末にオランダ植民地時代以来の旧刑法を全面刷新した新国産刑法典が可決され、2026年1月に全面施行）",
+        ex: "Setelah melalui pembahasan selama puluhan tahun, Indonesia akhirnya memiliki KUHP nasional yang menggantikan kitab hukum warisan kolonial.",
+        tr: "数十年にわたる審議を経て、インドネシアはついに植民地時代の遺産である法典に代わる国産刑法典（KUHP）を持つに至った。",
+        note: [
+          "■ 【法典3兄弟（KUHP / KUHAP / KUHPer）の厳密な区別】：\n・**KUHP (Kitab Undang-Undang Hukum Pidana)**：**刑法典**（何が犯罪で、懲役何年かという実体法）\n・**KUHAP (Kitab Undang-Undang Hukum Acara Pidana)**：**刑事訴訟法典**（逮捕・拘留・捜査・公判の手続きを定めた手続法：間に **Acara＝訴訟手続き** が入る！）\n・**KUHPer / KUH Perdata (Kitab Undang-Undang Hukum Perdata)**：**民法典**（契約・財産・損害賠償などの民事法）"
+        ].join("\n")
+      },
+      {
+        p: "singkatan", w: "KUHAP", r: "Kitab Undang-Undang Hukum Acara Pidana", alts: ["kitab undang-undang hukum acara pidana"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "刑事訴訟法典、刑事訴訟法（警察や検察による捜査・逮捕・起訴から裁判所の公判手続き・被告人の権利までを定めた法律）",
+        ex: "Proses penangkapan dan penahanan tersangka wajib dilakukan sesuai dengan prosedur yang diatur dalam KUHAP.",
+        tr: "容疑者の逮捕および勾留のプロセスは、刑事訴訟法（KUHAP）に定められた手続きに従って行われなければならない。",
+        note: "■ 【ポイント】：『hukum acara』は「訴訟法・手続法」の意。刑法（KUHP）と1文字違いでニュースに頻出する。"
+      },
+
+      // ==================== 2. 地方行政〜町内会・隣組（住所表記）の階層（12語） ====================
+      {
+        p: "singkatan", w: "Pemprov", r: "Pemerintah Provinsi", alts: ["pemerintah provinsi"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "州政府、州庁（知事［Gubernur］を首長とする州レベルの地方行政府）",
+        ex: "Pemprov Jawa Barat mengalokasikan anggaran khusus untuk perbaikan jalan provinsi dan fasilitas kesehatan.",
+        tr: "西ジャワ州政府（Pemprov）は、州道の改修および医療施設のために特別予算を割り当てた。",
+        note: "■ 【地方政府の3大略語】：\n・**Pemprov** (Pemerintah Provinsi)：州政府（首長は Gubernur＝州知事）\n・**Pemkot** (Pemerintah Kota)：市政府（首長は Wali Kota＝市長）\n・**Pemkab** (Pemerintah Kabupaten)：県政府（首長は Bupati＝県知事）\n・これらを総称して **『Pemda（Pemerintah Daerah＝地方政府・自治体）』** と呼ぶ。"
+      },
+      {
+        p: "singkatan", w: "Pemkot", r: "Pemerintah Kota", alts: ["pemerintah kota"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "市政府、市役所（市長［Wali Kota］を首長とする都市自治体の行政府）",
+        ex: "Pemkot Surabaya terus memperluas ruang terbuka hijau dan taman kota bagi warga.",
+        tr: "スラバヤ市政府（Pemkot）は、市民のために都市緑地と公園を拡大し続けている。",
+        note: "■ 【正式名称】：PEMerintah KOTa。"
+      },
+      {
+        p: "singkatan", w: "Pemkab", r: "Pemerintah Kabupaten", alts: ["pemerintah kabupaten"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "県政府、県庁（県知事［Bupati］を首長とする県［Kabupaten］自治体の行政府）",
+        ex: "Pemkab Bogor bekerja sama dengan pemerintah pusat untuk menata kawasan wisata Puncak.",
+        tr: "ボゴール県政府（Pemkab）はプンチャック観光エリアを整備するため、中央政府と協力している。",
+        note: "■ 【インドネシアの「県（Kabupaten）」と「市（Kota）」の関係】：日本と違い、インドネシアでは州（Provinsi）の下に **『県（Kabupaten：農村や広域を含む自治体）』と『市（Kota：都市部の自治体）』が対等（同格）に並立** している！（例：西ジャワ州の中に「バンドン市 Kota Bandung」と、それを取り囲む別自治体の「バンドン県 Kabupaten Bandung」が両方存在する）。"
+      },
+      {
+        p: "singkatan", w: "DPRD", r: "Dewan Perwakilan Rakyat Daerah", alts: ["dewan perwakilan rakyat daerah"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "地方議会（州議会［DPRD Provinsi］および県・市議会［DPRD Kabupaten/Kota］。地方首長とともに地方条例［Perda］や地方予算［APBD］を審議・決定する）",
+        ex: "Rancangan anggaran pendapatan dan belanja daerah tahun depan sedang dibahas bersama oleh kepala daerah dan DPRD.",
+        tr: "来年度の地方予算案（APBD）は現在、地方首長と地方議会（DPRD）によって共同で審議されている。",
+        note: "■ 【正式名称】：Dewan Perwakilan Rakyat Daerah（国会の DPR に Daerah＝地方 が付いたもの）。"
+      },
+      {
+        p: "singkatan", w: "DPD", r: "Dewan Perwakilan Daerah", alts: ["dewan perwakilan daerah"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "地方代表議会（国会［DPR］とともに国民協議会［MPR］を構成する上院・参議院に相当する立法機関。各州から無所属で4名ずつ選出され、地方自治や資源・地方財政に関する法案を扱う）",
+        ex: "Setiap provinsi di Indonesia memiliki empat orang anggota DPD yang dipilih langsung melalui pemilihan umum.",
+        tr: "インドネシアの各州には、総選挙を通じて直接選出される4名の地方代表議会（DPD）議員がいる。",
+        note: "■ 【DPR / DPD / MPR / DPRD の完全整理】：\n・**DPR**：国民議会（下院・政党所属の全国国会議員）\n・**DPD**：地方代表議会（上院・各州4名ずつ選出される地域代表の国会議員）\n・**MPR**：国民協議会（DPR議員＋DPD議員の合同議会。憲法改正や大統領就任式を行う）\n・**DPRD**：各州・県・市にある「地方議会（都道府県議会・市議会）」"
+      },
+      {
+        p: "n", w: "Bupati", r: "bupati", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "県知事（州［Provinsi］の下にある行政単位「県［Kabupaten］」の首長。5年ごとに住民の直接選挙［Pilkada］で選出される）",
+        ex: "Bupati Banyuwangi meresmikan festival kebudayaan daerah untuk menarik kunjungan wisatawan.",
+        tr: "バニュワンギ県知事（Bupati）は、観光客の訪問を呼び込むために地域文化フェスティバルを開幕させた。",
+        note: "■ 【地方行政の階層と首長名（上から順）】：\n1. **Provinsi（州）** ➔ 首長：**Gubernur（州知事）**\n2. **Kabupaten（県）／ Kota（市）** ➔ 首長：**Bupati（県知事）／ Wali Kota（市長）**\n3. **Kecamatan（郡・区）** ➔ 首長：**Camat（郡長）**\n4. **Kelurahan（都市の町）／ Desa（農村の村）** ➔ 首長：**Lurah（町長）／ Kepala Desa [Kades]（村長）**\n5. **RW（町内会） ➔ RT（隣組）**"
+      },
+      {
+        p: "n", w: "Camat", r: "camat", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "郡長、区長（県や市の下にある行政区分「郡［Kecamatan］」の長。市長または県知事から任命されるキャリア公務員）",
+        ex: "Pak Camat mengumpulkan seluruh lurah dan kepala desa untuk membahas persiapan menghadapi musim hujan.",
+        tr: "郡長は雨季に向けた準備を議論するため、すべての町長（Lurah）と村長（Kepala Desa）を招集した。",
+        note: "■ 【関連語】：郡長の役所（郡役場）は『kantor kecamatan』。"
+      },
+      {
+        p: "n", w: "Lurah", r: "lurah", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "町長、行政区長（都市部の郡［Kecamatan］の下にある行政単位「クルラハン［Kelurahan］」の長）",
+        ex: "Warga dapat mengurus surat pengantar pembuatan dokumen kependudukan di kantor lurah setempat.",
+        tr: "住民は地元の町役場（クルラハン事務所）で住民書類作成のための紹介状の手続きができる。",
+        note: [
+          "■ 【超重要：Lurah（Kelurahan）と Kepala Desa（Desa）の違い】：\nどちらも郡（Kecamatan）の下にある最小行政単位だが、法的な仕組みが異なる！\n・**Kelurahan（首長は Lurah）**：主に**都市部**に置かれ、首長の Lurah は市長・県知事から任命される**国家公務員（ASN）**（住民による選挙はない）。\n・**Desa（首長は Kepala Desa / Kades）**：主に**地方・農村部**に置かれる自治村で、村長（Kades）は**住民の直接選挙（Pilkades）**で選ばれ、国から独自の「村落基金（Dana Desa）」が直接交付される。"
+        ].join("\n")
+      },
+      {
+        p: "singkatan", w: "RW", r: "Rukun Warga", alts: ["rukun warga"], dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "町内会、住民連合会（町［Kelurahan］や村［Desa］の下に置かれる住民自治組織。通常3〜10個ほどの隣組［RT］を束ねる。会長は Ketua RW / Pak RW）",
+        ex: "Pengurus RW setempat mengadakan kerja bakti membersihkan saluran air menjelang datangnya musim penghujan.",
+        tr: "地元の町内会（RW）の役員たちは、雨季の到来を前に排水路を清掃する共同奉仕作業（クルジャ・バクティ）を実施した。",
+        note: "■ 【語源】：『rukun（調和・親睦）』＋『warga（住民）』。すぐ下の最小単位である隣組『RT（Rukun Tetangga）』を束ねる組織。"
+      },
+      {
+        p: "singkatan", w: "RT", r: "Rukun Tetangga", alts: ["rukun tetangga"], dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "隣組、町内班（町内会［RW］の下にあるインドネシア最小の地域住民自治組織で、通常10〜50世帯で構成される。インドネシアの住所表記には必ず RT/RW 番号が記載される）",
+        ex: "Setiap warga baru yang pindah ke lingkungan perumahan wajib melapor kepada Ketua RT setempat.",
+        tr: "住宅街へ引っ越してきたすべての新住民は、地元の隣組長（RT長）へ届け出る義務がある。",
+        note: [
+          "■ 【インドネシアの住所表記と歴史（日本軍政期の「隣組」がルーツ！）】：\n・実はこの **『RT (Rukun Tetangga＝隣組) / RW (Rukun Warga＝町内会)』** の制度は、1944年の日本軍政期に導入された日本の「隣組（Tonarigumi）・町内会（Aza）」制度が独立後も住民の相互扶助（gotong royong）に非常に便利だったため、そのまま全国に定着したもの！\n・インドネシアの住所は必ず『Jl. Merdeka No. 10, **RT 003 / RW 005**, Kel. Menteng, Kec. Menteng, Jakarta Pusat』のように **RT番号とRW番号** をセットで書く。\n・住民票（KTP）の手続き、引っ越し挨拶、夜回り防犯、冠婚葬祭、選挙の投票所案内など、現地生活で最も身近でお世話になるのが『Pak RT / Bu RT（隣組長さん）』。"
+        ].join("\n")
+      },
+      {
+        p: "singkatan", w: "Siskamling", r: "Sistem Keamanan Lingkungan", alts: ["sistem keamanan lingkungan"], dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "地域防犯システム、町内の夜間自警・夜回り制度（RT/RW単位で住民が当番制で詰所［Pos Ronda / Gardu］に集まり、竹の打楽器「kentongan」を鳴らしながら夜間の防犯見回りを行う制度）",
+        ex: "Warga komplek perumahan itu kembali mengaktifkan kegiatan Siskamling pada malam hari untuk mencegah pencurian.",
+        tr: "その住宅団地の住民たちは盗難を防ぐため、夜間の地域自警活動（Siskamling）を再開した。",
+        note: "■ 【正式名称】：SIStem KeAManan LINGkungan。見回り詰所は『Pos Kamling』または『Pos Ronda（夜警所）』と呼ばれる。"
+      },
+      {
+        p: "singkatan", w: "Posyandu", r: "Pos Pelayanan Terpadu", alts: ["pos pelayanan terpadu"], dictOnly: true, tier: 3, topicCat: "🏥 健康・身体・感情",
+        m: "統合保健サービス所、地域の母子保健・乳幼児検診拠点（各町内［RW］や村に置かれ、月に1回など乳幼児［balita］の体重測定・予防接種・栄養指導や妊婦・高齢者の健康チェックを行う住民密着の保健拠点）",
+        ex: "Ibu-ibu membawa anak balita mereka ke Posyandu setiap bulan untuk ditimbang berat badannya dan diberi imunisasi.",
+        tr: "母親たちは毎月、体重測定と予防接種を受けるために5歳未満の乳幼児をポスヤンドゥ（母子保健所）へ連れていく。",
+        note: "■ 【正式名称】：POS pelaYANan terpaDU。地域の女性ボランティア（kader Posyandu）と保健所（Puskesmas）の医療スタッフが連携して運営し、子どもの発育不全（stunting）対策の最前線となっている。"
+      },
+
+      // ==================== 3. 身分証・滞在許可・税制・ビジネス/産業政策略語（15語） ====================
+      {
+        p: "singkatan", w: "KK", r: "Kartu Keluarga", alts: ["kartu keluarga"], dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "家族カード（日本の戸籍謄本・世帯全員の住民票にあたる公的証明書。世帯主と家族全員の氏名・生年月日・NIK［住民番号］・宗教・学歴・職業・続柄が一覧記載されている）",
+        ex: "Fotokopi KTP dan KK merupakan dokumen wajib saat mendaftar sekolah, membuka rekening bank, atau melamar pekerjaan.",
+        tr: "住民登録証（KTP）と家族カード（KK）のコピーは、学校の入学手続きや銀行口座の開設、就職応募の際の必須書類である。",
+        note: "■ 【特徴】：インドネシアでは個人の身分証『KTP（16桁の個人番号 NIK）』と、世帯全体の証明『KK（Kartu Keluarga）』の2つが常に対になってあらゆる行政・契約手続きで使われる。"
+      },
+      {
+        p: "singkatan", w: "NPWP", r: "Nomor Pokok Wajib Pajak", alts: ["nomor pokok wajib pajak"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "納税者番号（インドネシアの個人および法人に付与される税務識別番号およびそのカード。就職・給与受け取り・銀行融資・不動産購入・会社設立などに必須 ※現在は個人のNPWPは住民番号 NIK と統合）",
+        ex: "Setiap karyawan tetap dan pelaku usaha diwajibkan memiliki NPWP untuk keperluan pelaporan pajak penghasilan.",
+        tr: "すべての正社員および事業者は、所得税申告のために納税者番号（NPWP）を持つことが義務付けられている。",
+        note: "■ 【語構成】：Nomor Pokok（基本番号）Wajib Pajak（納税義務者）。"
+      },
+      {
+        p: "singkatan", w: "BPKB", r: "Buku Pemilik Kendaraan Bermotor", alts: ["buku pemilik kendaraan bermotor"], dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "自動車・二輪車の所有権証明書（警察が発行する冊子型の車両所有者台帳。日本の車検証の所有者権利書にあたり、中古車売買や銀行ローンの担保［担保差し入れ］として最も価値を持つ書類）",
+        ex: "Saat membeli mobil atau sepeda motor bekas, pastikan penjual menyerahkan STNK asli beserta buku BPKB-nya.",
+        tr: "中古の車やバイクを購入する際は、売り手が本物の車検証（STNK）と一緒に車両所有権証明書（BPKB）を引き渡すことを必ず確認しなさい。",
+        note: [
+          "■ 【車両の3大書類（SIM / STNK / BPKB）の区別】：\n・**SIM (Surat Izin Mengemudi)**：運転免許証（運転時に常時携帯）\n・**STNK (Surat Tanda Nomor Kendaraan)**：車両番号登録証・車検証（運転時に車・バイクに常時携帯し、毎年税金を払うカード）\n・**BPKB (Buku Pemilik Kendaraan Bermotor)**：車両所有権台帳（紛失・盗難を防ぐため車内には置かず、自宅の金庫に保管する一番大事な権利冊子！）"
+        ].join("\n")
+      },
+      {
+        p: "singkatan", w: "SKCK", r: "Surat Keterangan Catatan Kepolisian", alts: ["surat keterangan catatan kepolisian"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "警察証明書、犯罪経歴証明書（旧称 SKKB：過去に犯罪歴がないことを警察が証明する公式書類。インドネシアでは公務員試験や一般企業の就職応募書類としても広く提出が求められる）",
+        ex: "Para pelamar kerja ramai mendatangi kantor Polres untuk mengurus pembuatan SKCK sebagai syarat administrasi.",
+        tr: "就職応募者たちは事務要件である警察証明書（SKCK）の作成手続きをするため、市・県警察署（Polres）へ詰めかけた。",
+        note: "■ 【正式名称】：Surat Keterangan Catatan Kepolisian。有効期間は発行から6ヶ月間。"
+      },
+      {
+        p: "singkatan", w: "KITAS", r: "Kartu Izin Tinggal Terbatas", alts: ["kartu izin tinggal terbatas", "itas"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "一時滞在許可証（インドネシアで就労、投資、留学、家族帯同などのために長期滞在する外国人に発給される在留カード。現在は電子化され e-ITAS / ITAS とも呼ばれる）",
+        ex: "Mahasiswa asing yang menempuh studi di universitas Indonesia selama satu tahun wajib mengurus KITAS melalui pihak kampus dan imigrasi.",
+        tr: "インドネシアの大学で1年間学ぶ外国人留学生は、大学および入国管理局を通じて一時滞在許可証（KITAS）の手続きをする義務がある。",
+        note: "■ 【KITAS と KITAP の違い】：\n・**KITAS / ITAS (Kartu Izin Tinggal Terbatas)**：半年〜1年・2年ごとの更新が必要な「一時（期限付き）滞在許可証」\n・**KITAP / ITAP (Kartu Izin Tinggal Tetap)**：5年更新で永住権に近い「永久（定住）滞在許可証」"
+      },
+      {
+        p: "singkatan", w: "KITAP", r: "Kartu Izin Tinggal Tetap", alts: ["kartu izin tinggal tetap", "itap"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "永久滞在許可証、永住許可証（インドネシア人と結婚して一定年数経過した外国人配偶者や、長年KITASで勤務した経営者・退職者等に発給される長期定住カード）",
+        ex: "Warga negara asing yang telah memegang KITAS selama beberapa tahun berturut-turut dapat mengajukan alih status menjadi KITAP.",
+        tr: "数年間連続して一時滞在許可証（KITAS）を保有した外国人は、永久滞在許可証（KITAP）への資格変更を申請することができる。",
+        note: "■ 【正式名称】：Kartu Izin Tinggal Tetap。"
+      },
+      {
+        p: "singkatan", w: "PPh", r: "Pajak Penghasilan", alts: ["pajak penghasilan"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "所得税（個人の給与・報酬や法人の利益に対して課される国税。給与からの源泉徴収所得税は「PPh Pasal 21［PPh 21］」と呼ばれる）",
+        ex: "Potongan PPh Pasal 21 untuk karyawan dihitung secara progresif berdasarkan besaran penghasilan kena pajak setiap tahun.",
+        tr: "従業員に対する所得税（PPh第21条）の控除は、年間の課税所得額に基づいて累進課税方式で計算される。",
+        note: "■ 【インドネシアの3大税金略語】：\n・**PPh (Pajak Penghasilan)**：所得税（個人所得税・法人税）\n・**PPN (Pajak Pertambahan Nilai)**：付加価値税（日本の消費税に相当：標準税率11〜12%）\n・**PBB (Pajak Bumi dan Bangunan)**：土地建物税（日本の固定資産税に相当）"
+      },
+      {
+        p: "singkatan", w: "SPT", r: "Surat Pemberitahuan Tahunan", alts: ["surat pemberitahuan tahunan", "surat pemberitahuan"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "年次確定申告書（納税者が1年間の所得・資産・納税額を税務署［DJP］へ申告する書類。個人の提出期限は毎年3月末、法人は4月末）",
+        ex: "Direktorat Jenderal Pajak mengimbau wajib pajak orang pribadi segera melaporkan SPT Tahunan secara daring sebelum akhir Maret.",
+        tr: "国税総局（DJP）は個人納税者に対し、3月末までにオンラインで年次確定申告書（SPT）を申告するよう呼びかけている。",
+        note: "■ 【正式名称】：Surat Pemberitahuan (Tahunan)。毎年1〜3月の経済ニュースで連日報道される。"
+      },
+      {
+        p: "n", w: "Bea Cukai", r: "cukai", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "税関、関税および物品税（財務省傘下の関税・物品税総局［Direktorat Jenderal Bea dan Cukai］。空港や港湾での輸出入通関・関税徴収と、タバコや酒類の物品税［cukai］管理を担う）",
+        ex: "Petugas Bea Cukai di bandara memeriksa barang bawaan penumpang yang baru tiba dari luar negeri.",
+        tr: "空港の税関（Bea Cukai）職員は、海外から到着したばかりの乗客の手荷物を検査している。",
+        note: [
+          "■ 【語構成（bea と cukai の違い）】：\n・**bea**：国境を越える輸出入品に課される**「関税（bea masuk＝輸入関税、bea keluar＝輸出関税）」**（および印紙税 bea meterai）\n・**cukai**：国内で消費を抑制・管理すべき特定品目（タバコ rokok、酒類 minuman beralkohol 等）に課される**「物品税・酒税・たばこ税」**"
+        ].join("\n")
+      },
+      {
+        p: "singkatan", w: "UMP", r: "Upah Minimum Provinsi", alts: ["upah minimum provinsi"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "州最低賃金（全国38州のそれぞれの州知事がインフレ率と経済成長率をもとに毎年11月に決定・発表する、翌年の州内最低賃金基準）",
+        ex: "Para buruh menggelar aksi unjuk rasa menuntut kenaikan UMP tahun depan sesuai dengan naiknya biaya hidup.",
+        tr: "労働者たちは生活費の上昇に合わせて来年の州最低賃金（UMP）の引き上げを要求し、デモ行進を行った。",
+        note: "■ 【UMP と UMK の関係】：\n・**UMP (Upah Minimum Provinsi)**：州全体の最低賃金（ベースライン）\n・**UMK (Upah Minimum Kabupaten/Kota)**：その州の中の各「市・県」ごとに定められる最低賃金（原則として UMP より高い金額に設定される。例えば西ジャワ州では、州全体の UMP よりカラワン県やブカシ市・チカラン工業地帯の UMK の方が大幅に高く設定されている）。"
+      },
+      {
+        p: "singkatan", w: "UMK", r: "Upah Minimum Kabupaten/Kota", alts: ["upah minimum kabupaten/kota", "upah minimum kota", "upah minimum kabupaten"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "県・市最低賃金（各県や市ごとに定められる最低賃金。工場が集積するカラワン県・ブカシ市・スラバヤ市などの UMK は企業の人件費指標として経済記事で最重視される）",
+        ex: "Kawasan industri Karawang dan Bekasi tercatat memiliki besaran UMK tertinggi di Provinsi Jawa Barat.",
+        tr: "カラワンおよびブカシの工業地帯は、西ジャワ州で最も高い県・市最低賃金（UMK）の額を記録している。",
+        note: "■ 【正式名称】：Upah Minimum Kabupaten/Kota（日常会話では昔の呼称である UMR＝Upah Minimum Regional と呼ばれることも多い）。"
+      },
+      {
+        p: "singkatan", w: "KUR", r: "Kredit Usaha Rakyat", alts: ["kredit usaha rakyat"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "国民事業融資（政府が利子補給を行い、BRI・マンディリ銀行・BNIなどを通じて中小零細企業［UMKM］や農家・漁業者へ年利6%程度の低利・無担保で貸し出す公的制度融資）",
+        ex: "Program penyaluran KUR dengan bunga rendah sangat membantu pelaku usaha mikro untuk menambah modal kerja.",
+        tr: "低金利の国民事業融資（KUR）の配分プログラムは、零細事業者が運転資金を増やすのを大いに助けている。",
+        note: "■ 【正式名称】：Kredit Usaha Rakyat。"
+      },
+      {
+        p: "singkatan", w: "PSN", r: "Proyek Strategis Nasional", alts: ["proyek strategis nasional"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "国家戦略プロジェクト（経済成長と地域開発のために大統領令で指定され、土地収用や許認可・予算の特別優先措置を受ける大型国家インフラ・産業開発プロジェクト）",
+        ex: "Pembangunan jalan tol lintas pulau, bendungan besar, dan kawasan industri hilirisasi ditetapkan sebagai Proyek Strategis Nasional atau PSN.",
+        tr: "島縦断高速道路、大型ダム、および下流化工業団地の建設は、国家戦略プロジェクト（PSN）に指定されている。",
+        note: "■ 【正式名称】：Proyek Strategis Nasional。"
+      },
+      {
+        p: "singkatan", w: "TKDN", r: "Tingkat Komponen Dalam Negeri", alts: ["tingkat komponen dalam negeri"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "国産化率、現地調達率（製品やインフラ事業の中にインドネシア国内で生産された部品・原材料・労働サービスが何パーセント含まれているかを示す指標。政府調達やスマートフォン販売・EV補助金の必須条件）",
+        ex: "Pemerintah memberikan insentif pajak bagi mobil listrik yang telah memenuhi syarat TKDN minimal empat puluh persen.",
+        tr: "政府は国産化率（TKDN）最低40パーセントの条件を満たした電気自動車に対して税制優遇措置を付与している。",
+        note: [
+          "■ 【B2B製造業・経済ニュースで最重要の略語！】：\nインドネシア政府（工業省 Kemenperin）は国内製造業の育成とサプライチェーン構築のため、公共事業で使われる重機・電線・パイプ・医療機器や、国内で販売される4G/5Gスマートフォン（iPhone等の販売可否ニュースでも毎回話題になる！）・電気自動車（EV）に対して厳格な **『TKDN（国産化率）』** 基準を課しており、日系メーカーの現地生産戦略でも最重視されるキーワード。"
+        ].join("\n")
+      },
+      {
+        p: "singkatan", w: "KEK", r: "Kawasan Ekonomi Khusus", alts: ["kawasan ekonomi khusus"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "経済特区（投資誘致と輸出産業・観光開発のために法人税減免［タックスホリデー］や輸入関税免除、労働・入国管理の優遇措置が与えられる特別指定区域）",
+        ex: "Pemerintah menetapkan kawasan industri Gresik dan kawasan pariwisata Mandalika sebagai Kawasan Ekonomi Khusus atau KEK.",
+        tr: "政府はグレシク工業地域およびマンダリカ観光地域を経済特区（KEK）に指定した。",
+        note: "■ 【代表的な KEK】：東ジャワ州グレシクの『KEK JIIPE（銅精錬・製造業特区）』、中ジャワの『KEK Kendal（クンダル工業特区）』、ロンボク島の『KEK Mandalika（観光特区）』、バリの『KEK Sanur（国際医療・健康観光特区）』など。"
+      }
+    ],
+    acro: [
+      { acro: "UUD 1945", full: "undang-undang dasar 1945", alts: ["uud 45"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "1945年憲法（インドネシア共和国の最高法規）", exp: "■ 【正式名称】：Undang-Undang Dasar Negara Republik Indonesia Tahun 1945。" },
+      { acro: "UU", full: "undang-undang", alts: [], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "法律（国会と大統領が共同制定する法律）", exp: "■ 【正式名称】：Undang-Undang（法案は RUU）。" },
+      { acro: "RUU", full: "rancangan undang-undang", alts: [], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "法案、法律案", exp: "■ 【正式名称】：Rancangan Undang-Undang。" },
+      { acro: "Perppu", full: "peraturan pemerintah pengganti undang-undang", alts: ["perpu"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "緊急政令、法律代位政府規則", exp: "■ 【正式名称】：Peraturan Pemerintah Pengganti Undang-Undang。" },
+      { acro: "PP", full: "peraturan pemerintah", alts: [], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "政令、政府規則", exp: "■ 【正式名称】：Peraturan Pemerintah。" },
+      { acro: "Perpres", full: "peraturan presiden", alts: [], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "大統領令", exp: "■ 【正式名称】：Peraturan Presiden。" },
+      { acro: "Keppres", full: "keputusan presiden", alts: [], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "大統領決定", exp: "■ 【正式名称】：Keputusan Presiden。" },
+      { acro: "Inpres", full: "instruksi presiden", alts: [], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "大統領訓令、大統領指示", exp: "■ 【正式名称】：Instruksi Presiden。" },
+      { acro: "Permen", full: "peraturan menteri", alts: [], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "大臣令、省令", exp: "■ 【正式名称】：Peraturan Menteri。" },
+      { acro: "Perda", full: "peraturan daerah", alts: [], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "地方条例、条例", exp: "■ 【正式名称】：Peraturan Daerah。" },
+      { acro: "SE", full: "surat edaran", alts: ["sarjana ekonomi"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "通達、回覧文書（学位では S.E.＝経済学士）", exp: "■ 【正式名称】：Surat Edaran。" },
+      { acro: "KUHP", full: "kitab undang-undang hukum pidana", alts: [], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "刑法典、刑法", exp: "■ 【正式名称】：Kitab Undang-Undang Hukum Pidana。" },
+      { acro: "KUHAP", full: "kitab undang-undang hukum acara pidana", alts: [], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "刑事訴訟法典、刑事訴訟法", exp: "■ 【正式名称】：Kitab Undang-Undang Hukum Acara Pidana。" },
+      { acro: "Pemprov", full: "pemerintah provinsi", alts: [], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "州政府、州庁", exp: "■ 【正式名称】：Pemerintah Provinsi。" },
+      { acro: "Pemkot", full: "pemerintah kota", alts: [], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "市政府、市役所", exp: "■ 【正式名称】：Pemerintah Kota。" },
+      { acro: "Pemkab", full: "pemerintah kabupaten", alts: [], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "県政府、県庁", exp: "■ 【正式名称】：Pemerintah Kabupaten。" },
+      { acro: "DPRD", full: "dewan perwakilan rakyat daerah", alts: [], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "地方議会（州議会・県議会・市議会）", exp: "■ 【正式名称】：Dewan Perwakilan Rakyat Daerah。" },
+      { acro: "DPD", full: "dewan perwakilan daerah", alts: [], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "地方代表議会（各州4名ずつ選出される国会の上院）", exp: "■ 【正式名称】：Dewan Perwakilan Daerah。" },
+      { acro: "RW", full: "rukun warga", alts: [], dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動", tr: "町内会、住民連合会（複数の隣組 RT を束ねる組織）", exp: "■ 【正式名称】：Rukun Warga。" },
+      { acro: "RT", full: "rukun tetangga", alts: [], dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動", tr: "隣組、町内班（最小の住民自治単位）", exp: "■ 【正式名称】：Rukun Tetangga。" },
+      { acro: "Siskamling", full: "sistem keamanan lingkungan", alts: [], dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動", tr: "地域防犯システム（住民当番制の夜間自警）", exp: "■ 【正式名称】：Sistem Keamanan Lingkungan。" },
+      { acro: "Posyandu", full: "pos pelayanan terpadu", alts: [], dictOnly: true, tier: 3, topicCat: "🏥 健康・身体・感情", tr: "地域の母子保健・乳幼児検診所", exp: "■ 【正式名称】：Pos Pelayanan Terpadu。" },
+      { acro: "KK", full: "kartu keluarga", alts: [], dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動", tr: "家族カード（日本の戸籍謄本・世帯全員の住民票に相当）", exp: "■ 【正式名称】：Kartu Keluarga。" },
+      { acro: "NPWP", full: "nomor pokok wajib pajak", alts: [], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物", tr: "納税者番号", exp: "■ 【正式名称】：Nomor Pokok Wajib Pajak。" },
+      { acro: "BPKB", full: "buku pemilik kendaraan bermotor", alts: [], dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動", tr: "車両所有権証明書（車・バイクの所有者台帳）", exp: "■ 【正式名称】：Buku Pemilik Kendaraan Bermotor。" },
+      { acro: "SKCK", full: "surat keterangan catatan kepolisian", alts: [], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "警察証明書、無犯罪証明書", exp: "■ 【正式名称】：Surat Keterangan Catatan Kepolisian。" },
+      { acro: "KITAS", full: "kartu izin tinggal terbatas", alts: ["itas"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "一時滞在許可証（長期滞在外国人向けの在留カード）", exp: "■ 【正式名称】：Kartu Izin Tinggal Terbatas。" },
+      { acro: "KITAP", full: "kartu izin tinggal tetap", alts: ["itap"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "永久滞在許可証、永住許可証", exp: "■ 【正式名称】：Kartu Izin Tinggal Tetap。" },
+      { acro: "PPh", full: "pajak penghasilan", alts: [], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物", tr: "所得税（個人所得税・法人所得税）", exp: "■ 【正式名称】：Pajak Penghasilan。" },
+      { acro: "SPT", full: "surat pemberitahuan tahunan", alts: ["surat pemberitahuan"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物", tr: "年次確定申告書", exp: "■ 【正式名称】：Surat Pemberitahuan Tahunan。" },
+      { acro: "UMP", full: "upah minimum provinsi", alts: [], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物", tr: "州最低賃金", exp: "■ 【正式名称】：Upah Minimum Provinsi。" },
+      { acro: "UMK", full: "upah minimum kabupaten/kota", alts: ["upah minimum kota", "upah minimum kabupaten"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物", tr: "県・市最低賃金", exp: "■ 【正式名称】：Upah Minimum Kabupaten/Kota。" },
+      { acro: "KUR", full: "kredit usaha rakyat", alts: [], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物", tr: "国民事業融資（中小零細企業向けの政府補助低利融資）", exp: "■ 【正式名称】：Kredit Usaha Rakyat。" },
+      { acro: "PSN", full: "proyek strategis nasional", alts: [], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物", tr: "国家戦略プロジェクト", exp: "■ 【正式名称】：Proyek Strategis Nasional。" },
+      { acro: "TKDN", full: "tingkat komponen dalam negeri", alts: [], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物", tr: "国産化率、現地調達率", exp: "■ 【正式名称】：Tingkat Komponen Dalam Negeri。" },
+      { acro: "KEK", full: "kawasan ekonomi khusus", alts: [], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物", tr: "経済特区", exp: "■ 【正式名称】：Kawasan Ekonomi Khusus。" }
+    ]
+  };
+
+  PACK_PART10_LAW_ADMIN_BIZ.vocab.forEach(function(it) {
+    dictOnlySet.add(it.w.trim().toLowerCase());
+  });
+  PACK_PART10_LAW_ADMIN_BIZ.acro.forEach(function(a) {
+    dictOnlySet.add(a.acro.trim().toLowerCase());
+  });
+
+  if (typeof window.wiAddPack === "function") {
+    window.wiAddPack(PACK_PART10_LAW_ADMIN_BIZ);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 例文切り落とし＆和訳消失バグ完全修復 ＋ 辞書クローズ超高速化パッチ
+   1. V63の2重ハイライトによる例文切断（"Ibu-ibu" / "DPP" 等）と日本語訳消失を完全根治
+   2. d.vocab / d.singkatan / d.acro 全データの例文(ex)と和訳(tr)を100%統合・保護
+   3. 辞書を閉じた瞬間に旧パッチ(V1〜V3)が裏で5連発していた重い loadAllData() を遮断し0.000秒で閉じる
+   ===================================================================== */
+(function() {
+  const d = window.WHATSINDO_EXTERNAL_DATA;
+  if (!d) return;
+
+  // -------------------------------------------------------------------
+  // 1. 全単語・全略語の「完全な例文(ex)＆日本語訳(tr)」マスターマップを構築・統合
+  // -------------------------------------------------------------------
+  const fullExTrMap = new Map();
+
+  function registerExTr(word, ex, tr, note, m, r) {
+    if (!word) return;
+    const key = String(word).trim().toLowerCase();
+    if (!key) return;
+    const cur = fullExTrMap.get(key) || { w: word, ex: "", tr: "", note: "", m: "", r: "" };
+    if (ex && ex.trim().length > cur.ex.length) cur.ex = ex.trim();
+    if (tr && tr.trim().length > cur.tr.length) cur.tr = tr.trim();
+    if (note && note.trim().length > cur.note.length) cur.note = note.trim();
+    if (m && m.trim().length > cur.m.length) cur.m = m.trim();
+    if (r && r.trim().length > cur.r.length) cur.r = r.trim();
+    fullExTrMap.set(key, cur);
+  }
+
+  function syncAllExTrSources() {
+    const vList = Array.isArray(d.vocab) ? d.vocab : [];
+    const sList = Array.isArray(d.singkatan) ? d.singkatan : [];
+    const aList = Array.isArray(d.acro) ? d.acro : [];
+
+    for (let i = 0; i < vList.length; i++) {
+      const it = vList[i];
+      if (it && it.w) registerExTr(it.w, it.ex, it.tr, it.note, it.m, it.r);
+    }
+    for (let i = 0; i < sList.length; i++) {
+      const it = sList[i];
+      if (it && it.w) registerExTr(it.w, it.ex, it.tr, it.note, it.m, it.r);
+    }
+    if (window.__wiPersistentAddedVocab instanceof Map) {
+      window.__wiPersistentAddedVocab.forEach(function(it) {
+        if (it && it.w) registerExTr(it.w, it.ex, it.tr, it.note, it.m, it.r);
+      });
+    }
+
+    // d.singkatan と d.vocab の双方に最新の完全な ex / tr を書き戻す
+    for (let i = 0; i < sList.length; i++) {
+      const it = sList[i];
+      if (!it || !it.w) continue;
+      const best = fullExTrMap.get(it.w.trim().toLowerCase());
+      if (best) {
+        if (best.ex) it.ex = best.ex;
+        if (best.tr) it.tr = best.tr;
+        if (best.note && (!it.note || best.note.length > it.note.length)) it.note = best.note;
+      }
+    }
+    for (let i = 0; i < vList.length; i++) {
+      const it = vList[i];
+      if (!it || !it.w) continue;
+      const best = fullExTrMap.get(it.w.trim().toLowerCase());
+      if (best) {
+        if (best.ex) it.ex = best.ex;
+        if (best.tr) it.tr = best.tr;
+      }
+    }
+
+    // d.acro にある略語が d.singkatan 側にも ex/tr 付きで必ず存在するよう同期
+    const sKeys = new Set(sList.map(x => (x && x.w ? x.w.trim().toLowerCase() : "")));
+    for (let i = 0; i < aList.length; i++) {
+      const a = aList[i];
+      if (!a || !a.acro) continue;
+      const key = a.acro.trim().toLowerCase();
+      const best = fullExTrMap.get(key);
+      if (best && best.ex && !sKeys.has(key)) {
+        sList.push({
+          p: "singkatan",
+          w: a.acro,
+          r: a.full || best.r || a.acro,
+          alts: a.alts || [],
+          m: a.tr || best.m || "",
+          ex: best.ex,
+          tr: best.tr,
+          note: a.exp || best.note || "",
+          dictOnly: a.dictOnly,
+          tier: a.tier,
+          topicCat: a.topicCat
+        });
+        sKeys.add(key);
+      }
+    }
+  }
+
+  syncAllExTrSources();
+
+  // -------------------------------------------------------------------
+  // 2. 安全なHTMLエスケープ ＆ 単語を一切削らない見出し語ハイライト関数
+  // -------------------------------------------------------------------
+  function escHtmlSafe(str) {
+    return String(str || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function safeHighlightSentence(exSentence, headword, rootWord) {
+    if (!exSentence) return "";
+    const safeEx = escHtmlSafe(exSentence);
+    if (!headword) return safeEx;
+
+    const candidates = String(headword)
+      .split("/")
+      .map(s => s.trim())
+      .filter(Boolean)
+      .sort((a, b) => b.length - a.length);
+
+    for (let i = 0; i < candidates.length; i++) {
+      const cand = candidates[i];
+      if (cand.endsWith("-")) {
+        const prefix = cand.slice(0, -1).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const rePref = new RegExp(`(?<![a-zA-Z])(${prefix}[a-zA-Z]+)`, "gi");
+        if (rePref.test(safeEx)) {
+          return safeEx.replace(rePref, '<span class="wi-ex-hw-hl">$1</span>');
+        }
+        continue;
+      }
+
+      const esc = cand.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const reExact = new RegExp(`(?<![a-zA-Z])(${esc})(?![a-zA-Z])`, "gi");
+      if (reExact.test(safeEx)) {
+        return safeEx.replace(reExact, '<span class="wi-ex-hw-hl">$1</span>');
+      }
+
+      if (cand.length >= 3) {
+        const reInf = new RegExp(`(?<![a-zA-Z])([a-zA-Z]*${esc}[a-zA-Z]*)(?![a-zA-Z])`, "gi");
+        if (reInf.test(safeEx)) {
+          return safeEx.replace(reInf, '<span class="wi-ex-hw-hl">$1</span>');
+        }
+      }
+    }
+
+    if (rootWord && rootWord.length >= 3 && !rootWord.includes(" ")) {
+      const escR = String(rootWord).trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const reRoot = new RegExp(`(?<![a-zA-Z])([a-zA-Z]*${escR}[a-zA-Z]*)(?![a-zA-Z])`, "gi");
+      if (reRoot.test(safeEx)) {
+        return safeEx.replace(reRoot, '<span class="wi-ex-hw-hl">$1</span>');
+      }
+    }
+
+    return safeEx;
+  }
+
+  // -------------------------------------------------------------------
+  // 3. 辞書詳細モーダル (#dict-detail-box) の例文・和訳100%復元ガード
+  // -------------------------------------------------------------------
+  let isRepairingEx = false;
+
+  function repairAndProtectModalExample() {
+    if (isRepairingEx) return;
+    const detailBox = document.getElementById("dict-detail-box");
+    if (!detailBox) return;
+
+    const titleSpan = detailBox.querySelector("span");
+    if (!titleSpan) return;
+    const hwText  = titleSpan.textContent.trim();
+    const hwLower = hwText.toLowerCase();
+    if (!hwLower) return;
+
+    // V63 が2回走って childNodes[0] を切り落とすのを防ぐため data-v63-enhanced を常にロック維持
+    if (detailBox.getAttribute("data-v63-enhanced") !== hwLower) {
+      detailBox.setAttribute("data-v63-enhanced", hwLower);
+    }
+
+    const best = fullExTrMap.get(hwLower);
+    const allSecCards = detailBox.querySelectorAll(".exp-sec-card");
+
+    allSecCards.forEach(function(card) {
+      const labelEl   = card.querySelector(".exp-sec-label");
+      const contentEl = card.querySelector(".exp-sec-content");
+      if (!labelEl || !contentEl) return;
+      const labelTxt = labelEl.textContent || "";
+
+      if (labelTxt.indexOf("実用例文") !== -1) {
+        // 初回描画時の完全な例文と和訳を取得・保存
+        let trueEx = (best && best.ex) ? best.ex : (contentEl.getAttribute("data-wi-true-ex") || "");
+        let trueTr = (best && best.tr) ? best.tr : (contentEl.getAttribute("data-wi-true-tr") || "");
+
+        if (!trueEx || !trueTr) {
+          const rawLines = (contentEl.textContent || "").split(/\n+/).map(s => s.trim()).filter(Boolean);
+          if (!trueEx && rawLines[0] && rawLines[0].length > 15) {
+            trueEx = rawLines[0];
+          }
+          if (!trueTr && rawLines.length > 1) {
+            trueTr = rawLines.slice(1).join(" ");
+          }
+        }
+
+        if (trueEx) contentEl.setAttribute("data-wi-true-ex", trueEx);
+        if (trueTr) contentEl.setAttribute("data-wi-true-tr", trueTr);
+
+        if (trueEx) {
+          const rootWord = (best && best.r) ? best.r : hwText;
+          const expectedHtml = `${safeHighlightSentence(trueEx, hwText, rootWord)}${trueTr ? `\n<span class="wi-ex-tr-line" style="color:#475569;font-size:0.84rem;display:block;margin-top:4px;">${escHtmlSafe(trueTr)}</span>` : ""}`;
+
+          // もし V63 によって例文が短く切断されていたり和訳が消えていたら即座に完全な状態へ復元！
+          const currentText = (contentEl.textContent || "").trim();
+          const isTruncated = currentText.length < trueEx.length;
+          const isMissingTr = trueTr && currentText.indexOf(trueTr.slice(0, 6)) === -1;
+
+          if (isTruncated || isMissingTr || !contentEl.querySelector(".wi-ex-tr-line")) {
+            isRepairingEx = true;
+            try {
+              contentEl.innerHTML = expectedHtml;
+            } finally {
+              isRepairingEx = false;
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // ensureModalBulletsAlwaysRendered が data-v63-enhanced を消してしまうのを阻止するため、
+  // removeAttribute("data-v63-enhanced") をピンポイントで無効化！
+  const origRemoveAttr = Element.prototype.removeAttribute;
+  Element.prototype.removeAttribute = function(attrName) {
+    if (this && this.id === "dict-detail-box" && attrName === "data-v63-enhanced") {
+      return; // V63の2重実行（例文切断の原因）を100%ブロック！
+    }
+    return origRemoveAttr.apply(this, arguments);
+  };
+
+  // -------------------------------------------------------------------
+  // 4. ★辞書を閉じるときの重さを完全解消（0.000秒で即座に閉じる！）
+  //    原因：辞書を閉じた瞬間に旧パッチ(V1〜V3)の MutationObserver が発火し、
+  //          window.loadAllData()（全9,000語のDB再構築）を5回連続で走らせていたこと。
+  // -------------------------------------------------------------------
+  let isClosingDictModal = false;
+
+  // window.loadAllData が辞書を閉じる最中に旧パッチから呼ばれても即スキップさせる
+  const currentLoadAllData = window.loadAllData;
+  window.loadAllData = function() {
+    if (isClosingDictModal) return;
+    if (typeof currentLoadAllData === "function") {
+      return currentLoadAllData.apply(this, arguments);
+    }
+  };
+
+  // classList.remove("open") が #az-dict-modal や #dict-detail-modal で呼ばれた瞬間、
+  // 100ms間だけ「辞書クローズ中フラグ」を立て、裏の重い再集計・DB再構築をすべてスキップ！
+  const origClassListRemove = DOMTokenList.prototype.remove;
+  DOMTokenList.prototype.remove = function() {
+    for (let i = 0; i < arguments.length; i++) {
+      if (arguments[i] === "open") {
+        isClosingDictModal = true;
+        setTimeout(function() {
+          isClosingDictModal = false;
+        }, 120);
+        break;
+      }
+    }
+    return origClassListRemove.apply(this, arguments);
+  };
+
+  // さらに辞書を閉じるボタン（#btn-close-dict-modal / #btn-close-az-dict）が押されたとき、
+  // 旧辞書ペンパッチの不要なマウントタイマーが走らないよう保護
+  function bindInstantDictClose() {
+    const detailBox = document.getElementById("dict-detail-box");
+    if (detailBox && !detailBox.__wiExRepairObs) {
+      detailBox.__wiExRepairObs = true;
+      const obs = new MutationObserver(function() {
+        repairAndProtectModalExample();
+      });
+      obs.observe(detailBox, { childList: true, subtree: true });
+    }
+    repairAndProtectModalExample();
+  }
+
+  // 今後の wiAddPack 追加時にも例文・和訳マスターを自動同期して DB に反映
+  const prevWiAddPack = window.wiAddPack;
+  if (typeof prevWiAddPack === "function") {
+    window.wiAddPack = function(pack) {
+      const res = prevWiAddPack.apply(this, arguments);
+      syncAllExTrSources();
+      return res;
+    };
+  }
+
+  // 初回同期＆DB反映
+  syncAllExTrSources();
+  if (typeof window.__reloadWhatsIndo === "function") {
+    try { window.__reloadWhatsIndo(); } catch (e) {}
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function() {
+      syncAllExTrSources();
+      bindInstantDictClose();
+      setTimeout(function() {
+        syncAllExTrSources();
+        if (typeof window.__reloadWhatsIndo === "function") {
+          try { window.__reloadWhatsIndo(); } catch (e) {}
+        }
+        bindInstantDictClose();
+      }, 250);
+    });
+  } else {
+    bindInstantDictClose();
+    setTimeout(function() {
+      syncAllExTrSources();
+      if (typeof window.__reloadWhatsIndo === "function") {
+        try { window.__reloadWhatsIndo(); } catch (e) {}
+      }
+      bindInstantDictClose();
+    }, 150);
+  }
+})();
+/* =====================================================================
+   WhatsIndo クイズ超スリム化・略語タイピング完全ノーヒント化・辞書専用語100%隔離パッチ
+   1. 略語モードから「略語➔正式名称(4択)」を廃止し、「正式名称タイピング」の日本語意味・ヒント枠を完全撤去
+   2. 辞書専用語（SBY/スシロ・国名・都市名・月名等）が問題本体・4択ダミー選択肢・単語ラッシュに混ざる現象を100%根治
+   3. 「120秒ラッシュ」「類義語・対義語」「誤文訂正」「前置詞・コロケーション」を全モード＆総合模試＆復習から完全廃止
+   4. 左サイドバーのタブとルーム一覧を横スクロール不要のスッキリ見やすい構成に刷新
+   ===================================================================== */
+(function() {
+  const d = window.WHATSINDO_EXTERNAL_DATA;
+  if (!d) return;
+
+  // -------------------------------------------------------------------
+  // 1. 廃止モード（sinonim / error / prep / confuse）のデータ完全空化
+  //    ➔ これにより index.html の buildDatabase() ＆ 総合模試(exam) からも100%除外される
+  // -------------------------------------------------------------------
+  ["sinonim", "error", "prep", "confuse"].forEach(function(modeKey) {
+    if (Array.isArray(d[modeKey])) {
+      d[modeKey].length = 0;
+      d[modeKey].push = function() { return 0; };
+    } else {
+      d[modeKey] = [];
+    }
+  });
+
+  // -------------------------------------------------------------------
+  // 2. 辞書専用語（dictOnly）＆ 排除リスト語の判定エンジン（全モード・4択選択肢・単語ラッシュ共通）
+  // -------------------------------------------------------------------
+  const dictOnlySet = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+
+  function collectAllDictOnlyWords() {
+    const vList = Array.isArray(d.vocab) ? d.vocab : [];
+    const aList = Array.isArray(d.acro) ? d.acro : [];
+    const sList = Array.isArray(d.singkatan) ? d.singkatan : [];
+
+    for (let i = 0; i < vList.length; i++) {
+      const it = vList[i];
+      if (it && it.w && (it.dictOnly === true || it.tier === 3)) {
+        dictOnlySet.add(it.w.trim().toLowerCase());
+      }
+    }
+    for (let i = 0; i < aList.length; i++) {
+      const it = aList[i];
+      if (it && it.acro && (it.dictOnly === true || it.tier === 3)) {
+        dictOnlySet.add(it.acro.trim().toLowerCase());
+      }
+    }
+    for (let i = 0; i < sList.length; i++) {
+      const it = sList[i];
+      if (it && it.w && (it.dictOnly === true || it.tier === 3)) {
+        dictOnlySet.add(it.w.trim().toLowerCase());
+      }
+    }
+    if (window.__wiPersistentAddedVocab instanceof Map) {
+      window.__wiPersistentAddedVocab.forEach(function(it, k) {
+        if (it && (it.dictOnly === true || it.tier === 3)) dictOnlySet.add(k);
+      });
+    }
+    if (window.__wiPersistentAddedAcro instanceof Map) {
+      window.__wiPersistentAddedAcro.forEach(function(it, k) {
+        if (it && (it.dictOnly === true || it.tier === 3)) dictOnlySet.add(k);
+      });
+    }
+  }
+  collectAllDictOnlyWords();
+
+  function isExcludedByUser(wordLow) {
+    try {
+      const raw = localStorage.getItem("wi_excluded_words_v2");
+      if (!raw) return false;
+      const obj = JSON.parse(raw);
+      return Boolean(obj && typeof obj === "object" && obj[wordLow]);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function isBlockedFromQuiz(itemOrWord) {
+    if (!itemOrWord) return false;
+    if (typeof itemOrWord === "string") {
+      const wl = itemOrWord.trim().toLowerCase();
+      return dictOnlySet.has(wl) || isExcludedByUser(wl);
+    }
+    if (typeof itemOrWord === "object") {
+      if (itemOrWord.dictOnly === true || itemOrWord.tier === 3) return true;
+      const w = (itemOrWord.w || itemOrWord.acro || "").trim().toLowerCase();
+      if (!w) return false;
+      return dictOnlySet.has(w) || isExcludedByUser(w);
+    }
+    return false;
+  }
+
+  // (A) 4択問題のダミー選択肢生成（pool.filter / posPool.filter）から辞書専用語・排除語を100%除外！
+  //     ➔ これで選択肢に「スシロ」や「Daerah Khusus Ibukota Jakarta」が混ざることが絶対になくなる
+  const prevFilterForQuiz = Array.prototype.filter;
+  Array.prototype.filter = function(callback, thisArg) {
+    const res = prevFilterForQuiz.call(this, callback, thisArg);
+    if (
+      res.length > 0 &&
+      typeof callback === "function" &&
+      this[0] &&
+      typeof this[0] === "object" &&
+      ("w" in this[0] || "acro" in this[0])
+    ) {
+      const fnStr = Function.prototype.toString.call(callback);
+      // index.html が4択の不正解選択肢を作る filter 呼び出しをピンポイント検出
+      if (
+        fnStr.indexOf("raw.m") !== -1 ||
+        fnStr.indexOf("raw.r") !== -1 ||
+        fnStr.indexOf("raw.w") !== -1 ||
+        fnStr.indexOf("vocItem.m") !== -1
+      ) {
+        collectAllDictOnlyWords();
+        const cleanChoices = prevFilterForQuiz.call(res, function(x) {
+          return !isBlockedFromQuiz(x);
+        });
+        if (cleanChoices.length >= 3) return cleanChoices;
+      }
+    }
+    return res;
+  };
+
+  // (B) 問題デッキからの抽選（.pop()）で、一番底（index 0）に辞書専用語が残っていても100%排除！
+  const prevPopForQuiz = Array.prototype.pop;
+  Array.prototype.pop = function() {
+    if (this.length > 0) {
+      const sample = this[this.length - 1];
+      if (
+        sample &&
+        typeof sample === "object" &&
+        !Array.isArray(sample) &&
+        ("w" in sample || "acro" in sample)
+      ) {
+        collectAllDictOnlyWords();
+        // デッキ内のすべての辞書専用語・排除語を後ろから完全除去
+        for (let i = this.length - 1; i >= 0; i--) {
+          if (isBlockedFromQuiz(this[i])) {
+            this.splice(i, 1);
+          }
+        }
+        // 万一デッキの残りカードがすべて辞書専用語で空になった場合は、通常語から安全に1語補充
+        if (this.length === 0) {
+          const fallbackPool = (sample.p === "singkatan" ? (d.acro || []) : (d.vocab || []));
+          for (let j = 0; j < fallbackPool.length; j++) {
+            const cand = fallbackPool[j];
+            if (cand && !isBlockedFromQuiz(cand)) {
+              return cand;
+            }
+          }
+        }
+      }
+    }
+    return prevPopForQuiz.call(this);
+  };
+
+  // (C) 単語ラッシュモード（buildMasterPosBuckets）のバケツ構築時にも辞書専用語・排除語を100%ブロック！
+  const origArrayPush = Array.prototype.push;
+  Array.prototype.push = function() {
+    if (
+      arguments.length === 1 &&
+      arguments[0] &&
+      typeof arguments[0] === "object" &&
+      "subG" in arguments[0] &&
+      "mShort" in arguments[0] &&
+      "w" in arguments[0]
+    ) {
+      if (isBlockedFromQuiz(arguments[0].w)) {
+        return this.length;
+      }
+    }
+    return origArrayPush.apply(this, arguments);
+  };
+
+  // -------------------------------------------------------------------
+  // 3. 保存済みの「間違えた問題」「スター」「略語サブモード設定」の自動クリーンアップ
+  // -------------------------------------------------------------------
+  function cleanSavedStorageAndPrefs() {
+    collectAllDictOnlyWords();
+
+    // ① 略語モードで廃止された「to_full（略語➔正式名称4択）」が保存されていたら「to_ja」へ切り替え
+    try {
+      const prefs = JSON.parse(localStorage.getItem("wi_prefs_v8") || "{}");
+      if (prefs.abbrSub === "to_full") {
+        prefs.abbrSub = "to_ja";
+        localStorage.setItem("wi_prefs_v8", JSON.stringify(prefs));
+      }
+    } catch (e) {}
+
+    // ② 間違えた問題・スターから廃止4モード（sinonim/error/prep/confuse）と辞書専用語（SBY等）を完全除去
+    ["wi_wrongs_v2", "wi_stars_v2", "wi_master_stars_v5"].forEach(function(storageKey) {
+      try {
+        const raw = localStorage.getItem(storageKey);
+        if (!raw) return;
+        const list = JSON.parse(raw);
+        if (!Array.isArray(list)) return;
+
+        const cleaned = list.filter(function(it) {
+          if (!it || typeof it !== "object") return false;
+          const eff = it.effectiveMode || "";
+          const qid = String(it.id || "");
+          // 廃止されたモードの問題を除去
+          if (["sinonim", "error", "prep", "confuse", "rush"].indexOf(eff) !== -1) return false;
+          if (/^(?:sin|err|error|prep|conf|confuse)::/i.test(qid)) return false;
+
+          // 辞書専用語（SBY / Susilo 等）の問題を除去
+          const wordMatch = qid.match(/^(?:voc|voc_ja2id|abbr_ja|abbr_full|ctx::voc)::(.+)$/i);
+          if (wordMatch && isBlockedFromQuiz(wordMatch[1])) return false;
+          if (it.w && isBlockedFromQuiz(it.w)) return false;
+          if (it.ttsWord && isBlockedFromQuiz(it.ttsWord)) return false;
+
+          return true;
+        });
+
+        if (cleaned.length !== list.length) {
+          localStorage.setItem(storageKey, JSON.stringify(cleaned));
+        }
+      } catch (e) {}
+    });
+  }
+  cleanSavedStorageAndPrefs();
+
+  // -------------------------------------------------------------------
+  // 4. スタイル注入（廃止UIの非表示・略語タイピングの完全ノーヒント化・タブ1画面収まり）
+  // -------------------------------------------------------------------
+  if (!document.getElementById("wi-super-slim-improvement-style")) {
+    const st = document.createElement("style");
+    st.id = "wi-super-slim-improvement-style";
+    st.textContent = `
+      /* ① 略語モードの「略語➔正式名称 (4択)」サブフィルターボタンを完全非表示 */
+      #chat-subfilter-bar .sub-filter-pill[data-ab="to_full"] {
+        display: none !important;
+      }
+
+      /* ② 略語モードの「正式名称タイピング」選択時：問題バブル内の日本語意味・ガイド枠・ヒントを0msで完全非表示！ */
+      .wa-main-chat:has(#chat-subfilter-bar .sub-filter-pill[data-ab="typing_full"].active) .msg-row-in .wa-bubble-left .msg-word-head + span,
+      .wa-main-chat:has(#chat-subfilter-bar .sub-filter-pill[data-ab="typing_full"].active) .msg-row-in .wa-bubble-left .msg-sub-box,
+      .wa-main-chat:has(#chat-subfilter-bar .sub-filter-pill[data-ab="typing_full"].active) .msg-row-in .wa-bubble-left .dynamic-hint-box,
+      .wa-main-chat:has(#chat-subfilter-bar .sub-filter-pill[data-ab="typing_full"].active) .msg-row-in .wa-bubble-left .dynamic-hint-reveal,
+      .wa-main-chat:has(#chat-subfilter-bar .sub-filter-pill[data-ab="typing_full"].active) #btn-hint-toggle {
+        display: none !important;
+      }
+
+      /* ③ サイドバーのカテゴリータブ（#cat-pills）を横スクロール不要でスッキリ見やすく配置 */
+      #cat-pills {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 5px !important;
+        padding: 0 12px 9px 12px !important;
+        overflow-x: visible !important;
+      }
+      #cat-pills .wa-pill {
+        font-size: 0.73rem !important;
+        padding: 4px 9px !important;
+        flex-shrink: 0 !important;
+      }
+      /* 右上に専用ボタンがある「復習 (2)」タブは下部ピルバーから隠して1行に美しく収める */
+      #cat-pills .wa-pill[data-cat="review"] {
+        display: none !important;
+      }
+    `;
+    document.head.appendChild(st);
+  }
+
+  // -------------------------------------------------------------------
+  // 5. サイドバー一覧・カテゴリータブ件数・略語サブモードのDOM同期エンジン
+  // -------------------------------------------------------------------
+  const ABOLISHED_ROOM_TITLES = [
+    "120秒ラッシュ",
+    "類義語・対義語",
+    "紛らわしい語の使い分け",
+    "誤文訂正",
+    "前置詞・コロケーション"
+  ];
+
+  function syncSidebarAndTabsClean() {
+    // ① カテゴリータブの名称と件数をスッキリ最新化
+    const catPills = document.getElementById("cat-pills");
+    if (catPills) {
+      const pSpecial = catPills.querySelector('[data-cat="special"]');
+      const pVocab   = catPills.querySelector('[data-cat="vocab"]');
+      const pGrammar = catPills.querySelector('[data-cat="grammar"]');
+      const pExpr    = catPills.querySelector('[data-cat="expr"]');
+
+      if (pSpecial && pSpecial.textContent !== "実戦 (2)") pSpecial.textContent = "実戦 (2)";
+      if (pVocab   && pVocab.textContent   !== "単語・略語 (5)") pVocab.textContent = "単語・略語 (5)";
+      if (pGrammar && pGrammar.textContent !== "文法・聴解 (4)") pGrammar.textContent = "文法・聴解 (4)";
+      if (pExpr    && pExpr.textContent    !== "表現・会話 (4)") pExpr.textContent = "表現・会話 (4)";
+    }
+
+    // ② サイドバーのチャットルーム一覧から廃止モードを即時除去
+    const chatList = document.getElementById("wa-chat-list");
+    if (chatList) {
+      chatList.querySelectorAll(".wa-chat-item").forEach(function(item) {
+        const titleEl = item.querySelector(".wa-item-title");
+        if (!titleEl) return;
+        const t = titleEl.textContent || "";
+        for (let i = 0; i < ABOLISHED_ROOM_TITLES.length; i++) {
+          if (t.indexOf(ABOLISHED_ROOM_TITLES[i]) !== -1) {
+            item.remove();
+            break;
+          }
+        }
+      });
+    }
+  }
+
+  function enforceAbbrSubModeAndNoHint() {
+    const subBar = document.getElementById("chat-subfilter-bar");
+    if (subBar) {
+      const toFullBtn = subBar.querySelector('.sub-filter-pill[data-ab="to_full"]');
+      const toJaBtn   = subBar.querySelector('.sub-filter-pill[data-ab="to_ja"]');
+      if (toFullBtn) {
+        // 万一「略語➔正式名称(4択)」がアクティブになっていたら即座に「略語➔日本語意味(4択)」へ切り替える
+        if (toFullBtn.classList.contains("active") && toJaBtn) {
+          toJaBtn.click();
+          return;
+        }
+        toFullBtn.remove();
+      }
+    }
+
+    // 「正式名称タイピング」モード中の出題バブルからヒント要素をDOM上でもクリーン除去
+    const isTypingFullActive = Boolean(
+      subBar && subBar.querySelector('.sub-filter-pill[data-ab="typing_full"].active')
+    );
+    if (isTypingFullActive) {
+      const area = document.getElementById("chat-messages-area");
+      if (area) {
+        area.querySelectorAll(".msg-row-in .wa-bubble-left").forEach(function(bub) {
+          // 解説バブルではなく問題バブル（.msg-word-head があるもの）のみ対象
+          const head = bub.querySelector(".msg-word-head");
+          if (!head) return;
+          const nextSp = head.nextElementSibling;
+          if (nextSp && nextSp.tagName === "SPAN") nextSp.remove();
+          bub.querySelectorAll(".msg-sub-box, .dynamic-hint-box, .dynamic-hint-reveal").forEach(function(el) {
+            el.remove();
+          });
+        });
+      }
+    }
+  }
+
+  function bootSlimQuizImprovement() {
+    cleanSavedStorageAndPrefs();
+    if (typeof window.__reloadWhatsIndo === "function") {
+      try { window.__reloadWhatsIndo(); } catch (e) {}
+    }
+
+    syncSidebarAndTabsClean();
+    enforceAbbrSubModeAndNoHint();
+
+    const chatList = document.getElementById("wa-chat-list");
+    if (chatList && !chatList.__wiSlimSidebarObs) {
+      chatList.__wiSlimSidebarObs = true;
+      new MutationObserver(syncSidebarAndTabsClean).observe(chatList, { childList: true });
+    }
+
+    const subBar = document.getElementById("chat-subfilter-bar");
+    if (subBar && !subBar.__wiSlimSubBarObs) {
+      subBar.__wiSlimSubBarObs = true;
+      new MutationObserver(enforceAbbrSubModeAndNoHint).observe(subBar, { childList: true, subtree: true });
+    }
+
+    const area = document.getElementById("chat-messages-area");
+    if (area && !area.__wiSlimAreaObs) {
+      area.__wiSlimAreaObs = true;
+      new MutationObserver(enforceAbbrSubModeAndNoHint).observe(area, { childList: true });
+    }
+  }
+
+  bootSlimQuizImprovement();
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function() {
+      bootSlimQuizImprovement();
+      setTimeout(bootSlimQuizImprovement, 120);
+    });
+  } else {
+    setTimeout(bootSlimQuizImprovement, 120);
+  }
+})();
+/* =====================================================================
+   WhatsIndo サイドバー完全整理（タブ消去＆動詞先頭・実戦最下部配置）＋
+   データ100%保護・起動高速化＆クイズ厳選マスターパッチ
+   - index.html は一切変更せず、data.js の末尾に貼るだけで安全に動作します
+   ===================================================================== */
+(function() {
+  const d = window.WHATSINDO_EXTERNAL_DATA;
+  if (!d) return;
+
+  // -------------------------------------------------------------------
+  // 1. 混入していた裏の fetch("data.js")（8.2MBの自己再読込＆解析）を完全無力化
+  // -------------------------------------------------------------------
+  if (typeof Response !== "undefined" && Response.prototype && !Response.prototype.__wiBlockSelfFetch) {
+    Response.prototype.__wiBlockSelfFetch = true;
+    const origResText = Response.prototype.text;
+    Response.prototype.text = function() {
+      if (this && typeof this.url === "string" && this.url.indexOf("data.js") !== -1) {
+        // 永遠に待機させて後続の8MBループと勝手なダウンロードを0msで阻止
+        return new Promise(function() {});
+      }
+      return origResText.apply(this, arguments);
+    };
+  }
+
+  // -------------------------------------------------------------------
+  // 2. 起動時に3〜4回ずつ重複実行されていた「データ変更のない重複クリーニングタイマー」のみをスキップ
+  //    （※V18〜V34等の単語追加DOMContentLoadedは100%実行させるため、単語は1語も消えません！）
+  // -------------------------------------------------------------------
+  const SAFE_TO_SKIP_TIMEOUT_PATTERNS = [
+    "enforceAuthoritativeVocabAndCleanAll", // すでに同期実行済（2〜3回目の9000語正規表現ループをスキップ）
+    "enforcePart8CleanAndUpgrade",          // すでに同期実行済
+    "enforcePart9MasterSync",               // すでに同期実行済
+    "applyPart10VocabPack",                 // すでに同期実行済
+    "enforcePart11Sync",                    // すでに同期実行済（国名削除タイマーも同時無力化）
+    "bootSentenceSyncFix",                  // V5で統合置換済の旧試作
+    "checkContextJaExplanation",            // V5で統合置換済の旧試作
+    "bootCleanExplanationUI",               // V5で統合置換済の旧試作
+    "bootMinimalExplanationUI",             // V5で統合置換済の旧試作
+    "bootPerfectExpFix",                    // V5で統合置換済の旧試作
+    "bootWordbookStep1",                    // V5で統合置換済の旧試作
+    "bootCleanUnifiedPatch",                // V5で統合置換済の旧試作
+    "bootExcludeFeature",                   // V-FINALで統合置換済の旧試作
+    "bootExcludeV2",                        // V-FINALで統合置換済の旧試作
+    "bootMasterSyncPatch",                  // V-FINALで統合置換済の旧試作
+    "bootUltimateSyncFix"                   // V-FINALで統合置換済の旧試作
+  ];
+
+  const startupPhaseOrigin = Date.now();
+  const nativeSetTimeout = window.setTimeout.bind(window);
+
+  window.setTimeout = function(fn, delay) {
+    if (Date.now() - startupPhaseOrigin < 800 && typeof fn === "function") {
+      const fnStr = fn.name || Function.prototype.toString.call(fn).slice(0, 200);
+      for (let i = 0; i < SAFE_TO_SKIP_TIMEOUT_PATTERNS.length; i++) {
+        if (fnStr.indexOf(SAFE_TO_SKIP_TIMEOUT_PATTERNS[i]) !== -1) {
+          return 0;
+        }
+      }
+    }
+    return nativeSetTimeout.apply(window, arguments);
+  };
+
+  // -------------------------------------------------------------------
+  // 3. 起動直後に各パッチから何十回も連打される __reloadWhatsIndo() (buildDatabase) を
+  //    データ登録がすべて終わった直後の「1回だけ」にデバウンス集約！
+  // -------------------------------------------------------------------
+  let rawReloadFn = window.__reloadWhatsIndo || null;
+  let pendingReloadTimer = null;
+
+  function triggerDebouncedReload() {
+    if (Date.now() - startupPhaseOrigin < 750) {
+      if (pendingReloadTimer) window.clearTimeout(pendingReloadTimer);
+      pendingReloadTimer = nativeSetTimeout(function() {
+        pendingReloadTimer = null;
+        if (typeof rawReloadFn === "function") {
+          try { rawReloadFn(); } catch (e) {}
+        }
+        applyCleanSidebarOrderAndFilter();
+      }, 95);
+    } else {
+      if (typeof rawReloadFn === "function") {
+        try { rawReloadFn(); } catch (e) {}
+      }
+      applyCleanSidebarOrderAndFilter();
+    }
+  }
+
+  try {
+    Object.defineProperty(window, "__reloadWhatsIndo", {
+      configurable: true,
+      get: function() {
+        return triggerDebouncedReload;
+      },
+      set: function(fn) {
+        rawReloadFn = fn;
+      }
+    });
+  } catch (e) {}
+
+  // -------------------------------------------------------------------
+  // 4. 廃止4モード（類義語・誤文訂正・前置詞・紛らわしい語）を空にして全モード＆総合模試から完全除外
+  // -------------------------------------------------------------------
+  ["sinonim", "error", "prep", "confuse"].forEach(function(modeKey) {
+    if (Array.isArray(d[modeKey])) {
+      d[modeKey].length = 0;
+      d[modeKey].push = function() { return 0; };
+    } else {
+      d[modeKey] = [];
+    }
+  });
+
+  // -------------------------------------------------------------------
+  // 5. 辞書専用語（スシロ SBY / 国名 / 都市名 / 歴史人物等）を問題＆4択選択肢＆単語ラッシュから100%隔離
+  // -------------------------------------------------------------------
+  const dictOnlySet = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+
+  function refreshDictOnlyRegistry() {
+    const vList = Array.isArray(d.vocab) ? d.vocab : [];
+    const aList = Array.isArray(d.acro) ? d.acro : [];
+    const sList = Array.isArray(d.singkatan) ? d.singkatan : [];
+
+    for (let i = 0; i < vList.length; i++) {
+      const it = vList[i];
+      if (it && it.w && (it.dictOnly === true || it.tier === 3)) {
+        dictOnlySet.add(it.w.trim().toLowerCase());
+      }
+    }
+    for (let i = 0; i < aList.length; i++) {
+      const it = aList[i];
+      if (it && it.acro && (it.dictOnly === true || it.tier === 3)) {
+        dictOnlySet.add(it.acro.trim().toLowerCase());
+      }
+    }
+    for (let i = 0; i < sList.length; i++) {
+      const it = sList[i];
+      if (it && it.w && (it.dictOnly === true || it.tier === 3)) {
+        dictOnlySet.add(it.w.trim().toLowerCase());
+      }
+    }
+    if (window.__wiPersistentAddedVocab instanceof Map) {
+      window.__wiPersistentAddedVocab.forEach(function(it, k) {
+        if (it && (it.dictOnly === true || it.tier === 3)) dictOnlySet.add(k);
+      });
+    }
+    if (window.__wiPersistentAddedAcro instanceof Map) {
+      window.__wiPersistentAddedAcro.forEach(function(it, k) {
+        if (it && (it.dictOnly === true || it.tier === 3)) dictOnlySet.add(k);
+      });
+    }
+  }
+  refreshDictOnlyRegistry();
+
+  function isUserExcluded(wordLow) {
+    try {
+      const raw = localStorage.getItem("wi_excluded_words_v2");
+      if (!raw) return false;
+      const obj = JSON.parse(raw);
+      return Boolean(obj && typeof obj === "object" && obj[wordLow]);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function isQuizForbidden(itemOrWord) {
+    if (!itemOrWord) return false;
+    if (typeof itemOrWord === "string") {
+      const wl = itemOrWord.trim().toLowerCase();
+      return dictOnlySet.has(wl) || isUserExcluded(wl);
+    }
+    if (typeof itemOrWord === "object") {
+      if (itemOrWord.dictOnly === true || itemOrWord.tier === 3) return true;
+      const w = (itemOrWord.w || itemOrWord.acro || "").trim().toLowerCase();
+      if (!w) return false;
+      return dictOnlySet.has(w) || isUserExcluded(w);
+    }
+    return false;
+  }
+
+  // 4択のダミー選択肢抽選（.filter）から辞書専用語・排除語を除外
+  const origFilter = Array.prototype.filter;
+  Array.prototype.filter = function(callback, thisArg) {
+    const res = origFilter.call(this, callback, thisArg);
+    if (
+      res.length > 0 &&
+      typeof callback === "function" &&
+      this[0] &&
+      typeof this[0] === "object" &&
+      ("w" in this[0] || "acro" in this[0])
+    ) {
+      const fnStr = Function.prototype.toString.call(callback);
+      if (
+        fnStr.indexOf("raw.m") !== -1 ||
+        fnStr.indexOf("raw.r") !== -1 ||
+        fnStr.indexOf("raw.w") !== -1 ||
+        fnStr.indexOf("vocItem.m") !== -1
+      ) {
+        const cleanPool = origFilter.call(res, function(x) {
+          return !isQuizForbidden(x);
+        });
+        if (cleanPool.length >= 3) return cleanPool;
+      }
+    }
+    return res;
+  };
+
+  // 問題抽選（.pop）から辞書専用語・排除語を最後の一枚まで完全除外
+  const origPop = Array.prototype.pop;
+  Array.prototype.pop = function() {
+    if (this.length > 0) {
+      const top = this[this.length - 1];
+      if (top && typeof top === "object" && !Array.isArray(top) && ("w" in top || "acro" in top)) {
+        for (let i = this.length - 1; i >= 0; i--) {
+          if (isQuizForbidden(this[i])) {
+            this.splice(i, 1);
+          }
+        }
+        if (this.length === 0) {
+          const fb = (top.p === "singkatan" ? (d.acro || []) : (d.vocab || []));
+          for (let j = 0; j < fb.length; j++) {
+            if (fb[j] && !isQuizForbidden(fb[j])) return fb[j];
+          }
+        }
+      }
+    }
+    return origPop.call(this);
+  };
+
+  // 単語ラッシュモードのバケツ追加時（.push）にも辞書専用語・排除語をブロック
+  const origPush = Array.prototype.push;
+  Array.prototype.push = function() {
+    if (
+      arguments.length === 1 &&
+      arguments[0] &&
+      typeof arguments[0] === "object" &&
+      "subG" in arguments[0] &&
+      "mShort" in arguments[0] &&
+      "w" in arguments[0]
+    ) {
+      if (isQuizForbidden(arguments[0].w)) {
+        return this.length;
+      }
+    }
+    return origPush.apply(this, arguments);
+  };
+
+  // -------------------------------------------------------------------
+  // 6. スタイル注入：
+  //    ① タブ一覧（#cat-pills）を完全非表示
+  //    ② サイドバールームを「動詞」先頭 ＆「総合模試・単語ラッシュ」最下部へ CSS order で完璧配置
+  //    ③ 略語モードの「略語➔正式名称(4択)」非表示 ＆「正式名称タイピング」のヒント完全非表示
+  // -------------------------------------------------------------------
+  if (!document.getElementById("wi-clean-layout-and-order-style")) {
+    const st = document.createElement("style");
+    st.id = "wi-clean-layout-and-order-style";
+    st.textContent = `
+      /* ① サイドバーのカテゴリータブ一覧（すべて / 実戦・ゲーム / 単語・略語...）を完全消去 */
+      #cat-pills {
+        display: none !important;
+      }
+
+      /* ② 検索バーの下にすぐルーム一覧が綺麗に繋がるよう境界線を整える */
+      .search-box-wrap {
+        border-bottom: 1px solid #e9edef !important;
+        padding-bottom: 10px !important;
+      }
+
+      /* ③ サイドバーのチャットリストを flex column にし、order で理想の順序に固定 */
+      #wa-chat-list {
+        display: flex !important;
+        flex-direction: column !important;
+      }
+      #wa-chat-list > .wa-chat-item {
+        flex-shrink: 0 !important;
+      }
+      /* 単語ラッシュモードは一番下（order: 85）に固定 */
+      #wa-wordrush-room-item {
+        order: 85 !important;
+      }
+
+      /* ④ 略語モード：「略語➔正式名称 (4択)」ボタンを消去 */
+      #chat-subfilter-bar .sub-filter-pill[data-ab="to_full"] {
+        display: none !important;
+      }
+
+      /* ⑤ 略語モード：「正式名称タイピング」選択時の日本語意味・ガイド枠・ヒントを完全非表示 */
+      .wa-main-chat:has(#chat-subfilter-bar .sub-filter-pill[data-ab="typing_full"].active) .msg-row-in .wa-bubble-left .msg-word-head + span,
+      .wa-main-chat:has(#chat-subfilter-bar .sub-filter-pill[data-ab="typing_full"].active) .msg-row-in .wa-bubble-left .msg-sub-box,
+      .wa-main-chat:has(#chat-subfilter-bar .sub-filter-pill[data-ab="typing_full"].active) .msg-row-in .wa-bubble-left .dynamic-hint-box,
+      .wa-main-chat:has(#chat-subfilter-bar .sub-filter-pill[data-ab="typing_full"].active) .msg-row-in .wa-bubble-left .dynamic-hint-reveal,
+      .wa-main-chat:has(#chat-subfilter-bar .sub-filter-pill[data-ab="typing_full"].active) #btn-hint-toggle {
+        display: none !important;
+      }
+    `;
+    document.head.appendChild(st);
+  }
+
+  // -------------------------------------------------------------------
+  // 7. サイドバーの各ルームに順番（動詞が1番目〜、総合模試と単語ラッシュは一番下）を割り当て、
+  //    廃止ルーム（120秒ラッシュ・類義語・誤文訂正・前置詞・紛らわしい語）を完全除去
+  // -------------------------------------------------------------------
+  const ROOM_ORDER_RULES = [
+    { match: "動詞",           order: 10 },
+    { match: "形容詞",         order: 11 },
+    { match: "名詞",           order: 12 },
+    { match: "副詞・接続詞他", order: 13 },
+    { match: "略語",           order: 14 },
+    { match: "リスニング",     order: 20 },
+    { match: "文脈下線",       order: 21 },
+    { match: "語幹活用",       order: 22 },
+    { match: "長文適訳",       order: 23 },
+    { match: "スラング",       order: 30 },
+    { match: "ゼミ討論",       order: 31 },
+    { match: "慣用句",         order: 32 },
+    { match: "ことわざ",       order: 33 },
+    { match: "総合模試",       order: 80 }, // 下のほうへ配置！
+    { match: "単語ラッシュ",   order: 85 }, // 一番下へ配置！
+    { match: "間違えた問題",   order: 95 }
+  ];
+
+  const ABOLISHED_TITLES = [
+    "120秒ラッシュ",
+    "類義語・対義語",
+    "紛らわしい語の使い分け",
+    "誤文訂正",
+    "前置詞・コロケーション"
+  ];
+
+  let isUpdatingSidebarOrder = false;
+
+  function applyCleanSidebarOrderAndFilter() {
+    if (isUpdatingSidebarOrder) return;
+    isUpdatingSidebarOrder = true;
+    try {
+      // もし以前「実戦・ゲーム」などのタブが選ばれて絞り込まれていたら、「すべて」に戻して全ルームを表示させる
+      const allPill = document.querySelector('#cat-pills .wa-pill[data-cat="all"]');
+      if (allPill && !allPill.classList.contains("active")) {
+        allPill.click();
+      }
+
+      const chatList = document.getElementById("wa-chat-list");
+      if (!chatList) return;
+
+      const items = chatList.querySelectorAll(".wa-chat-item");
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        const titleEl = item.querySelector(".wa-item-title");
+        if (!titleEl) continue;
+        const titleTxt = titleEl.textContent || "";
+
+        // 廃止モードなら削除
+        let isAbolished = false;
+        for (let j = 0; j < ABOLISHED_TITLES.length; j++) {
+          if (titleTxt.indexOf(ABOLISHED_TITLES[j]) !== -1) {
+            isAbolished = true;
+            break;
+          }
+        }
+        if (isAbolished) {
+          item.remove();
+          continue;
+        }
+
+        // 動詞から始まり、総合模試と単語ラッシュが一番下になる order をセット
+        let assignedOrder = 50;
+        for (let k = 0; k < ROOM_ORDER_RULES.length; k++) {
+          if (titleTxt.indexOf(ROOM_ORDER_RULES[k].match) !== -1) {
+            assignedOrder = ROOM_ORDER_RULES[k].order;
+            break;
+          }
+        }
+        const ordStr = String(assignedOrder);
+        if (item.style.order !== ordStr) {
+          item.style.order = ordStr;
+        }
+      }
+    } finally {
+      isUpdatingSidebarOrder = false;
+    }
+  }
+
+  function cleanAbbrTypingBubble() {
+    const subBar = document.getElementById("chat-subfilter-bar");
+    if (subBar) {
+      const toFullBtn = subBar.querySelector('.sub-filter-pill[data-ab="to_full"]');
+      const toJaBtn   = subBar.querySelector('.sub-filter-pill[data-ab="to_ja"]');
+      if (toFullBtn) {
+        if (toFullBtn.classList.contains("active") && toJaBtn) {
+          toJaBtn.click();
+          return;
+        }
+        toFullBtn.remove();
+      }
+    }
+
+    const isTypingFull = Boolean(
+      subBar && subBar.querySelector('.sub-filter-pill[data-ab="typing_full"].active')
+    );
+    if (isTypingFull) {
+      const area = document.getElementById("chat-messages-area");
+      if (area) {
+        area.querySelectorAll(".msg-row-in .wa-bubble-left").forEach(function(bub) {
+          const head = bub.querySelector(".msg-word-head");
+          if (!head) return;
+          const nextSp = head.nextElementSibling;
+          if (nextSp && nextSp.tagName === "SPAN") nextSp.remove();
+          bub.querySelectorAll(".msg-sub-box, .dynamic-hint-box, .dynamic-hint-reveal").forEach(function(el) {
+            el.remove();
+          });
+        });
+      }
+    }
+  }
+
+  function bootFinalSidebarAndSpeed() {
+    refreshDictOnlyRegistry();
+    applyCleanSidebarOrderAndFilter();
+    cleanAbbrTypingBubble();
+
+    const chatList = document.getElementById("wa-chat-list");
+    if (chatList && !chatList.__wiFinalOrderObs) {
+      chatList.__wiFinalOrderObs = true;
+      new MutationObserver(applyCleanSidebarOrderAndFilter).observe(chatList, { childList: true });
+    }
+
+    const subBar = document.getElementById("chat-subfilter-bar");
+    if (subBar && !subBar.__wiFinalAbbrObs) {
+      subBar.__wiFinalAbbrObs = true;
+      new MutationObserver(cleanAbbrTypingBubble).observe(subBar, { childList: true, subtree: true });
+    }
+
+    const area = document.getElementById("chat-messages-area");
+    if (area && !area.__wiFinalAbbrAreaObs) {
+      area.__wiFinalAbbrAreaObs = true;
+      new MutationObserver(cleanAbbrTypingBubble).observe(area, { childList: true });
+    }
+  }
+
+  bootFinalSidebarAndSpeed();
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function() {
+      bootFinalSidebarAndSpeed();
+      nativeSetTimeout(bootFinalSidebarAndSpeed, 110);
+    });
+  } else {
+    nativeSetTimeout(bootFinalSidebarAndSpeed, 110);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 辞書専用パック 第11弾：【国際機関・発電/資源エネルギー・国軍(TNI)/警察(Polri)略語】（全32語）
+   - すべて問題・4択選択肢・単語ラッシュ・総合模試には一切出題せず（dictOnly: true, tier: 3）、
+     辞書検索・A〜Z辞書・Kompas連動のみに表示
+   - ループやタイマーを一切増やさない超軽量・負荷ゼロのデータ登録パック
+   ===================================================================== */
+(function() {
+  const d = window.WHATSINDO_EXTERNAL_DATA;
+  if (!d) return;
+
+  const dictOnlySet = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+
+  const PACK_PART11_INTL_ENERGY_SECURITY = {
+    vocab: [
+      // ==================== 1. 国際機関・外交会議（10語） ====================
+      {
+        p: "singkatan", w: "KTT", r: "Konferensi Tingkat Tinggi", alts: ["konferensi tingkat tinggi"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "首脳会議、サミット（大統領や首相などの国家元首・政府首脳が集まる最高レベルの国際会議＝Summit）",
+        ex: "Presiden menghadiri KTT ASEAN untuk membahas kerja sama ekonomi dan keamanan kawasan Asia Tenggara.",
+        tr: "大統領は東南アジア地域の経済および安全保障協力を議論するため、ASEAN首脳会議（KTT ASEAN）に出席した。",
+        note: [
+          "■ 【語構成】：Konferensi（会議）Tingkat（レベル・段階）Tinggi（高い）＝首脳会議（Summit）。",
+          "■ 【頻出コロケーション】：\n・KTT ASEAN：ASEAN首脳会議\n・KTT G20：G20サミット（2022年にはバリ島で開催）\n・KTT APEC：APEC首脳会議\n・KTT Luar Biasa：臨時首脳会議、特別サミット"
+        ].join("\n")
+      },
+      {
+        p: "singkatan", w: "ASEAN", r: "Association of Southeast Asian Nations", alts: ["perhimpunan bangsa-bangsa asia tenggara", "perbara"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "東南アジア諸国連合（1967年8月8日のバンコク宣言により設立された地域機構。本部［ASEAN事務局］は南ジャカルタに所在）",
+        ex: "Gedung Sekretariat ASEAN terletak di Jalan Sisingamangaraja, Kebayoran Baru, Jakarta Selatan.",
+        tr: "ASEAN事務局の庁舎は、南ジャカルタ・クバヨランバルのシシンガマンガラジャ通りに位置している。",
+        note: [
+          "■ 【インドネシア語正式名称】：**Perhimpunan Bangsa-Bangsa Asia Tenggara**（略称：**Perbara**。ただし報道や公文書でも英語略称の **ASEAN** がそのまま使われる）。",
+          "■ 【歴史と加盟国】：1967年にインドネシア（アダム・マリク外相）、マレーシア、フィリピン、シンガポール、タイの原加盟5カ国で創設され、現在はブルネイ、ベトナム、ラオス、ミャンマー、カンボジア、東ティモールを含む東南アジア諸国で構成される。"
+        ].join("\n")
+      },
+      {
+        p: "singkatan", w: "DK PBB", r: "Dewan Keamanan Perserikatan Bangsa-Bangsa", alts: ["dewan keamanan pbb", "dewan keamanan perserikatan bangsa-bangsa"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "国連安全保障理事会、国連安保理（国際の平和と安全の維持に主要な責任を持つ国連の機関＝UNSC）",
+        ex: "DK PBB menggelar sidang darurat untuk mengeluarkan resolusi gencatan senjata di kawasan konflik tersebut.",
+        tr: "国連安全保障理事会（DK PBB）は、その紛争地域における停戦決議を出すため緊急会合を開催した。",
+        note: [
+          "■ 【語構成】：Dewan Keamanan（安全保障理事会）+ PBB（Perserikatan Bangsa-Bangsa＝国際連合）。",
+          "■ 【関連用語】：\n・anggota tetap DK PBB：安保理常任理事国（米・英・仏・露・中の5カ国：拒否権 hak veto を持つ）\n・anggota tidak tetap DK PBB：非常任理事国（インドネシアも複数回選出されている）\n・Majelis Umum PBB：国連総会"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Bank Dunia", r: "bank", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "世界銀行（発展途上国の貧困削減やインフラ開発・教育・保健プロジェクトに対して融資や技術支援を行う国際金融機関＝World Bank）",
+        ex: "Laporan terbaru Bank Dunia memproyeksikan pertumbuhan ekonomi Indonesia tetap stabil pada tahun depan.",
+        tr: "世界銀行（Bank Dunia）の最新報告書は、来年もインドネシアの経済成長が安定を維持すると予測している。",
+        note: "■ 【関連機関】：IMF（Dana Moneter Internasional＝国際通貨基金）、ADB（Bank Pembangunan Asia＝アジア開発銀行）。"
+      },
+      {
+        p: "singkatan", w: "OKI", r: "Organisasi Kerja Sama Islam", alts: ["organisasi kerja sama islam"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "イスラム協力機構（世界最多のムスリム人口を持つインドネシアをはじめ、イスラム諸国57カ国が加盟する国際機構＝英語の OIC）",
+        ex: "Para menteri luar negeri negara anggota OKI berkumpul untuk membahas bantuan kemanusiaan bagi rakyat Palestina.",
+        tr: "イスラム協力機構（OKI）加盟国の外相たちは、パレスチナ市民への人道支援を議論するために集まった。",
+        note: "■ 【正式名称】：Organisasi Kerja Sama Islam（英語 Organization of Islamic Cooperation：OIC にあたるインドネシア語公式略称）。本部はサウジアラビアのジッダ。"
+      },
+      {
+        p: "singkatan", w: "GNB", r: "Gerakan Non-Blok", alts: ["gerakan non-blok", "gerakan nonblok"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "非同盟運動（冷戦期に東西いずれの軍事ブロックにも属さない立場をとったアジア・アフリカ等の諸国による国際運動。1955年のバンドン会議を源流とし、スカルノ大統領らが創設を主導＝英語の NAM）",
+        ex: "Konferensi Asia-Afrika di Bandung pada tahun 1955 menjadi cikal bakal lahirnya Gerakan Non-Blok atau GNB.",
+        tr: "1955年にバンドンで開催されたアジア・アフリカ会議は、非同盟運動（GNB）誕生の母体となった。",
+        note: "■ 【歴史】：1961年にベオグラードで第1回首脳会議（KTT GNB）が開かれ、インドネシアのスカルノ、インドのネルー、エジプトのナセル、ユーゴスラビアのチトー、ガーナのエンクルマの5首脳が創設の中心となった。「自主積極外交（politik luar negeri bebas aktif）」を掲げるインドネシア外交の象徴。"
+      },
+      {
+        p: "singkatan", w: "APEC", r: "Asia-Pacific Economic Cooperation", alts: ["kerja sama ekonomi asia-pasifik", "kerja sama ekonomi asia pasifik"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "アジア太平洋経済協力（インドネシア・日本・米国・中国・豪州など太平洋を取り囲む21の国と地域が参加する経済協力枠組み）",
+        ex: "Indonesia pernah menjadi tuan rumah KTT APEC di Bogor pada tahun 1994 yang melahirkan Deklarasi Bogor tentang perdagangan bebas.",
+        tr: "インドネシアは1994年にボゴールでAPEC首脳会議の議長国を務め、自由貿易に関する「ボゴール宣言」を生み出した。",
+        note: "■ 【インドネシア語訳】：Kerja Sama Ekonomi Asia-Pasifik。"
+      },
+      {
+        p: "singkatan", w: "WTO", r: "World Trade Organization", alts: ["organisasi perdagangan dunia"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "世界貿易機関（自由貿易の促進や国際貿易ルール・国家間の通商紛争解決を担う国際機関。インドネシア語名は Organisasi Perdagangan Dunia）",
+        ex: "Pemerintah mengajukan banding atas putusan sengketa ekspor bijih nikel di lembaga penyelesaian sengketa WTO.",
+        tr: "政府はニッケル鉱石の輸出紛争裁定について、世界貿易機関（WTO）の紛争解決機関へ上訴した。",
+        note: "■ 【ニュース背景】：インドネシアのニッケル未加工鉱石の輸出禁止（下流化政策 hilirisasi）やパーム油貿易をめぐる欧州連合（Uni Eropa）との通商紛争記事で頻繁に登場する。"
+      },
+      {
+        p: "singkatan", w: "WHO", r: "World Health Organization", alts: ["organisasi kesehatan dunia"], dictOnly: true, tier: 3, topicCat: "🏥 健康・身体・感情",
+        m: "世界保健機関（国連の保健衛生専門機関。インドネシア語名は Organisasi Kesehatan Dunia）",
+        ex: "Kementerian Kesehatan berkoordinasi dengan WHO dalam upaya pencegahan dan pengendalian penyakit menular.",
+        tr: "保健省は感染症の予防および抑制の取り組みにおいて、世界保健機関（WHO）と連携している。",
+        note: "■ 【表記】：Kompas等の報道では英語略称の『WHO』とインドネシア語訳の『Organisasi Kesehatan Dunia』が併用される。"
+      },
+      {
+        p: "singkatan", w: "IMF", r: "International Monetary Fund", alts: ["dana moneter internasional"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "国際通貨基金（国際金融システムの安定や通貨危機時の緊急融資を行う国連の専門機関。インドネシア語名は Dana Moneter Internasional）",
+        ex: "Pada saat krisis moneter tahun 1997, pemerintah Indonesia sempat menandatangani nota kesepakatan bantuan dengan IMF.",
+        tr: "1997年のアジア通貨危機の際、インドネシア政府は国際通貨基金（IMF）と支援合意覚書に署名した。",
+        note: "■ 【歴史】：1997〜1998年のアジア通貨危機（Krismon）の際にスハルト大統領がIMF専務理事カムドシュの前で合意書に署名した写真は、インドネシア現代史の象徴的な場面として知られる（2006年のユドヨノ政権時にIMF債務を全額前倒し完済）。"
+      },
+
+      // ==================== 2. 発電所・エネルギー・資源・環境略語（12語） ====================
+      {
+        p: "singkatan", w: "PLTU", r: "Pembangkit Listrik Tenaga Uap", alts: ["pembangkit listrik tenaga uap"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "汽力発電所、石炭・蒸気火力発電所（石炭などを燃やして水を沸騰させ、その蒸気［uap］の力でタービンを回す火力発電所。インドネシアの電力供給の主力）",
+        ex: "Pemerintah berencana mengurangi ketergantungan pada PLTU batu bara secara bertahap demi menekan emisi karbon.",
+        tr: "政府は炭素排出を抑えるため、石炭火力発電所（PLTU）への依存を段階的に減らす計画だ。",
+        note: [
+          "■ 【インドネシアの発電所（PLT〜＝Pembangkit Listrik Tenaga 〜）略語の完全整理】：\n・**PLTU** (Tenaga Uap)：蒸気（主に石炭 batu bara）火力発電所\n・**PLTG / PLTGU** (Tenaga Gas / Gas dan Uap)：ガスタービン火力発電所 ／ コンバインドサイクル発電所\n・**PLTD** (Tenaga Diesel)：ディーゼル発電所（離島などで使用）\n・**PLTA** (Tenaga Air)：水力発電所\n・**PLTS** (Tenaga Surya)：太陽光発電所\n・**PLTP** (Tenaga Panas Bumi)：地熱発電所\n・**PLTB** (Tenaga Bayu)：風力発電所（bayu＝風）\n・**PLTN** (Tenaga Nuklir)：原子力発電所"
+        ].join("\n")
+      },
+      {
+        p: "singkatan", w: "PLTA", r: "Pembangkit Listrik Tenaga Air", alts: ["pembangkit listrik tenaga air"], dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "水力発電所（ダムや河川の水流［air］でタービンを回して発電する再生可能エネルギー施設）",
+        ex: "Bendungan Cirata dan Jatiluhur di Jawa Barat berfungsi sebagai sarana irigasi sekaligus lokasi PLTA besar.",
+        tr: "西ジャワ州のチラタ・ダムとジャティルフール・ダムは、灌漑施設であると同時に大型水力発電所（PLTA）の拠点として機能している。",
+        note: "■ 【正式名称】：Pembangkit Listrik Tenaga Air。"
+      },
+      {
+        p: "singkatan", w: "PLTS", r: "Pembangkit Listrik Tenaga Surya", alts: ["pembangkit listrik tenaga surya"], dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "太陽光発電所（ソーラーパネル［panel surya］を用いて太陽光のエネルギーを電力に変える発電施設）",
+        ex: "PLTS Terapung Cirata di Jawa Barat merupakan salah satu pembangkit listrik tenaga surya terapung terbesar di Asia Tenggara.",
+        tr: "西ジャワ州のチラタ水上太陽光発電所（PLTS Terapung）は、東南アジア最大級の水上メガソーラーのひとつである。",
+        note: "■ 【語構成】：Pembangkit Listrik（発電所）Tenaga Surya（太陽エネルギー）。家庭や工場の屋根に設置する太陽光発電は『PLTS Atap（屋根置き太陽光発電）』と呼ばれる。"
+      },
+      {
+        p: "singkatan", w: "PLTP", r: "Pembangkit Listrik Tenaga Panas Bumi", alts: ["pembangkit listrik tenaga panas bumi"], dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "地熱発電所（火山国インドネシアの豊富な地下熱水・蒸気［panas bumi］を利用したクリーンなベースロード発電所）",
+        ex: "Indonesia memiliki cadangan energi panas bumi terbesar di dunia yang sangat potensial dikembangkan melalui pembangunan PLTP.",
+        tr: "インドネシアは世界最大の地熱エネルギー埋蔵量を有しており、地熱発電所（PLTP）の建設を通じた開発ポテンシャルが極めて高い。",
+        note: "■ 【正式名称】：Pembangkit Listrik Tenaga Panas Bumi（panas bumi＝地熱・ジオサーマル）。西ジャワ州のカモジャン（Kamojang）やワヤン・ウィンドゥ（Wayang Windu）、北スマトラ州のサルーラ（Sarulla）などの地熱発電所が有名。"
+      },
+      {
+        p: "singkatan", w: "SPBU", r: "Stasiun Pengisian Bahan Bakar Umum", alts: ["stasiun pengisian bahan bakar umum", "pom bensin"], dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "ガソリンスタンド、給油所（一般車両向けの燃料補給ステーション。日常会話では pom bensin とも呼ばれる）",
+        ex: "Antrean kendaraan tampak mengular di sejumlah SPBU menjelang penyesuaian harga bahan bakar minyak.",
+        tr: "石油燃料の価格改定を前に、複数のガソリンスタンド（SPBU）で車両の列が長く伸びているのが見られた。",
+        note: "■ 【語構成】：Stasiun（ステーション）Pengisian（充填・給油）Bahan Bakar（燃料）Umum（一般・公共）。日常口語ではオランダ語 pomp 由来で **『pom bensin』** とも呼ばれる。プルタミナのガソリンスタンドではスタッフから『Mulai dari nol, ya!（メーター0から始めますね！）』と声をかけられるのが定番。"
+      },
+      {
+        p: "singkatan", w: "SPKLU", r: "Stasiun Pengisian Kendaraan Listrik Umum", alts: ["stasiun pengisian kendaraan listrik umum"], dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "公共電気自動車（EV）充電スタンド（電気自動車［kendaraan listrik］のバッテリーを充電するための公共ステーション）",
+        ex: "PLN menambah ratusan titik SPKLU di sepanjang rest area jalan tol untuk memudahkan pengguna mobil listrik saat mudik.",
+        tr: "国営電力会社（PLN）は帰省時の電気自動車ユーザーの利便性を高めるため、高速道路のサービスエリア沿いに数百カ所のEV充電スタンド（SPKLU）を増設した。",
+        note: "■ 【正式名称】：Stasiun Pengisian Kendaraan Listrik Umum（ガソリンスタンドの SPBU と対になる現代必須略語）。"
+      },
+      {
+        p: "n", w: "elpiji", r: "elpiji", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "LPガス、液化石油ガス、プロパンガス（英語の略語 LPG［エル・ピー・ジー］の発音をそのままインドネシア語の綴りにした標準語。インドネシアの全家庭のキッチンで調理用燃料として使われるガスボンベ）",
+        ex: "Pemerintah memastikan stok tabung gas elpiji tiga kilogram untuk rumah tangga dan usaha mikro tetap mencukupi.",
+        tr: "政府は一般家庭および零細事業者向けの3キログラムLPガス（エルピジ）ボンベの在庫が十分に確保されていることを確認した。",
+        note: [
+          "■ 【語源と現地生活知識（Gas Melon とは？）】：\n・英語の **LPG (Liquefied Petroleum Gas)** のアルファベット読み「エル・ピー・ジー」をそのまま1語の名詞として綴ったKBBI標準語！\n・インドネシアの家庭や屋台では都市ガス配管ではなくガスボンベ（tabung gas elpiji）を使う。特に庶民・零細企業向けに政府補助金が付いている **『3kgの黄緑色の丸い小型ガスボンベ』** は、その形と色から国民全員に **『ガス・メロン（gas melon＝メロン型ガス）』** の愛称で呼ばれている（裕福な家庭向けには非補助金のピンク色の Bright Gas 5.5kg/12kg や青い12kgボンベがある）。"
+        ].join("\n")
+      },
+      {
+        p: "singkatan", w: "LPG", r: "Liquefied Petroleum Gas", alts: ["liquefied petroleum gas", "elpiji"], dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "液化石油ガス、LPガス（インドネシア語では発音通りに elpiji とも綴られる、家庭や飲食店の調理用燃料ガス）",
+        ex: "Distribusi tabung LPG bersubsidi tiga kilogram kini diawasi lebih ketat agar tepat sasaran.",
+        tr: "補助金付きの3キログラムLPガス（LPG）ボンベの流通は現在、対象者に正しく届くようより厳格に監視されている。",
+        note: "■ 【表記】：新聞記事では大文字略語の『LPG』と、小文字一般名詞化した『elpiji』の両方が使われる。"
+      },
+      {
+        p: "singkatan", w: "CPO", r: "Crude Palm Oil", alts: ["crude palm oil", "minyak sawit mentah"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "パーム原油、未精製パーム油（アブラヤシ［kelapa sawit］の果肉から搾油した未精製の植物油。インドネシアが世界生産量の約6割を占める最大の輸出農産品であり、食用油［minyak goreng］やバイオディーゼル燃料［B35/B40］・石けん・化粧品の原料）",
+        ex: "Indonesia merupakan produsen dan eksportir CPO atau minyak kelapa sawit mentah terbesar di dunia.",
+        tr: "インドネシアはCPO（パーム原油）の世界最大の生産国かつ輸出国である。",
+        note: "■ 【インドネシア語訳】：**minyak sawit mentah**（または minyak kelapa sawit mentah）。経済・貿易ニュースでは英語略称の **『CPO』** がそのまま毎日使われる。"
+      },
+      {
+        p: "singkatan", w: "ZEE", r: "Zona Ekonomi Eksklusif", alts: ["zona ekonomi eksklusif"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "排他的経済水域（領海の基線から200海里までの海域で、沿岸国が漁業資源や海底の石油・天然ガス等の探査・開発に関して主権的権利を持つ水域＝英語の EEZ）",
+        ex: "Kapal pengawas perikanan menangkap kapal asing yang melakukan penangkapan ikan secara ilegal di wilayah ZEE Indonesia.",
+        tr: "漁業監視船は、インドネシアの排他的経済水域（ZEE）内で違法操業（密漁）を行っていた外国船を拿捕した。",
+        note: "■ 【語順に注意】：英語の EEZ（Exclusive Economic Zone）は、インドネシア語では後ろから修飾するため語順が逆になり **『ZEE（Zona Ekonomi Eksklusif）』** となる！"
+      },
+      {
+        p: "singkatan", w: "AMDAL", r: "Analisis Mengenai Dampak Lingkungan", alts: ["analisis mengenai dampak lingkungan"], dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "環境影響評価、環境アセスメント（工場・鉱山・ダム・道路・大型不動産などの開発事業を行う前に、自然環境や地域社会への影響を調査・評価して許可を得る法定手続き。Amdal とも表記）",
+        ex: "Setiap proyek pembangunan pabrik dan pertambangan berskala besar wajib memiliki dokumen AMDAL sebelum beroperasi.",
+        tr: "すべての大規模な工場建設および鉱山開発プロジェクトは、操業前に環境影響評価（AMDAL）文書を取得する義務がある。",
+        note: "■ 【正式名称】：ANalisis Mengenai DAmpak Lingkungan（環境影響に関する分析）。KBBIにも小文字『amdal』として収録されている必須アクロニム。"
+      },
+      {
+        p: "singkatan", w: "Karhutla", r: "Kebakaran Hutan dan Lahan", alts: ["kebakaran hutan dan lahan"], dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "森林・泥炭地火災（乾季［musim kemarau］にスマトラ島やカリマンタン島の熱帯林・泥炭地［lahan gambut］で発生し、深刻な煙害［kabut asap］を引き起こす火災）",
+        ex: "Satgas gabungan dikerahkan untuk memadamkan titik panas Karhutla di wilayah Riau dan Kalimantan Tengah.",
+        tr: "リアウ州および中部カリマンタン州地域における森林・泥炭地火災（Karhutla）のホットスポットを消火するため、合同タスクフォースが出動した。",
+        note: "■ 【語構成】：KebaKARan（火災）HUTan（森林）dan LAhan（土地・農地・泥炭地）。環境・防災ニュースの超頻出アクロニム。"
+      },
+
+      // ==================== 3. 国軍(TNI)・警察(Polri)・治安部隊の略語（10語） ====================
+      {
+        p: "singkatan", w: "TNI AD", r: "Tentara Nasional Indonesia Angkatan Darat", alts: ["tentara nasional indonesia angkatan darat", "angkatan darat"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "インドネシア国軍陸軍、インドネシア陸軍（国軍3軍の中で最大の兵力を持ち、全国の各州・地域に軍管区司令部［Kodam］を置く地上防衛部隊。参謀総長は KSAD / Kasad）",
+        ex: "Prajurit TNI AD diterjunkan ke lokasi bencana untuk membantu membuka akses jalan yang tertimbun tanah longsor.",
+        tr: "インドネシア陸軍（TNI AD）の兵士たちが、土砂崩れで埋まった道路の開通作業を支援するため被災地へ派遣された。",
+        note: [
+          "■ 【インドネシア国軍（TNI）の3軍構成】：\n・**TNI AD (Angkatan Darat)**：陸軍（darat＝陸。参謀総長は KSAD）\n・**TNI AL (Angkatan Laut)**：海軍（laut＝海。参謀総長は KSAL、海兵隊は Korps Marinir）\n・**TNI AU (Angkatan Udara)**：空軍（udara＝空。参謀総長は KSAU）\n・3軍全体を統括する制服組トップは **『国軍最高司令官（Panglima TNI）』**。"
+        ].join("\n")
+      },
+      {
+        p: "singkatan", w: "TNI AL", r: "Tentara Nasional Indonesia Angkatan Laut", alts: ["tentara nasional indonesia angkatan laut", "angkatan laut"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "インドネシア国軍海軍、インドネシア海軍（世界最大の群島国家の広大な領海・海峡・国境離島を守る海上防衛部隊。軍艦にはすべて KRI［Kapal Perang Republik Indonesia］の艦船接頭辞が付く）",
+        ex: "Kapal perang milik TNI AL melakukan patroli pengamanan di sekitar perairan Selat Malaka dan Laut Natuna Utara.",
+        tr: "インドネシア海軍（TNI AL）の軍艦が、マラッカ海峡および北ナトゥナ海周辺海域で警備パトロールを実施している。",
+        note: "■ 【標語】：海軍の有名なサンスクリット・古ジャワ語標語は **『Jalesveva Jayamahe（ジャレスヴェヴァ・ジャヤマヘ＝海においてこそ我らは栄える）』**。"
+      },
+      {
+        p: "singkatan", w: "TNI AU", r: "Tentara Nasional Indonesia Angkatan Udara", alts: ["tentara nasional indonesia angkatan udara", "angkatan udara"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "インドネシア国軍空軍、インドネシア空軍（領空の防空監視、戦闘機・輸送機の運用、災害時の空輸作戦や人工雨［TMC］散布などを担う航空防衛部隊）",
+        ex: "Pesawat angkut berat Hercules milik TNI AU membawa bantuan logistik dan obat-obatan menuju bandara di daerah bencana.",
+        tr: "インドネシア空軍（TNI AU）の大型輸送機ハーキュリーズが、被災地の空港へ向けて救援物資と医薬品を空輸した。",
+        note: "■ 【関連語】：空軍基地は『Lanud（Pangkalan TNI Angkatan Udara）』と略される。"
+      },
+      {
+        p: "singkatan", w: "Kopassus", r: "Komando Pasukan Khusus", alts: ["komando pasukan khusus"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "陸軍特殊部隊司令部、コパスス（インドネシア陸軍［TNI AD］の最精鋭特殊部隊。対テロ作戦・人質救出・特殊偵察を担い、トレードマークから「赤いベレー帽［Baret Merah］」の異名で知られる）",
+        ex: "Pasukan elit Kopassus dikenal memiliki kemampuan tempur khusus di hutan, gunung, maupun operasi pembebasan sandera.",
+        tr: "精鋭部隊「コパスス（陸軍特殊部隊）」は、ジャングルや山岳での特殊戦闘、ならびに人質救出作戦の能力を持つことで知られている。",
+        note: "■ 【語構成】：KOmando（司令部）PASukan（部隊）KhuSUS（特殊）。1981年にバンコクのドンムアン空港で発生したガルーダ航空機ハイジャック事件（ウヨヤ機救出作戦 Operasi Woyla）での人質全員救出などで世界的に知られる。"
+      },
+      {
+        p: "singkatan", w: "Brimob", r: "Brigade Mobil", alts: ["brigade mobil", "korps brigade mobil"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "国家警察機動隊、ブリモブ（Korps Brigade Mobil：インドネシア国家警察［Polri］の特殊機動部隊。大規模暴動の鎮圧、武装犯罪グループへの対処、爆弾処理［Gegana］、重要施設警備や災害救助を担う）",
+        ex: "Personel Brimob disiagakan di sekitar gedung parlemen untuk mengamankan jalannya aksi unjuk rasa.",
+        tr: "デモ行進の安全を確保するため、国会議事堂の周辺に警察機動隊（Brimob）の隊員が配置された。",
+        note: "■ 【歴史】：独立直後の1945年11月に編成された警察特別部隊を前身とし、スラバヤの戦いなど独立戦争でも最前線で戦った伝統を持つ警察の精鋭実行部隊。"
+      },
+      {
+        p: "singkatan", w: "Densus 88", r: "Detasemen Khusus 88 Antiteror", alts: ["detasemen khusus 88 antiteror", "detasemen khusus 88"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "対テロ特殊部隊88分遣隊、デンスス88（2002年のバリ島爆弾テロ事件を受けて創設されたインドネシア国家警察［Polri］の対テロ専門捜査・突入特殊部隊。ロゴは暗闇で獲物を捕らえるフクロウ）",
+        ex: "Tim Densus 88 Antiteror Polri berhasil menangkap sejumlah terduga anggota jaringan teroris sebelum melancarkan aksinya.",
+        tr: "国家警察の対テロ特殊部隊「デンスス88」チームは、犯行に及ぶ前にテロ組織の容疑者数名を逮捕することに成功した。",
+        note: "■ 【なぜ「88」なのか？】：英語の『**A**nti-**T**errorism **A**ct（対テロ法）』の頭文字 **ATA** を早口で発音すると英語の **Eight-Eight（88）** に聞こえるという当時の警察幹部の聞き間違い（および2002年バリ島テロで犠牲となった最多国籍のオーストラリア人犠牲者数88名への追悼）に由来する有名なエピソードがある。"
+      },
+      {
+        p: "singkatan", w: "Kapolri", r: "Kepala Kepolisian Negara Republik Indonesia", alts: ["kepala kepolisian negara republik indonesia", "kepala polri"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "国家警察長官（インドネシア共和国国家警察［Polri］の最高指揮官。大統領が国会［DPR］の承認を得て任命する4つ星の警察大将 Jenderal Polisi）",
+        ex: "Kapolri bersama Panglima TNI meninjau langsung kesiapan pengamanan arus mudik Lebaran di Pelabuhan Merak.",
+        tr: "国家警察長官（Kapolri）は国軍最高司令官（Panglima TNI）とともに、メラク港におけるレバラン帰省ラッシュの警備態勢を直接視察した。",
+        note: [
+          "■ 【警察組織（Polri）の4階層とトップの呼称（事件・交通ニュースで必出！）】：\n1. **Mabes Polri**（国家警察本部：全国）➔ トップ：**Kapolri**（国家警察長官）\n2. **Polda**（州警察本部：各州レベル）➔ トップ：**Kapolda**（州警察本部長）\n3. **Polres**（市・県警察署：市や県レベル ※大都市は Polrestabes）➔ トップ：**Kapolres**（市・県警察署長）\n4. **Polsek**（郡・地区警察署：郡 Kecamatan レベル）➔ トップ：**Kapolsek**（郡警察署長）"
+        ].join("\n")
+      },
+      {
+        p: "singkatan", w: "Polda", r: "Kepolisian Daerah", alts: ["kepolisian daerah"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "州警察本部、地方警察本部（各州［Provinsi］ごとに置かれる警察本部。日本の都道府県警察本部に相当し、本部長は Kapolda。ジャカルタ首都圏は特に Polda Metro Jaya と呼ばれる）",
+        ex: "Direktorat Lalu Lintas Polda Metro Jaya memberlakukan aturan ganjil genap di sejumlah ruas jalan utama Jakarta.",
+        tr: "ジャカルタ首都圏警察本部（Polda Metro Jaya）の交通局は、ジャカルタの複数の主要幹線道路でナンバープレート奇数・偶数規制を実施している。",
+        note: "■ 【正式名称】：KePOLisian DAerah（州警察本部長は **Kapolda**＝Kepala Kepolisian Daerah）。"
+      },
+      {
+        p: "singkatan", w: "Polres", r: "Kepolisian Resor", alts: ["kepolisian resor"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "市・県警察署（州警察本部［Polda］の下、各県［Kabupaten］または市［Kota］ごとに置かれる中核警察署。署長は Kapolres。運転免許証［SIM］や警察証明書［SKCK］の発行窓口でもある）",
+        ex: "Petugas Satuan Reserse Kriminal Polres setempat sedang melakukan olah TKP di lokasi pencurian.",
+        tr: "地元の市・県警察署（Polres）の刑事捜査課員が現在、盗難現場で現場検証（olah TKP）を行っている。",
+        note: "■ 【正式名称】：KePOLisian RESor（オランダ語の管轄区 ressort に由来。ジャカルタ等の特別区は『Polres Metro』、バンドン・スラバヤ・メダン等の政令大都市は『Polrestabes＝Kepolisian Resor Kota Besar』と呼ばれる）。"
+      },
+      {
+        p: "singkatan", w: "Polsek", r: "Kepolisian Sektor", alts: ["kepolisian sektor"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "郡警察署、地区警察署（市・県警察署［Polres］の下、各郡・区［Kecamatan］ごとに置かれる住民に最も身近な第一線の警察署。署長は Kapolsek）",
+        ex: "Warga segera melaporkan penemuan dompet dan dokumen penting yang terjatuh di jalan itu ke kantor Polsek terdekat.",
+        tr: "住民はその道に落ちていた財布と重要書類の発見を、直ちに最寄りの地区警察署（Polsek）へ届け出た。",
+        note: "■ 【正式名称】：KePOLisian SEKTOR（署長は **Kapolsek**＝Kepala Kepolisian Sektor）。"
+      }
+    ],
+    acro: [
+      { acro: "KTT", full: "konferensi tingkat tinggi", alts: [], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "首脳会議、サミット", exp: "■ 【正式名称】：Konferensi Tingkat Tinggi（大統領や首相が集まる首脳会議）。" },
+      { acro: "ASEAN", full: "association of southeast asian nations", alts: ["perhimpunan bangsa-bangsa asia tenggara", "perbara"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "東南アジア諸国連合（本部：ジャカルタ）", exp: "■ 【正式名称】：Association of Southeast Asian Nations（インドネシア語名：Perhimpunan Bangsa-Bangsa Asia Tenggara / Perbara）。" },
+      { acro: "DK PBB", full: "dewan keamanan perserikatan bangsa-bangsa", alts: ["dewan keamanan pbb"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "国連安全保障理事会（国連安保理）", exp: "■ 【正式名称】：Dewan Keamanan Perserikatan Bangsa-Bangsa（英語略称 UNSC）。" },
+      { acro: "OKI", full: "organisasi kerja sama islam", alts: [], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "イスラム協力機構（英語略称 OIC）", exp: "■ 【正式名称】：Organisasi Kerja Sama Islam。" },
+      { acro: "GNB", full: "gerakan non-blok", alts: ["gerakan nonblok"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "非同盟運動（英語略称 NAM）", exp: "■ 【正式名称】：Gerakan Non-Blok（1955年のバンドン会議を源流とする国際運動）。" },
+      { acro: "APEC", full: "asia-pacific economic cooperation", alts: ["kerja sama ekonomi asia-pasifik"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物", tr: "アジア太平洋経済協力", exp: "■ 【正式名称】：Asia-Pacific Economic Cooperation（Kerja Sama Ekonomi Asia-Pasifik）。" },
+      { acro: "WTO", full: "world trade organization", alts: ["organisasi perdagangan dunia"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物", tr: "世界貿易機関", exp: "■ 【正式名称】：World Trade Organization（Organisasi Perdagangan Dunia）。" },
+      { acro: "WHO", full: "world health organization", alts: ["organisasi kesehatan dunia"], dictOnly: true, tier: 3, topicCat: "🏥 健康・身体・感情", tr: "世界保健機関", exp: "■ 【正式名称】：World Health Organization（Organisasi Kesehatan Dunia）。" },
+      { acro: "IMF", full: "international monetary fund", alts: ["dana moneter internasional"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物", tr: "国際通貨基金", exp: "■ 【正式名称】：International Monetary Fund（Dana Moneter Internasional）。" },
+      { acro: "PLTU", full: "pembangkit listrik tenaga uap", alts: [], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物", tr: "石炭・蒸気火力発電所（汽力発電所）", exp: "■ 【正式名称】：Pembangkit Listrik Tenaga Uap。" },
+      { acro: "PLTA", full: "pembangkit listrik tenaga air", alts: [], dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物", tr: "水力発電所", exp: "■ 【正式名称】：Pembangkit Listrik Tenaga Air。" },
+      { acro: "PLTS", full: "pembangkit listrik tenaga surya", alts: [], dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物", tr: "太陽光発電所", exp: "■ 【正式名称】：Pembangkit Listrik Tenaga Surya。" },
+      { acro: "PLTP", full: "pembangkit listrik tenaga panas bumi", alts: [], dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物", tr: "地熱発電所", exp: "■ 【正式名称】：Pembangkit Listrik Tenaga Panas Bumi。" },
+      { acro: "SPBU", full: "stasiun pengisian bahan bakar umum", alts: ["pom bensin"], dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動", tr: "ガソリンスタンド、給油所", exp: "■ 【正式名称】：Stasiun Pengisian Bahan Bakar Umum（口語では pom bensin）。" },
+      { acro: "SPKLU", full: "stasiun pengisian kendaraan listrik umum", alts: [], dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動", tr: "公共電気自動車（EV）充電スタンド", exp: "■ 【正式名称】：Stasiun Pengisian Kendaraan Listrik Umum。" },
+      { acro: "LPG", full: "liquefied petroleum gas", alts: ["elpiji"], dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動", tr: "液化石油ガス、LPガス（インドネシア語標準綴りは elpiji）", exp: "■ 【正式名称】：Liquefied Petroleum Gas（日常・標準語では elpiji）。" },
+      { acro: "CPO", full: "crude palm oil", alts: ["minyak sawit mentah"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物", tr: "パーム原油、未精製パーム油", exp: "■ 【正式名称】：Crude Palm Oil（インドネシア語では minyak sawit mentah）。" },
+      { acro: "ZEE", full: "zona ekonomi eksklusif", alts: [], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "排他的経済水域（英語の EEZ）", exp: "■ 【正式名称】：Zona Ekonomi Eksklusif。" },
+      { acro: "AMDAL", full: "analisis mengenai dampak lingkungan", alts: [], dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物", tr: "環境影響評価、環境アセスメント", exp: "■ 【正式名称】：Analisis Mengenai Dampak Lingkungan。" },
+      { acro: "Karhutla", full: "kebakaran hutan dan lahan", alts: [], dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物", tr: "森林・泥炭地火災", exp: "■ 【正式名称】：KebaKARan HUTan dan LAhan。" },
+      { acro: "TNI AD", full: "tentara nasional indonesia angkatan darat", alts: ["angkatan darat"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "インドネシア陸軍", exp: "■ 【正式名称】：Tentara Nasional Indonesia Angkatan Darat。" },
+      { acro: "TNI AL", full: "tentara nasional indonesia angkatan laut", alts: ["angkatan laut"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "インドネシア海軍", exp: "■ 【正式名称】：Tentara Nasional Indonesia Angkatan Laut。" },
+      { acro: "TNI AU", full: "tentara nasional indonesia angkatan udara", alts: ["angkatan udara"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "インドネシア空軍", exp: "■ 【正式名称】：Tentara Nasional Indonesia Angkatan Udara。" },
+      { acro: "Kopassus", full: "komando pasukan khusus", alts: [], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "陸軍特殊部隊司令部（コパスス・赤いベレー帽の精鋭部隊）", exp: "■ 【正式名称】：KOmando PASukan KhuSUS。" },
+      { acro: "Brimob", full: "brigade mobil", alts: ["korps brigade mobil"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "国家警察機動隊（ブリモブ）", exp: "■ 【正式名称】：Korps BRIGade MOBil。" },
+      { acro: "Densus 88", full: "detasemen khusus 88 antiteror", alts: ["detasemen khusus 88"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "対テロ特殊部隊88分遣隊（デンスス88）", exp: "■ 【正式名称】：DEtasemen KhuSUS 88 Antiteror Polri。" },
+      { acro: "Kapolri", full: "kepala kepolisian negara republik indonesia", alts: ["kepala polri"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "国家警察長官", exp: "■ 【正式名称】：Kepala Kepolisian Negara Republik Indonesia。" },
+      { acro: "Polda", full: "kepolisian daerah", alts: [], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "州警察本部（本部長は Kapolda）", exp: "■ 【正式名称】：KePOLisian DAerah。" },
+      { acro: "Polres", full: "kepolisian resor", alts: [], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "市・県警察署（署長は Kapolres）", exp: "■ 【正式名称】：KePOLisian RESor。" },
+      { acro: "Polsek", full: "kepolisian sektor", alts: [], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "郡警察署、地区警察署（署長は Kapolsek）", exp: "■ 【正式名称】：KePOLisian SEKTOR。" }
+    ]
+  };
+
+  PACK_PART11_INTL_ENERGY_SECURITY.vocab.forEach(function(it) {
+    dictOnlySet.add(it.w.trim().toLowerCase());
+  });
+  PACK_PART11_INTL_ENERGY_SECURITY.acro.forEach(function(a) {
+    dictOnlySet.add(a.acro.trim().toLowerCase());
+  });
+
+  if (typeof window.wiAddPack === "function") {
+    window.wiAddPack(PACK_PART11_INTL_ENERGY_SECURITY);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 辞書専用パック 第12弾：【学校・大学入試・名前の前後の「学位称号」・主要メディア・民間大企業】（全40語）
+   - すべて問題・4択選択肢・単語ラッシュ・総合模試には一切出題せず（dictOnly: true, tier: 3）、
+     辞書検索・A〜Z辞書・Kompas連動のみに表示
+   - ループやタイマーを一切増やさない超軽量・負荷ゼロのデータ登録パック
+   ===================================================================== */
+(function() {
+  const d = window.WHATSINDO_EXTERNAL_DATA;
+  if (!d) return;
+
+  const dictOnlySet = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+
+  const PACK_PART12_EDU_TITLES_CORP = {
+    vocab: [
+      // ==================== 1. 学校体系・大学入試・キャンパス制度（13語） ====================
+      {
+        p: "singkatan", w: "SD", r: "Sekolah Dasar", alts: ["sekolah dasar"], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "小学校（インドネシアの6・3・3制義務教育の最初の6年間［7〜12歳］を担う初等教育機関）",
+        ex: "Anak-anak di Indonesia mulai masuk SD pada usia enam atau tujuh tahun dan belajar selama enam tahun.",
+        tr: "インドネシアの子どもたちは6歳または7歳で小学校（SD）に入学し、6年間学ぶ。",
+        note: [
+          "■ 【インドネシアの学校制度（6・3・3・4制）と制服カラー】：\n1. **SD (Sekolah Dasar)**：小学校（6年間）➔ 制服は「上：白 ／ 下：赤（Merah Putih）」\n2. **SMP (Sekolah Menengah Pertama)**：中学校（3年間）➔ 制服は「上：白 ／ 下：紺色（Biru Tua）」\n3. **SMA (Sekolah Menengah Atas)**：普通科高校（3年間）／ **SMK (Sekolah Menengah Kejuruan)**：職業高校（3〜4年間）➔ 制服は「上：白 ／ 下：グレー（Abu-abu）」\n4. **Perguruan Tinggi**：大学・高等教育機関（S1＝学士4年、S2＝修士2年、S3＝博士3年）"
+        ].join("\n")
+      },
+      {
+        p: "singkatan", w: "SMP", r: "Sekolah Menengah Pertama", alts: ["sekolah menengah pertama"], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "中学校（小学校［SD］6年間と合わせた9年間の基礎義務教育［Wajib Belajar 9 Tahun］の後期3年間を担う前期中等教育機関）",
+        ex: "Setelah lulus dari SD, para siswa melanjutkan pendidikan ke tingkat SMP selama tiga tahun.",
+        tr: "小学校（SD）を卒業した後、生徒たちは中学校（SMP）レベルへ進学して3年間学ぶ。",
+        note: "■ 【正式名称】：Sekolah Menengah Pertama（国立・公立中学校は SMP Negeri［SMPN］、私立は SMP Swasta）。"
+      },
+      {
+        p: "singkatan", w: "SMA", r: "Sekolah Menengah Atas", alts: ["sekolah menengah atas"], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "普通科高等学校、高校（大学進学を主な目的とする3年間の後期中等教育機関）",
+        ex: "Siswa kelas dua belas SMA sedang mempersiapkan diri menghadapi ujian seleksi masuk perguruan tinggi negeri.",
+        tr: "高校3年生（12年生）の生徒たちは、国立大学入試に臨むための準備を進めている。",
+        note: "■ 【学年呼称】：インドネシアでは小1〜高3までを通し番号（Kelas 1〜Kelas 12）で呼ぶため、高校1年生は『Kelas 10 (Sepuluh)』、高2は『Kelas 11』、高3は『Kelas 12』と呼ぶ。"
+      },
+      {
+        p: "singkatan", w: "SMK", r: "Sekolah Menengah Kejuruan", alts: ["sekolah menengah kejuruan"], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "職業高等学校、専門高校（機械・自動車・IT・会計・観光ホテル・看護など、卒業後に即戦力として就職するための専門技術と実地研修［PKL］を行う3〜4年制の高校）",
+        ex: "Pemerintah mendorong kerja sama antara SMK dan industri manufaktur agar lulusannya siap langsung bekerja.",
+        tr: "政府は卒業生がすぐに即戦力として働けるよう、職業高校（SMK）と製造業の連携を推進している。",
+        note: "■ 【語構成】：Sekolah Menengah（中等学校）Kejuruan（専門職業分野：語幹 juru）。有名な標語は『SMK Bisa!（SMKならできる！）』。"
+      },
+      {
+        p: "n", w: "madrasah", r: "madrasah", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "マドラサ、イスラム学校（宗教省［Kemenag］が管轄し、一般の学校と同じ通常教科に加えてイスラム宗教科目やアラビア語を充実させた正規の学校体系）",
+        ex: "Lulusan madrasah aliyah memiliki hak yang sama dengan lulusan SMA untuk mengikuti seleksi masuk universitas negeri.",
+        tr: "マドラサ高校（MA）の卒業生は、国立大学の入試を受ける上で普通科高校（SMA）の卒業生と全く同じ権利を持っている。",
+        note: [
+          "■ 【一般校（教育省管轄）とマドラサ（宗教省管轄）の対応関係】：\n・小学校相当：**MI (Madrasah Ibtidaiyah)** ＝ SD に相当（6年間）\n・中学校相当：**MTs (Madrasah Tsanawiyah)** ＝ SMP に相当（3年間）\n・高校相当：**MA (Madrasah Aliyah)** ＝ SMA に相当（3年間）\n・すべて正規の公教育カリキュラムであり、卒業資格や大学進学資格は一般校（SD/SMP/SMA）と100%同等。"
+        ].join("\n")
+      },
+      {
+        p: "singkatan", w: "PTN", r: "Perguruan Tinggi Negeri", alts: ["perguruan tinggi negeri"], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "国立大学、国公立高等教育機関（UI・UGM・ITB・Unpad・Unairなど、国［教育省または宗教省］が設置・運営する大学。私立大学は PTS）",
+        ex: "Persaingan untuk diterima di PTN favorit setiap tahunnya diikuti oleh ratusan ribu lulusan sekolah menengah.",
+        tr: "人気のある国立大学（PTN）に合格するための競争には、毎年何十万人もの高校卒業生が参加する。",
+        note: "■ 【対義語】：**PTN (Perguruan Tinggi Negeri＝国立大学)** ⇔ **PTS (Perguruan Tinggi Swasta＝私立大学)**。"
+      },
+      {
+        p: "singkatan", w: "PTS", r: "Perguruan Tinggi Swasta", alts: ["perguruan tinggi swasta"], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "私立大学、私立高等教育機関（民間財団や宗教法人［ムハマディヤやキリスト教系財団等］が設立・運営する大学。対義語は国立大学 PTN）",
+        ex: "Banyak PTS terkemuka di Jakarta dan Bandung yang memiliki fasilitas riset dan program internasional berstandar global.",
+        tr: "ジャカルタやバンドンの多くの有力な私立大学（PTS）は、世界水準の研究設備と国際プログラムを有している。",
+        note: "■ 【注意】：教育文脈での『PTS』は ①私立大学（Perguruan Tinggi Swasta）または ②学校の中間テスト（Penilaian Tengah Semester＝旧称 UTS）を指す。"
+      },
+      {
+        p: "singkatan", w: "SNBP", r: "Seleksi Nasional Berdasarkan Prestasi", alts: ["seleksi nasional berdasarkan prestasi"], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "全国成績基準選抜（高校での学業成績［内申点］や全国大会等の実績をもとに合否が決まる、インドネシア国立大学［PTN］の全国統一推薦入試。旧称は SNMPTN）",
+        ex: "Siswa yang memiliki nilai rapor unggul sejak semester pertama berpeluang besar lolos masuk PTN melalui jalur SNBP.",
+        tr: "1学期目から優秀な通知表の成績を持つ生徒は、全国成績基準選抜（SNBP）枠を通じて国立大学に合格するチャンスが大きい。",
+        note: [
+          "■ 【インドネシア国立大学（PTN）の3大入試ルート】：\n① **SNBP** (Seleksi Nasional Berdasarkan Prestasi)：高校の成績・内申による全国推薦選抜（旧 SNMPTN）\n② **SNBT** (Seleksi Nasional Berdasarkan Tes)：共通テスト（UTBK）のスコアによる全国一般選抜（旧 SBMPTN）\n③ **Seleksi Mandiri (Jalur Mandiri)**：各国立大学が独自に実施する個別入試"
+        ].join("\n")
+      },
+      {
+        p: "singkatan", w: "SNBT", r: "Seleksi Nasional Berdasarkan Tes", alts: ["seleksi nasional berdasarkan tes"], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "全国テスト基準選抜（コンピュータ方式の全国共通テスト［UTBK］の得点によって合否を競う、インドネシア国立大学［PTN］の一般入試。旧称は SBMPTN）",
+        ex: "Ratusan ribu calon mahasiswa mengikuti ujian komputer dalam rangkaian seleksi SNBT untuk memperebutkan kursi di PTN.",
+        tr: "何十万人もの大学志願者が国立大学の座席を争い、全国テスト基準選抜（SNBT）の一環としてコンピュータ試験を受験する。",
+        note: "■ 【正式名称】：Seleksi Nasional Berdasarkan Tes（2023年より旧称 SBMPTN から改称）。"
+      },
+      {
+        p: "singkatan", w: "UTBK", r: "Ujian Tulis Berbasis Komputer", alts: ["ujian tulis berbasis komputer"], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "コンピュータ方式筆記試験（国立大学の一般入試［SNBT］で実施される全国共通テスト。日本の「大学入学共通テスト」に相当し、潜在的学力・論理的思考力・インドネシア語/英語リテラシー・数学的推論を測定する）",
+        ex: "Peserta UTBK wajib membawa kartu tanda peserta ujian dan ijazah atau surat keterangan kelas dua belas.",
+        tr: "共通テスト（UTBK）の受験者は、受験票および卒業証書（または高校3年生の在学証明書）を持参する義務がある。",
+        note: "■ 【正式名称】：Ujian Tulis Berbasis Komputer（通常『UTBK-SNBT』とセットで呼ばれる）。"
+      },
+      {
+        p: "singkatan", w: "UKT", r: "Uang Kuliah Tunggal", alts: ["uang kuliah tunggal"], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "単一授業料（インドネシアの国立大学［PTN］で採用されている学費制度。入学金や施設費などを分けず学期ごとの単一学費に一本化し、保護者の所得階層に応じて第1段階［最低額］から第8段階等まで金額が傾斜設定される制度）",
+        ex: "Besaran UKT mahasiswa di perguruan tinggi negeri ditetapkan secara berjenjang sesuai dengan kemampuan ekonomi orang tua.",
+        tr: "国立大学における学生の単一授業料（UKT）の額は、親の経済力に応じて段階的に定められる。",
+        note: "■ 【ニュース背景】：毎年5〜6月の新入生入学シーズンになると、国立大学の『UKT（学費）』の引き上げや減免申請に関するニュースがKompas等で大きく報じられる。"
+      },
+      {
+        p: "singkatan", w: "BIPA", r: "Bahasa Indonesia bagi Penutur Asing", alts: ["bahasa indonesia bagi penutur asing"], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "外国人向けインドネシア語教育（インドネシア語を母語としない外国人学習者を対象とした公式のインドネシア語教育プログラム。UIやUGM、ITB、Unpad、UPIなどの各大学にBIPAコースが設置されている）",
+        ex: "Program BIPA di berbagai universitas Indonesia diminati oleh banyak mahasiswa dan peneliti dari Jepang, Korea, hingga Eropa.",
+        tr: "インドネシアの各大学におけるBIPA（外国人向けインドネシア語）プログラムは、日本や韓国、ヨーロッパに至るまで多くの学生や研究者から人気を集めている。",
+        note: "■ 【正式名称】：Bahasa Indonesia bagi Penutur Asing（penutur asing＝外国語話者・非母語話者）。インドネシア政府の奨学金留学プログラム『ダルマシスワ（Beasiswa Darmasiswa）』などでも中心となるコース。"
+      },
+      {
+        p: "singkatan", w: "UKBI", r: "Uji Kemahiran Berbahasa Indonesia", alts: ["uji kemahiran berbahasa indonesia"], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "インドネシア語能力試験（インドネシア教育文化省の言語開発育成庁［Badan Bahasa］が実施する公式のインドネシア語運用能力検定。英語のTOEFLにあたる国家標準テストで、7段階のランクで評価される）",
+        ex: "Sertifikat UKBI digunakan sebagai tolok ukur resmi kemahiran berbahasa Indonesia bagi profesional maupun mahasiswa asing.",
+        tr: "UKBI（インドネシア語能力試験）の証明書は、専門職や外国人留学生のためのインドネシア語運用能力の公式指標として用いられている。",
+        note: "■ 【7段階の評価ランク（下から上へ）】：①Terbatas（限定的）➔ ②Marginal（初歩）➔ ③Semenjana（中級下）➔ ④Madya（中級）➔ ⑤Unggul（上級）➔ ⑥Sangat Unggul（最上級）➔ ⑦Istimewa（特級・ネイティブ最高峰）。"
+      },
+
+      // ==================== 2. 名前の前後に付く学位・職業・宗教称号（14語） ====================
+      {
+        p: "singkatan", w: "Dr.", r: "Doktor / dokter", alts: ["doktor", "dokter"], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "①【大文字 Dr.】博士（Doktor：大学院の博士課程［S3］を修了した者に与えられる最高学位） ②【小文字 dr.】医師（dokter：医学部を卒業し医師免許を持つ医療従事者）※どちらも名前の前に付ける称号",
+        ex: "Seminar kesehatan nasional itu menghadirkan pembicara utama Prof. Dr. dr. Budi Santoso yang merupakan guru besar fakultas kedokteran.",
+        tr: "その全国保健セミナーは、医学部教授であるブディ・サントソ教授（医学博士・医師）を基調講演者として招いた。",
+        note: [
+          "■ 【超重要！大文字『Dr.』と小文字『dr.』の厳密な区別】：\nインドネシア語では名前の前に付く『Dr.』と『dr.』を大文字・小文字で明確に使い分ける！\n・**Dr. (先頭が大文字)** ＝ **Doktor（博士：S3修了者）**（例：Dr. Mohammad Hatta＝経済学等の博士）\n・**dr. (すべて小文字)** ＝ **dokter（医師）**（例：dr. Tirta＝ティルタ医師。歯科医師は **drg.**＝dokter gigi、獣医師は **drh.**＝dokter hewan）\n・そのため、医学部の教授で博士号も持つ医師の名前には **『Prof. Dr. dr. [名前]（教授・博士・医師）』** のように `Dr.` と `dr.` が両方並んで付く！"
+        ].join("\n")
+      },
+      {
+        p: "singkatan", w: "Prof.", r: "Profesor", alts: ["profesor", "guru besar"], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "教授（Profesor：大学における最高の学術職位［Guru Besar］を持つ者の名前の先頭に付く称号）",
+        ex: "Pidato pengukuhan guru besar tersebut disampaikan oleh Prof. Siti Aminah di balai senat universitas.",
+        tr: "その教授就任記念講演は、大学の評議会ホールにてシティ・アミナ教授（Prof.）によって行われた。",
+        note: "■ 【語彙】：インドネシア語で大学教授の職位は『Profesor』または固有語表現で **『Guru Besar（偉大なる師＝教授）』** と呼ばれる。"
+      },
+      {
+        p: "singkatan", w: "Ir.", r: "Insinyur", alts: ["insinyur"], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "工学士、農学士、技術士（Insinyur：1993年の学位制度改正以前に理工系・農学系の大学［S1］を卒業した者、または現在の専門技術者課程を修了した者の名前の前に付く称号）",
+        ex: "Presiden pertama RI, Ir. Soekarno, meraih gelar insinyur teknik sipil dari Technische Hoogeschool te Bandoeng yang kini menjadi ITB.",
+        tr: "インドネシア共和国初代大統領の Ir. スカルノは、現在のバンドン工科大学（ITB）であるバンドン工業高等専門学校から土木工学士（Ir.）の称号を取得した。",
+        note: "■ 【歴史背景】：オランダ語の Ingenieur（Ir.）に由来。初代大統領『Ir. Soekarno（バンドン工科大・建築土木）』や第7代大統領『Ir. H. Joko Widodo（ガジャマダ大・林学）』、ジュアンダ首相『Ir. H. Djuanda』などの名前の先頭に付いているのはこの称号（1993年以降の卒業生は名前の後ろに `S.T.`［工学士］や `S.P.`［農学士］を付ける方式に移行した）。"
+      },
+      {
+        p: "singkatan", w: "Drs.", r: "Doktorandus", alts: ["doktorandus"], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "旧制学士［男性］（Doktorandus：オランダ語由来で、1993年の学位改正以前に文系・社会科学・経済・理学系の大学［S1］を卒業した男性の名前の前に付く称号。女性は Dra.）",
+        ex: "Wakil Presiden pertama Republik Indonesia, Drs. Mohammad Hatta, menempuh pendidikan tinggi ekonomi di Rotterdam, Belanda.",
+        tr: "インドネシア共和国初代副大統領の Drs. モハマッド・ハッタは、オランダのロッテルダムで経済学の高等教育を修めた。",
+        note: "■ 【Drs. と Dra. の違い】：オランダの旧学位制度に由来し、1993年以前の男性大卒者には **『Drs.（Doktorandus）』**、女性大卒者には **『Dra.（Doktoranda）』** が名前の前に付与された（現在は名前の後ろに `S.E.`, `S.Sos.`, `S.Si.` 等を付ける方式に統一されているが、ベテラン政治家・官僚・教授の名前には今も多数見られる）。"
+      },
+      {
+        p: "singkatan", w: "Dra.", r: "Doktoranda", alts: ["doktoranda"], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "旧制学士［女性］（Doktoranda：1993年以前に文系・社会科学・教育・理学系の大学［S1］を卒業した女性の名前の前に付く称号。男性は Drs.）",
+        ex: "Kepala sekolah menengah atas tersebut adalah Ibu Dra. Ratna Sari yang telah mengajar selama tiga puluh tahun.",
+        tr: "その高校の校長は、30年間にわたり教鞭をとってきたラトナ・サリ先生（Dra.）である。",
+        note: "■ 【正式名称】：Doktoranda（オランダ語由来の女性学士称号）。"
+      },
+      {
+        p: "singkatan", w: "S.H.", r: "Sarjana Hukum", alts: ["sarjana hukum"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "法学士（Sarjana Hukum：大学の法学部［Fakultas Hukum］の学士課程［S1］を卒業した者の名前の後ろに、カンマで区切って付く学位称号）",
+        ex: "Surat kuasa hukum tersebut ditandatangani oleh pengacara senior Hendra Wijaya, S.H., M.H.",
+        tr: "その委任状は、ベテラン弁護士のヘンドラ・ウィジャヤ氏（法学士・法学修士）によって署名された。",
+        note: [
+          "■ 【インドネシアの名前の前後に付く称号のルール】：\n・**名前の「前」に付く称号（カンマなし）**：宗教称号（`H.`, `Hj.`, `K.H.`）、教授（`Prof.`）、博士（`Dr.`）、医師（`dr.`）、旧制学士（`Ir.`, `Drs.`, `Dra.`）\n・**名前の「後ろ」に付く称号（名前の直後にカンマ `,` を打って並べる）**：現行の学士（`S.H.`, `S.E.`, `S.T.`, `S.Pd.` 等）および修士（`M.H.`＝法学修士、`M.Si.`＝理学/社会科学修士、`M.M.`＝経営学修士、`M.B.A.` 等）"
+        ].join("\n")
+      },
+      {
+        p: "singkatan", w: "S.E.", r: "Sarjana Ekonomi", alts: ["sarjana ekonomi"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "経済学士（Sarjana Ekonomi：大学の経済・経営・会計学部の学士課程［S1］を卒業した者の名前の後ろに付く学位称号）",
+        ex: "Direktur keuangan baru perusahaan itu adalah Rina Kusuma, S.E., Ak. yang berpengalaman di bidang audit.",
+        tr: "その企業の新しい財務取締役は、監査分野で経験豊富なリナ・クスマ氏（経済学士・公認会計士）である。",
+        note: "■ 【正式名称】：Sarjana Ekonomi。"
+      },
+      {
+        p: "singkatan", w: "S.T.", r: "Sarjana Teknik", alts: ["sarjana teknik"], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "工学士（Sarjana Teknik：大学の工学部［Fakultas Teknik］の学士課程［S1］を卒業した者の名前の後ろに付く学位称号）",
+        ex: "Pembangunan jembatan layang itu dipimpin oleh kepala proyek Andi Pratama, S.T., M.T.",
+        tr: "その高架橋の建設は、プロジェクト責任者のアンディ・プラタマ氏（工学士・工学修士）によって指揮された。",
+        note: "■ 【正式名称】：Sarjana Teknik（工学修士は M.T.＝Magister Teknik）。"
+      },
+      {
+        p: "singkatan", w: "S.Pd.", r: "Sarjana Pendidikan", alts: ["sarjana pendidikan"], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "教育学士（Sarjana Pendidikan：教育大学［UPI等］や教育学部の学士課程［S1］を卒業した教師・教育者の名前の後ろに付く学位称号）",
+        ex: "Wali kelas kami, Bapak Agus Setiawan, S.Pd., sangat sabar dalam menjelaskan materi bahasa Indonesia.",
+        tr: "私たちの担任であるアグス・セティアワン先生（教育学士）は、インドネシア語の教材を説明する際とても忍耐強く丁寧だ。",
+        note: "■ 【正式名称】：Sarjana Pendidikan（教育学修士は M.Pd.＝Magister Pendidikan）。"
+      },
+      {
+        p: "singkatan", w: "S.Sos.", r: "Sarjana Sosial", alts: ["sarjana sosial"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "社会学士（Sarjana Sosial：社会政治学部［FISIP］などで社会学・政治学・国際関係学・行政学・コミュニケーション学の学士課程を卒業した者の名前の後ろに付く学位称号）",
+        ex: "Pengamat politik itu menyandang gelar S.Sos. dari Fakultas Ilmu Sosial dan Ilmu Politik Universitas Indonesia.",
+        tr: "その政治評論家は、インドネシア大学社会政治学部から社会学士（S.Sos.）の学位を取得している。",
+        note: "■ 【関連略語】：社会政治学部は **『FISIP（Fakultas Ilmu Sosial dan Ilmu Politik）』** と略される。"
+      },
+      {
+        p: "singkatan", w: "S.Kom.", r: "Sarjana Komputer", alts: ["sarjana komputer"], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "情報学士、コンピュータ科学士（Sarjana Komputer：情報工学・コンピュータサイエンス・情報システム学部の学士課程［S1］を卒業した者の名前の後ろに付く学位称号）",
+        ex: "Tim pengembang aplikasi perbankan itu dipimpin oleh seorang lulusan muda bergelar S.Kom.",
+        tr: "その銀行アプリの開発チームは、情報学士（S.Kom.）の学位を持つ若き卒業生によって率いられている。",
+        note: "■ 【正式名称】：Sarjana Komputer。"
+      },
+      {
+        p: "singkatan", w: "K.H.", r: "Kyai Haji", alts: ["kyai haji", "kiai haji"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "キヤイ・ハジ（イスラム寄宿塾［pesantren］を率いる高名なイスラム法学者・指導者［Kiai / Kyai］であり、かつメッカ大巡礼［Haji］を果たした人物の名前の先頭に付く最高位の宗教敬称）",
+        ex: "Presiden ke-4 RI, K.H. Abdurrahman Wahid, dikenal sebagai ulama besar sekaligus tokoh pemersatu bangsa.",
+        tr: "第4代インドネシア共和国大統領の K.H. アブドゥルラフマン・ワヒド（グス・ドゥル）は、大ウラマーであると同時に国民統合の指導者として知られている。",
+        note: "■ 【代表例】：K.H. Hasyim Asy'ari（NU創設者）、K.H. Ahmad Dahlan（ムハマディヤ創設者）、K.H. Abdurrahman Wahid（第4代大統領）、K.H. Ma'ruf Amin（前副大統領）など。"
+      },
+      {
+        p: "singkatan", w: "H.", r: "Haji", alts: ["haji"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "ハジ（イスラム教の五行のひとつである聖地メッカへの大巡礼［ibadah haji］を果たした男性ムスリムの名前の前に付けられる敬称。女性は Hj.＝Hajah）",
+        ex: "Nama lengkap beliau beserta gelar akademis dan keagamaannya tertulis sebagai Ir. H. Joko Widodo.",
+        tr: "学位および宗教敬称を含めた彼のフルネームは、「Ir. H. ジョコ・ウィドド」と記される。",
+        note: "■ 【文化】：インドネシアではメッカ巡礼を終えて帰国した男性を『Pak Haji（名前の表記では H. [名前]）』、女性を『Bu Hajah（表記では Hj. [名前]）』と呼んで敬う習慣がある。"
+      },
+      {
+        p: "singkatan", w: "Hj.", r: "Hajah", alts: ["hajah", "hajjah"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "ハジャ（聖地メッカへの大巡礼［ibadah haji］を果たした女性ムスリムの名前の前に付けられる敬称。男性は H.＝Haji）",
+        ex: "Ibu Hj. Siti Maryam diundang untuk memberikan sambutan dalam acara pengajian warga di balai desa.",
+        tr: "ハジャ・シティ・マリヤム夫人は、村の集会所での住民宗教講話会で挨拶をするよう招かれた。",
+        note: "■ 【正式名称】：Hajah（日常では Hajjah とも綴られる）。"
+      },
+
+      // ==================== 3. 主要メディア＆民間コングロマリット・ユニコーン企業（13語） ====================
+      {
+        p: "n", w: "Kompas", r: "kompas", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "①『コンパス』紙（Harian Kompas：1965年6月28日にP.K.オジョンとヤコブ・ウタマが創刊した、インドネシア最大の発行部数と最も高い信頼・権威を誇る全国日刊紙） ②（※小文字の一般名詞 kompas で）方位磁針、コンパス",
+        ex: "Surat kabar Harian Kompas dikenal menggunakan bahasa Indonesia baku yang cermat serta liputan jurnalistik yang mendalam.",
+        tr: "日刊紙『コンパス』は、的確な標準インドネシア語の使用と深いジャーナリズム報道で知られている。",
+        note: [
+          "■ 【メディアグループと名称の由来】：\n・新聞名の『Kompas（羅針盤）』は、創刊時に初代大統領スカルノが「人民の歩むべき方向を示す羅針盤（kompas）たれ」と名付けたことに由来し、標語は **『Amanat Hati Nurani Rakyat（人民の良心の負託）』**。\n・親会社の **『Kompas Gramedia（コンパス・グラメディア・グループ）』** は、インドネシア最大の書店チェーン『Gramedia（グラメディア書店）』、ニュース専門局『Kompas TV』、Webニュース『Kompas.com / Kompas.id』を擁する国内最大の総合メディア・出版グループ。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Tempo", r: "tempo", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "①『テンポ』誌（Majalah Tempo：1971年に詩人・ジャーナリストのグナワン・モハマッドらが創刊した、権力や汚職に切り込む徹底した調査報道と風刺画の表紙で名高い週刊ニュース雑誌） ②（※一般名詞 tempo で）時間、期間、テンポ（tempo hari＝先日）",
+        ex: "Majalah Tempo terkenal dengan laporan investigasi jurnalistiknya yang tajam dalam mengungkap berbagai kasus korupsi.",
+        tr: "雑誌『テンポ』は、様々な汚職事件を暴く鋭い調査報道ジャーナリズムで有名だ。",
+        note: "■ 【歴史】：スハルト政権時代の1994年に軍艦購入問題を批判して発禁処分（pembredelan）を受けたが、1998年の民主化（Reformasi）とともに復刊し、インドネシアの報道の自由（kebebasan pers）の象徴とされるメディア。"
+      },
+      {
+        p: "n", w: "Antara", r: "antara", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "アンタラ通信（LKBN Antara：1937年にアダム・マリクらの青年民族運動家が創設したインドネシアの国営通信社。1945年8月17日の独立宣言を世界に打電した歴史を持つ）",
+        ex: "Kantor Berita Antara menyiarkan berita resmi kenegaraan ke berbagai media massa di dalam dan luar negeri.",
+        tr: "アンタラ通信社は、国内外の様々なマスメディアへ公式な国家ニュースを配信している。",
+        note: "■ 【正式名称】：Lembaga Kantor Berita Nasional Antara（国営アンタラ通信社）。"
+      },
+      {
+        p: "singkatan", w: "TVRI", r: "Televisi Republik Indonesia", alts: ["televisi republik indonesia"], dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "インドネシア共和国テレビ（1962年8月24日の第4回ジャカルタ・アジア競技大会の開会式生中継に合わせて開局した、インドネシア最古の国営公共テレビ放送局）",
+        ex: "Stasiun televisi publik TVRI menyiarkan program pendidikan, budaya daerah, dan berita nasional hingga ke pulau-pulau terluar.",
+        tr: "公共テレビ局のTVRIは、教育番組、地域文化、および全国ニュースを最外縁の離島にまで放送している。",
+        note: "■ 【歴史】：1962年の開局から1989年に民間テレビ第1号のRCTIが開局するまでの27年間、インドネシア唯一のテレビ局であり、『TVRI把持の標語：Menjalin Persatuan dan Kesatuan（統一と団結を紡ぐ）』として国民的記憶に刻まれている。"
+      },
+      {
+        p: "singkatan", w: "RRI", r: "Radio Republik Indonesia", alts: ["radio republik indonesia"], dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "インドネシア共和国ラジオ（独立宣言直後の1945年9月11日に日本軍政期の放送局を引き継いで創設された国営公共ラジオ放送局）",
+        ex: "RRI memiliki jaringan stasiun penyiaran radio terluas yang menjangkau seluruh provinsi dan daerah perbatasan Indonesia.",
+        tr: "インドネシア共和国ラジオ（RRI）は、インドネシアの全州および国境地域をカバーする最も広範なラジオ放送局ネットワークを有している。",
+        note: "■ 【歴史的標語】：独立戦争時にオランダ軍の攻撃を受けながらも放送を止めなかった誇りから、**『Sekali di Udara, Tetap di Udara（ひとたび電波に乗れば、永遠に電波の上に）』** を公式スローガンとする。"
+      },
+      {
+        p: "n", w: "Astra International", r: "Astra", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "アストラ・インターナショナル（PT Astra International Tbk：1957年創業の東南アジア最大級のコングロマリット。トヨタ・ダイハツ・いすゞ・BMW・ホンダ二輪［Astra Honda Motor］の国内製造販売、コマツ重機［United Tractors］、金融、パーム油、インフラを展開。銘柄コード ASII）",
+        ex: "Grup Astra International menguasai lebih dari separuh pangsa pasar penjualan mobil dan sepeda motor di Indonesia.",
+        tr: "アストラ・インターナショナル・グループは、インドネシアにおける自動車および二輪車販売の市場シェアの過半数を握っている。",
+        note: "■ 【日本企業との深いつながり】：インドネシアの街を走る日本車（トヨタ・ダイハツ・いすゞ）やホンダのバイク、鉱山で活躍するコマツの重機の生産・販売を一手に担う最大手企業グループであり、インドネシア経済の動向を映す鏡とされる最重要上場企業（ASII）。"
+      },
+      {
+        p: "n", w: "Indofood", r: "Indofood", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "インドフード（PT Indofood Sukses Makmur Tbk：最大手財閥サリム・グループ［Salim Group］の中核をなす世界最大級の総合食品メーカー。即席麺「インドミー」、世界最大規模の製粉事業「ボガサリ［Bogasari］」、食用油、乳製品、スナック菓子を製造。銘柄コード INDF / ICBP）",
+        ex: "Indofood memproduksi miliaran bungkus mi instan setiap tahun untuk memenuhi permintaan pasar domestik dan ekspor.",
+        tr: "インドフードは国内市場および輸出の需要を満たすため、毎年数十億袋のインスタントラーメンを生産している。",
+        note: "■ 【企業構造】：持株親会社の Indofood Sukses Makmur（INDF）と、インドミー等の消費者向けブランド製品を担う子会社 Indofood CBP Sukses Makmur（ICBP）ともに、インドネシア証券取引所（BEI）の主力銘柄。同グループ（サリム・グループ）はコンビニ最大手の一角 **『インドマレット（Indomaret）』** も運営している。"
+      },
+      {
+        p: "n", w: "Indomie", r: "mi", dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理",
+        m: "インドミー（インドフード社が1972年から販売しているインドネシアの国民的インスタント麺ブランド。特に汁なしの炒め麺「インドミー・ミーゴレン」は東南アジアからアフリカ・欧米・日本まで世界100カ国以上で愛されている）",
+        ex: "Indomie goreng sering disajikan di warung kopi dengan tambahan telur setengah matang, sawi hijau, dan cabai rawit.",
+        tr: "インドミー・ゴレン（焼きそば）は、コーヒー屋台（ワルコップ）で半熟卵や青菜、小唐辛子をトッピングしてしばしば提供される。",
+        note: "■ 【文化】：名称は『Indonesia』＋『mie（麺）』。サテ味、ソト味、ルンダン味、アヤム・バワン（鶏玉ねぎ）味などインドネシア各地の郷土料理フレーバーがあり、災害時の救援物資から学生の夜食、海外での「インドネシアのソフトパワー外交」の象徴とまで言われる絶対的国民食。"
+      },
+      {
+        p: "n", w: "GoTo", r: "GoTo", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "ゴートゥー（PT GoTo Gojek Tokopedia Tbk：2021年5月にオンライン配車・デリバリー最大手の「Gojek」とECモール最大手の「Tokopedia」が経営統合し、決済金融「GoPay」と合わせて誕生したインドネシア最大のテクノロジー企業グループ。銘柄コード GOTO）",
+        ex: "Ekosistem digital GoTo menggabungkan layanan transportasi daring, pesan-antar makanan, lokapasar, dan pembayaran digital.",
+        tr: "GoTo（ゴートゥー）のデジタルエコシステムは、オンライン配車、フードデリバリー、ECマーケットプレイス、およびデジタル決済サービスを融合させている。",
+        note: "■ 【語源】：『**Go**jek』＋『**To**kopedia』の頭文字であると同時に、インドネシアの伝統精神である相互扶助 **『gotong royong（ゴトン・ロヨン）』** に由来する。"
+      },
+      {
+        p: "n", w: "Traveloka", r: "Traveloka", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "トラベロカ（2012年にフェリー・ウナルディら若手エンジニアが創設した、航空券・ホテル・鉄道チケット・観光アクティビティ予約で東南アジア最大級のシェアを誇るインドネシア発の旅行テック・ユニコーン企業）",
+        ex: "Banyak wisatawan memesan tiket pesawat, kereta api, dan kamar hotel secara praktis melalui aplikasi Traveloka.",
+        tr: "多くの旅行者が、トラベロカ（Traveloka）のアプリを通じて航空券や列車、ホテルの部屋を手軽に予約している。",
+        note: "■ 【語源】：英語の『Travel（旅行）』＋サンスクリット由来のインドネシア語『loka（場所・世界）』を合わせた造語。青い鳥（極楽鳥・渡り鳥）のロゴマークで知られる。"
+      },
+      {
+        p: "n", w: "Sinar Mas", r: "sinar", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "シナール・マス（1938年にエカ・チプタ・ウィジャヤが創業したインドネシア最大級の財閥グループ。世界最大級の紙パルプ事業［APP］、広大なアブラヤシ農園・パーム油、不動産開発［南タンゲランの計画都市 BSD City 等］、金融、通信［Smartfren］を展開）",
+        ex: "Grup Sinar Mas mengembangkan kawasan kota mandiri BSD City di Tangerang Selatan sebagai pusat bisnis dan teknologi baru.",
+        tr: "シナール・マス・グループは、新しいビジネスとテクノロジーの中心地として南タンゲランに自立型都市「BSDシティ」を開発している。",
+        note: "■ 【語源】：『sinar（光・輝き）』＋『mas / emas（金・黄金）』＝黄金の輝き。"
+      },
+      {
+        p: "n", w: "Djarum", r: "jarum", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "ジャルム（1951年にオエイ・ウィ・グワンが中部ジャワ州クドゥスで創業した巨大企業グループ。クレテック［丁子タバコ］製造を原点とし、現在は民間最大手銀行 BCA の筆頭株主であり、家電メーカー Polytron やECモール Blibli、名門バドミントンクラブ PB Djarum を擁する）",
+        ex: "Perkumpulan Bulu Tangkis PB Djarum di Kudus telah melahirkan banyak atlet peraih medali emas Olimpiade bagi Indonesia.",
+        tr: "クドゥスにあるバドミントンクラブ「PBジャルム」は、インドネシアのために多くのオリンピック金メダリスト選手を輩出してきた。",
+        note: "■ 【語源】：蓄音機の「針（jarum：旧正書法で djarum）」に由来。創業者一族のハルトノ兄弟（Budi & Michael Hartono）は長年にわたりインドネシア長者番付の第1位として知られる。またサリム財閥の『Indomaret』と双璧をなすコンビニ最大手『Alfamart（アルファマート）』はジョコ・スサント氏（元サリム・グループパートナー）が展開している。"
+      },
+      {
+        p: "n", w: "Freeport Indonesia", r: "Freeport", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "フリーポート・インドネシア（PT Freeport Indonesia：中部パプア州ミミカ県の標高4,000m超の山岳地帯にある世界最大級の金・銅鉱山「グラスベルグ鉱山」を採掘し、東ジャワ州グレシクに世界最大級の銅精錬所［smelter］を構える資源企業）",
+        ex: "PT Freeport Indonesia meresmikan pabrik pemurnian atau smelter tembaga berskala besar di Kawasan Ekonomi Khusus Gresik, Jawa Timur.",
+        tr: "フリーポート・インドネシア社は、東ジャワ州のグレシク経済特区において大規模な銅精錬所（スメルター）を正式に開所した。",
+        note: "■ 【資源ナショナリズムと歴史】：1967年にスハルト政権下で最初の外資鉱業契約を結びエルツベルグ・グラスベルグ鉱山を開発。長らく米国フリーポート・マクモラン社が過半数を握っていたが、2018年末の歴史的交渉によりインドネシア国営鉱業持株会社 **『MIND ID（Inalum）』** が株式の51.2%を取得してインドネシア側の過半数支配が実現した。"
+      }
+    ],
+    acro: [
+      { acro: "SD", full: "sekolah dasar", alts: [], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT", tr: "小学校（6年間）", exp: "■ 【正式名称】：Sekolah Dasar。" },
+      { acro: "SMP", full: "sekolah menengah pertama", alts: [], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT", tr: "中学校（3年間）", exp: "■ 【正式名称】：Sekolah Menengah Pertama。" },
+      { acro: "SMA", full: "sekolah menengah atas", alts: [], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT", tr: "普通科高等学校、高校（3年間）", exp: "■ 【正式名称】：Sekolah Menengah Atas。" },
+      { acro: "SMK", full: "sekolah menengah kejuruan", alts: [], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT", tr: "職業高等学校、専門高校", exp: "■ 【正式名称】：Sekolah Menengah Kejuruan。" },
+      { acro: "PTN", full: "perguruan tinggi negeri", alts: [], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT", tr: "国立大学、国公立高等教育機関（⇔ PTS 私立大学）", exp: "■ 【正式名称】：Perguruan Tinggi Negeri。" },
+      { acro: "PTS", full: "perguruan tinggi swasta", alts: ["penilaian tengah semester"], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT", tr: "私立大学（⇔ PTN 国立大学）※学校行事では「中間テスト（Penilaian Tengah Semester）」", exp: "■ 【正式名称】：Perguruan Tinggi Swasta。" },
+      { acro: "SNBP", full: "seleksi nasional berdasarkan prestasi", alts: [], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT", tr: "全国成績基準選抜（高校の成績・内申に基づく国立大学推薦入試）", exp: "■ 【正式名称】：Seleksi Nasional Berdasarkan Prestasi（旧称 SNMPTN）。" },
+      { acro: "SNBT", full: "seleksi nasional berdasarkan tes", alts: [], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT", tr: "全国テスト基準選抜（共通テスト UTBK による国立大学一般入試）", exp: "■ 【正式名称】：Seleksi Nasional Berdasarkan Tes（旧称 SBMPTN）。" },
+      { acro: "UTBK", full: "ujian tulis berbasis komputer", alts: [], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT", tr: "コンピュータ方式筆記試験（国立大学一般入試 SNBT の全国共通テスト）", exp: "■ 【正式名称】：Ujian Tulis Berbasis Komputer。" },
+      { acro: "UKT", full: "uang kuliah tunggal", alts: [], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT", tr: "単一授業料（国立大学における親の所得階層に応じた段階的学費制度）", exp: "■ 【正式名称】：Uang Kuliah Tunggal。" },
+      { acro: "BIPA", full: "bahasa indonesia bagi penutur asing", alts: [], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT", tr: "外国人向けインドネシア語教育プログラム", exp: "■ 【正式名称】：Bahasa Indonesia bagi Penutur Asing。" },
+      { acro: "UKBI", full: "uji kemahiran berbahasa indonesia", alts: [], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT", tr: "インドネシア語能力試験（教育文化省言語庁による公式検定）", exp: "■ 【正式名称】：Uji Kemahiran Berbahasa Indonesia。" },
+      { acro: "Dr.", full: "doktor / dokter", alts: ["doktor", "dokter"], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT", tr: "①大文字 Dr.＝博士（Doktor） ②小文字 dr.＝医師（dokter）", exp: "■ 【見分け方】：先頭大文字の『Dr.』は博士号（S3）、すべて小文字の『dr.』は医師（dokter）。どちらも名前の前に付く。" },
+      { acro: "Prof.", full: "profesor", alts: ["guru besar"], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT", tr: "教授（名前の先頭に付く称号＝Guru Besar）", exp: "■ 【正式名称】：Profesor。" },
+      { acro: "Ir.", full: "insinyur", alts: [], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT", tr: "工学士、農学士、技師（名前の前に付く称号：Ir. Soekarno / Ir. Joko Widodo 等）", exp: "■ 【正式名称】：Insinyur。" },
+      { acro: "Drs.", full: "doktorandus", alts: [], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT", tr: "旧制男性学士（1993年以前の男性大卒者の名前の前に付く称号：Drs. Mohammad Hatta 等）", exp: "■ 【正式名称】：Doktorandus（女性は Dra.＝Doktoranda）。" },
+      { acro: "Dra.", full: "doktoranda", alts: [], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT", tr: "旧制女性学士（1993年以前の女性大卒者の名前の前に付く称号）", exp: "■ 【正式名称】：Doktoranda（男性は Drs.＝Doktorandus）。" },
+      { acro: "S.H.", full: "sarjana hukum", alts: [], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "法学士（名前の後ろに付く法学部卒業の学位称号）", exp: "■ 【正式名称】：Sarjana Hukum。" },
+      { acro: "S.E.", full: "sarjana ekonomi", alts: [], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物", tr: "経済学士（名前の後ろに付く経済・経営学部卒業の学位称号）", exp: "■ 【正式名称】：Sarjana Ekonomi。" },
+      { acro: "S.T.", full: "sarjana teknik", alts: [], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT", tr: "工学士（名前の後ろに付く工学部卒業の学位称号）", exp: "■ 【正式名称】：Sarjana Teknik。" },
+      { acro: "S.Pd.", full: "sarjana pendidikan", alts: [], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT", tr: "教育学士（名前の後ろに付く教育学部卒業の学位称号）", exp: "■ 【正式名称】：Sarjana Pendidikan。" },
+      { acro: "S.Sos.", full: "sarjana sosial", alts: [], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "社会学士（名前の後ろに付く社会政治学部［FISIP］卒業の学位称号）", exp: "■ 【正式名称】：Sarjana Sosial。" },
+      { acro: "S.Kom.", full: "sarjana komputer", alts: [], dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT", tr: "情報学士、コンピュータ科学士（名前の後ろに付く情報系学部卒業の学位称号）", exp: "■ 【正式名称】：Sarjana Komputer。" },
+      { acro: "K.H.", full: "kyai haji", alts: ["kiai haji"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "キヤイ・ハジ（メッカ巡礼を果たしたイスラム高僧・寄宿塾指導者の名前の前に付く最高敬称）", exp: "■ 【正式名称】：Kyai Haji（または Kiai Haji）。" },
+      { acro: "H.", full: "haji", alts: [], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "ハジ（メッカ大巡礼を果たした男性ムスリムの名前の前に付く敬称）", exp: "■ 【正式名称】：Haji（女性は Hj.＝Hajah）。" },
+      { acro: "Hj.", full: "hajah", alts: ["hajjah"], dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会", tr: "ハジャ（メッカ大巡礼を果たした女性ムスリムの名前の前に付く敬称）", exp: "■ 【正式名称】：Hajah（男性は H.＝Haji）。" },
+      { acro: "TVRI", full: "televisi republik indonesia", alts: [], dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動", tr: "インドネシア共和国テレビ（1962年開局の国営公共テレビ局）", exp: "■ 【正式名称】：Televisi Republik Indonesia。" },
+      { acro: "RRI", full: "radio republik indonesia", alts: [], dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動", tr: "インドネシア共和国ラジオ（1945年創設の国営公共ラジオ局）", exp: "■ 【正式名称】：Radio Republik Indonesia。" }
+    ]
+  };
+
+  PACK_PART12_EDU_TITLES_CORP.vocab.forEach(function(it) {
+    dictOnlySet.add(it.w.trim().toLowerCase());
+  });
+  PACK_PART12_EDU_TITLES_CORP.acro.forEach(function(a) {
+    dictOnlySet.add(a.acro.trim().toLowerCase());
+  });
+
+  if (typeof window.wiAddPack === "function") {
+    window.wiAddPack(PACK_PART12_EDU_TITLES_CORP);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 辞書専用パック 第13弾：【現地リアル生活文化・街角スポット・地域別敬称・現代EC/ネット略語】（全46語）
+   - すべて問題・4択選択肢・単語ラッシュ・総合模試には一切出題せず（dictOnly: true, tier: 3）、
+     辞書検索・A〜Z辞書・Kompas連動のみに表示
+   - ループやタイマーを一切増やさない超軽量・負荷ゼロのデータ登録パック
+   ===================================================================== */
+(function() {
+  const d = window.WHATSINDO_EXTERNAL_DATA;
+  if (!d) return;
+
+  const dictOnlySet = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+
+  const PACK_PART13_CULTURE_LIFESTYLE = {
+    vocab: [
+      // ==================== 1. 街角スポット・食文化・下宿・体調＆民間療法・地域習慣（16語） ====================
+      {
+        p: "singkatan", w: "warteg", r: "warung Tegal", alts: ["warung tegal"], dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理",
+        m: "ワルテグ（中部ジャワ州トゥガル［Tegal］出身者が全国で営む大衆定食屋。ガラスケースに並んだ数十種類の手作り家庭料理を指差しで選んでご飯に盛り付けてもらう、安くて美味しい庶民と学生の強い味方）",
+        ex: "Saat akhir bulan, banyak mahasiswa dan pekerja makan siang di warteg karena harganya murah dan pilihannya beragam.",
+        tr: "月末になると、多くの学生や労働者が安くて品揃えが豊富なワルテグ（大衆定食屋）で昼食をとる。",
+        note: "■ 【語構成】：WARung（食堂・屋台）+ TEGal（中部ジャワ北海岸の都市トゥガル）。オレンジや青・緑の壁に両サイドにガラス戸がある独特の外観で知られ、ご飯とおかず3品でも15,000〜20,000ルピア（約150〜200円）ほどで満腹になれる国民的インフラ。"
+      },
+      {
+        p: "singkatan", w: "warkop", r: "warung kopi", alts: ["warung kopi"], dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理",
+        m: "ワルコップ、大衆コーヒー屋台（warung kopi の合成アクロニム。甘い黒コーヒーやコンデンスミルク入りコーヒー、インドミー［即席麺］、焼きバナナなどを注文し、深夜まで友人とお喋り［nongkrong］を楽しむ庶民の社交場）",
+        ex: "Anak-anak muda sering berkumpul di warkop dekat kampus pada malam hari sambil minum kopi dan mengobrol.",
+        tr: "若者たちは夜になると、コーヒーを飲みながらお喋りをするためキャンパス近くのワルコップ（コーヒー屋台）によく集まる。",
+        note: "■ 【文化】：西ジャワ（スンダ地方）で特に多い24時間営業のワルコップは、黄色・緑・赤の看板から『Warmindo（Warung Makan Indomie）』とも呼ばれ、また1970〜90年代の伝説的コメディトリオ『Warkop DKI（Dono, Kasino, Indro）』の名でも国民に愛されている。"
+      },
+      {
+        p: "n", w: "angkringan", r: "angkring", dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理",
+        m: "アンクリンガン（ジョグジャカルタやソロ発祥の夜間木製屋台。小盛りの包みご飯「ナシ・クチン」やうずら卵・鶏皮などの串刺しおかず、炭火を入れた生姜茶・コーヒーを格安で楽しみながら身分を超えて語り合う伝統屋台文化）",
+        ex: "Di sepanjang trotoar Malioboro Yogyakarta, terdapat banyak angkringan yang menyajikan nasi kucing dan wedang jahe hangat.",
+        tr: "ジョグジャカルタのマリオボロ通りの歩道沿いには、ナシ・クチンと温かい生姜湯を提供するアンクリンガン（夜屋台）が数多く並んでいる。",
+        note: "■ 【語源と名物】：ジャワ語の『angkring（天秤棒で担ぐ屋台／片足を上げて気楽に座る）』に由来。名物は一口サイズのご飯 **『nasi kucing（ナシ・クチン）』** と、真っ赤に燃える木炭を直接コーヒーカップの中にジュッと投入するジョグジャ駅前の名物 **『kopi joss（コピ・ジョス＝炭火コーヒー）』**。"
+      },
+      {
+        p: "n", w: "nasi kucing", r: "nasi", dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理",
+        m: "ナシ・クチン（ジョグジャカルタや中部ジャワの屋台「アンクリンガン」で売られる名物軽食。猫［kucing］のエサのように少量のご飯にサンバルと小魚［teri］やテンペを少し添えてバナナの葉と紙で包んだおにぎり大のご飯）",
+        ex: "Karena porsinya kecil, seseorang biasanya memakan dua hingga tiga bungkus nasi kucing ditambah sate telur puyuh.",
+        tr: "1個の量が小さいため、通常はうずら卵の串焼きに加えてナシ・クチンを2〜3包み食べる。",
+        note: "■ 【価格】：1包み3,000〜5,000ルピア（約30〜50円）という超手頃な価格で、いろんな味を少しずつ楽しめるのが魅力。"
+      },
+      {
+        p: "n", w: "lesehan", r: "leseh", dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理",
+        m: "レセハン、座敷スタイル（椅子を使わず、床や歩道に敷いたゴザ・マットの上に靴を脱いで座り込み、低いちゃぶ台を囲んで食事やくつろぎを楽しむインドネシア伝統のスタイル）",
+        ex: "Kami memilih makan malam di warung sari laut yang menyediakan tempat duduk lesehan di atas tikar.",
+        tr: "私たちはゴザの上の座敷席（レセハン）を用意している海鮮屋台で夕食をとることにした。",
+        note: "■ 【語源】：ジャワ語の『leseh（床に座る）』＋『-an』。スンダ料理店やジョグジャのマリオボロ通りの夜屋台などで『Warung Lesehan』として大人気。"
+      },
+      {
+        p: "n", w: "prasmanan", r: "prasmanan", dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理",
+        m: "ビュッフェ形式、バイキング形式（大皿に並んだ料理から各自が好きなものをお皿に取って食べる食事スタイル。インドネシアの結婚披露宴やホテル・会議の食事の基本スタイル）",
+        ex: "Hidangan makan siang dalam acara resepsi pernikahan itu disajikan secara prasmanan di aula gedung.",
+        tr: "その結婚披露宴における昼食の料理は、会場のホールにてビュッフェ形式（プラスマナン）で提供された。",
+        note: "■ 【驚きの語源】：オランダ語の『Fransman（フランス人）』に由来！植民地時代にフランス式のテーブルビュッフェを『cara Fransman（フランス人流）』と呼んだものがジャワ語・インドネシア語でなまって **『prasmanan』** となった。"
+      },
+      {
+        p: "n", w: "kaki lima", r: "kaki", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "①露天商、移動屋台（pedagang kaki lima＝略称 PKL。歩道や道端で手押し車［gerobak］等を使って飲食物や雑貨を売る屋台） ②店舗前の歩道・軒下通路",
+        ex: "Pemerintah kota menyediakan lokasi khusus kuliner malam agar para pedagang kaki lima dapat berjualan dengan tertib.",
+        tr: "市政府は露天商（カキ・リマ）たちが秩序よく商売できるよう、ナイトグルメの専用エリアを用意した。",
+        note: [
+          "■ 【なぜ屋台を「5本の足（kaki lima）」と呼ぶのか？（2大語源説）】：\n① **歴史的語源（5フィート歩道説）**：1811〜1816年にジャワを統治したイギリスのラフルズ副総督が、バタヴィアの建物の軒下に「幅 **5フィート（five feet＝lima kaki）** の屋根付き歩道（five-foot way）」を造るよう義務付け、のちにその歩道（kaki lima）で商売をする露天商を『pedagang kaki lima』と呼ぶようになった説。\n② **民間語源（車輪＋足＝5本説）**：屋台の手押し車（gerobak）の「車輪2つ＋支えの木脚1本（計3本）」に、それを押す「店主の両足（2本）」を足すと合計 **5本の足** になるという説。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "pasar kaget", r: "pasar", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "パサール・カゲット、臨時青空市場（日曜の朝の歩行者天国［CFD］やラマダンの夕方、給料日などに合わせて道路や広場に突如出現し、数時間で消える賑やかな仮設市場）",
+        ex: "Setiap hari Minggu pagi, kawasan sekitar stadion berubah menjadi pasar kaget yang menjual sayur, pakaian, dan jajanan.",
+        tr: "毎週日曜日の朝になると、スタジアム周辺エリアは野菜や衣類、軽食を売る臨時青空市場（パサール・カゲット）へと変わる。",
+        note: "■ 【語構成】：『pasar（市場）』＋『kaget（びっくりする・突然の）』＝突然パッと現れる市場。"
+      },
+      {
+        p: "singkatan", w: "CFD", r: "Car Free Day", alts: ["car free day", "hari bebas kendaraan bermotor"], dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "カーフリーデー、日曜朝の歩行者天国（毎週日曜日の朝6時〜10時頃、ジャカルタのスディルマン〜タムリン大通りやバンドンのダゴ通りなどの主要幹線道路で自動車・バイクを通行止めにし、市民がジョギング・自転車・屋台グルメを楽しむ国民的イベント）",
+        ex: "Ribuan warga memadati kawasan Bundaran HI saat CFD pada Minggu pagi untuk berolahraga dan bersantai.",
+        tr: "日曜日の朝のカーフリーデー（CFD）には、運動やくつろぎを楽しむため数千人の市民がブンダランHI周辺を埋め尽くした。",
+        note: "■ 【インドネシア語公式名称】：**HBKB (Hari Bebas Kendaraan Bermotor＝自動車・バイクのない日)**。日常会話や報道では99% **『CFD』** と呼ばれる。"
+      },
+      {
+        p: "n", w: "kos-kosan", r: "indekos", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "コス、学生下宿、単身者用賃貸アパート（＝kos / kosan / indekos：大学生や単身会社員が月払いで部屋を借りる下宿施設）",
+        ex: "Di sekitar kampus terdapat banyak rumah kos-kosan dengan fasilitas kamar mandi dalam dan akses internet.",
+        tr: "キャンパスの周辺には、室内バスルームとインターネット接続を備えた多くの下宿（コス・コサン）がある。",
+        note: [
+          "■ 【語源とインドネシアのコス（下宿）用語】：\n・オランダ語の『in de kost（食事・部屋付きで下宿する）』が語源（KBBI標準見出しは **indekos**、日常語は **kos / kosan / kos-kosan**、下宿生は **anak kos**、大家さんは **ibu kos / bapak kos**）。\n・男子専用は『kos putra』、女子専用は『kos putri』、夫婦や男女可は『kos campur』、エアコン・温水シャワー・Wi-Fi完備の高級マンション風下宿は『kos eksklusif (kostel)』と呼ばれる。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "masuk angin", r: "angin", dictOnly: true, tier: 3, topicCat: "🏥 健康・身体・感情",
+        m: "マスック・アンギン（直訳「体内に風が入る」：エアコンの冷気・夜風・雨濡れ・寝不足・空腹などが原因で体内に余分なガス［風］が溜まったとみなされる、お腹の張り・ゲップ・悪寒・頭痛・節々の痛みを伴うインドネシア特有の国民的体調不良概念）",
+        ex: "Jangan naik sepeda motor malam-malam tanpa memakai jaket supaya kamu tidak masuk angin.",
+        tr: "マスック・アンギン（風邪・冷えによる体調不良）にならないよう、夜にジャケットを着ずにバイクに乗ってはいけない。",
+        note: [
+          "■ 【インドネシア文化を理解する最重要キーワード！】：\nインドネシア人は体調が少し悪くなると9割の確率で **『Masuk angin nih...（風が入っちゃった＝冷えて体調崩した）』** と言う！\n・その3大対処法は：①温かい生姜湯やハーブ生薬 **『トラック・アンギン（Tolak Angin）』** を飲む、②お腹や首筋に **『カユプティ油（minyak kayu putih）』** を塗る、③背中にオイルを塗ってコインでこする **『クロカン（kerokan）』** をして風（ガス・ゲップ）を抜くこと。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "kerokan", r: "kerok", dictOnly: true, tier: 3, topicCat: "🏥 健康・身体・感情",
+        m: "クロカン（masuk angin で体調がすぐれない際、背中にカユプティ油やバームを塗り、硬貨［コイン］の縁で肋骨に沿って皮膚を繰り返しこすって赤い縞模様［かっさ痕］を浮かび上がらせ、血行を促進して「体内の風」を抜く伝統民間療法）",
+        ex: "Setelah dipijat dan dikerok punggungnya dengan uang logam, badannya terasa lebih hangat dan segar.",
+        tr: "マッサージを受け、硬貨で背中をクロカン（コイン擦り療法）してもらった後、彼の体はより温まりスッキリした。",
+        note: "■ 【語構成】：語幹 kerok（削る・こする：動詞 mengerok、受動 dikerok）+ -an。赤黒く色が出れば出るほど「風がたくさん溜まっていた証拠だ」と喜ばれる家庭の定番ケア。"
+      },
+      {
+        p: "n", w: "minyak kayu putih", r: "minyak", dictOnly: true, tier: 3, topicCat: "🏥 健康・身体・感情",
+        m: "カユプティ油（マルク諸島などに自生するフトモモ科「カユプティ［白い木］」の葉から水蒸気蒸留で抽出した清涼感のある万能薬用オイル。お腹の冷え・頭痛・鼻づまり・虫刺され・masuk angin の際に塗る、全インドネシア家庭の絶対的常備薬）",
+        ex: "Ibu selalu membawa botol kecil minyak kayu putih di dalam tasnya saat bepergian jauh.",
+        tr: "母は遠出をする際、いつもカバンの中にカユプティ油の小瓶を携帯している。",
+        note: "■ 【現地カルチャー】：ユーカリ油に近い爽やかで優しい香りがあり、赤ちゃんのお風呂上がりからお年寄りまで毎日お腹や胸に塗るため、この香りを嗅ぐと「インドネシアの実家の匂い・安心する匂い」と感じる国民的アイテム（さらにスースーする強いメントール配合のオイルは『minyak angin』、赤ちゃん用のさらにマイルドなオイルは『minyak telon』と呼ばれる）。"
+      },
+      {
+        p: "n", w: "tolak angin", r: "tolak", dictOnly: true, tier: 3, topicCat: "🏥 健康・身体・感情",
+        m: "トラック・アンギン（直訳「風を拒絶する・風邪を撃退する」：生姜・ミント・フェンネル・クローブ・蜂蜜などを濃縮した黄色い小袋［サシェ］入りの液体ジャムウ生薬。masuk angin や旅の疲れ・冷え対策としてコンビニや薬局で最も売れている国民的常備薬）",
+        ex: "Sebelum melakukan perjalanan malam dengan bus antarkota, ia meminum satu saset Tolak Angin hangat.",
+        tr: "都市間バスで夜行移動をする前に、彼は温かいトラック・アンギンを1袋飲んだ。",
+        note: "■ 【有名キャッチコピー】：1930年代に中部ジャワ・スマランの老舗生薬メーカー『Sido Muncul（シド・ムンチュル社：銘柄コード SIDO）』が処方を開発し、**『Orang pintar minum Tolak Angin（賢い人はトラック・アンギンを飲む）』** のテレビCMで全国民が知るメガヒット商品となった。"
+      },
+      {
+        p: "n", w: "arisan", r: "aris", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "アリサン（親族、町内の婦人会［PKK］、職場の同僚、同窓生などのグループで毎月一定額のお金を出し合い、集まった席でくじ引き［ボトルから紙片を振る］をして当選した1人がその月の積立金全額を受け取る、全員が当たるまで続く順番制の頼母子講兼親睦食事会）",
+        ex: "Ibu-ibu di kompleks perumahan itu mengadakan pertemuan arisan bulanan setiap hari Minggu pertama.",
+        tr: "その住宅団地の主婦たちは、毎月第1日曜日に月例のアリサン（親睦積立会）の集まりを開いている。",
+        note: "■ 【社会的役割】：単なる貯蓄・金融の仕組み（マイクロファイナンス）にとどまらず、「毎月必ず顔を合わせて食事をしながら近況を語り合い、絆（silaturahmi）を保つ」というインドネシア社会の人間関係の中心をなす文化。"
+      },
+      {
+        p: "n", w: "kerja bakti", r: "kerja", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "クルジャ・バクティ、地域共同奉仕作業（町内［RT/RW］や村・学校などで、日曜の朝などに住民がほうきや鍬を持って集まり、無償で道路の清掃・側溝の泥さらえ・草刈りなどを一緒に行う相互扶助［gotong royong］の実践行事）",
+        ex: "Seluruh warga RT 03 mengikuti kegiatan kerja bakti membersihkan selokan pada hari Minggu pagi.",
+        tr: "第3隣組（RT 03）の全住民が、日曜日の朝に側溝を掃除する共同奉仕作業（クルジャ・バクティ）に参加した。",
+        note: "■ 【文化】：作業の後には町内会の婦人たち（ibu-ibu PKK）が用意した揚げバナナ（gorengan）や緑豆のお汁粉（bubur kacang hijau）、甘いお茶をみんなで食べて歓談するのが定番の流れ。"
+      },
+
+      // ==================== 2. 地域別・民族別の親しみ敬称・呼びかけ（16語） ====================
+      {
+        p: "n", w: "Mas", r: "Mas", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "マス（ジャワ語由来の男性に対する親愛の敬称。「お兄さん・〜さん」。実の兄や年上男性だけでなく、ジャカルタやジャワ島全域でレストランの男性店員・運転手・同僚・年下の男性に対しても丁寧かつ親しみを込めて呼びかける際に毎日使われる）",
+        ex: "Permisi Mas, boleh minta daftar menu dan segelas air putih hangat?",
+        tr: "すみませんお兄さん（店員さん）、メニュー表と温かいお水を一杯いただけますか？",
+        note: [
+          "■ 【地域別「お兄さん・お姉さん（店員さんや友人への呼びかけ）」完全対照表】：\n・**ジャワ・ジャカルタ（全国標準的）**：男性＝**Mas（マス）** ／ 女性＝**Mbak（ンバッ）**\n・**バンドン・西ジャワ（スンダ地方）**：男性＝**Kang（カン）** または **Aa（アア）** ／ 女性＝**Teteh / Teh（テテ／テ）** または **Neng（ネン）**\n・**パダン・西スマトラ（ミナン地方）**：男性＝**Uda（ウダ）** ／ 女性＝**Uni（ウニ）**\n・**メダン・ジャカルタ（マレー・ブタウィ）**：男性＝**Bang / Abang（バン）** ／ 女性＝**Kak（カッ）** または **Mpok / None**\n・**バリ島**：男性＝**Bli（ブリ）** ／ 女性＝**Mbok / Gek（ンボッ／ゲッ）**"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Mbak", r: "Mbak", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "ンバッ（ジャワ語 mbakyu 由来の女性に対する親愛の敬称。「お姉さん・〜さん」。実の姉や年上女性だけでなく、女性店員・女性スタッフ・女性の友人や同僚に対して幅広く使われる）",
+        ex: "Terima kasih banyak atas bantuannya ya, Mbak Laras.",
+        tr: "ララスさん（お姉さん）、手伝ってくれて本当にありがとうね。",
+        note: "■ 【発音】：先頭の m を軽く鼻に抜いて「ンバッ（末尾の k は喉を止める声門閉鎖音）」と発音する。男性用の『Mas』と常に対で使われる。"
+      },
+      {
+        p: "n", w: "Kang", r: "akang", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "カン、アカン（Akang の短縮形：バンドンをはじめとする西ジャワ・スンダ地方における男性への親しみと敬意を込めた呼びかけ。「お兄さん・〜さん」。女性用の Teteh / Teh と対をなす）",
+        ex: "Punten Kang, mau tanya kalau jalan menuju Gedung Sate lewat sebelah mana ya?",
+        tr: "すみませんお兄さん（カン）、グドゥン・サテへ向かう道はどちらを通ればいいかお聞きしたいのですが？",
+        note: "■ 【バンドン滞在の必須ワード！】：バンドンでスンダ語の『Punten（プントゥン＝すみません・失礼します）』と『Kang（男性へ）／ Teh（女性へ）』を使うと、現地の人との距離が一瞬で縮まる魔法の呼びかけ。"
+      },
+      {
+        p: "n", w: "Aa", r: "aa", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "アア（西ジャワ・スンダ地方で兄や年上の男性・恋人、または屋台やお店の男性スタッフに対して親しみを込めて呼びかける語。「お兄ちゃん・お兄さん」＝Akang / Kang）",
+        ex: "Jangan lupa mampir ke warung bakso milik Aa yang ada di ujung jalan kampus.",
+        tr: "キャンパスの通りの端にあるお兄さん（アア）のバクソ屋台に立ち寄るのを忘れないでね。",
+        note: "■ 【発音】：『ア・ア（A-a）』と母音 a を2回区切って発音する。短く『A（ア）』とも呼ばれ、バンドンの日常会話で毎日飛び交うスンダ語敬称。"
+      },
+      {
+        p: "n", w: "Teteh", r: "teteh", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "テテ（短縮形は Teh：バンドンをはじめとする西ジャワ・スンダ地方における実の姉や年上女性・女性店員・女性の友人全般への親愛の敬称。「お姉さん・〜さん」。男性用の Akang / Kang / Aa と対をなす）",
+        ex: "Hatur nuhun ya Teh, makanannya enak sekali!",
+        tr: "お姉さん（テ）、どうもありがとう（ハトゥル・ヌフン）、料理がとても美味しかったです！",
+        note: "■ 【用法】：単体で呼ぶときは『Teteh（テテ）』または『Teh（テ）』、名前の前に付けるときは『Teh Sari（サリお姉さん／サリさん）』のように使う。ちなみにスンダ語の「ありがとう」は『Hatur nuhun（ハトゥル・ヌフン）』。"
+      },
+      {
+        p: "n", w: "Neng", r: "eneng", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "ネン、エネン（Eneng の短縮形：西ジャワ・スンダ地方やジャカルタで若い女性・女の子・娘に対して親愛の情を込めて呼びかける語。「お嬢さん・お姉ちゃん・〜ちゃん」）",
+        ex: "Silakan duduk dulu Neng, pesanannya sebentar lagi siap.",
+        tr: "お嬢さん（ネン）、どうぞ先に座ってお待ちくださいね、ご注文の品はもうすぐできますから。",
+        note: "■ 【関連語】：スンダの伝統的な良家のお嬢さんに対する敬称『Neneng』に由来し、屋台のおばちゃんや運転手さんが若い女性客に優しく声をかける際によく使われる。"
+      },
+      {
+        p: "n", w: "Uda", r: "uda", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "ウダ（西スマトラ州ミナンカバウ族における兄・年上男性への敬称。「お兄さん」。全国のパダン料理店［Rumah Makan Padang］の男性店員さんに声をかける際の定番の呼びかけ）",
+        ex: "Tolong tambah kuah gulai dan sambal ijonya sedikit lagi ya, Uda.",
+        tr: "お兄さん（ウダ）、グライの汁と緑サンバルをもう少しだけ追加してくださいね。",
+        note: "■ 【対になる女性敬称】：ミナンカバウ語の「お兄さん」は **『Uda（ウダ）』**、「お姉さん」は **『Uni（ウニ）』**。"
+      },
+      {
+        p: "n", w: "Uni", r: "uni", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "ウニ（西スマトラ州ミナンカバウ族における姉・年上女性への敬称。「お姉さん」。男性用の Uda と対をなす ※なお頭文字大文字の接頭語 Uni は「連合・ユニオン［Uni Eropa＝欧州連合］」を意味する）",
+        ex: "Uni yang menjaga toko keripik balado di Bukittinggi itu sangat ramah kepada para pembeli.",
+        tr: "ブキティンギでバラド・チップスの店を切り盛りしているお姉さん（ウニ）は、買い物客にとても親切だ。",
+        note: "■ 【同音異義語】：①ミナンカバウ語の「お姉さん（Uni）」、②ラテン語・オランダ語由来の「連合・連邦（Uni Eropa＝欧州連合、Uni Emirat Arab＝UAE）」。"
+      },
+      {
+        p: "n", w: "Abang", r: "abang", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "アバン（短縮形は Bang：ジャカルタ［ブタウィ族］や北スマトラ［メダン］・マレー語圏で、実の兄・年上男性・恋人・夫、または配車バイク［ojol］の運転手や屋台のお兄さんを呼ぶ親愛の敬称。「兄貴・お兄さん」）",
+        ex: "Terima kasih ya Bang, titik penjemputannya sudah sesuai dengan yang ada di aplikasi.",
+        tr: "お兄さん（バン＝運転手さん）、ありがとうね、乗車位置はアプリにある通りです。",
+        note: "■ 【用法】：ジャカルタで Gojek や Grab の男性ドライバー、バクソやナシゴレン屋台のお兄さんに声をかけるときは **『Bang...（バン）』** が一番自然で喜ばれる！"
+      },
+      {
+        p: "n", w: "Bapak", r: "bapak", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "①お父さん、父（＝ayah） ②（敬称の Pak / Bapak で）男性の先生・上司・既婚男性・年配男性に対する最も標準的で丁寧な二人称・敬称（「〜さん・〜先生・あなた」）",
+        ex: "Selamat pagi Pak, apakah Bapak ada waktu luang untuk berdiskusi mengenai proposal ini?",
+        tr: "おはようございます先生（部長）、この企画書についてご相談するお時間はございますでしょうか？",
+        note: "■ 【インドネシア語の人称代名詞としての用法】：インドネシア語では目上の人に『Anda』を使うよりも、**『Bapak（短縮形 Pak）』** や **『Ibu（短縮形 Bu）』** を「あなた（二人称）」としてそのまま主語や目的語に使うのが最も礼儀正しく温かい敬語表現！"
+      },
+      {
+        p: "n", w: "Ibu", r: "ibu", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "①お母さん、母（＝bunda / mama） ②（敬称の Bu / Ibu で）女性の先生・上司・既婚女性・年配女性に対する最も標準的で丁寧な二人称・敬称（「〜さん・〜先生・奥様」） ③本体、中心（ibu kota＝首都、ibu jari＝親指）",
+        ex: "Ibu dosen meminta kami mengumpulkan makalah penelitian paling lambat hari Jumat sore.",
+        tr: "女性の指導教員（イブ・ドセン）は私たちに対し、遅くとも金曜日の夕方までに研究レポートを提出するよう求めた。",
+        note: "■ 【コロケーション】：Ibu Kota（首都・州都）、Hari Ibu（母の日：12月22日）、bahasa ibu（母語）、ibu jari（親指＝jempol）、ibu rumah tangga（主婦）。"
+      },
+      {
+        p: "n", w: "Kakak", r: "kakak", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "①兄、姉（性別を問わず年上のきょうだい：兄は kakak laki-laki、姉は kakak perempuan） ②（敬称の Kak / Kakak で）大学の先輩や年上の友人、また現代のカフェ・アパレル・EC接客で性別や民族を問わず客や店員を丁寧に呼ぶ万能敬称",
+        ex: "Halo Kak, selamat datang di toko kami, ada yang bisa saya bantu cari ukurannya?",
+        tr: "こんにちはお客様（カッ）、当店へようこそ、サイズをお探ししましょうか？",
+        note: "■ 【現代トレンド】：かつては地域ごとの Mas / Mbak / Kang / Teh が主流だったが、近年のカフェ（Starbucks や Kopi Kenangan 等）、ショッピングモール、SNS、オンライン通販のチャットでは、相手の民族・年齢・性別を問わず誰にでも失礼なく使える **『Kak（カッ）』** が全国共通のスマートな呼びかけとして圧倒的に普及している！"
+      },
+      {
+        p: "n", w: "Adik", r: "adik", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "①弟、妹（性別を問わず年下のきょうだい：弟は adik laki-laki、妹は adik perempuan） ②（呼びかけの Dik / Adik / Dek で）年下の後輩や子ども、若い人に対する親しみを込めた呼びかけ",
+        ex: "Adik laki-laki saya sedang belajar giat untuk menghadapi ujian masuk universitas tahun depan.",
+        tr: "私の弟は、来年の大学入試に向けて懸命に勉強している。",
+        note: "■ 【口語形】：日常会話では **『adek / dek』** とも発音・表記される。学校の1つ下の後輩は **『adik kelas（⇔ 先輩は kakak kelas）』** と呼ぶ。"
+      },
+      {
+        p: "n", w: "Om", r: "om", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "おじさん、叔父さん（＝paman：オランダ語 oom に由来。親戚の叔父や、友人の父親・近所の父親世代の男性に対する親しみやすい呼びかけ）",
+        ex: "Waktu libur sekolah, kami sekeluarga menginap di rumah Om dan Tante yang tinggal di Bandung.",
+        tr: "学校の休みの時、私たち家族はバンドンに住んでいる叔父さん（オム）と叔母さん（タンテ）の家に泊まった。",
+        note: "■ 【使い分け】：改まった文章や公的な続柄表記では固有語の『paman（叔父・伯父）』と『bibi（叔母・伯母）』を使うが、日常の会話や呼びかけではオランダ語由来の **『Om（おじさん）』** と **『Tante（おばさん）』** が広く使われる。"
+      },
+      {
+        p: "n", w: "Tante", r: "tante", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "おばさん、叔母さん（＝bibi：オランダ語 tante に由来。親戚の叔母や、友人の母親・母親世代の女性に対する親しみやすい呼びかけ）",
+        ex: "Tante Rina membawakan kue lapis legit yang sangat lezat saat berkunjung ke rumah kami.",
+        tr: "リナ叔母さん（タンテ・リナ）は私たちの家を訪れた際、とても美味しいラピス・ルギット（千層ケーキ）を持ってきてくれた。",
+        note: "■ 【ペア】：Om dan Tante（おじさんとおばさん）。"
+      },
+      {
+        p: "n", w: "Gus", r: "gus", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "グス（東ジャワや中部ジャワの伝統派イスラム社会［NU系］において、イスラム寄宿塾［pesantren］の指導者であるキヤイ［Kiai］の息子・後継者に対して付けられる敬称）",
+        ex: "Para santri sangat menghormati putra pimpinan pondok pesantren yang akrab disapa Gus itu.",
+        tr: "寄宿塾生（サントリ）たちは、「グス」と呼ばれて親しまれている寄宿塾長の息子を深く敬っている。",
+        note: "■ 【語源】：ジャワ語の『Bagus（立派な・優れた）』の短縮形。第4代大統領グス・ドゥル（Gus Dur＝K.H. Abdurrahman Wahid）をはじめ、NU系の若手宗教指導者や政治家の名前の前によく付く。"
+      },
+
+      // ==================== 3. 現代ネット・EC買い物・働き方・日常イベント略語（14語） ====================
+      {
+        p: "singkatan", w: "jastip", r: "jasa titip", alts: ["jasa titip", "jasa titip beli"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "ジャスティップ、買い物代行（jasa titip の合成アクロニム。海外旅行や他都市・大型セール会場へ行く人に少しの手数料を払って、現地の限定品や名物お菓子・ブランド品を買ってきてもらう現代インドネシアの大人気サービス・習慣）",
+        ex: "Banyak wisatawan yang membuka layanan jastip oleh-oleh dan kosmetik saat berlibur ke Jepang atau Bangkok.",
+        tr: "多くの旅行者が、日本やバンコクへ旅行する際に、お土産や化粧品の買い物代行（ジャスティップ）サービスを開いている。",
+        note: "■ 【語構成】：JAsa（サービス・役務）+ TITIP（預ける・ついでに買ってきてもらうよう頼む）。SNSで『Open Jastip Bandung / Jepang!』のように日常的に使われる。"
+      },
+      {
+        p: "singkatan", w: "COD", r: "Cash on Delivery", alts: ["cash on delivery", "bayar di tempat"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "①代金引換決済（ネット通販の商品が自宅に届いた際に宅配便の配達員へ現金で支払う方法＝bayar di tempat） ②（個人間フリマ取引で）駅やカフェなどで売り手と買い手が直接会って商品を検品し現金手渡しで売買すること",
+        ex: "Bagi pembeli yang belum memiliki rekening bank digital, fitur pembayaran COD saat barang tiba sangat membantu.",
+        tr: "デジタル銀行口座をまだ持っていない購入者にとって、商品到着時の代金引換（COD）決済機能は非常に助かる。",
+        note: "■ 【インドネシア語表現】：**bayar di tempat（その場で支払い）**。口語では動詞化して『COD-an yuk di stasiun!（駅で直接会って手渡し取引しよう！）』のようにも使われる。"
+      },
+      {
+        p: "singkatan", w: "PO", r: "Pre-Order", alts: ["pre-order", "preorder", "pesan awal"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "予約注文、受注生産（在庫を置かず、事前に注文を受け付けてから調理・製作・取り寄せを行う販売方式。手作りのケーキや弁当、限定アパレルなどで「Open PO」として毎日使われる）",
+        ex: "Toko kue rumahan itu membuka sistem PO untuk pesanan kue kering Lebaran mulai awal bulan Ramadan.",
+        tr: "そのホームメイドケーキ店は、ラマダン月の初めからレバラン用の焼き菓子の予約注文（PO）受付を開始した。",
+        note: "■ 【ビジネス文脈でのもう1つの意味】：一般・SNS通販では『Pre-Order（予約注文）』だが、B2B企業間の購買・発注業務では『Purchase Order（発注書）』の意味でも使われる。"
+      },
+      {
+        p: "singkatan", w: "ongkir", r: "ongkos kirim", alts: ["ongkos kirim", "biaya pengiriman"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "オンキル、配送料、送料（ongkos kirim の合成アクロニム。ネット通販や宅配便で荷物を送る際にかかる配送費用）",
+        ex: "Banyak konsumen menunggu promo tanggal kembar di lokapasar untuk mendapatkan voucer gratis ongkir.",
+        tr: "多くの消費者が、送料無料（グラティス・オンキル）のクーポンを手に入れるためにECモールのゾロ目の日セールを待っている。",
+        note: "■ 【最重要コロケーション】：**gratis ongkir / bebas ongkir（送料無料）**。Shopee や Tokopedia で買い物をするインドネシア人が一番愛するフレーズ！"
+      },
+      {
+        p: "n", w: "lokapasar", r: "pasar", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "オンライン・マーケットプレイス、電子商取引（EC）モール（Tokopedia や Shopee などのように多数の出店者が集まるインターネット上の仮想市場を指す公式インドネシア語＝marketplace）",
+        ex: "Ribuan pelaku UMKM kini memasarkan produk kerajinan mereka melalui berbagai platform lokapasar digital.",
+        tr: "現在、数千の中小零細事業者が様々なデジタル・マーケットプレイス（ロカパサール）のプラットフォームを通じて工芸品を販売している。",
+        note: "■ 【語構成】：サンスクリット由来の『loka（場所・世界・空間）』＋『pasar（市場）』＝英語の marketplace に対応するKBBI公式標準語。Kompasの経済・IT記事で毎週のように使われる。"
+      },
+      {
+        p: "singkatan", w: "WFO", r: "Work From Office", alts: ["work from office", "bekerja dari kantor"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "出社勤務、オフィス勤務（職場・会社に出勤して働くこと。在宅勤務 WFH や場所を問わない WFA と対比して使われる）",
+        ex: "Perusahaan menerapkan jadwal kerja hibrida dengan tiga hari WFO di kantor dan dua hari WFH di rumah.",
+        tr: "その企業は、オフィスでの出社勤務（WFO）3日と自宅での在宅勤務（WFH）2日を組み合わせたハイブリッド勤務日程を導入している。",
+        note: "■ 【働き方の3大略語】：**WFO** (Work From Office＝出社勤務)、**WFH** (Work From Home＝在宅勤務)、**WFA** (Work From Anywhere＝場所を問わないリモートワーク)。"
+      },
+      {
+        p: "singkatan", w: "WFH", r: "Work From Home", alts: ["work from home", "bekerja dari rumah"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "在宅勤務、テレワーク（オフィスに出社せず自宅からオンラインで業務を行う勤務形態＝bekerja dari rumah）",
+        ex: "Untuk mengurangi kemacetan parah saat penyelenggaraan KTT internasional, sebagian pegawai diimbau melakukan WFH.",
+        tr: "国際首脳会議の開催中における深刻な渋滞を緩和するため、一部の職員に在宅勤務（WFH）を行うよう呼びかけがなされた。",
+        note: "■ 【インドネシア語訳】：Bekerja dari Rumah (BDR)。"
+      },
+      {
+        p: "singkatan", w: "WFA", r: "Work From Anywhere", alts: ["work from anywhere", "bekerja dari mana saja"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "場所を問わないリモートワーク、どこでも勤務（オフィスや自宅に限らず、カフェや帰省先・バリ島などのリゾート地からでもオンラインで働く柔軟な勤務制度）",
+        ex: "Sejumlah perusahaan rintisan teknologi memberikan kebijakan WFA bagi karyawannya menjelang libur panjang Lebaran.",
+        tr: "複数のテクノロジースタートアップ企業は、レバランの大型連休を前に従業員へ場所を問わないリモートワーク（WFA）の方針を認めている。",
+        note: "■ 【派生語】：バリ島で休暇を楽しみながらリモートワークすることは『Work From Bali (WFB)』とも呼ばれる。"
+      },
+      {
+        p: "singkatan", w: "kopdar", r: "kopi darat", alts: ["kopi darat"], dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "オフ会、対面ミーティング（kopi darat の合成アクロニム。元々はアマチュア無線やSNS・オンラインコミュニティで知り合った仲間が、実際に地上［darat］のカフェ等で顔を合わせてコーヒーを飲みながら会うこと）",
+        ex: "Komunitas penggemar fotografi dan bahasa Indonesia itu mengadakan acara kopdar perdana di sebuah kafe di pusat kota.",
+        tr: "その写真およびインドネシア語愛好家コミュニティは、都心のカフェで初めてのオフ会（コプダル）を開催した。",
+        note: "■ 【語源】：元々は1980年代の市民ラジオ（CB無線）愛好家が「電波（空中 udara）ではなく、陸上（darat）でコーヒー（kopi）を飲みながら直接会おう」と言った『kopi darat』から生まれた粋なインドネシア語表現。"
+      },
+      {
+        p: "singkatan", w: "bukber", r: "buka puasa bersama", alts: ["buka puasa bersama", "buka bersama"], dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理",
+        m: "ブクベル、合同断食明け夕食会（buka puasa bersama の合成アクロニム。ラマダン断食月の期間中、高校・大学の同窓生や職場の同僚、友人グループでレストランに集まり、日没［magrib］とともに一緒に夕食をとる年に一度の恒例イベント）",
+        ex: "Pada bulan Ramadan, hampir setiap restoran penuh dipesan oleh warga yang ingin mengadakan acara bukber.",
+        tr: "ラマダン月には、ブクベル（断食明け夕食会）を開こうとする人々によってほぼすべてのレストランが予約で満席になる。",
+        note: "■ 【現地あるある】：ラマダン月になると小・中・高・大学・バイト先の全部から『Bukber yuk!（ブクベルやろうぜ！）』と誘いが来てスケジュール帳が埋まるのがインドネシアの春の風物詩。"
+      },
+      {
+        p: "n", w: "halalbihalal", r: "halal", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "ハラルビハラル（断食明け大祭［レバラン／Idulfitri］の休暇中や連休明けの初出勤・初登校時に、親族・近隣住民・職場・学校で一堂に会し、握手をして過去の過ちを互いに許し合い絆を深めるインドネシア固有の伝統行事。略称は halbil）",
+        ex: "Pada hari pertama masuk kerja setelah libur Lebaran, seluruh karyawan mengikuti acara halalbihalal di aula kantor.",
+        tr: "レバラン連休明けの最初の出勤日に、全社員がオフィスのホールでハラルビハラル（懇親・挨拶会）の行事に参加した。",
+        note: "■ 【歴史】：アラビア語風の形をしているが、実はアラブ諸国には存在しない**インドネシア独自の造語・文化**！1948年に独立戦争中の政治的対立を和解させるため、スカルノ大統領の相談を受けたNUの創設メンバー K.H. アブドゥル・ワハブ・ハスブラ師が「お互いを許し合って関係をハラール（清浄・適法）にする集まり＝Halalbihalal」として提案したのが始まりとされる。"
+      },
+      {
+        p: "singkatan", w: "mabar", r: "main bareng", alts: ["main bareng", "bermain bersama"], dictOnly: true, tier: 3, topicCat: "💬 スラング・口語",
+        m: "マバル、一緒にプレイすること（main bareng の合成アクロニム。マインクラフトやモバイルレジェンドなどのオンラインゲーム、あるいはフットサルやバドミントンなどを友達と一緒に遊ぶこと）",
+        ex: "Malam minggu ini kita jadi mabar gim daring sama teman-teman kampus lewat Discord kan?",
+        tr: "今週の土曜の夜は、Discordを使って大学の友達と一緒にオンラインゲームをマルチプレイ（マバル）するよな？",
+        note: "■ 【語構成】：MAin（遊ぶ・プレイする）+ BAReng（一緒に＝bersama）。"
+      },
+      {
+        p: "singkatan", w: "nobar", r: "nonton bareng", alts: ["nonton bareng", "menonton bersama"], dictOnly: true, tier: 3, topicCat: "💬 スラング・口語",
+        m: "ノバル、パブリックビューイング、同時視聴会（nonton bareng の合成アクロニム。サッカーインドネシア代表［Timnas］の試合やバドミントン決勝戦、話題の映画などをカフェ・広場・キャンパスに集まって大画面で一緒に観戦・鑑賞すること）",
+        ex: "Ratusan suporter memadati halaman balai kota untuk mengikuti acara nobar pertandingan kualifikasi Piala Dunia Timnas Indonesia.",
+        tr: "サッカーインドネシア代表のワールドカップ予選のパブリックビューイング（ノバル）イベントに参加するため、数百人のサポーターが市役所の広場を埋め尽くした。",
+        note: "■ 【語構成】：NONton（見る・観戦する＝menonton）+ BAReng（一緒に＝bersama）。"
+      },
+      {
+        p: "n", w: "hoaks", r: "hoaks", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "デマ、フェイクニュース、虚偽情報（英語の hoax をインドネシア語の音韻に合わせて ks で綴ったKBBI標準語＝berita bohong）",
+        ex: "Masyarakat diimbau selalu memeriksa kebenaran informasi dan tidak mudah menyebarkan berita hoaks di grup pesan singkat.",
+        tr: "市民は常に情報の真偽を確認し、チャットグループでデマ（ホアクス）ニュースを安易に拡散しないよう呼びかけられている。",
+        note: "■ 【正書法】：英語の hoax も見かけるが、インドネシア語の標準語形（Kata Baku）は x を ks に変えた **『hoaks』**！"
+      }
+    ],
+    acro: [
+      { acro: "warteg", full: "warung tegal", alts: [], dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理", tr: "ワルテグ（安くておかずが豊富なトゥガル発祥の大衆定食屋）", exp: "■ 【正式名称】：WARung TEGal。" },
+      { acro: "warkop", full: "warung kopi", alts: [], dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理", tr: "ワルコップ（大衆コーヒー屋台・カフェ）", exp: "■ 【正式名称】：WARung KOPi。" },
+      { acro: "CFD", full: "car free day", alts: ["hari bebas kendaraan bermotor"], dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動", tr: "カーフリーデー（日曜朝の歩行者天国）", exp: "■ 【正式名称】：Car Free Day（インドネシア語公式名：Hari Bebas Kendaraan Bermotor / HBKB）。" },
+      { acro: "jastip", full: "jasa titip", alts: ["jasa titip beli"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物", tr: "ジャスティップ、買い物代行サービス", exp: "■ 【正式名称】：JAsa TITIP。" },
+      { acro: "COD", full: "cash on delivery", alts: ["bayar di tempat"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物", tr: "代金引換決済、直接対面での現金手渡し取引", exp: "■ 【正式名称】：Cash on Delivery（インドネシア語では bayar di tempat）。" },
+      { acro: "PO", full: "pre-order", alts: ["preorder", "pesan awal", "purchase order"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物", tr: "予約注文、受注生産（ビジネスでは発注書 Purchase Order）", exp: "■ 【正式名称】：Pre-Order。" },
+      { acro: "ongkir", full: "ongkos kirim", alts: ["biaya pengiriman"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物", tr: "配送料、送料（gratis ongkir＝送料無料）", exp: "■ 【正式名称】：ONGkos KIRim。" },
+      { acro: "WFO", full: "work from office", alts: ["bekerja dari kantor"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物", tr: "出社勤務、オフィス勤務", exp: "■ 【正式名称】：Work From Office。" },
+      { acro: "WFH", full: "work from home", alts: ["bekerja dari rumah"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物", tr: "在宅勤務、テレワーク", exp: "■ 【正式名称】：Work From Home。" },
+      { acro: "WFA", full: "work from anywhere", alts: ["bekerja dari mana saja"], dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物", tr: "場所を問わないリモートワーク（どこでも勤務）", exp: "■ 【正式名称】：Work From Anywhere。" },
+      { acro: "kopdar", full: "kopi darat", alts: [], dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動", tr: "オフ会、オンライン仲間との対面ミーティング", exp: "■ 【正式名称】：KOPi DARat。" },
+      { acro: "bukber", full: "buka puasa bersama", alts: ["buka bersama"], dictOnly: true, tier: 3, topicCat: "🍽️ 食・料理", tr: "ブクベル（ラマダン月中の友人や同僚との合同断食明け夕食会）", exp: "■ 【正式名称】：BUKa puasa BERsama。" },
+      { acro: "mabar", full: "main bareng", alts: ["bermain bersama"], dictOnly: true, tier: 3, topicCat: "💬 スラング・口語", tr: "マバル（ゲームやスポーツを一緒にプレイすること）", exp: "■ 【正式名称】：MAin BAReng。" },
+      { acro: "nobar", full: "nonton bareng", alts: ["menonton bersama"], dictOnly: true, tier: 3, topicCat: "💬 スラング・口語", tr: "ノバル（パブリックビューイング・同時視聴観戦会）", exp: "■ 【正式名称】：NONton BAReng。" }
+    ]
+  };
+
+  PACK_PART13_CULTURE_LIFESTYLE.vocab.forEach(function(it) {
+    dictOnlySet.add(it.w.trim().toLowerCase());
+  });
+  PACK_PART13_CULTURE_LIFESTYLE.acro.forEach(function(a) {
+    dictOnlySet.add(a.acro.trim().toLowerCase());
+  });
+
+  if (typeof window.wiAddPack === "function") {
+    window.wiAddPack(PACK_PART13_CULTURE_LIFESTYLE);
+  }
+})();
+/* =====================================================================
+   WhatsIndo ご指名28語追加（出題語19語＋辞書専用9語）＆ 3組の統合（menyetrika / berpikir / menambal）
+   ＆ 基本数詞（satu〜sepuluh）の辞書専用（問題非出題）化パッチ
+   ===================================================================== */
+(function() {
+  const d = window.WHATSINDO_EXTERNAL_DATA;
+  if (!d) return;
+
+  const dictOnlySet     = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+  const persistentAdded = window.__wiPersistentAddedVocab || (window.__wiPersistentAddedVocab = new Map());
+  const vMap            = window.__wiMasterVocabMap || (window.__wiMasterVocabMap = new Map());
+  const catMap          = window.__WI_V5_VCAT || (window.__WI_V5_VCAT = new Map());
+
+  // -------------------------------------------------------------------
+  // 1. 統合に伴い個別見出しから完全削除する単語（menyetrika / berpikir / menambal へ一本化）
+  // -------------------------------------------------------------------
+  const MERGE_REMOVE_SET = new Set([
+    "menyeterika",  // -> menyetrika に統合
+    "pikir",        // -> berpikir に統合
+    "tambal ban",   // -> menambal に統合
+    "tambal sulam", // -> menambal に統合
+    "tambal"        // -> menambal に統合
+  ]);
+
+  function purgeMergedHeadwords() {
+    if (Array.isArray(d.vocab)) {
+      for (let i = d.vocab.length - 1; i >= 0; i--) {
+        const it = d.vocab[i];
+        if (!it || !it.w) continue;
+        const wl = it.w.trim().toLowerCase();
+        if (MERGE_REMOVE_SET.has(wl)) {
+          d.vocab.splice(i, 1);
+        }
+      }
+    }
+    MERGE_REMOVE_SET.forEach(function(k) {
+      dictOnlySet.delete(k);
+      persistentAdded.delete(k);
+      if (vMap) vMap.delete(k);
+      if (catMap) catMap.delete(k);
+    });
+  }
+  purgeMergedHeadwords();
+
+  // -------------------------------------------------------------------
+  // 2. 基本数詞（satu 〜 sepuluh）を問題非出題（辞書専用 dictOnly: true）に変更
+  // -------------------------------------------------------------------
+  const BASIC_NUMBERS_1_TO_10 = [
+    "satu", "dua", "tiga", "empat", "lima",
+    "enam", "tujuh", "delapan", "sembilan", "sepuluh"
+  ];
+
+  function markNumbersDictOnly() {
+    BASIC_NUMBERS_1_TO_10.forEach(function(numWord) {
+      dictOnlySet.add(numWord);
+      if (vMap && vMap.has(numWord)) {
+        vMap.get(numWord).dictOnly = true;
+        vMap.get(numWord).tier = 3;
+      }
+      if (persistentAdded && persistentAdded.has(numWord)) {
+        persistentAdded.get(numWord).dictOnly = true;
+        persistentAdded.get(numWord).tier = 3;
+      }
+    });
+    if (Array.isArray(d.vocab)) {
+      for (let i = 0; i < d.vocab.length; i++) {
+        const it = d.vocab[i];
+        if (!it || !it.w) continue;
+        const wl = it.w.trim().toLowerCase();
+        if (BASIC_NUMBERS_1_TO_10.indexOf(wl) !== -1) {
+          it.dictOnly = true;
+          it.tier = 3;
+        }
+      }
+    }
+  }
+  markNumbersDictOnly();
+
+  // -------------------------------------------------------------------
+  // 3. 統合後の親単語3語 ＋ ご指名28語（出題対象19語 ＆ 辞書専用9語）マスターデータ
+  // -------------------------------------------------------------------
+  const PACK_CUSTOM_UPDATE = {
+    vocab: [
+      // ==================== A. 統合アップデート（menyetrika / berpikir / menambal） ====================
+      {
+        p: "v", w: "menyetrika", r: "setrika", tier: 1, topicCat: "🏠 日常・生活・移動",
+        m: "（しわになった衣服や布に）アイロンをかける（語幹 setrika＝アイロン）",
+        ex: "Kakak sedang menyetrika kemeja putih dan celana panjang yang akan dipakai untuk wawancara kerja besok pagi.",
+        tr: "兄は明朝の採用面接で着る予定の白いシャツとズボンにアイロンをかけている。",
+        note: [
+          "■ 【語構成と正書法（menyeterika との違い）】：\n・語幹『setrika（オランダ語 strijkijzer 由来：アイロン）』＋接頭辞『meN-』（頭文字 s が鼻音化して ny）。\n・かつては e を挟んで menyeterika / seterika と綴られることもあったが、現在のKBBI標準語形（Kata Baku）は e を入れない **『menyetrika（語幹 setrika）』** に統一されている。",
+          "■ 【重要コロケーション・派生語】：\n・setrika uap / setrika listrik：スチームアイロン ／ 電気アイロン\n・meja setrika：アイロン台\n・setrikaan（名詞）：アイロンがけされた洗濯物（またはアイロンがけの仕事）"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "berpikir", r: "pikir", tier: 1, topicCat: "🎓 教育・学術・IT",
+        m: "考える、思考する、思索する（語幹 pikir＝考え・思考）",
+        ex: "Sebelum mengambil keputusan yang besar, kita harus berpikir secara tenang dan matang.",
+        tr: "大きな決断を下す前には、私たちは冷静かつ十分に（熟考して）考えなければならない。",
+        note: [
+          "■ 【語構成と正書法】：ber- + pikir（標準語綴りは f の fikir ではなく **p** の **pikir**）。",
+          "■ 【重要コロケーション】：\n・berpikir kritis / berpikir logis：批判的に思考する ／ 論理的に考える\n・berpikir positif ⇔ berpikir negatif：前向き（ポジティブ）に考える ⇔ 後ろ向きに考える\n・berpikir panjang / berpikir matang-matang：先々までよく考える ／ 熟考する\n・berpikir dua kali：二の足を踏む、もう一度よく考え直す\n・pikir-pikir / pikir punya pikir：よくよく考えてみると",
+          "■ 【pikir 派生語ファミリーの完全整理】：\n・**memikirkan（他動詞）**：〜について考える・思い悩む・気にかける\n・**terpikir / kepikiran（状態動詞）**：ふと思いつく ／ （口語 kepikiran で）〜が頭から離れず気になって仕方がない\n・**pikiran（名詞）**：考え、思考、頭の中（pola pikir＝思考様式・マインドセット、buah pikiran＝アイデア・意見）\n・**pemikiran（名詞）**：思想、考察、思考プロセス"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "menambal", r: "tambal", tier: 1, topicCat: "🏠 日常・生活・移動",
+        m: "①（パンクしたタイヤ・道路の穴・虫歯・破れた服などを）塞いで補修する、繕う、詰める ②（赤字・不足分などを）穴埋めする、補填する",
+        ex: "Petugas dinas pekerjaan umum sedang menambal lubang-lubang di jalan raya yang rusak akibat genangan air hujan.",
+        tr: "公共事業局の職員は、雨水の冠水で傷んだ幹線道路の穴を埋めて補修している。",
+        note: [
+          "■ 【語構成】：meN- + tambal（継ぎ当て・穴埋め：頭文字 t が鼻音化して n）。",
+          "■ 【必須コロケーション（tambal ban / tambal sulam 統合）】：\n・**tambal ban / menambal ban**：タイヤのパンク修理をする（道端のパンク修理屋も『tambal ban』と呼ばれる）\n・**tambal gigi / menambal gigi**：虫歯の詰め物治療をする\n・**tambal sulam（慣用句）**：「その場しのぎの継ぎはぎ対策、弥縫（びほう）策」（破れた箇所に継ぎを当てて［tambal］刺繍で繕う［sulam］ことから、抜本的な改革をせず問題が出た部分だけを一時しのぎで手直しするやり方を批判する報道・論説の必須表現：kebijakan yang bersifat tambal sulam）",
+          "■ 【派生語】：\n・tambalan（名詞）：継ぎ当て、詰め物、補修箇所\n・penambalan（名詞）：穴埋め・補修作業"
+        ].join("\n")
+      },
+
+      // ==================== B. 出題対象の新規追加語（19語：tier: 1） ====================
+      {
+        p: "n", w: "aspek", r: "aspek", tier: 1, topicCat: "🎓 教育・学術・IT",
+        m: "側面、観点、見地、局面、（言語学の動詞の）相・アスペクト",
+        ex: "Pembangunan ibu kota baru harus dikaji secara mendalam dari berbagai aspek, mulai dari ekonomi, lingkungan, hingga sosial.",
+        tr: "新首都の建設は、経済から環境、社会に至るまで様々な側面（観点）から深く検討されなければならない。",
+        note: [
+          "■ 【重要コロケーション】：\n・dari berbagai aspek / dari segala aspek：様々な側面から ／ あらゆる観点から（＝dari berbagai segi / sudut pandang）\n・aspek hukum / aspek ekonomi / aspek teknis：法的側面 ／ 経済的側面 ／ 技術的側面"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "tutur", r: "tutur", tier: 1, topicCat: "🏠 日常・生活・移動",
+        m: "言葉、言葉遣い、発話、話しぶり（tutur kata＝言葉遣い・口調、bahasa tutur＝話し言葉・口語）",
+        ex: "Ia sangat disukai oleh warga sekitar karena memiliki sikap yang sopan dan tutur kata yang lembut.",
+        tr: "彼は礼儀正しい態度と柔和な言葉遣い（話しぶり）を持っているため、周囲の住民からとても好かれている。",
+        note: [
+          "■ 【重要コロケーション】：\n・**tutur kata / tutur sapa**：言葉遣い、話し方、挨拶の口調（tutur katanya halus / sopan＝言葉遣いが丁寧で上品だ）\n・**bahasa tutur**：話し言葉、口語（⇔ bahasa tulis＝書き言葉）\n・**tradisi tutur (lisan)**：口承伝統",
+          "■ 【tutur 派生語ファミリー】：\n・**bertutur（自動詞）**：話す、語る（bertutur kata＝言葉を発する・話す）\n・**menuturkan（他動詞）**：（体験・歴史・物語などを）語り聞かせる、述べる、打ち明ける\n・**penutur（名詞）**：話者、スピーカー（**penutur asli / penutur jati**＝ネイティブスピーカー・母語話者、penutur asing＝外国語話者）\n・**tuturan（名詞）**：発話、語られた話"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "menyawer", r: "sawer", tier: 1, topicCat: "🏠 日常・生活・移動",
+        m: "（ダンドゥット歌手や伝統芸能の演者・結婚式の新郎新婦などに）祝儀・おひねりの現金を撒く、チップを直接渡す",
+        ex: "Para penonton tampak antusias maju ke depan panggung untuk menyawer penyanyi dangdut tersebut.",
+        tr: "観客たちはそのダンドゥット歌手におひねり（祝儀）を渡そうと、熱狂してステージの前へ進み出た。",
+        note: [
+          "■ 【語構成と文化背景】：\n・スンダ語由来の語幹『sawer』（元々はスンダの伝統結婚式『upacara sawer pengantin』において、新郎新婦の繁栄と幸福を祈って米・ウコン・花びら・小銭を傘の上から撒く儀式）＋接頭辞『meN-』。\n・現代ではステージで歌う歌手や踊り手に観客が紙幣を直接手渡したり頭上から撒いたりする「おひねり・投げ銭行為」全般を指し、日常口語では **『nyawer』**、おひねりのお金は **『saweran (uang saweran)』**、ネット配信の投げ銭も saweran と呼ばれる。"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "menelungkup", r: "telungkup", tier: 1, topicCat: "🏥 健康・身体・感情",
+        m: "うつ伏せになる、腹ばいに伏せる、（器などが）伏せられた状態になる（＝tengkurap ⇔ menelentang＝仰向けになる）",
+        ex: "Korban ditemukan dalam posisi menelungkup di lantai sebelum akhirnya ditolong oleh petugas medis.",
+        tr: "被害者は医療スタッフに救助される前、床にうつ伏せになった姿勢で発見された。",
+        note: [
+          "■ 【語構成と姿勢の対比ペア】：\n・語幹『telungkup（うつ伏せ）』＋『meN-』（頭文字 t が鼻音化して n）。\n・**menelungkup / telungkup / tengkurap**：うつ伏せになる、腹ばいになる（顔と腹を下に向ける）\n・**menelentang / telentang**：仰向けになる（顔と胸を上に向ける）\n・**menelungkupkan（他動詞）**：（人・皿・スマホ画面などを）下向きに伏せる、裏返しに置く"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "mendalangi", r: "dalang", tier: 1, topicCat: "⚖️ 政治・法律・社会",
+        m: "（事件・暴動・テロ・陰謀などを）裏で操る、糸を引く、首謀する、黒幕として計画する",
+        ex: "Polisi berhasil menangkap pelaku utama yang diduga kuat mendalangi aksi perampokan bersenjata tersebut.",
+        tr: "警察は、その武装強盗事件を裏で操った（首謀した）と強く疑われる主犯を逮捕することに成功した。",
+        note: [
+          "■ 【語構成】：meN- + dalang（ワヤン影絵芝居の人形遣い師／黒幕）+ -i。\n・ワヤンの人形遣い（dalang）がスクリーンの裏ですべての人形を操ることから、事件や政治工作の「黒幕となって裏で糸を引く（＝menjadi dalang / mengotaki）」という意味の他動詞として報道で最頻出！"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "ketuhanan", r: "Tuhan", tier: 1, topicCat: "⚖️ 政治・法律・社会",
+        m: "神性、神への信仰、神に関する事柄（Ketuhanan Yang Maha Esa＝唯一神への信仰［パンチャシラ第1原則］）",
+        ex: "Sila pertama Pancasila adalah Ketuhanan Yang Maha Esa yang menjamin kebebasan beragama bagi setiap warga negara.",
+        tr: "パンチャシラ（建国五原則）の第1原則は「唯一神への信仰」であり、すべての国民に信教の自由を保障している。",
+        note: [
+          "■ 【語構成】：ke- + Tuhan（神）+ -an。\n・**Tuhan（大文字）**：（一神教における）神（Tuhan Yang Maha Esa＝唯一神、Tuhan Yang Mahakuasa＝全能の神）\n・**dewa（小文字）**：（神話や多神教における）神々（Dewa Siwa, Pulau Dewata）\n・**tuan（h なし）**：主人、旦那様、〜様（tuan rumah＝ホスト・開催国）※Tuhan と tuan のスペル・発音区別に注意！"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "berjudul", r: "judul", tier: 1, topicCat: "🎓 教育・学術・IT",
+        m: "（本・映画・曲・論文・記事などが〜という）題名である、タイトルがついている（＝bertajuk）",
+        ex: "Penulis muda itu baru saja menerbitkan novel terbarunya yang berjudul \"Senja di Pelabuhan Kecil\".",
+        tr: "その若手作家は、『小さな港の夕暮れ』という題名の最新小説を出版したばかりだ。",
+        note: [
+          "■ 【語構成と類義語】：\n・ber- + judul（題名・タイトル・見出し）。\n・類義語：**bertajuk**（語幹 tajuk：イベント・展覧会・記事などのテーマやタイトルが「〜と題された」）、**bertema**（〜をテーマにした）。\n・他動詞 **menjuduli**（〜に題名をつける）。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "komunitas", r: "komunitas", tier: 1, topicCat: "🏠 日常・生活・移動",
+        m: "①コミュニティ、共同体、地域社会 ②（共通の趣味・関心・職業・目的を持つ人々の）同好会、愛好家グループ、サークル",
+        ex: "Akhir pekan ini komunitas pencinta sepeda tua akan mengadakan kegiatan bersepeda bersama mengelilingi kota tua.",
+        tr: "今週末、クラシック自転車の愛好家コミュニティ（同好会）が旧市街を巡る合同サイクリングイベントを開催する。",
+        note: "■ 【コロケーション】：komunitas lokal / masyarakat（地域コミュニティ）、komunitas ilmiah（学術コミュニティ・学会）、komunitas lari / fotografi（ランニング／写真サークル）。"
+      },
+      {
+        p: "n", w: "pendanaan", r: "dana", tier: 1, topicCat: "💼 仕事・経済・買い物",
+        m: "資金調達、資金提供、財源の手当て、ファンディング（pendanaan proyek＝プロジェクトの資金調達）",
+        ex: "Perusahaan rintisan tersebut berhasil mendapatkan pendanaan tahap awal dari sejumlah investor luar negeri.",
+        tr: "そのスタートアップ企業は、複数の海外投資家から初期段階の資金調達（ファンディング）を受けることに成功した。",
+        note: [
+          "■ 【語構成と dana ファミリー】：\n・peN- + dana（資金・基金）+ -an。\n・**dana（名詞）**：資金、基金、ファンド（dana bantuan＝支援金、dana darurat＝緊急予備資金、menggalang dana＝募金・資金を集める）\n・**mendanai（他動詞）**：〜に資金を提供する、出資する（＝membiayai）\n・**pendana / penyandang dana（名詞）**：資金提供者、スポンサー、出資者"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "bertekad", r: "tekad", tier: 1, topicCat: "🏥 健康・身体・感情",
+        m: "固く決意する、〜しようと強い意志（覚悟）を持つ",
+        ex: "Atlet muda itu bertekad untuk merebut medali emas pada kejuaraan dunia tahun depan.",
+        tr: "その若手選手は、来年の世界選手権で金メダルを奪取しようと固く決意している。",
+        note: [
+          "■ 【語構成とコロケーション】：\n・ber- + tekad（強い決意・覚悟）。\n・**bertekad bulat / membulatkan tekad**：不退転の決意を固める、腹を決める\n・後ろには『bertekad (untuk) + 動詞（〜しようと決意する）』が続く。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "pembanding", r: "banding", tier: 1, topicCat: "🎓 教育・学術・IT",
+        m: "比較対象、比較基準、（科学実験や統計調査における）対照群・コントロール群",
+        ex: "Peneliti menggunakan data sepuluh tahun terakhir sebagai pembanding untuk melihat tren perubahan iklim.",
+        tr: "研究者は気候変動のトレンドを見るための比較基準（比較対象）として、過去10年間のデータを使用した。",
+        note: [
+          "■ 【語構成と banding ファミリーの整理】：\n・peN- + banding（比較）。\n・**membandingkan（他動詞）**：AとBを比較する\n・**perbandingan（名詞）**：比較、比率（sebagai perbandingan＝比較として）\n・**pembanding（名詞）**：比較の基準となるもの、比較対象（kelompok pembanding＝対照群）\n・**sebanding（形容詞）**：釣り合った、匹敵する、比例する（sebanding dengan ~）\n・**mengajukan banding（法務）**：（裁判で）控訴・上訴する"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "periode", r: "periode", tier: 1, topicCat: "⚖️ 政治・法律・社会",
+        m: "①期間、時期、時代、周期 ②（大統領や役員などの）任期（〜期：dua periode＝2期）",
+        ex: "Berdasarkan konstitusi, masa jabatan presiden dibatasi maksimal selama dua periode atau sepuluh tahun.",
+        tr: "憲法に基づき、大統領の任期は最大2期（または10年間）までに制限されている。",
+        note: [
+          "■ 【重要コロケーション】：\n・periode yang sama tahun lalu：前年同期\n・periode pertama / kedua：第1期 ／ 第2期\n・形容詞形は **periodik**（定期的な、周期的な＝berkala：secara periodik）。"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "berarti", r: "arti", tier: 1, topicCat: "🎓 教育・学術・IT",
+        m: "①〜という意味である、〜を意味する ②（形容詞的に）有意義な、価値のある、大切な、目立った（tanpa hambatan yang berarti＝目立った支障もなく）",
+        ex: "Dukungan dan doa dari keluarga sangat berarti bagi kesembuhan pasien tersebut.",
+        tr: "家族からの支えと祈りは、その患者の快復にとって非常に大きな意味がある（大切だ）。",
+        note: [
+          "■ 【2大用法と読解頻出チャンク】：\n① **動詞「〜を意味する（＝bermakna）」**：Kata \"nusantara\" berarti kepulauan di antara benua.\n・**tidak berarti (bahwa) ~ / bukan berarti ~**：「だからといって〜という意味ではない（〜とは限らない）」\n② **形容詞「有意義な・重要な・目立った（＝penting / bernilai）」**：\n・**tanpa hambatan / kendala yang berarti**：「目立った（深刻な）支障・障害もなく」（ニュース定型句！）"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "mempublikasikan", r: "publikasi", tier: 1, topicCat: "🎓 教育・学術・IT",
+        m: "（研究成果・統計データ・報告書・作品などを世間に）公表する、発表する、出版・掲載する（＝mengumumkan / menerbitkan）",
+        ex: "Tim peneliti mempublikasikan hasil temuan ilmiah mereka di jurnal internasional terkemuka.",
+        tr: "研究チームは彼らの科学的発見の成果を一流の国際学術誌に発表（掲載）した。",
+        note: [
+          "■ 【正書法と実用の重要知識（mempublikasikan vs memublikasikan）】：\n・インドネシア語の鼻音化原則では「頭文字が『子音クラスタ（pr-, pl-, kr-, kl-, tr- 等）』の語幹は頭文字が消えない（例：memproduksi, mempraktikkan）」のに対し、『publikasi』は単一子音 p + 母音 u で始まるため、KBBI第5版以降の厳密な規範綴りは p が脱落する **『memublikasikan』** とされている。\n・しかし実際のKompas等の報道記事や大学論文・政府発表では、元の語幹（publik / publikasi）が分かりやすい **『mempublikasikan』** が圧倒的多数で使われているため、両方知っておくのがベスト！\n・受動態：**dipublikasikan**（公表される・掲載される）、名詞：**publikasi**（公表・出版物）。"
+        ].join("\n")
+      },
+      {
+        p: "a", w: "spasial", r: "spasial", tier: 1, topicCat: "🎓 教育・学術・IT",
+        m: "空間の、空間的な、地理空間に関する（data spasial＝空間データ、tata ruang spasial＝空間計画）",
+        ex: "Badan Informasi Geospasial memanfaatkan teknologi satelit untuk memperbarui peta dan data spasial wilayah Indonesia.",
+        tr: "地理空間情報庁（BIG）はインドネシア領域の地図と空間データを更新するために衛星技術を活用している。",
+        note: "■ 【対義語・関連語】：**spasial**（空間的な：英語 spatial）⇔ **temporal**（時間的な）。複合語 **geospasial**（地理空間的な）。"
+      },
+      {
+        p: "n", w: "tebu", r: "tebu", tier: 1, topicCat: "🌿 自然・天気・動植物",
+        m: "サトウキビ、甘蔗（かんしょ）（茎から砂糖［gula pasir］や黒蜜、バイオエタノールが作られるイネ科の農作物。搾りたてのサトウキビジュース［es air tebu］は屋台の定番飲料）",
+        ex: "Sebagian besar pabrik gula di Pulau Jawa mengolah tanaman tebu hasil panen petani lokal menjadi gula pasir.",
+        tr: "ジャワ島の製糖工場の大部分は、地元農家が収穫したサトウキビを加工してグラニュー糖（白砂糖）を生産している。",
+        note: [
+          "■ 【サトウキビ（tebu）を使った重要ことわざ（試験必出！）】：\n・**Habis manis sepah dibuang**：「甘い汁を吸い尽くしたら、（サトウキビの）絞りかす［sepah］は捨てられる」➔ 利用価値がある間だけ重宝し、用が済めば冷たく見捨てること（サトウキビの絞りかすは『sepah / ampas tebu』と呼ばれる）。"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "mengalihfungsikan", r: "alih fungsi", tier: 1, topicCat: "🌿 自然・天気・動植物",
+        m: "（森林・農地・歴史的建造物などを本来の目的から別の用途へ）用途転換する、転用する",
+        ex: "Pemerintah daerah melarang pengembang mengalihfungsikan lahan sawah produktif menjadi kawasan perumahan.",
+        tr: "地方政府は開発業者に対し、生産性の高い水田を用途転換して住宅地にすることを禁じている。",
+        note: [
+          "■ 【語構成と複合語派生の鉄則】：\n・複合語『alih fungsi（用途転換：alih＝移す、fungsi＝機能・用途）』に接頭辞『meng-』と接尾辞『-kan』が同時に付くため、真ん中のスペースが消えて1語につながり **『mengalihfungsikan』** となる！\n・受動態：**dialihfungsikan**（転用される・用途転換される）\n・名詞形：**pengalihfungsian** または **alih fungsi**（alih fungsi lahan / hutan＝土地・森林の用途転換）。"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "mengklasifikasikan", r: "klasifikasi", tier: 1, topicCat: "🎓 教育・学術・IT",
+        m: "（性質・基準・等級などに基づいて〜を）分類する、区分する、クラス分けする（＝menggolongkan / mengelompokkan）",
+        ex: "Para ilmuwan biologi mengklasifikasikan makhluk hidup ke dalam beberapa kelompok berdasarkan ciri-ciri fisiknya.",
+        tr: "生物学の科学者たちは、身体的特徴に基づいて生物をいくつかのグループに分類している。",
+        note: [
+          "■ 【超重要！1文字違いの mengklasifikasikan と mengklarifikasikan の違い】：\n・**mengklasifikasikan**（語幹 **klasifikasi**［**s**：英語 classification / class］）：**「分類する、クラス分けする、区分する」**（頭文字 kl- は子音クラスタなので k は脱落しない）。\n・**mengklarifikasikan / mengklarifikasi**（語幹 **klarifikasi**［**r**：英語 clarification / clear］）：**「（誤解や疑惑を）釈明する、事実関係を明確に説明する、はっきりさせる」**。\n・真ん中の1文字が **s（クラス＝分類）** か **r（クリア＝明確化・釈明）** かで意味が全く異なる最重要ペア！"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "mengklarifikasi", r: "klarifikasi", tier: 1, topicCat: "⚖️ 政治・法律・社会",
+        m: "（誤解・噂・報道の真偽などについて）釈明する、事実関係を明確に説明する、確認して正す",
+        ex: "Juru bicara kementerian segera mengklarifikasi kabar keliru yang beredar di media sosial.",
+        tr: "省の報道官は、SNS上で出回っている誤った情報について直ちに事実関係を説明（釈明）した。",
+        note: [
+          "■ 【関連語】：**klarifikasi**（名詞：釈明、事実確認、明確化）、**mengklarifikasikan**（他動詞：釈明する・明確にする）。",
+          "■ 【1文字違いの mengklasifikasikan との混同注意】：\n・**mengklarifikasi / mengklarifikasikan**（**r**＝clear）：「釈明する、明確に説明する」\n・**mengklasifikasikan**（**s**＝class）：「分類する、クラス分けする」"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "keilmuan", r: "ilmu", tier: 1, topicCat: "🎓 教育・学術・IT",
+        m: "学問、学術、科学的知識、学問領域に関する事柄（bidang keilmuan＝学術分野・専門学問領域）",
+        ex: "Universitas harus menjadi pusat pengembangan keilmuan dan riset yang memberikan solusi bagi permasalahan bangsa.",
+        tr: "大学は国家の諸問題に解決策をもたらす学術（学問）および研究の発展拠点とならなければならない。",
+        note: [
+          "■ 【語構成と ilmu ファミリーの使い分け】：\n・ke- + ilmu（学問・科学・知識）+ -an。\n・**ilmu（名詞）**：学問、知識、科学（ilmu pengetahuan＝科学、menuntut ilmu＝学問を修める）\n・**ilmuwan（名詞）**：科学者、学者（接尾辞 -wan＝〜の人）\n・**ilmiah（形容詞）**：科学的な、学術的な（karya ilmiah＝学術論文、secara ilmiah＝科学的に）\n・**keilmuan（名詞）**：学術性、学問領域、学問的体系（lintas disiplin keilmuan＝学際的・複数分野横断の）"
+        ].join("\n")
+      },
+
+      // ==================== C. 辞書専用（問題なし：dictOnly: true, tier: 3）の新規追加9語 ====================
+      {
+        p: "v", w: "nyawer", r: "sawer", isSlang: true, dictOnly: true, tier: 3, topicCat: "💬 スラング・口語",
+        m: "（歌手や踊り手・ライブ配信者などに）おひねり・祝儀の現金を撒く、投げ銭・チップを渡す（標準語 menyawer の日常口語形）",
+        ex: "Banyak penonton yang ikut bergoyang sambil nyawer uang pecahan lima puluh ribuan di depan panggung.",
+        tr: "多くの観客がステージの前で5万ルピア札のおひねりを渡しながら一緒に踊っていた。",
+        note: "■ 【語法】：標準語は『menyawer』（語幹 sawer）。口語では接頭辞 meN- の me- が落ちて鼻音だけの『nyawer』として日常会話やSNS（YouTube等のライブ投げ銭）で広く使われる。"
+      },
+      {
+        p: "a", w: "subtropis", r: "tropis", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "亜熱帯の（熱帯［tropis］の南北両側に位置し、四季の区別がゆるやかに現れる気候帯：iklim subtropis＝亜熱帯気候）",
+        ex: "Tanaman buah seperti apel, anggur, dan jeruk mandarin umumnya tumbuh subur di daerah beriklim subtropis.",
+        tr: "リンゴやブドウ、ミカンのような果樹は一般に、亜熱帯気候の地域でよく育つ。",
+        note: "■ 【気候帯の対比】：**tropis**（熱帯の：インドネシアなど赤道周辺で乾季と雨季の2季） vs **subtropis**（亜熱帯の） vs **sedang (beriklim sedang)**（温帯の：日本など春夏秋冬の4季 empat musim がある地域）。"
+      },
+      {
+        p: "v", w: "mengalamatkan", r: "alamat", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "①（手紙・小包・書類などを特定の宛先へ）送る、宛名を向ける ②（批判・非難・質問・要求などを特定の相手に）向ける、ぶつける",
+        ex: "Para pengunjuk rasa mengalamatkan tuntutan mereka langsung kepada pimpinan dewan perwakilan rakyat.",
+        tr: "デモ参加者たちは、彼らの要求を国民議会の指導部へと直接向けた。",
+        note: [
+          "■ 【語構成】：meng- + alamat（住所・宛先・兆候）+ -kan。\n・受動態 **dialamatkan kepada ~**（「〜宛てに送られる」「批判や発言が〜に対して向けられる」＝ditujukan kepada ~）の形で報道記事によく登場する。\n・なお自動詞 **beralamat (di ~)** は「（〜に）住所がある・所在地がある」。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "sabana", r: "sabana", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "サバンナ、熱帯草原（乾季が長い熱帯・亜熱帯地域に広がる、イネ科の草本を主体とし低木や樹木がまばらに点在する草原＝padang sabana。別綴り savana）",
+        ex: "Bentangan padang sabana yang luas dapat dijumpai di Taman Nasional Baluran di Jawa Timur dan Pulau Sumba di NTT.",
+        tr: "広大なサバンナ（熱帯草原）の広がりは、東ジャワ州のバラランガン国立公園や東ヌサ・トゥンガラ州のスンバ島で見ることができる。",
+        note: "■ 【地理】：インドネシアの大部分は熱帯雨林（hutan hujan tropis）だが、オーストラリア大陸に近い東ジャワ東端やヌサ・トゥンガラ諸島（ロンボク島リンジャニ山・スンバワ島・コモド島・スンバ島）は乾季が長いため、美しい『padang sabana（サバンナ草原）』が形成される（樹木が一切ない純粋な短草草原は『stepa＝ステップ』と呼ばれる）。"
+      },
+      {
+        p: "v", w: "mengklarifikasikan", r: "klarifikasi", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "（誤解・疑惑・噂・報道の真偽などについて）釈明する、事実関係を明確に説明する、はっきりさせる（＝mengklarifikasi）",
+        ex: "Pihak manajemen perusahaan menggelar konferensi pers untuk mengklarifikasikan isu kebocoran data pelanggan.",
+        tr: "会社の経営陣は、顧客データ漏洩の噂について事実関係を説明（釈明）するため記者会見を開いた。",
+        note: [
+          "■ 【語法（mengklarifikasi との関係）】：\n・語幹『klarifikasi（名詞：釈明・事実確認・明確化）』はそれ自体が行為の意味を含むため、接尾辞 -kan を付けない **『mengklarifikasi』** と、-kan を付けた **『mengklarifikasikan』** の両方が使われる。",
+          "■ 【超重要！1文字違いの mengklasifikasikan との混同注意】：\n・**mengklarifikasikan / mengklarifikasi**（語幹 **klarifikasi**［**r**：clear 由来］）：**「釈明する、明確に説明する」**\n・**mengklasifikasikan**（語幹 **klasifikasi**［**s**：class 由来］）：**「分類する、クラス分けする」**\n・r（クリア＝明確化）と s（クラス＝分類）の1文字違いに要注意！"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "mengonversi", r: "konversi", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "（エネルギー・通貨・データ形式・燃料・土地などを別の形態へ）変換する、転換する、換算する（＝mengubah）",
+        ex: "Pemerintah mendorong program untuk mengonversi sepeda motor berbahan bakar bensin menjadi motor listrik.",
+        tr: "政府はガソリン燃料のオートバイを電動バイクへと転換（コンバート）するプログラムを推進している。",
+        note: [
+          "■ 【正書法（鼻音化ルール）】：\n・語幹『konversi（変換・転換）』は単一子音 **k** + 母音 o で始まるため、接頭辞 meN- が付くと頭文字 k が鼻音化で脱落し **『mengonversi』**（または -kan を付けた **mengonversikan**）となるのがKBBI標準語形（k を残す mengkonversi は非標準）。\n・名詞形：**konversi**（konversi energi＝エネルギー変換、konversi mata uang＝通貨換算、konversi lahan＝土地転用）、**pengonversian**。"
+        ].join("\n")
+      },
+      {
+        p: "a", w: "primer", r: "primer", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "第一の、主要な、一次的な、最も基礎的な（kebutuhan primer＝衣食住の基礎的欲求、data primer＝一次資料）",
+        ex: "Sandang, pangan, dan papan merupakan tiga kebutuhan primer yang harus dipenuhi oleh setiap manusia.",
+        tr: "衣（sandang）・食（pangan）・住（papan）は、すべての人間が満たさなければならない3つの基礎的（一次的）欲求である。",
+        note: [
+          "■ 【1次・2次・3次の必須セット（経済・社会・学術で頻出）】：\n1. **primer（第一の・一次的）**：kebutuhan primer（衣食住の基礎的欲求）、data primer（現地調査や直接インタビューによる一次資料）、industri / sektor primer（農林水産業・鉱業などの第一次産業）\n2. **sekunder（第二の・二次的）**：kebutuhan sekunder（家電・家具・教育・娯楽などの二次的欲求）、data sekunder（既存の統計や文献などの二次資料）、sektor sekunder（製造業・建設業などの第二次産業）\n3. **tersier（第三の・三次的）**：kebutuhan tersier（高級車・宝石・海外旅行などの贅沢品欲求）、sektor tersier（金融・商業・観光サービスなどの第三次産業）"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "berkeadilan", r: "adil", dictOnly: true, tier: 3, topicCat: "⚖️ 政治・法律・社会",
+        m: "公正さを備えた、正義に適った、公平性のある（ber- + keadilan：政策理念や法律文書で「公正な〜」として形容詞的に使われる）",
+        ex: "Sistem perpajakan nasional harus dirancang secara transparan dan berkeadilan bagi seluruh lapisan masyarakat.",
+        tr: "国の税制は、社会のあらゆる階層に対して透明性があり、かつ公正さ（公平性）を備えたものとして設計されなければならない。",
+        note: "■ 【語構成】：接頭辞『ber-（〜を持つ・備える）』＋抽象名詞『keadilan（正義・公正さ）』。単なる『adil（公平な）』よりも「制度や社会構造として社会正義・公平性を備えている」という格調高い響きがあり、政府方針や社説（pembangunan yang inklusif dan berkeadilan＝包摂的で公正な開発）で好んで用いられる。"
+      },
+      {
+        p: "n", w: "ketenagalistrikan", r: "listrik", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "電力事業、電気エネルギー分野、電力供給システム全般（tenaga listrik＝電力を ke- -an で包んだ複合抽象名詞）",
+        ex: "Kementerian ESDM menyusun rencana umum ketenagalistrikan nasional untuk mempercepat transisi menuju energi bersih.",
+        tr: "エネルギー鉱物資源省（ESDM）は、クリーンエネルギーへの移行を加速させるため国家電力事業総合計画を策定している。",
+        note: "■ 【語構成】：複合語『tenaga listrik（電力・電気エネルギー）』に接頭辞・接尾辞『ke- -an』が付いて1語に結合した名詞（『ketenagakerjaan＝労働・雇用分野』と同じ構造！）。"
+      }
+    ]
+  };
+
+  // 辞書専用指定の9語を dictOnlySet に登録
+  PACK_CUSTOM_UPDATE.vocab.forEach(function(it) {
+    if (it.dictOnly === true || it.tier === 3) {
+      dictOnlySet.add(it.w.trim().toLowerCase());
+    }
+  });
+
+  if (typeof window.wiAddPack === "function") {
+    window.wiAddPack(PACK_CUSTOM_UPDATE);
+  }
+
+  // 統合削除と数詞の非出題化を再適用し、保存済みの復習・スターからも除外
+  purgeMergedHeadwords();
+  markNumbersDictOnly();
+
+  ["wi_wrongs_v2", "wi_stars_v2", "wi_master_stars_v5"].forEach(function(storageKey) {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (!raw) return;
+      const list = JSON.parse(raw);
+      if (!Array.isArray(list)) return;
+      const cleaned = list.filter(function(it) {
+        if (!it || typeof it !== "object") return false;
+        const qid = String(it.id || "");
+        const m = qid.match(/^(?:voc|voc_ja2id|abbr_ja|abbr_full|ctx::voc)::(.+)$/i);
+        const w = (m ? m[1] : (it.w || it.ttsWord || "")).trim().toLowerCase();
+        if (!w) return true;
+        if (MERGE_REMOVE_SET.has(w) || dictOnlySet.has(w)) return false;
+        return true;
+      });
+      if (cleaned.length !== list.length) {
+        localStorage.setItem(storageKey, JSON.stringify(cleaned));
+      }
+    } catch (e) {}
+  });
+
+  if (typeof window.__reloadWhatsIndo === "function") {
+    try { window.__reloadWhatsIndo(); } catch (e) {}
+  }
+})();
+/* =====================================================================
+   WhatsIndo ご指名14語 ＋ 重要派生語・対比関連語8語 追加パック（全22語）
+   - 出題対象（問題＋辞書：10語）：
+     pembudidaya, petambak, mensyaratkan, persyaratan, bertumpu,
+     menjadikan, pembibitan, berkapasitas ＋ 重要派生語 bersyarat, tumpukan
+   - 辞書専用（問題非出題 dictOnly: true：12語）：
+     mangrove, Bunaken, bersinggungan, terbaik, karbon, batubara
+     ＋ 関連・派生語 pertambakan, prasyarat, dekarbonisasi, menumpukan, bertumpuk, pembenihan
+   ===================================================================== */
+(function() {
+  const d = window.WHATSINDO_EXTERNAL_DATA;
+  if (!d) return;
+
+  const dictOnlySet = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+
+  const PACK_MANGROVE_TO_BATUBARA = {
+    vocab: [
+      // ==================== 1. 出題対象（問題＋辞書：10語・tier: 1） ====================
+      {
+        p: "n", w: "pembudidaya", r: "budi daya", tier: 1, topicCat: "💼 仕事・経済・買い物",
+        m: "（魚介類・海藻・農作物・家畜などの）養殖業者、栽培者、飼育者（pembudidaya ikan / udang＝魚／エビの養殖業者）",
+        ex: "Dinas Kelautan dan Perikanan menyalurkan bantuan benih unggul kepada para pembudidaya ikan air tawar di daerah tersebut.",
+        tr: "海洋水産局は、同地域の淡水魚養殖業者たちに優良稚魚の支援を配布した。",
+        note: [
+          "■ 【語構成と正書法】：\n・複合語『budi daya（養殖・栽培）』に行為者を表す接頭辞『peN-』が付いた語。KBBIの厳密な規範では2語に分ける『pembudi daya』とも表記されるが、実際のKompas報道や水産省の公文書では1語に結合した **『pembudidaya』** が圧倒的に広く使われる。",
+          "■ 【budi daya 派生語ファミリーの完全整理】：\n・**budi daya（名詞）**：養殖、栽培、飼育（perikanan budi daya＝養殖漁業 ⇔ perikanan tangkap＝漁獲漁業）\n・**membudidayakan（他動詞）**：〜を養殖する、栽培・飼育する\n・**pembudidayaan（名詞）**：養殖（栽培）すること、養殖事業プロセス\n・**pembudidaya（名詞）**：養殖業者、栽培農家"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "petambak", r: "tambak", tier: 1, topicCat: "💼 仕事・経済・買い物",
+        m: "①（海岸や河口付近の養殖池［tambak］でエビ・バンデン・海藻などを育てる）養殖池経営者、養殖漁業者 ②（塩田［tambak garam］で塩を作る）製塩業者（petambak garam）",
+        ex: "Para petambak udang di pesisir utara Jawa mulai menggunakan teknologi kincir air modern untuk menjaga kadar oksigen di tambak.",
+        tr: "ジャワ北海岸のエビ養殖業者（プタンバッ）たちは、養殖池の酸素濃度を保つために近代的な水車技術を使い始めている。",
+        note: [
+          "■ 【語構成と nelayan との違い】：\n・接頭辞『pe-（〜に従事する人）』＋『tambak（沿岸の汽水・海水養殖池／塩田）』（※「農民 petani」「畜産農家 peternak」と同じく鼻音化しない pe- が付く）。\n・**nelayan**：海や川へ船で出て天然の魚を獲る「漁師」\n・**petambak**：沿岸の養殖池（tambak）でエビ（udang）やミルクフィッシュ（bandeng）を養殖する「養殖業者」、または塩田で天日塩を作る「製塩業者（petambak garam）」\n・**pertambakan（名詞）**：養殖池事業、養殖業（kawasan pertambakan＝養殖池地帯）"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "mensyaratkan", r: "syarat", tier: 1, topicCat: "⚖️ 政治・法律・社会",
+        m: "〜を条件として要求する、〜を必要条件として定める、義務付ける（＝mewajibkan / mengharuskan）",
+        ex: "Perusahaan tersebut mensyaratkan penguasaan bahasa Inggris dan bahasa Indonesia yang aktif bagi seluruh pelamar kerja.",
+        tr: "その企業はすべての就職応募者に対し、実践的な英語およびインドネシア語の運用能力を条件として要求している。",
+        note: [
+          "■ 【語構成と正書法（mensyaratkan vs menyaratkan）】：\n・語幹『syarat（条件・要件）』＋『meN- -kan』。\n・頭文字『sy-』は2文字で1つの子音（無声後部歯茎摩擦音 [ʃ]）を表すため、KBBIの規範文法では鼻音化して sy が ny に変わる **『menyaratkan』** が標準形とされるが、元の語幹 syarat が判別しやすい **『mensyaratkan』** が報道記事・法律解説・ビジネス文書で圧倒的に多用されている。",
+          "■ 【syarat 派生語ファミリー】：\n・**syarat（名詞）**：条件、要件（memenuhi syarat＝条件を満たす、syarat mutlak＝絶対条件）\n・**persyaratan（名詞）**：諸条件、必要書類・資格要件一式\n・**mensyaratkan（他動詞）**：〜を条件として課す・要求する（受動態 **disyaratkan**＝条件として求められる）\n・**bersyarat（形容詞・動詞）**：条件付きの（bebas bersyarat＝仮釈放）\n・**prasyarat（名詞）**：前提条件、事前要件"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "persyaratan", r: "syarat", tier: 1, topicCat: "⚖️ 政治・法律・社会",
+        m: "諸条件、必要条件、資格要件、（応募や申請に必要な）提出書類・要件一式",
+        ex: "Calon peserta beasiswa wajib melengkapi seluruh dokumen persyaratan administrasi sebelum batas waktu pendaftaran berakhir.",
+        tr: "奨学金の志願者は、申込期限が終了する前にすべての事務要件（必要条件）書類を揃えなければならない。",
+        note: [
+          "■ 【語構成と syarat とのニュアンスの違い】：\n・per- + syarat（条件）+ -an。\n・『syarat』は個々の「条件」を指すのに対し、『persyaratan』は入試・就職・ビザ申請・入札などで満たすべき**「諸条件のセット・資格要件一式・レギュレーション」**を指す。"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "bersyarat", r: "syarat", tier: 1, topicCat: "⚖️ 政治・法律・社会",
+        m: "条件付きの、一定の制限・要件を伴う（⇔ tanpa syarat＝無条件の）",
+        ex: "Narapidana yang berkelakuan baik selama menjalani masa hukuman dapat mengajukan permohonan pembebasan bersyarat.",
+        tr: "服役期間中に素行が良好な受刑者は、仮釈放（条件付き釈放）の申請を行うことができる。",
+        note: [
+          "■ 【重要コロケーション】：\n・**pembebasan bersyarat / bebas bersyarat**：仮釈放、保護観察付き釈放（法務・ニュース最頻出！）\n・**lulus bersyarat**：条件付き合格\n・**bantuan tunai bersyarat**：条件付き現金給付\n・対義表現は **tanpa syarat**（無条件で：menyerah tanpa syarat＝無条件降伏）。"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "bertumpu", r: "tumpu", tier: 1, topicCat: "🎓 教育・学術・IT",
+        m: "①（足・手・体などが〜の上に）支えを置く、踏ん張る、立脚する ②（経済・議論・希望などが〜に）依拠する、依存する、基盤を置く（bertumpu pada ~）",
+        ex: "Perekonomian di wilayah pesisir tersebut masih sangat bertumpu pada sektor perikanan tangkap dan pariwisata bahari.",
+        tr: "その沿岸地域の経済は、依然として漁獲漁業と海洋観光セクターに大きく依拠している（支えられている）。",
+        note: [
+          "■ 【語構成と必須コロケーション】：\n・ber- + tumpu（支点・足場）。必ず前置詞 **pada / di atas** を伴い、**『bertumpu pada ~（〜に依拠する・〜を基盤/柱とする＝bergantung pada / berlandaskan pada）』** の形で経済・論説文に頻出する。\n・関連語：**tumpuan**（名詞：①足場・支え、②頼みの綱・大黒柱 `tumpuan harapan`）、**menumpukan**（他動詞：重点・期待・視線を〜に集中させる）。",
+          "■ 【超重要！1文字違いの bertumpuk（語幹 tumpuk）との混同注意】：\n・**bertumpu**（末尾 **k なし**：語幹 **tumpu**）：〜に**依拠する**、支えを置く\n・**bertumpuk**（末尾 **k あり**：語幹 **tumpuk**）：（荷物や課題が）**山積みになる**、重なり合う"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "tumpukan", r: "tumpuk", tier: 1, topicCat: "🏠 日常・生活・移動",
+        m: "（積み重なった）〜の山、堆積物、束（tumpukan sampah＝ごみの山、tumpukan berkas＝書類の山）",
+        ex: "Petugas kebersihan mengerahkan tiga unit truk untuk mengangkut tumpukan sampah yang menggunung di pinggir pasar.",
+        tr: "清掃職員は市場の脇で山のように積み上がったごみの山を運び出すため、トラック3台を出動させた。",
+        note: [
+          "■ 【語構成と tumpuk ファミリー】：\n・語幹『tumpuk（積み重なり）』＋『-an』。\n・**menumpuk（動詞）**：①（他動詞）〜を積み重ねる、蓄える、②（自動詞・形容詞的）山積みになる、溜まる（pekerjaan yang menumpuk＝山積みの仕事）\n・**bertumpuk / bertumpuk-tumpuk（自動詞）**：山のように重なり合う、うず高く積もる\n・**tertumpuk（状態動詞）**：積み重ねられている"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "menjadikan", r: "jadi", tier: 1, topicCat: "🎓 教育・学術・IT",
+        m: "①AをBにする、AをBとして扱う・仕立てる（menjadikan A [sebagai] B） ②〜を引き起こす、〜という結果をもたらす",
+        ex: "Pemerintah daerah berencana menjadikan kawasan kota tua tersebut sebagai pusat wisata sejarah dan kuliner.",
+        tr: "地方政府はその旧市街エリアを歴史およびグルメ観光の中心地にする（位置づける）計画だ。",
+        note: [
+          "■ 【語構成と構文ルール（menjadi との違い）】：\n・meN- + jadi（なる）+ -kan（使役他動詞）。\n・**menjadi + B**：「（主語自身が）Bになる」\n・**menjadikan + A + (sebagai) + B**：「AをBにする（AをBという状態・役割に変える）」（例：menjadikan pengalaman sebagai pelajaran＝経験を教訓にする）。",
+          "■ 【jadi 派生語ファミリー】：\n・**jadi / menjadi**：〜になる ／ 実現する\n・**menjadikan**：AをBにする\n・**terjadi**：（出来事や災害が）起こる、発生する\n・**kejadian**：出来事、事件、事故"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "pembibitan", r: "bibit", tier: 1, topicCat: "🌿 自然・天気・動植物",
+        m: "①（植物の苗木・作物の種苗・魚や家畜の稚魚などの）育苗、種苗生産、苗床・種苗場 ②（スポーツ選手・指導者・研究者などの）若手育成、人材養成",
+        ex: "Kementerian Pertanian membangun pusat pembibitan tanaman hutan dan buah unggul untuk mendukung program penghijauan.",
+        tr: "農業省は緑化プログラムを支援するため、森林樹木および優良果樹の育苗（種苗）センターを建設した。",
+        note: [
+          "■ 【語構成と2大文脈】：\n・peN- + bibit（苗・稚魚・有望な卵）+ -an。\n① **農林水産文脈**：「育苗・種苗生産・苗床（kebun / balai pembibitan＝育苗場・種苗センター）」\n② **スポーツ・人材文脈**：「次世代の若手人材・選手の育成（pembibitan atlet muda berbakat＝才能ある若手選手の育成）」\n・類義語：**pembenihan**（語幹 benih：特に稲などの種子生産や、魚・エビの孵化・稚魚生産でよく使われる）。"
+        ].join("\n")
+      },
+      {
+        p: "v", w: "berkapasitas", r: "kapasitas", tier: 1, topicCat: "💼 仕事・経済・買い物",
+        m: "〜の収容能力（定員・発電出力・生産能力・記憶容量・積載量）を持つ",
+        ex: "Stadion olahraga baru yang dibangun di pinggir kota itu berkapasitas hingga lima puluh ribu penonton.",
+        tr: "郊外に建設されたその新しいスポーツスタジアムは、最大5万人の観客を収容する能力（定員）を持っている。",
+        note: [
+          "■ 【語構成と頻出コロケーション】：\n・ber- + kapasitas（容量・収容力・能力）。直後に数値と単位を伴って形容詞節のように名詞を修飾する報道頻出語！\n・stadion **berkapasitas** 50.000 penonton：5万人収容のスタジアム\n・pembangkit listrik **berkapasitas** 100 megawatt：出力100メガワットの発電所\n・kapal **berkapasitas** 500 penumpang：定員500名の船舶"
+        ].join("\n")
+      },
+
+      // ==================== 2. 辞書専用（問題なし：dictOnly: true, tier: 3：12語） ====================
+      {
+        p: "n", w: "mangrove", r: "mangrove", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "マングローブ（熱帯・亜熱帯の河口や海岸の干潟［潮間帯］に生育する塩生植物群落の総称。固有語では bakau と呼ばれ、海岸浸食［abrasi］や津波の防止・炭素吸収［ブルーカーボン］・稚魚の揺りかごとして極めて重要な生態系）",
+        ex: "Indonesia memiliki luas ekosistem hutan mangrove terbesar di dunia yang berperan penting dalam menyerap emisi karbon.",
+        tr: "インドネシアは世界最大のマングローブ林生態系の面積を有しており、炭素排出を吸収する上で重要な役割を果たしている。",
+        note: [
+          "■ 【mangrove と bakau の関係】：\n・日常語および固有語では **『bakau（hutan bakau）』** と呼ばれ、学術・環境報道・政府機関名（例：Badan Restorasi Gambut dan Mangrove＝泥炭地・マングローブ再生庁 BRGM）では国際語の **『mangrove（hutan mangrove）』** が広く使われる。\n・厳密な植物学では、マングローブ林全体を構成する植物群落（アビセニア api-api やソンネラティア pedada 等を含む全体）が『mangrove』、その代表的な樹種であるヒルギ科の樹木が『bakau』とされる。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "Bunaken", r: "Bunaken", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "ブナケン島、ブナケン国立公園（北スラウェシ州の州都マナド［Manado］の沖合に位置する海洋国立公園。垂直に落ち込む海底の珊瑚礁ウォールと世界最高峰の海洋生物多様性で知られるスキューバダイビングの世界的聖地）",
+        ex: "Taman Nasional Bunaken di Sulawesi Utara terkenal dengan keindahan taman laut dan ribuan spesies ikan karangnya.",
+        tr: "北スラウェシ州のブナケン国立公園は、海中公園の美しさと数千種の珊瑚礁の魚で有名である。",
+        note: "■ 【地理と環境】：1991年にインドネシア初の海洋国立公園のひとつとして指定された **『Taman Nasional Bunaken（ブナケン国立公園）』**。世界のサンゴ三角地帯（Coral Triangle）の中心に位置し、約390種のサンゴとウミガメ・魚類が生息する、ラジャ・アンパットやワカトビと並ぶインドネシアを代表する海洋観光地（wisata bahari）。"
+      },
+      {
+        p: "v", w: "bersinggungan", r: "singgung", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "①（2つの線・円・領域・敷地などが物理的に）接する、触れ合う、交差する ②（仕事・学問分野・利害・日常生活などが〜と）関わり合う、接点を持つ、摩擦が生じる（bersinggungan dengan ~）",
+        ex: "Dalam menjalankan tugasnya di lapangan, petugas pelayanan publik setiap hari bersinggungan langsung dengan masyarakat luas.",
+        tr: "現場での職務を遂行するにあたり、公共サービスの職員は毎日、一般市民と直接関わり合っている（接している）。",
+        note: [
+          "■ 【語構成と singgung ファミリーの完全整理】：\n・ber- + singgung（触れる）+ -an（相互「〜し合う・接し合う」）。前置詞 **dengan** を伴う。\n・**menyinggung（他動詞）**：①軽く触れる、②話題に触れる・言及する、③人の感情やプライドを傷つける\n・**tersinggung（状態動詞・形容詞）**：気分を害する、プライドが傷つく、ムッとする\n・**bersinggungan（自動詞）**：①（幾何学の接線のように）接する、②（分野・利害・人々が）密接に関わり合う、または利害がぶつかり摩擦が生じる"
+        ].join("\n")
+      },
+      {
+        p: "a", w: "terbaik", r: "baik", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "最良の、最高の、最も優れた、ベストの（形容詞 baik に最上級の接頭辞 ter- が付いた形＝paling baik）",
+        ex: "Ia berhasil meraih penghargaan sebagai lulusan terbaik di fakultasnya pada upacara wisuda tahun ini.",
+        tr: "彼は今年の卒業式において、学部の最優秀卒業生（ベスト卒業生）として表彰を受けることに成功した。",
+        note: "■ 【重要コロケーション】：lulusan terbaik（最優秀卒業生）、kualitas terbaik（最高品質）、pilihan terbaik（最良の選択）、melakukan yang terbaik（ベストを尽くす＝do one's best）。"
+      },
+      {
+        p: "n", w: "karbon", r: "karbon", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "炭素、カーボン（元素記号 C。環境・気候変動ニュースでは二酸化炭素［karbon dioksida］などの温室効果ガス排出や炭素取引の文脈で毎日登場する最重要科学・環境語）",
+        ex: "Pelestarian hutan hujan tropis dan lahan gambut sangat penting untuk menyerap emisi karbon di atmosfer.",
+        tr: "熱帯雨林と泥炭地の保全は、大気中の炭素排出を吸収するために極めて重要である。",
+        note: [
+          "■ 【環境・経済ニュースの必須コロケーション】：\n・**emisi karbon**：炭素排出（menekan / memangkas emisi karbon＝炭素排出を抑制・削減する）\n・**karbon dioksida (CO2)**：二酸化炭素 ／ **karbon monoksida (CO)**：一酸化炭素\n・**jejak karbon**：カーボンフットプリント（炭素の足跡）\n・**pajak karbon / bursa karbon**：炭素税 ／ 炭素取引所（カーボンクレジット市場）\n・**netral karbon / emisi nol bersih**：カーボンニュートラル（ネットゼロ排出）\n・**karbon biru (blue carbon)**：ブルーカーボン（マングローブ林や海草藻場が吸収・貯留する炭素）"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "dekarbonisasi", r: "karbon", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "脱炭素化（化石燃料から再生可能エネルギーへの転換や電気自動車の普及などを通じて、経済活動における二酸化炭素［karbon］の排出量を削減・ゼロにしていく取り組み）",
+        ex: "Pemerintah mempercepat langkah dekarbonisasi di sektor industri dan transportasi guna mencapai target emisi nol bersih.",
+        tr: "政府はネットゼロ排出目標を達成するため、産業および交通セクターにおける脱炭素化の取り組みを加速させている。",
+        note: "■ 【語構成】：接頭辞『de-（除去・脱〜）』＋『karbon（炭素）』＋『-isasi（〜化）』。"
+      },
+      {
+        p: "n", w: "batubara", r: "batu", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "石炭（KBBI標準見出しは2語に分ける「batu bara」だが、Kompas等の新聞記事や鉱業企業の名称では1語に結合した「batubara」の綴りも非常に広く使われる）",
+        ex: "Ekspor batubara dari Kalimantan Timur memberikan kontribusi besar terhadap penerimaan negara bukan pajak.",
+        tr: "東カリマンタン州からの石炭輸出は、税外国家歳入に対して大きな貢献をもたらしている。",
+        note: [
+          "■ 【正書法とコロケーション】：\n・語源は『batu（石）』＋『bara（おき火・赤く燃える炭）』＝燃える石（石炭）。\n・KBBIの標準語（Kata Baku）表記はスペースを入れる **『batu bara』** だが、Kompas紙の経済面やエネルギー省の文書では1語につなげた **『batubara』** も慣用的に多用される。\n・tambang batubara（炭鉱）、PLTU batubara（石炭火力発電所）。"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "pertambakan", r: "tambak", dictOnly: true, tier: 3, topicCat: "💼 仕事・経済・買い物",
+        m: "養殖池事業、汽水・海水養殖業、養殖池地帯（tambak に関する事業や地域全体を指す名詞）",
+        ex: "Kawasan pertambakan udang di pesisir tersebut dikelola secara berkelanjutan dengan tetap menyisakan sabuk hijau mangrove.",
+        tr: "その沿岸のエビ養殖池地帯は、マングローブのグリーンベルトを残しながら持続可能に管理されている。",
+        note: "■ 【関連語】：**tambak**（養殖池・塩田）、**petambak**（養殖池経営者・製塩業者）、**pertambakan**（養殖業・養殖池エリア）。"
+      },
+      {
+        p: "n", w: "prasyarat", r: "syarat", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "前提条件、事前要件、（大学の履修などで上位科目を取る前に合格しておくべき）必須前提科目（＝prerequisite）",
+        ex: "Stabilitas keamanan dan kepastian hukum merupakan prasyarat utama bagi masuknya investasi jangka panjang.",
+        tr: "治安の安定と法的確実性は、長期投資が流入するための主要な前提条件である。",
+        note: "■ 【語構成】：接頭辞『pra-（〜の前の：pre-）』＋『syarat（条件）』＝ある事柄を行う前にあらかじめ満たしておくべき前提条件（mata kuliah prasyarat＝前提履修科目）。"
+      },
+      {
+        p: "v", w: "menumpukan", r: "tumpu", dictOnly: true, tier: 3, topicCat: "🎓 教育・学術・IT",
+        m: "①（足や手などを〜の上に）支えとして置く、踏みしめる ②（重点・期待・希望・視線・責任などを〜に）置く、集中させる、託す",
+        ex: "Pemerintah menumpukan harapan besar pada generasi muda untuk memimpin transformasi digital di masa depan.",
+        tr: "政府は将来のデジタル変革を牽引するため、若い世代に大きな期待を託している（置いている）。",
+        note: "■ 【語構成】：meN- + tumpu（支点）+ -kan（頭文字 t が鼻音化して n）。自動詞 **bertumpu pada ~**（〜に依拠する）、名詞 **tumpuan**（頼みの綱・支点）とセットで覚える重要派生動詞。"
+      },
+      {
+        p: "v", w: "bertumpuk", r: "tumpuk", dictOnly: true, tier: 3, topicCat: "🏠 日常・生活・移動",
+        m: "（書類・洗濯物・ごみ・仕事などが）山積みになる、幾重にも重なり合う、密集する（＝menumpuk）",
+        ex: "Berkas-berkas laporan lama tampak bertumpuk di atas meja kerja karena belum sempat diarsipkan.",
+        tr: "古い報告書のファイルがまだ保管整理されていないため、デスクの上に山積みになっているのが見えた。",
+        note: [
+          "■ 【1文字違いの混同注意！】：\n・**bertumpuk**（語幹 **tumpuk**）：山積みになる、積み重なる（重複形 **bertumpuk-tumpuk**＝何重にもうず高く積み重なる）\n・**bertumpu**（語幹 **tumpu**）：〜に依拠する、足場を置く（bertumpu pada ~）"
+        ].join("\n")
+      },
+      {
+        p: "n", w: "pembenihan", r: "benih", dictOnly: true, tier: 3, topicCat: "🌿 自然・天気・動植物",
+        m: "（農作物の優良種子や、養殖用の魚・エビの稚魚・種苗の）種苗生産、孵化（ふか）・育成事業（balai pembenihan ikan＝魚類種苗・孵化センター）",
+        ex: "Balai pembenihan ikan tersebut berhasil mengembangkan benih ikan bandeng dan udang yang tahan terhadap perubahan suhu air.",
+        tr: "その魚類種苗（孵化）センターは、水温の変化に強いバンデン（ミルクフィッシュ）とエビの稚魚の開発に成功した。",
+        note: "■ 【語構成】：peN- + benih（種・種子・稚魚）+ -an。樹木の苗木などを育てる『pembibitan（語幹 bibit）』と並び、農業・水産養殖（budi daya）ニュースで頻出する専門名詞。"
+      }
+    ]
+  };
+
+  // 辞書専用（dictOnly: true）の単語を非出題レジストリに登録
+  PACK_MANGROVE_TO_BATUBARA.vocab.forEach(function(it) {
+    if (it.dictOnly === true || it.tier === 3) {
+      dictOnlySet.add(it.w.trim().toLowerCase());
+    }
+  });
+
+  if (typeof window.wiAddPack === "function") {
+    window.wiAddPack(PACK_MANGROVE_TO_BATUBARA);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 起動17秒遅延の完全解消（左上ボタン0秒定位置化＆重複DBビルド遮断）
+   ＋ 案A（解説内の **文字** を記号なしの美しい太字へ自動変換）
+   ＋ A-Z辞書「全分野＝ALL」件数一致 ＆ 辞書専用語の「排除」ボタン非表示パッチ
+   ===================================================================== */
+(function() {
+  const d = window.WHATSINDO_EXTERNAL_DATA;
+  if (!d || !Array.isArray(d.vocab)) return;
+
+  // -------------------------------------------------------------------
+  // 1. data.js 同期読み込み中に予約された不要な遅延再注入タイマー（60〜420ms）を一掃
+  // -------------------------------------------------------------------
+  const maxSyncTimer = window.setTimeout(function() {}, 0);
+  for (let id = 1; id <= maxSyncTimer; id++) {
+    window.clearTimeout(id);
+  }
+
+  // -------------------------------------------------------------------
+  // 2. 全単語・全略語の重複を0msで1パス整理（「全分野」と「ALL」の件数を100%一致させる）
+  // -------------------------------------------------------------------
+  const dictOnlySet = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+  const vCatMap     = window.__WI_V5_VCAT || (window.__WI_V5_VCAT = new Map());
+  const aCatMap     = window.__WI_V5_ACAT || (window.__WI_V5_ACAT = new Map());
+
+  function finalizeAllDataInOnePass() {
+    // ① d.vocab の重複キーを最新データ優先で1つに統合
+    const seenVocab = new Map();
+    for (let i = 0; i < d.vocab.length; i++) {
+      const it = d.vocab[i];
+      if (!it || !it.w || it.isDup) continue;
+      const wl = it.w.trim().toLowerCase();
+      if (!wl) continue;
+      if (it.dictOnly === true || it.tier === 3 || dictOnlySet.has(wl)) {
+        it.dictOnly = true;
+        it.tier = 3;
+        dictOnlySet.add(wl);
+      }
+      const prev = seenVocab.get(wl);
+      if (prev) {
+        if (!it.ex && prev.ex) it.ex = prev.ex;
+        if (!it.tr && prev.tr) it.tr = prev.tr;
+        if (!it.note && prev.note) it.note = prev.note;
+        if (!it.topicCat && prev.topicCat) it.topicCat = prev.topicCat;
+        if (prev.dictOnly === true || prev.tier === 3) {
+          it.dictOnly = true;
+          it.tier = 3;
+          dictOnlySet.add(wl);
+        }
+      }
+      const cat = it.topicCat || vCatMap.get(wl) || (it.isSlang ? "💬 スラング・口語" : "🏠 日常・生活・移動");
+      it.topicCat = cat;
+      vCatMap.set(wl, cat);
+      seenVocab.set(wl, it);
+    }
+
+    // ② d.acro の重複を最新データ優先で1つに統合し、すでに d.vocab (p: "singkatan") にあるものは2重カウント防止
+    if (Array.isArray(d.acro)) {
+      const seenAcro = new Map();
+      for (let i = 0; i < d.acro.length; i++) {
+        const a = d.acro[i];
+        if (!a || !a.acro) continue;
+        const al = a.acro.trim().toLowerCase();
+        if (!al) continue;
+        if (a.dictOnly === true || a.tier === 3 || dictOnlySet.has(al)) {
+          a.dictOnly = true;
+          a.tier = 3;
+          dictOnlySet.add(al);
+        }
+        const cat = a.topicCat || aCatMap.get(al) || vCatMap.get(al) || "⚖️ 政治・法律・社会";
+        a.topicCat = cat;
+        aCatMap.set(al, cat);
+        seenAcro.set(al, a);
+      }
+      d.acro.length = 0;
+      seenAcro.forEach(function(a) {
+        d.acro.push(a);
+      });
+
+      // d.vocab 内に p: "singkatan" として入っている略語は、index.html の DB.singkatan で d.acro と合流するため、
+      // d.vocab 側からは除いて d.singkatan 側に保持させる（これで「全分野」と「ALL」が1語もズレなくなる！）
+      if (!Array.isArray(d.singkatan)) d.singkatan = [];
+      const sMap = new Map();
+      d.singkatan.forEach(function(s) {
+        if (s && s.w) sMap.set(s.w.trim().toLowerCase(), s);
+      });
+
+      seenVocab.forEach(function(it, wl) {
+        if (it.p === "singkatan" || it.p === "abbr" || seenAcro.has(wl)) {
+          it.p = "singkatan";
+          sMap.set(wl, it);
+          if (!seenAcro.has(wl)) {
+            const newA = {
+              acro: it.w,
+              full: (it.r || it.w).toLowerCase(),
+              alts: it.alts || [],
+              tr: it.m || "",
+              exp: it.note || "",
+              dictOnly: it.dictOnly,
+              tier: it.tier,
+              topicCat: it.topicCat || "⚖️ 政治・法律・社会"
+            };
+            seenAcro.set(wl, newA);
+            d.acro.push(newA);
+            aCatMap.set(wl, newA.topicCat);
+          }
+          seenVocab.delete(wl);
+        }
+      });
+
+      d.singkatan.length = 0;
+      sMap.forEach(function(s) {
+        d.singkatan.push(s);
+      });
+    }
+
+    d.vocab.length = 0;
+    seenVocab.forEach(function(it) {
+      d.vocab.push(it);
+    });
+  }
+
+  finalizeAllDataInOnePass();
+
+  // -------------------------------------------------------------------
+  // 3. ★時間制限なしで旧パッチの重い重複9,200語ループタイマーを永久遮断！
+  //    さらに V7 の「10ms/25ms タイマー強制同期化」をバイパスし、本物のネイティブ setTimeout に直結
+  // -------------------------------------------------------------------
+  const PERMANENT_SKIP_FN_PATTERNS = [
+    "enforceAuthoritativeVocabAndCleanAll",
+    "enforcePart8CleanAndUpgrade",
+    "enforcePart9MasterSync",
+    "applyPart10VocabPack",
+    "enforcePart11Sync",
+    "forceRestoreAllPersistentPacks",
+    "deduplicateAcroAndSyncCounts",
+    "purgeAndSyncDayaCompact",
+    "syncAndRebuildAllCategoriesV5",
+    "applyStep1DeepUpgrades",
+    "syncVocabExamplesV3",
+    "bootSentenceSyncFix",
+    "checkContextJaExplanation",
+    "bootSync",
+    "bootCleanExplanationUI",
+    "bootMinimalExplanationUI",
+    "bootPerfectExpFix",
+    "bootPerfectExpFixV2",
+    "bootPerfectExpV3",
+    "bootWordbookStep1",
+    "bootCleanUnifiedPatch",
+    "bootDictAnnotationFix",
+    "bootExcludeFeature",
+    "bootExcludeV2",
+    "bootMasterSyncPatch",
+    "bootUltimateSyncFix",
+    "bootAllFiveUpgrades",
+    "bootUnifiedUpgradePatch",
+    "bootFinalStarAndWbPatch",
+    "updateDualStarBadges",
+    "renderLiveWordbookModal",
+    "triggerBatchReload"
+  ];
+
+  // Window.prototype から汚染されていない純正の setTimeout を取得
+  const pureSetTimeout = Window.prototype.setTimeout
+    ? Window.prototype.setTimeout.bind(window)
+    : window.setTimeout.bind(window);
+
+  window.setTimeout = function(fn, delay) {
+    if (typeof fn === "function") {
+      const fnStr = fn.name || Function.prototype.toString.call(fn).slice(0, 260);
+      for (let i = 0; i < PERMANENT_SKIP_FN_PATTERNS.length; i++) {
+        if (fnStr.indexOf(PERMANENT_SKIP_FN_PATTERNS[i]) !== -1) {
+          return 0; // 時間切れなしで永久にスキップ！
+        }
+      }
+    }
+    return pureSetTimeout(fn, delay);
+  };
+
+  // -------------------------------------------------------------------
+  // 4. ★重い buildDatabase()（window.__reloadWhatsIndo）の連打を完全ロック！
+  //    index.html が最初に1回 buildDatabase() を呼んだ後は、単語数が変わらない限り0msでスキップ！
+  // -------------------------------------------------------------------
+  let realReloadFunction = null;
+  let lastBuiltSignature = "";
+
+  function getDataSignature() {
+    return `${d.vocab ? d.vocab.length : 0}_${d.acro ? d.acro.length : 0}_${d.singkatan ? d.singkatan.length : 0}`;
+  }
+
+  try {
+    Object.defineProperty(window, "__reloadWhatsIndo", {
+      configurable: true,
+      get: function() {
+        return function(forceRun) {
+          const curSig = getDataSignature();
+          if (!forceRun && lastBuiltSignature === curSig) {
+            // すでに同じデータ件数でビルド済みなら、重い9,267語正規表現ビルドを0.000秒でスキップ！
+            return;
+          }
+          if (typeof realReloadFunction === "function") {
+            lastBuiltSignature = curSig;
+            realReloadFunction();
+          }
+        };
+      },
+      set: function(fn) {
+        realReloadFunction = fn;
+        // index.html は __reloadWhatsIndo を定義した直後の行で buildDatabase() を直接1回呼ぶので、
+        // その初回ビルド分のシグネチャをここで記録しておく！
+        lastBuiltSignature = getDataSignature();
+      }
+    });
+  } catch (e) {}
+
+  // -------------------------------------------------------------------
+  // 5. ★左上の3大ボタン（単語帳・Kompas連動・排除リスト）をタイマー待ちせず0秒で定位置に即配置！
+  //    （#btn-wordbook-top を隠していたCSSを打ち消し、最初からガタつきゼロで全ボタンを表示）
+  // -------------------------------------------------------------------
+  function getSavedWordbookCountFast() {
+    try {
+      const raw = localStorage.getItem("wi_wordbook_v5");
+      if (!raw) return 0;
+      const parsed = JSON.parse(raw);
+      return (parsed && parsed.items && typeof parsed.items === "object")
+        ? Object.keys(parsed.items).length
+        : 0;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  function getExcludedCountFast() {
+    try {
+      const raw = localStorage.getItem("wi_excluded_words_v2");
+      if (!raw) return 0;
+      const parsed = JSON.parse(raw);
+      return (parsed && typeof parsed === "object")
+        ? Object.keys(parsed).length
+        : 0;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  function ensureAllTopButtonsInPositionNow() {
+    const actionsBar = document.querySelector(".sidebar-actions");
+    const soundBtn   = document.getElementById("btn-sound-top");
+    if (!actionsBar || !soundBtn) return;
+
+    // ①「単語帳」ボタンを「音:ON」のすぐ左（定位置）に最初から #btn-wordbook-top-vfast で即座に配置
+    let wbBtn = document.getElementById("btn-wordbook-top-vfast") || document.getElementById("btn-wordbook-top");
+    if (!wbBtn) {
+      wbBtn = document.createElement("button");
+      wbBtn.type = "button";
+      wbBtn.id = "btn-wordbook-top-vfast";
+      wbBtn.className = "top-action-btn wordbook-btn";
+      wbBtn.title = "マイ単語帳を開く";
+      actionsBar.insertBefore(wbBtn, soundBtn);
+    } else {
+      wbBtn.id = "btn-wordbook-top-vfast";
+    }
+    wbBtn.innerHTML = `<span>単語帳</span><span class="count-pill" id="badge-wordbook-count">${getSavedWordbookCountFast()}</span>`;
+
+    // ②「Kompas連動」ボタンを3段目の左（設定ボタンの次）に即座に配置
+    let kpBtn = document.getElementById("btn-kompas-top");
+    if (!kpBtn) {
+      kpBtn = document.createElement("button");
+      kpBtn.type = "button";
+      kpBtn.id = "btn-kompas-top";
+      kpBtn.className = "top-action-btn wi-kompas-top-btn";
+      kpBtn.textContent = "Kompas連動";
+      actionsBar.appendChild(kpBtn);
+    }
+
+    // ③「排除リスト」ボタンを3段目の右（「Kompas連動」の右隣）に即座に配置
+    let exBtn = document.getElementById("btn-exclude-list-top-v2");
+    if (!exBtn) {
+      exBtn = document.createElement("button");
+      exBtn.type = "button";
+      exBtn.id = "btn-exclude-list-top-v2";
+      exBtn.className = "top-action-btn exclude-top-btn-v2";
+      exBtn.title = "問題に出さない排除リストを開く・復活させる";
+      actionsBar.appendChild(exBtn);
+    }
+    const exCnt = getExcludedCountFast();
+    exBtn.classList.toggle("has-items", exCnt > 0);
+    exBtn.innerHTML = `<span>排除リスト</span><span class="count-pill" id="badge-exclude-count-v2">${exCnt}</span>`;
+  }
+
+  // スクリプト読み込み完了時（0.000秒）に即座に実行！
+  ensureAllTopButtonsInPositionNow();
+
+  // -------------------------------------------------------------------
+  // 6. ★案A：解説テキスト内の `**文字**` から記号 `**` を消し、本物の太字 <strong> に変換！
+  //    ＋ A-Z辞書での辞書専用語（Aa 等）の「排除」「☆」ボタンを強制非表示
+  // -------------------------------------------------------------------
+  if (!document.getElementById("wi-bold-clean-and-dictonly-style")) {
+    const st = document.createElement("style");
+    st.id = "wi-bold-clean-and-dictonly-style";
+    st.textContent = `
+      /* 単語帳ボタンが旧CSSで一時非表示になるのを防ぎ、最初から定位置に常時表示 */
+      #btn-wordbook-top-vfast {
+        display: inline-flex !important;
+      }
+      /* 解説内の **文字** から変換された太字スタイル */
+      .wi-md-bold {
+        font-weight: 700 !important;
+        color: #0f172a !important;
+      }
+      /* 辞書専用語カードでは「排除」ボタンと「☆」ボタンを0msで非表示 */
+      .az-word-card[data-wi-dict-only="1"] .wi-az-ex-btn,
+      .az-word-card[data-wi-dict-only="1"] .wi-ex-chip-btn,
+      .az-word-card[data-wi-dict-only="1"] .dict-star-btn,
+      .dict-item[data-wi-dict-only="1"] .dict-star-btn,
+      #dict-detail-box[data-wi-dict-only="1"] #btn-dict-modal-star,
+      #dict-detail-box[data-wi-dict-only="1"] #btn-dict-modal-exclude {
+        display: none !important;
+      }
+    `;
+    document.head.appendChild(st);
+  }
+
+  function convertMarkdownAsterisksInContainer(rootEl) {
+    if (!rootEl) return;
+    const targets = rootEl.querySelectorAll(
+      ".exp-sec-content, .v63-note-bullet, .v63-note-lead, .wi-slang-exp-box, .exp-summary-brief"
+    );
+    targets.forEach(function(el) {
+      const html = el.innerHTML;
+      if (html && html.indexOf("**") !== -1) {
+        el.innerHTML = html
+          .replace(/\*\*([^*]+)\*\*/g, '<strong class="wi-md-bold">$1</strong>')
+          .replace(/\*\*/g, "");
+      }
+    });
+  }
+
+  function tagDictOnlyElementsInDOM() {
+    // ① 辞書詳細モーダル
+    const dBox = document.getElementById("dict-detail-box");
+    if (dBox) {
+      const sp = dBox.querySelector("span");
+      const hw = sp ? sp.textContent.trim().toLowerCase() : "";
+      if (hw) {
+        dBox.setAttribute("data-wi-dict-only", dictOnlySet.has(hw) ? "1" : "0");
+      }
+      convertMarkdownAsterisksInContainer(dBox);
+    }
+
+    // ② A-Z辞書一覧カード（Aa などの辞書専用語の「排除」ボタンを確実に隠す）
+    const azList = document.getElementById("az-list-container");
+    if (azList) {
+      azList.querySelectorAll(".az-word-card").forEach(function(card) {
+        const stEl = card.querySelector("strong");
+        if (!stEl) return;
+        const hw = stEl.textContent.trim().toLowerCase();
+        card.setAttribute("data-wi-dict-only", dictOnlySet.has(hw) ? "1" : "0");
+      });
+    }
+
+    // ③ クイック検索ドロップダウン
+    const dDrop = document.getElementById("dict-dropdown");
+    if (dDrop && dDrop.style.display !== "none") {
+      dDrop.querySelectorAll(".dict-item").forEach(function(row) {
+        const stEl = row.querySelector("strong");
+        if (!stEl) return;
+        const hw = stEl.textContent.trim().toLowerCase();
+        row.setAttribute("data-wi-dict-only", dictOnlySet.has(hw) ? "1" : "0");
+      });
+    }
+
+    // ④ チャット解説欄の **文字** も太字に変換
+    const area = document.getElementById("chat-messages-area");
+    if (area) {
+      convertMarkdownAsterisksInContainer(area);
+    }
+  }
+
+  // A-Z辞書の8分野トピックバーの件数を、重複除去後の正確な件数（全分野＝ALL）にピタッと同期
+  function syncExactTopicBarCounts() {
+    const barV4 = document.getElementById("az-topic-bar-v4");
+    if (!barV4) return;
+    const counts = {};
+    let total = 0;
+
+    for (let i = 0; i < d.vocab.length; i++) {
+      const it = d.vocab[i];
+      if (!it || !it.w) continue;
+      const cat = it.topicCat || vCatMap.get(it.w.trim().toLowerCase()) || "🏠 日常・生活・移動";
+      counts[cat] = (counts[cat] || 0) + 1;
+      total++;
+    }
+    if (Array.isArray(d.acro)) {
+      for (let i = 0; i < d.acro.length; i++) {
+        const a = d.acro[i];
+        if (!a || !a.acro) continue;
+        const cat = a.topicCat || aCatMap.get(a.acro.trim().toLowerCase()) || "⚖️ 政治・法律・社会";
+        counts[cat] = (counts[cat] || 0) + 1;
+        total++;
+      }
+    }
+
+    const labels = [
+      `全分野 (${total})`,
+      `🏠 日常・生活・移動 (${counts["🏠 日常・生活・移動"] || 0})`,
+      `🍽️ 食・料理 (${counts["🍽️ 食・料理"] || 0})`,
+      `🏥 健康・身体・感情 (${counts["🏥 健康・身体・感情"] || 0})`,
+      `🎓 教育・学術・IT (${counts["🎓 教育・学術・IT"] || 0})`,
+      `💼 仕事・経済・買い物 (${counts["💼 仕事・経済・買い物"] || 0})`,
+      `⚖️ 政治・法律・社会 (${counts["⚖️ 政治・法律・社会"] || 0})`,
+      `🌿 自然・天気・動植物 (${counts["🌿 自然・天気・動植物"] || 0})`,
+      `💬 スラング・口語 (${counts["💬 スラング・口語"] || 0})`
+    ];
+    barV4.querySelectorAll(".sub-filter-pill").forEach(function(btn, idx) {
+      if (labels[idx]) btn.textContent = labels[idx];
+    });
+  }
+
+  function attachCleanObservers() {
+    ensureAllTopButtonsInPositionNow();
+    tagDictOnlyElementsInDOM();
+    syncExactTopicBarCounts();
+
+    const dBox = document.getElementById("dict-detail-box");
+    if (dBox && !dBox.__wiBoldAndDictOnlyObs) {
+      dBox.__wiBoldAndDictOnlyObs = true;
+      new MutationObserver(tagDictOnlyElementsInDOM).observe(dBox, { childList: true, subtree: true });
+    }
+
+    const azList = document.getElementById("az-list-container");
+    if (azList && !azList.__wiBoldAndDictOnlyObs) {
+      azList.__wiBoldAndDictOnlyObs = true;
+      new MutationObserver(tagDictOnlyElementsInDOM).observe(azList, { childList: true });
+    }
+
+    const area = document.getElementById("chat-messages-area");
+    if (area && !area.__wiBoldAndDictOnlyObs) {
+      area.__wiBoldAndDictOnlyObs = true;
+      new MutationObserver(tagDictOnlyElementsInDOM).observe(area, { childList: true, subtree: true });
+    }
+
+    const openAzBtn = document.getElementById("btn-open-az-dict");
+    if (openAzBtn && !openAzBtn.__wiSyncExactTopicBound) {
+      openAzBtn.__wiSyncExactTopicBound = true;
+      openAzBtn.addEventListener("click", function() {
+        syncExactTopicBarCounts();
+        pureSetTimeout(tagDictOnlyElementsInDOM, 10);
+      });
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function() {
+      attachCleanObservers();
+      pureSetTimeout(attachCleanObservers, 60);
+    });
+  } else {
+    attachCleanObservers();
+    pureSetTimeout(attachCleanObservers, 60);
+  }
+})();
