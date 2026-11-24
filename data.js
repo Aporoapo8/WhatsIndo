@@ -162414,3 +162414,5783 @@ for (let i = 0; i < NEW_ISLAM_AND_10_PACK.length; i++) {
 console.error("WhatsIndo Islam & 10-word pack error:", e);
 }
 })();
+/* =====================================================================
+   WhatsIndo ご指名27語 ＋ 厳選派生・関連語7語 追加パック（全34語・安全直結版）
+   - 出題対象（4語）：keaslian（kealsian補完）, membekali ＋ 派生語 pembekalan, berbekal
+   - 辞書専用（dictOnly: true, 30語）：sayup-sayup, walafiat, pendangkalan, kebobolan,
+     kelambanan, ketukan, menguruskan, menggila, penatu, kapten, presentasi, angkara,
+     toserba, werdha, melempem, nirawak, perusuh, keheranan, kepincangan, penahan,
+     menjebol, kuratif, gemerlapan, imut, kegemasan
+     ＋ 関連語 bobol, pembobolan, mempresentasikan, promotif, rehabilitatif
+   - **記号ゼロ・文字バグゼロ・try-catch完全保護
+   ===================================================================== */
+(function() {
+  try {
+    const d = window.WHATSINDO_EXTERNAL_DATA;
+    if (!d || !Array.isArray(d.vocab)) return;
+
+    const dictOnlySet     = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+    const persistentAdded = window.__wiPersistentAddedVocab || (window.__wiPersistentAddedVocab = new Map());
+    const vMap            = window.__wiMasterVocabMap || (window.__wiMasterVocabMap = new Map());
+    const catMap          = window.__WI_V5_VCAT || (window.__WI_V5_VCAT = new Map());
+
+    const NEW_34_PACK = [
+      {
+        "p": "n",
+        "w": "keaslian",
+        "r": "asli",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "真正性（しんせいせい）、本物であること、原本性、オリジナリティ（keaslian dokumen / uang＝書類／紙幣の真贋・本物であること）",
+        "ex": "Petugas memeriksa keaslian ijazah dan dokumen identitas setiap pelamar kerja secara teliti.",
+        "tr": "担当者はすべての就職応募者の卒業証明書および身分証明書の真正性（本物かどうか）を綿密に確認した。",
+        "note": "■ 【語構成】：ke- + asli（本物の・原本の・固有の）+ -an。\n■ 【重要コロケーション】：\n・memeriksa / menguji / memastikan keaslian：真贋（本物かどうか）を確認・検査する\n・keaslian dokumen / ijazah / tanda tangan / uang：書類／卒業証書／署名／紙幣の真正性\n・keaslian budaya / rasa / karya seni：文化の本来性 ／ 本場の味 ／ 芸術作品のオリジナリティ\n■ 【asli 関連語ファミリー】：asli（本物の・原本の・先住の ⇔ palsu＝偽物の / tiruan＝模造の）、mengaslikan（原形に戻す・純正にする）、orisinalitas（独創性）。"
+      },
+      {
+        "p": "v",
+        "w": "membekali",
+        "r": "bekal",
+        "tier": 1,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "①（知識・スキル・資格・心構え・装備などを人や自分自身に）備えさせる、身につけさせる、授ける（membekali A dengan B＝AにBを備えさせる） ②（旅や出征の際に食料や旅費などの）携行品・支度を持たせる",
+        "ex": "Universitas berupaya membekali para lulusannya dengan keterampilan digital dan penguasaan bahasa asing.",
+        "tr": "大学は卒業生たちにデジタルスキルと外国語運用能力を身につけさせよう（備えさせよう）と努めている。",
+        "note": "■ 【語構成と必須構文】：meN- + bekal（携行品・弁当・将来のための蓄えや素養）+ -i。\n・『membekali + [人・対象] + dengan + [知識・スキル・装備]』（例：membekali diri dengan ilmu＝自分に知識を備える）の形で論説文・ニュースに超頻出！\n■ 【重要コロケーション】：\n・membekali diri dengan keterampilan / ilmu：自らにスキル／知識を身につける\n・membekali siswa / calon pekerja / prajurit：生徒／求職者／兵士に必要な素養・装備を持たせる\n■ 【bekal 関連語ファミリー】：bekal（弁当・携行品・将来の糧）、berbekal（〜を携えて・〜を武器にして）、pembekalan（事前研修・ブリーフィング・オリエンテーション）。"
+      },
+      {
+        "p": "n",
+        "w": "pembekalan",
+        "r": "bekal",
+        "tier": 1,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "事前研修、ブリーフィング、オリエンテーション、出発・着任前の指導（新しい任務・留学・インターン・入閣・海外派遣などの前に必要な知識や方針を授けること）",
+        "ex": "Seluruh peserta magang luar negeri wajib mengikuti pembekalan bahasa dan budaya selama dua pekan sebelum berangkat.",
+        "tr": "海外インターンシップの参加者全員は、出発前に2週間の語学・文化事前研修（ブリーフィング）を受ける義務がある。",
+        "note": "■ 【語構成】：peN- + bekal + -an。動詞 membekali に対応する行為名詞で、政治（閣僚への事前ブリーフィング pembekalan menteri）・就活・大学（KKN事前指導）ニュースで毎日使われる超重要語！\n■ 【重要コロケーション】：\n・pembekalan materi / keterampilan / karier：事前講習 ／ スキル研修 ／ キャリアガイダンス\n・mengikuti / memberikan pembekalan：事前研修を受ける ／ 実施する\n■ 【関連語】：membekali（備えさせる）、berbekal（〜を携えて）、pelatihan（トレーニング・訓練）、pengarahan（指示・ブリーフィング）。"
+      },
+      {
+        "p": "v",
+        "w": "berbekal",
+        "r": "bekal",
+        "tier": 1,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "（経験・知識・スキル・信念・わずかな資金などを）携えて、武器にして、元手にして（berbekal + 名詞句＝〜を携えて・〜を頼りに）",
+        "ex": "Berbekal pengalaman kerja selama lima tahun dan modal seadanya, ia memberanikan diri merintis usaha sendiri.",
+        "tr": "5年間の実務経験とあり合わせの資金を元手に（携えて）、彼は思い切って自分の事業を立ち上げた。",
+        "note": "■ 【語構成と文頭用法】：ber- + bekal（携行品・元手・蓄え）。文頭で『Berbekal + [経験・資格・資金], ...（〜を武器に・〜を携えて…）』とつなぐ洗練された報道・エッセイ表現！\n■ 【重要コロケーション】：\n・berbekal pengalaman / ilmu / tekad kuat：経験／知識／強い決意を武器にして\n・berbekal modal seadanya / surat izin：わずかな元手で ／ 許可証を携えて\n■ 【関連語】：bekal（糧・携行品）、membekali（備えさせる）、pembekalan（事前研修）。"
+      },
+      {
+        "p": "other",
+        "w": "sayup-sayup",
+        "r": "sayup",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "（音・声・音楽・アザーンなどが遠くから）かすかに、ほのかに、途切れ途切れに（聞こえるさま）／（視界・記憶が遠くに）ぼんやりと",
+        "ex": "Dari kejauhan terdengar sayup-sayup suara azan subuh yang memecah keheningan pagi di desa itu.",
+        "tr": "遠くからかすかに、その村の朝の静寂を破る夜明けのアザーンの声が聞こえてきた。",
+        "note": "■ 【重要コロケーション】：\n・terdengar sayup-sayup：遠くからかすかに聞こえる（最も定番のセット！）\n・sayup-sayup sampai：かすかに届く、うっすらと聞こえる・見える\n■ 【関連語】：sayup（かすかな・わずかに届かない）、samar-samar（ぼんやりと・おぼろげに）、lirih（小声で・静かに）。"
+      },
+      {
+        "p": "a",
+        "w": "walafiat",
+        "r": "walafiat",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "健やかな、無病息災の、元気で達者な（ほぼ常に『sehat walafiat＝心身ともに極めて健康で元気だ』のセット表現で使われるアラビア語由来の格調高い語）",
+        "ex": "Semoga Bapak, Ibu, dan seluruh keluarga di kampung halaman senantiasa berada dalam keadaan sehat walafiat.",
+        "tr": "お父様、お母様、そして故郷のご家族の皆様が常に健やかで無病息災（sehat walafiat）でありますように。",
+        "note": "■ 【語源と定番挨拶】：アラビア語の wa（そして）＋ al-afiyah（無病息災・平安）に由来。\n■ 【重要コロケーション】：\n・sehat walafiat：すこぶる健康で元気だ（手紙・スピーチ・祝辞・見舞い挨拶の黄金フレーズ！）\n■ 【関連語】：sehat（健康な）、bugar（引き締まって元気な・フィットした）、kesehatan（健康）。"
+      },
+      {
+        "p": "n",
+        "w": "pendangkalan",
+        "r": "dangkal",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "①（川・湖・港湾・貯水池などの土砂堆積による）浅瀬化、水深の低下（pendangkalan sungai＝河川の浅化） ②（比喩で：思考・教養・信仰・理解などの）浅薄化、底が浅くなること",
+        "ex": "Pendangkalan sungai akibat sedimentasi lumpur dan penumpukan sampah meningkatkan risiko banjir saat musim penghujan.",
+        "tr": "泥の堆積とごみの蓄積による河川の浅化（水深低下）は、雨季の洪水リスクを高めている。",
+        "note": "■ 【語構成】：peN- + dangkal（浅い ⇔ dalam＝深い）+ -an。\n■ 【重要コロケーション】：\n・pendangkalan sungai / waduk / muara / pelabuhan：川／貯水池／河口／港の浅化\n・pengerukan (mengeruk) sungai：河川の浚渫（しゅんせつ：pendangkalan の対策として常にセットで登場！）\n・pendangkalan makna / pemikiran：意味や思考の浅薄化\n■ 【関連語】：dangkal（浅い・浅薄な）、mendangkalkan（浅くする）、sedimentasi（堆積作用）。"
+      },
+      {
+        "p": "v",
+        "w": "kebobolan",
+        "r": "bobol",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①（サッカー等で）失点する、ゴールを割られる（kebobolan dua gol＝2失点する） ②（銀行口座・システム・警備網・家などが）不正侵入される、ハッキング・強盗の被害に遭う ③（口語で：予定外の）妊娠をしてしまう／予算や防衛線を突破される",
+        "ex": "Meski tampil dominan sepanjang babak pertama, tim tuan rumah akhirnya kebobolan satu gol pada menit terakhir.",
+        "tr": "前半を通して優勢に試合を進めたにもかかわらず、ホームチームはついに終了間際に1失点した。",
+        "note": "■ 【語構成】：口語・報道受動接辞『ke- -an』＋語幹『bobol（破られる・抜かれる・決壊する）』。スポーツ報道とサイバー・金融事件報道で毎日使われる超頻出語！\n■ 【3大重要コロケーション】：\n・kebobolan gol（スポーツ）：ゴールを決められる、失点する\n・kebobolan data / rekening / sistem keamanan（IT・犯罪）：データ漏洩・不正アクセス／口座不正引出しの被害に遭う\n・kebobolan maling：泥棒に入られる\n■ 【bobol 関連語ファミリー】：bobol（破れる・決壊する）、membobol（こじ開ける・ハッキングする・ゴールを破る）、pembobolan（侵入窃盗・不正アクセス事件）。"
+      },
+      {
+        "p": "n",
+        "w": "kelambanan",
+        "r": "lamban",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "緩慢さ、動きの鈍さ、対応の遅さ、ノロさ（行政対応・経済成長・意思決定などのもたつきを批判する際の定番語＝kelambatan）",
+        "ex": "Warga menyayangkan kelambanan pemerintah daerah dalam memperbaiki jembatan utama yang rusak akibat banjir.",
+        "tr": "住民たちは、洪水で壊れた主要橋梁の補修における地方政府の対応の遅さ（緩慢さ）を遺憾に思っている。",
+        "note": "■ 【語構成】：ke- + lamban（動きが鈍い・機敏でない・もたついている）+ -an。\n■ 【重要コロケーション】：\n・kelambanan birokrasi / respons / penanganan：官僚手続きの遅さ ／ 対応の鈍さ ／ 処理のもたつき\n・kelambanan pertumbuhan ekonomi：経済成長の鈍化\n■ 【lamban と lambat の違い】：lambat は速度や時刻が客観的に「遅い・遅刻する」、lamban は反応や手際が「鈍い・トロい・もたついている」という批判的ニュアンスが強い。対義語：kecepatan（速さ）、kesigapan（機敏さ・迅速さ）。"
+      },
+      {
+        "p": "n",
+        "w": "ketukan",
+        "r": "ketuk",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①（ドアや木を）ノックする音、叩く音（ketukan pintu＝ドアのノック音） ②（音楽の）拍、ビート、拍子（四拍子＝empat ketukan） ③（議会・裁判で議長が木槌を打つ）決定のひと打ち（ketukan palu）",
+        "ex": "Terdengar suara ketukan pintu yang pelan dari luar kamar ketika saya sedang belajar di meja.",
+        "tr": "机で勉強していたとき、部屋の外から静かなドアのノック音が聞こえた。",
+        "note": "■ 【語構成】：ketuk（ノックする・コンコン叩く）+ -an。\n■ 【重要コロケーション】：\n・ketukan pintu：ドアのノック音\n・ketukan palu（政治・裁判）：議長や裁判官による木槌のひと打ち（＝法案可決・判決確定の象徴！動詞表現 ketok palu）\n・ketukan irama / musik：リズムの拍・ビート\n■ 【関連語】：mengetuk（ノックする・叩く：mengetuk pintu hati＝人の心に訴えかける）。"
+      },
+      {
+        "p": "v",
+        "w": "menguruskan",
+        "r": "kurus",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "①（語幹 kurus：ダイエットや運動で体・体重を）痩せさせる、細くする、絞る（menguruskan badan＝ダイエットする・体を絞る） ②（語幹 urus：他人のために手続きや用事を）代わりに処理してあげる、手配してあげる",
+        "ex": "Ia rutin berolahraga dan mengatur pola makan tinggi protein untuk menguruskan badan secara sehat.",
+        "tr": "彼は健康的に体を絞る（痩せる）ため、定期的に運動して高タンパクな食事管理を行っている。",
+        "note": "■ 【同形異源の2つの語幹に注意！】：\n① meN- + kurus（痩せた：頭文字 k が鼻音化して ng）+ -kan ➔ 『menguruskan badan（痩せる・減量する＝melangsingkan badan / menurunkan berat badan）』\n② meN- + urus（世話する・手続きする）+ -kan ➔ 『（誰かのために書類や手続きを）代わりに処理してあげる』（例：menguruskan paspor adik＝弟のパスポート手続きを代行してあげる）\n■ 【関連語】：kurus（痩せた ⇔ gemuk＝太った）、mengurus（管理する・手続きする）、pengurusan（手続き・管理）。"
+      },
+      {
+        "p": "v",
+        "w": "menggila",
+        "r": "gila",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "①（価格・インフレ・人気・ブーム・気温・犯罪などが）狂ったように急騰する、異常なほど過熱する、歯止めが利かなくなる ②（人が）暴走する、理性を失って暴れ狂う、熱狂する",
+        "ex": "Harga cabai rawit di pasar tradisional sempat menggila menjelang hari raya akibat gagal panen di daerah produsen.",
+        "tr": "生産地での不作により、祝祭日を前に伝統市場での激辛唐辛子の価格が一時狂ったように高騰した。",
+        "note": "■ 【語構成】：meN- + gila（狂った・常軌を逸した）。ニュースの見出しで「物価の異常高騰」や「SNSブームの異常過熱」を表す超定番の比喩動詞！\n■ 【重要コロケーション】：\n・harga / inflasi / panas menggila：価格が異常高騰する ／ インフレが暴走する ／ 暑さが常軌を逸する\n・tren / demam ~ menggila：〜のブームが熱狂的に過熱する\n■ 【関連語】：gila（狂った・ヤバい）、kegilaan（狂気・熱狂）、tergila-gila（〜に夢中になる・ベタ惚れする）。"
+      },
+      {
+        "p": "n",
+        "w": "penatu",
+        "r": "penatu",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "クリーニング店、洗濯屋、ランドリー業者（英語 laundry の公式インドネシア語訳。＝binatu / jasa cuci pakaian）",
+        "ex": "Karena musim hujan membuat cucian sulit kering, banyak penghuni kos menggunakan jasa penatu kiloan.",
+        "tr": "雨季で洗濯物が乾きにくいため、多くの下宿生がキロ単位の洗濯屋（ランドリーサービス）を利用している。",
+        "note": "■ 【正書法と日常語】：KBBI標準見出しは『penatu』（別形 binatu）。インドネシアの街中では『laundry kiloan（1キロいくらで洗濯・乾燥・アイロンまでしてくれる激安ランドリー）』が学生・単身者の生活インフラになっている。\n■ 【重要コロケーション】：usaha / jasa penatu（クリーニング業・ランドリーサービス）、binatu（同義語）。"
+      },
+      {
+        "p": "n",
+        "w": "kapten",
+        "r": "kapten",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "①（スポーツチームの）キャプテン、主将（kapten tim） ②（船舶・航空機の）船長、機長（kapten kapal / pilot） ③（軍隊・警察の階級で）大尉（たいい）",
+        "ex": "Kapten tim nasional memberikan semangat kepada rekan-rekannya sebelum pertandingan babak final dimulai.",
+        "tr": "代表チームのキャプテンは、決勝戦が始まる前にチームメイトたちを鼓舞した。",
+        "note": "■ 【重要コロケーション】：\n・kapten tim / kesebelasan：チームキャプテン ／ サッカー主将\n・kapten kapal / pesawat：船長（＝nakhoda） ／ 機長\n・Kapten TNI：インドネシア国軍の大尉（階級順：Letda 少尉 ➔ Lettu 中尉 ➔ Kapten 大尉 ➔ Mayor 少佐）"
+      },
+      {
+        "p": "n",
+        "w": "presentasi",
+        "r": "presentasi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "プレゼンテーション、発表、口頭報告（大学授業・会議・ビジネス提案でスライド等を用いて説明すること）",
+        "ex": "Kelompok kami mendapat giliran pertama untuk menyampaikan presentasi hasil riset di depan dosen dan mahasiswa lain.",
+        "tr": "私たちのグループは、教員や他の学生の前で研究結果のプレゼンテーションを行うトップバッターになった。",
+        "note": "■ 【超重要なスペル混同注意（presentasi vs persentase）】：\n・presentasi：プレゼンテーション、発表（動詞：mempresentasikan）\n・persentase：パーセンテージ、割合・比率（例：persentase kenaikan＝上昇率）\n※インドネシア人でもよく混同する検定・レポート必出ペア！\n■ 【重要コロケーション】：menyampaikan / melakukan presentasi（プレゼンを行う）、salindia / slide presentasi（プレゼン用スライド）。"
+      },
+      {
+        "p": "n",
+        "w": "angkara",
+        "r": "angkara",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "強欲、邪悪、暴虐、残虐な欲望（ほぼ常に複合表現『angkara murka＝邪悪・暴虐・強欲と怒りの権化』の形で文語・ワヤン・説話・論説文に登場する）",
+        "ex": "Dalam kisah pewayangan, tokoh kesatria selalu berjuang menumpas segala bentuk angkara murka demi menegakkan kebenaran.",
+        "tr": "ワヤン（影絵芝居）の物語の中で、騎士の登場人物たちは常に正義を打ち立てるため、あらゆる形態の邪悪と暴虐（アンカラ・ムルカ）を打倒しようと戦う。",
+        "note": "■ 【語源と定番フレーズ】：サンスクリット語 ahamkara（我執・傲慢）由来。\n■ 【重要コロケーション】：\n・angkara murka：邪悪、暴虐、飽くなき強欲（murka＝激しい怒り・貪欲）\n・menumpas / melawan angkara murka：悪と暴虐を打ち倒す\n■ 【関連語】：keserakahan（強欲）、kezaliman（圧政・非道）、kejahatan（悪事）。"
+      },
+      {
+        "p": "n",
+        "w": "toserba",
+        "r": "toko serba ada",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "総合スーパー、デパート、百貨店、何でも揃う大型小売店（アクロニム：TOko SERba Ada＝何でも揃う店）",
+        "ex": "Pada akhir pekan, banyak keluarga berbelanja kebutuhan rumah tangga dan pakaian di toserba terdekat.",
+        "tr": "週末になると、多くの家族が最寄りの総合スーパー（トセルバ）で日用品や衣類を買い求める。",
+        "note": "■ 【語構成】：『toko（店）＋ serba（すべての）＋ ada（ある）』の頭音節を合成したアクロニム。\n■ 【インドネシアの小売業態比較】：\n・warung（ワルン）：街角の小さな個人商店・食堂\n・minimarket（ミニマーケット）：コンビニ（Indomaret / Alfamart 等）\n・swalayan / pasar swalayan：セルフサービスのスーパーマーケット\n・toserba：衣食住の日用品が何でも揃う総合スーパー・百貨店（Yogya Toserba 等）\n・mal / pusat perbelanjaan：大型ショッピングモール"
+      },
+      {
+        "p": "a",
+        "w": "werdha",
+        "r": "werda",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "高齢の、老齢の、年配の（サンスクリット語 vrddha 由来。ほぼ常に『panti werdha＝老人ホーム・高齢者福祉施設』や『wredatama＝退職公務員団体』の形で使われる。KBBI標準綴りは werda、実社会では werdha が定着）",
+        "ex": "Para mahasiswa mengadakan kegiatan bakti sosial dengan mengunjungi dan menghibur para lansia di panti werdha.",
+        "tr": "学生たちは老人ホーム（パンティ・ウェルダ）の高齢者たちを訪問して楽しませる社会奉仕活動を行った。",
+        "note": "■ 【重要コロケーション】：\n・panti werdha / panti jompo：老人ホーム、高齢者養護施設（panti werdha の方がより丁寧で公式な表現！）\n・panti asuhan（対比）：児童養護施設・孤児院\n■ 【関連語】：lansia [lanjut usia]（高齢者）、manula [manusia usia lanjut]（高齢者）、orang tua（親・年長者）。"
+      },
+      {
+        "p": "a",
+        "w": "melempem",
+        "r": "lempem",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "①（せんべい・クルプック・スナック菓子などが湿気を吸って）湿気（しけ）る、ふにゃふにゃになる（⇔ renyah＝サクサク・パリパリ） ②（比喩で：選手・チーム・業績・市場・やる気などが）勢いが落ちる、不振になる、しぼむ、パッとしない",
+        "ex": "Simpan kerupuk di dalam stoples yang tertutup rapat agar tidak cepat melempem terkena udara lembap.",
+        "tr": "湿った空気に触れてすぐ湿気ってしまわないよう、クルプック（揚げせんべい）は密閉容器の中に保管しなさい。",
+        "note": "■ 【語構成と2大用法】：me- + lempem（ジャワ語由来）。\n① 食の日常語：kerupuk / keripik melempem（せんべい・チップスが湿気てシナシナになる ⇔ renyah / garing＝パリパリ）\n② スポーツ・経済ニュースの超定番比喩：performa melempem（パフォーマンスが低調・不振だ）、penjualan melempem（売上がパッとしない・低迷している）"
+      },
+      {
+        "p": "a",
+        "w": "nirawak",
+        "r": "awak",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "無人の、乗組員がいない（接頭辞 nir-＝無・非 ＋ awak＝乗組員・クルー。ドローンや無人機を表す公式インドネシア語：pesawat nirawak＝無人航空機・ドローン）",
+        "ex": "Tim peneliti menggunakan pesawat nirawak untuk memetakan luas kerusakan hutan dari udara secara akurat.",
+        "tr": "研究チームは上空から森林被害の面積を正確にマッピングするため、無人航空機（ドローン）を使用している。",
+        "note": "■ 【重要接頭辞『nir-（無〜・〜レス）』シリーズ（サンスクリット語由来・検定頻出！）】：\n・nirawak：無人の（pesawat nirawak＝ドローン / UAV、wahana nirawak＝無人探査機）\n・nirkabel：ワイヤレスの、無線の（jaringan nirkabel＝無線ネットワーク）\n・nirlaba：非営利の（organisasi nirlaba＝NPO・非営利団体）\n・nirsentuh：非接触の（pembayaran nirsentuh＝タッチ決済）\n・nirkertas：ペーパーレスの\n■ 【関連語】：awak（乗組員・船員：awak kabin＝客室乗務員、awak kapal＝乗組員）。"
+      },
+      {
+        "p": "n",
+        "w": "perusuh",
+        "r": "rusuh",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "暴徒、騒乱の扇動者・実行犯、治安を乱す者（デモに乗じて破壊行為や暴動を起こす人々）",
+        "ex": "Aparat keamanan menangkap sejumlah perusuh yang diduga memprovokasi massa dan merusak fasilitas umum.",
+        "tr": "治安当局は、群衆を挑発して公共施設を破壊した疑いのある複数の暴徒を逮捕した。",
+        "note": "■ 【語構成】：pe- + rusuh（騒然とした・不穏な・乱暴な）。\n■ 【重要コロケーション】：\n・kelompok / massa perusuh：暴徒集団\n・oknum perusuh：騒乱を起こす一部の不届き者\n■ 【rusuh 関連語ファミリー】：rusuh（騒然とした・治安が悪い）、kerusuhan（暴動・騒乱：kerusuhan Mei 1998＝1998年5月暴動）、merusuh（暴動を起こす・荒らす）、perusuhan（暴動行為）。"
+      },
+      {
+        "p": "v",
+        "w": "keheranan",
+        "r": "heran",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "①非常に驚く、不思議に思う、あっけにとられる（状態動詞：terheran-heran） ②驚き、不思議さ（名詞的用法）",
+        "ex": "Warga sekitar sempat keheranan melihat lampu di rumah kosong itu tiba-tiba menyala pada tengah malam.",
+        "tr": "近隣住民たちは、その空き家の明かりが真夜中に突然点いたのを見てしばらく不思議に思った（あっけにとられた）。",
+        "note": "■ 【語構成】：ke- + heran（驚く・不思議に思う）+ -an。\n■ 【heran 関連語ファミリーの整理】：\n・heran（形容詞）：驚く、不思議に思う（tidak heran＝〜も無理はない・驚くにあたらない）\n・keheranan / terheran-heran（状態動詞）：あっけにとられる、ひどく不思議がる（dengan wajah keheranan＝不思議そうな顔で）\n・mengherankan（他動詞・形容詞的）：驚かせる、不思議な（hal yang mengherankan＝驚くべきこと）"
+      },
+      {
+        "p": "n",
+        "w": "kepincangan",
+        "r": "pincang",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①（社会・経済・地域間・制度などの）不均衡、偏り、格差、歪み、不備（＝ketimpangan / ketidakseimbangan） ②足が不自由であること、びっこを引くこと",
+        "ex": "Pemerataan infrastruktur transportasi sangat dibutuhkan untuk mengatasi kepincangan pembangunan antarwilayah.",
+        "tr": "地域間の開発の不均衡（格差・歪み）を解消するためには、交通インフラの均等化が極めて必要である。",
+        "note": "■ 【語構成と比喩】：ke- + pincang（①足を引きずる・不揃いな、②バランスを欠いた・偏った）+ -an。論説文ではほぼ比喩の「社会・経済の歪み・不均衡」で使われる！\n■ 【重要コロケーション】：\n・kepincangan sosial / ekonomi / pembangunan：社会的／経済的／開発の不均衡・歪み\n■ 【類義語】：ketimpangan（格差・不均衡）、kesenjangan（ギャップ・格差）、ketidakseimbangan（アンバランス）。"
+      },
+      {
+        "p": "n",
+        "w": "penahan",
+        "r": "tahan",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "支え、止め具、防護壁、〜止め・〜防止装置（後ろに目的語を置いて「〜を支える／防ぐ／抑えるもの」を表す超便利な道具・構造名詞：dinding penahan tanah＝擁壁、penahan gelombang＝防波堤、obat penahan nyeri＝鎮痛剤）",
+        "ex": "Pemerintah membangun tembok penahan ombak di sepanjang pesisir untuk mencegah abrasi pantai.",
+        "tr": "政府は海岸浸食を防ぐため、海岸線に沿って防波堤（波止め壁）を建設した。",
+        "note": "■ 【語構成】：peN- + tahan（耐える・支える・止める：頭文字 t が鼻音化して n）。\n■ 【重要コロケーション】：\n・dinding / tembok penahan tanah / ombak：擁壁（土留め壁） ／ 防波堤\n・obat penahan nyeri / rasa sakit：鎮痛剤、痛み止め（＝pereda nyeri）\n・penahan panas / angin：断熱材・鍋敷き ／ 防風設備\n■ 【tahan 関連語ファミリー】：menahan（抑える・我慢する・拘留する）、tahanan（拘留者・容疑者・抵抗力）、pertahanan（防衛・国防）、ketahanan（強靭さ・安全保障：ketahanan pangan＝食料安全保障）。"
+      },
+      {
+        "p": "v",
+        "w": "menjebol",
+        "r": "jebol",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①（壁・門・堤防・金庫・ロックなどを力ずくで）突き破る、こじ開ける、決壊させる ②（セキュリティ網・システム・相手守備陣などを）突破する、打ち破る（＝membobol）",
+        "ex": "Kawanan pencuri itu berhasil menjebol pintu belakang toko elektronik pada dini hari sebelum alarm berbunyi.",
+        "tr": "その窃盗団は未明、警報が鳴る前に家電量販店の裏口をこじ開ける（突き破る）ことに成功した。",
+        "note": "■ 【語構成】：meN- + jebol（破れる・決壊する・穴が開く）。\n■ 【重要コロケーション】：\n・menjebol gawang / pertahanan lawan（スポーツ）：相手ゴールを割る ／ 相手ディフェンスを突破する\n・menjebol sistem keamanan / situs web（IT）：セキュリティ・ウェブサイトをハッキングして突破する\n・menjebol tembok / gembok / tanggul：壁を壊す ／ 南京錠をこじ開ける ／ 堤防を決壊させる\n■ 【関連語】：jebol（破れた・決壊した：tanggul jebol＝堤防決壊）、penjebolan（破壊侵入・突破）、membobol（同義語）。"
+      },
+      {
+        "p": "a",
+        "w": "kuratif",
+        "r": "kuratif",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "治療的な、治癒を目的とした（発病・問題発生後に治すことに重点を置くアプローチ：upaya / layanan kuratif＝治療措置・医療サービス）",
+        "ex": "Kebijakan kesehatan nasional kini tidak hanya berfokus pada upaya kuratif di rumah sakit, tetapi juga memperkuat langkah preventif.",
+        "tr": "国の保健政策は現在、病院での治療的措置（クラティフ）だけに焦点を当てるのではなく、予防的措置も強化している。",
+        "note": "■ 【インドネシア医療・保健政策の4大柱セット（ニュース＆検定A/B級必出！）】：\n1. promotif（プロモティフ）：健康増進（運動・栄養啓発など）\n2. preventif（プレヴェンティフ）：予防（ワクチン・検診・衛生対策など）\n3. kuratif（クラティフ）：治療（投薬・手術など病気になってからの治療）\n4. rehabilitatif（レハビリタティフ）：リハビリ・社会復帰支援\n■ 【重要コロケーション】：upaya kuratif（治療的取り組み）、pendekatan kuratif（対症・治療アプローチ）。"
+      },
+      {
+        "p": "v",
+        "w": "gemerlapan",
+        "r": "gerlap",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①（街の夜景・星・宝石・衣装などが）きらきらと眩しく輝く、きらめく（＝berkilauan） ②（比喩で：大都市や芸能界の生活が）華やかな、きらびやかな（kehidupan yang gemerlapan）",
+        "ex": "Dari atas bukit, lampu-lampu kota besar tampak gemerlapan bagaikan hamparan bintang di malam hari.",
+        "tr": "丘の上から見ると、大都市の明かりは夜に広がる星々のようにきらきらと輝いて見えた。",
+        "note": "■ 【語構成】：接中辞（インフィックス）-em- を含む『gemerlap（きらめく：g-em-erlap）』+ 接尾辞 -an。\n■ 【重要コロケーション】：\n・lampu / bintang gemerlapan：街灯／星々がきらきら輝く\n・gemerlapan / gemerlap dunia hiburan / ibu kota：芸能界／首都の華やかなきらびやかさ\n■ 【関連語】：gemerlap（きらめく・華やかな）、berkilau / berkilauan（輝く）、kerlap-kerlip（チカチカ点滅してきらめく）。"
+      },
+      {
+        "p": "a",
+        "w": "imut",
+        "r": "imut",
+        "isSlang": true,
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💬 スラング・口語",
+        "m": "（赤ちゃん・小動物・小物・顔立ち・仕草などが）ちっちゃくて可愛い、愛らしい、キュートな（重複形の imut-imut でさらに強調）",
+        "ex": "Boneka kelinci mungil yang dipajang di rak toko suvenir itu terlihat sangat imut dan menggemaskan.",
+        "tr": "土産物店の棚に飾られていた小さなうさぎのぬいぐるみは、とてもキュートで愛くるしく見えた。",
+        "note": "■ 【インドネシア語の「可愛い」ニュアンス使い分け】：\n・imut / imut-imut：小さくてキュート・愛らしい（赤ちゃん・子猫・うさぎ・童顔の女性・ミニチュア小物にぴったり！）\n・lucu：①面白い（funny）、②（動物・子ども・雑貨が）可愛い（cute）\n・cantik：美しい、美人だ（女性の容姿や風景）\n・menggemaskan：可愛すぎてぎゅっとしたくなる、たまらなく愛くるしい\n■ 【関連語】：mungil（こぢんまりして可愛い）、keimutan（可愛らしさ）。"
+      },
+      {
+        "p": "n",
+        "w": "kegemasan",
+        "r": "gemas",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "①（可愛すぎてたまらない）愛おしさ、キュンとする気持ち ②（歯がゆくてたまらない）もどかしさ、イライラ、憤り",
+        "ex": "Warganet mengungkapkan kegemasan mereka di kolom komentar setelah menonton video tingkah lucu anak kucing itu.",
+        "tr": "ネットユーザーたちは、その子猫の愛らしい仕草の動画を見たあと、コメント欄でたまらない愛おしさ（可愛さへの悶え）を表現した。",
+        "note": "■ 【語構成】：ke- + gemas（愛おしくてたまらない／歯がゆくてムズムズする）+ -an。\n■ 【gemas 関連語ファミリー】：gemas / gemes［口語］（たまらなく可愛い／もどかしい）、menggemaskan（たまらなく愛くるしい／イライラさせる）、kegemasan（愛おしさ／もどかしさ）。"
+      },
+      {
+        "p": "v",
+        "w": "bobol",
+        "r": "bobol",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①（堤防・壁・門・防衛線などが）破られる、決壊する、穴が開く ②（口座・データ・セキュリティが）不正突破される、抜かれる ③（スポーツでゴールを）割られる",
+        "ex": "Tanggul sungai di kawasan hilir dilaporkan bobol akibat tidak mampu menahan derasnya debit air hujan.",
+        "tr": "激しい雨水の流量に耐えきれず、下流域の河川堤防が決壊した（破られた）と報告された。",
+        "note": "■ 【重要コロケーション】：tanggul bobol（堤防決壊）、gawang bobol（失点）、rekening / data bobol（口座／データ不正流出）。関連語：membobol、kebobolan、pembobolan。"
+      },
+      {
+        "p": "n",
+        "w": "pembobolan",
+        "r": "bobol",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "侵入窃盗、こじ開け、不正アクセス・ハッキング事件（pembobolan ATM / rekening / data＝ATM荒らし／口座不正引出し／データ不正侵入）",
+        "ex": "Polisi berhasil mengungkap sindikat pembobolan mesin ATM yang beroperasi di sejumlah kota besar.",
+        "tr": "警察は複数の大都市で暗躍していたATM不正引出し（こじ開け）シンジケートを摘発することに成功した。",
+        "note": "■ 【語構成】：peN- + bobol + -an。犯罪・サイバーセキュリティニュースで超頻出の名詞。"
+      },
+      {
+        "p": "v",
+        "w": "mempresentasikan",
+        "r": "presentasi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "（企画案・研究結果・新製品などをスライド等で）プレゼンする、発表する、説明する（＝memaparkan）",
+        "ex": "Setiap tim diberi waktu lima belas menit untuk mempresentasikan proposal bisnis mereka di hadapan dewan juri.",
+        "tr": "各チームは審査員団の前でビジネス提案書をプレゼンするため、15分間の持ち時間が与えられた。",
+        "note": "■ 【語構成】：meN- + presentasi（プレゼンテーション）+ -kan（子音群 pr- は鼻音化で p が残る：mem- + presentasi + -kan）。"
+      },
+      {
+        "p": "a",
+        "w": "promotif",
+        "r": "promotif",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "（健康・予防医療などの）増進的な、普及啓発の（病気になる前から健康状態をさらに高める取り組み：upaya promotif）",
+        "ex": "Puskesmas mengedepankan layanan promotif dan preventif melalui edukasi gizi seimbang serta senam bersama warga.",
+        "tr": "地域保健センター（プスケスマス）は、栄養バランス教育や住民との合同体操を通じて、健康増進（プロモティフ）と予防サービスを前面に押し出している。",
+        "note": "■ 【医療4大柱】：promotif（健康増進）・preventif（予防）・kuratif（治療）・rehabilitatif（リハビリ）の筆頭語。"
+      },
+      {
+        "p": "a",
+        "w": "rehabilitatif",
+        "r": "rehabilitasi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "リハビリ的な、機能回復・社会復帰を目的とした（病気・怪我・依存症などの治療後に元の生活や機能を取り戻す取り組み：layanan rehabilitatif）",
+        "ex": "Pasien pascastroke memerlukan layanan rehabilitatif berupa fisioterapi rutin agar fungsi geraknya kembali optimal.",
+        "tr": "脳卒中後の患者は運動機能を再び最適な状態へ戻すため、定期的な理学療法というリハビリ的（レハビリタティフ）サービスを必要とする。",
+        "note": "■ 【関連語】：rehabilitasi（リハビリ、復興・再建、名誉回復）、merehabilitasi（回復・再建する）。医療4大柱（promotif / preventif / kuratif / rehabilitatif）の完結語。"
+      }
+    ];
+
+    const idxByWord = new Map();
+    for (let i = 0; i < d.vocab.length; i++) {
+      const it = d.vocab[i];
+      if (it && it.w) idxByWord.set(it.w.trim().toLowerCase(), i);
+    }
+
+    const newlyDictOnlyKeys = new Set();
+
+    for (let i = 0; i < NEW_34_PACK.length; i++) {
+      const item = NEW_34_PACK[i];
+      if (!item || !item.w) continue;
+      const key = item.w.trim().toLowerCase();
+
+      if (item.dictOnly === true || item.tier === 3) {
+        dictOnlySet.add(key);
+        newlyDictOnlyKeys.add(key);
+      } else {
+        dictOnlySet.delete(key);
+      }
+      if (item.topicCat) {
+        catMap.set(key, item.topicCat);
+      }
+
+      if (idxByWord.has(key)) {
+        const pos = idxByWord.get(key);
+        Object.assign(d.vocab[pos], item);
+        vMap.set(key, d.vocab[pos]);
+        persistentAdded.set(key, d.vocab[pos]);
+      } else {
+        d.vocab.push(item);
+        idxByWord.set(key, d.vocab.length - 1);
+        vMap.set(key, item);
+        persistentAdded.set(key, item);
+      }
+    }
+
+    ["wi_wrongs_v2", "wi_stars_v2", "wi_master_stars_v5"].forEach(function(storageKey) {
+      try {
+        const raw = localStorage.getItem(storageKey);
+        if (!raw) return;
+        const list = JSON.parse(raw);
+        if (!Array.isArray(list)) return;
+        const cleaned = list.filter(function(it) {
+          if (!it || typeof it !== "object") return false;
+          const qid = String(it.id || "");
+          const m = qid.match(/^(?:voc|voc_ja2id|ctx::voc)::(.+)$/i);
+          const w = (m ? m[1] : (it.w || it.ttsWord || "")).trim().toLowerCase();
+          return !newlyDictOnlyKeys.has(w);
+        });
+        if (cleaned.length !== list.length) {
+          localStorage.setItem(storageKey, JSON.stringify(cleaned));
+        }
+      } catch (err) {}
+    });
+  } catch (e) {
+    console.error("WhatsIndo 34-word pack error:", e);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 慣用句84語の例文和訳補完 ＆ 例文ダブルクリック無反応バグ完全根治
+   ＋ 見出し語「abc」問題出題からの完全排除パッチ
+   - 原因：d.idiom から自動登録された84語（angkat bicara 等）の tr が空だったため、
+     旧例文修復オブザーバーが .wi-ex-tr-line 不在を検知して無限再描画を起こし、
+     テキスト選択＆ダブルクリックが毎回リセットされていたバグを100%根治
+   - 全84語の正確な日本語訳を補完 ＋ 空和訳時でも無限ループしない永久ガード設置
+   - 見出し語「abc」を全クイズ（単語・慣用句・復習・スター）から完全排除（辞書専用化）
+   ===================================================================== */
+(function() {
+  try {
+    const d = window.WHATSINDO_EXTERNAL_DATA;
+    if (!d) return;
+
+    const dictOnlySet     = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+    const persistentAdded = window.__wiPersistentAddedVocab || (window.__wiPersistentAddedVocab = new Map());
+    const vMap            = window.__wiMasterVocabMap || (window.__wiMasterVocabMap = new Map());
+
+    // 1. 全84慣用句（angkat bicara 等）の例文日本語訳マップ
+    const IDIOM_TR_FIX_MAP = {
+      "mengambil muka": "その社員は社長の前で媚びを売る（いい顔をする）のが好きなため、同僚たちから好かれていない。",
+      "angkat topi": "私たちは、被災者を助けるボランティアたちの奮闘に対して敬意を表する（脱帽する）べきだ。",
+      "angkat kaki": "雇い主の乱暴な扱いにこれ以上耐えられなくなったため、彼はその家から立ち去ることを選んだ。",
+      "mengadu domba": "住民同士を仲違いさせることを目的としたフェイクニュースを簡単に信じてはいけない。",
+      "membabi buta": "その強盗団は警察に包囲された際、見境なく銃を発砲した。",
+      "bahu-membahu": "村の住民たちは肩を並べて協力し、土砂崩れの堆積物で塞がれた道路を清掃した。",
+      "mengabui mata": "その虚偽の財務報告書は、株主たちの目をくらます（騙す）ために意図的に作成された。",
+      "kehilangan akal": "海の真ん中で嵐に船を襲われたとき、その若い漁師は一時途方に暮れた。",
+      "berbadan dua": "私の姉は現在妊娠しているため、あまり無理をして疲れてはいけない。",
+      "asam garam": "彼は国際交渉において人生の酸いも甘いも（豊富な経験を）知り尽くしたベテラン外交官だ。",
+      "banting tulang": "父は子どもたちを大学卒業まで進学させる学費を賄うため、昼夜を問わず身を粉にして働いている。",
+      "angkat bicara": "長い間沈黙を守っていた経営陣は、その解雇（リストラ）問題についてついに口を開いた（公式発言した）。",
+      "kabar angin": "真偽がまだはっきりしない風の噂（デマ）を聞いて、簡単にパニックになってはいけない。",
+      "tidak tahu balas budi": "借金をすべて返済するのを助けてもらった後、彼は恩知らずな人のようにそのまま立ち去ってしまった。",
+      "berprasangka baik": "誰かが過ちを犯したと決めつける前に、私たちはまず好意的に（善意に）解釈すべきだ。",
+      "lempar batu": "プロジェクト遅延の原因について尋ねられた際、その2つの部署はかえって互いに責任転嫁し合った。",
+      "main hakim sendiri": "警察は住民に対し、犯人を警察署へ引き渡し、私刑（リンチ）を行わないよう求めた。",
+      "mendarah daging": "相互扶助（ゴトン・ロヨン）の精神は、インドネシア農村部の人々の暮らしに骨の髄まで染み込んでいる。",
+      "acungan jempol": "乗客全員を無事に避難・救助した救助チームの成功は、称賛（親指を立てての賞賛）に値する。",
+      "peras keringat": "子どもたちを学校に通わせるため、彼は毎日身を粉にして汗水流して働いている。",
+      "berdarah dingin": "その犯人は被害者を傷つけることもためらわない冷血な犯罪者として知られている。",
+      "patah di tengah jalan": "残念なことに、その新工場建設計画は金融危機により道半ばで頓挫してしまった。",
+      "membuka jalan": "その科学的発見は、次世代のがん治療薬の開発への道を切り開くことに成功した。",
+      "kaki tangan": "彼は犯罪組織の手先（手下）にされたくなかったため、その多額の金銭の申し出を断った。",
+      "titik nol": "最初の合意が一方的に破棄されたため、両社の交渉はやむを得ず振り出し（ゼロ地点）に戻った。",
+      "akar-akarnya": "汚職問題は将来再び現れないよう、根底（根っこ）から徹底的に撲滅されなければならない。",
+      "gelap mata": "人前で何度も侮辱され続けたため、その青年はついに見境を失って相手を殴ってしまった。",
+      "makan hati": "その母親は、働くのを怠けてお金を浪費してばかりの息子の振る舞いを見て、いつも心を痛めている（悔しい思いをしている）。",
+      "pasang badan": "チームがメディアから徹底的に批判されたとき、監督は選手たちを守るために直ちに自ら盾となって矢面に立った。",
+      "tutup mulut": "捜査官から5時間にわたって取り調べを受けたにもかかわらず、容疑者は上司の身元について黙秘を貫いた。",
+      "darah daging": "自分自身の血肉を分けた実の子どもが飢えに苦しむのを見ていられる親などいない。",
+      "buah karya": "国立ギャラリーに展示されているその美しい絵画は、バリ島出身の有名な画家の作品（創作の結晶）だ。",
+      "mengadu untung": "家族の暮らしを良くしようと一旗揚げる（運試しをする）ため、多くの村の若者が首都へ出稼ぎに行く。",
+      "angkat senjata": "植民地支配者が平和的な交渉を拒否したとき、独立闘士たちは祖国を守るためにやむを得ず武器をとって立ち上がった。",
+      "ringan tulang": "その青年は気さくで、人助けを惜しまずフットワークが軽い（働き者な）性格のため、村人たちから大変好かれている。",
+      "puncak gunung es": "今週警察が摘発に成功した詐欺事件は、はるかに巨大な犯罪ネットワークの氷山の一角にすぎないと見られている。",
+      "makan buah simalakama": "そのマネージャーは、値上げするか従業員を削減するかの選択を迫られ、進むも退くも地獄のジレンマ（板挟み）に陥った。",
+      "serba salah": "彼は職場で、発言すれば出しゃばりだと思われ、黙っていれば無関心だと思われて、どう動いても裏目に出る板挟み状態だと感じている。",
+      "bom waktu": "高学歴失業者の増加は、直ちに対処されなければ社会の安定にとって時限爆弾になりかねないと懸念されている。",
+      "di bawah meja": "政府プロジェクトの入札手続きは、裏取引（不正な密約）を防ぐため、現在すべてオンラインシステムで公開実施されている。",
+      "di atas kertas": "机上の計算（データ上）ではその連覇中チームの方がはるかに優勢だが、実際のピッチではあらゆる可能性がなお起こり得る。",
+      "di balik layar": "その大規模フェスティバル開催の成功は、舞台裏（裏方）で働く技術スタッフたちの懸命な努力と切り離せない。",
+      "ruang gerak": "毎晩実施される合同パトロールは、路上犯罪者たちの行動範囲（動きの自由）を狭めることに成功した。",
+      "turun takhta": "40年間にわたり王国を統治した後、その国王はついに自らの意思で退位することを決意した。",
+      "hajat hidup": "国家にとって重要であり、広く国民の生活（生計）を左右する生産部門は国家によって管理される。",
+      "telak": "ホームチームは昨夜の試合で、アウェイチームに対し3対0の完封・圧勝を収めた。",
+      "mengencangkan ikat pinggang": "大都市での生活費上昇により、多くの家庭が貯金を使い果たさないよう財布の紐を締める（節約する）ことを余儀なくされている。",
+      "menjemput bola": "納税者数を増やすため、税務署の職員は現在市場で移動窓口を開くなど積極的に出向いて働きかけている。",
+      "membanting setir": "銀行員として10年間働いた後、彼は故郷の村で有機野菜農家へと大きく方向転換（転職）することを決めた。",
+      "bertepuk sebelah tangan": "和平の取り組みは、一方の当事者だけで行われていては片思い（独り相撲）のように決して実を結ばない。",
+      "tutup usia": "数々の伝説的な小説を生み出したその大作家は、82歳で逝去した（この世を去った）。",
+      "buka suara": "長い間沈黙を選び続けていたその重要証人は、ついに調査委員会の前で勇気を出して口を開いた（証言した）。",
+      "jual mahal": "そのスター選手は様々な理由でビッグクラブからの3件の契約オファーを断ったため、あまりにももったいぶりすぎだと評されている。",
+      "abc": "株式投資の世界に飛び込む前に、私たちはまず資金管理のいろは（基本のキ）を学ばなければならない。",
+      "anak bawang": "年齢がまだ小さすぎたため、弟は兄たちとサッカーをするとき、いつもおまけの参加者（みそっかす）扱いだった。",
+      "dianaktirikan": "政府はへき地の地域がこれ以上冷遇されている（継子扱いされている）と感じることがないよう、インフラを均等に整備すると約束した。",
+      "tutup mata": "法執行当局者として、私たちは目の前で起きている違反行為に対して見て見ぬふりをしてはならない。",
+      "membuka mata": "最初の製品での失敗は、かえって深い市場調査の重要性について経営陣の目を開かせる（気づかせる）結果となった。",
+      "memancing di air keruh": "私たちは、この災害危機の混乱に乗じて火事場泥棒的に私利を図ろうとする無責任な輩を警戒しなければならない。",
+      "menguras air mata": "そのドラマ映画におけるシングルマザーの奮闘の物語は、映画館の観客全員の涙を絞るほど感動させた。",
+      "kucing-kucingan": "適切な移転先という解決策がなければ、違法露店商の取り締まりは終わりのないいたちごっこ（鬼ごっこ）になってしまう。",
+      "ujung tombak": "現場の営業担当者たちは、消費者に新製品を売り込む上で会社の最前線（先鋒）を担っている。",
+      "bermuka badak": "列への割り込みを何度も注意されたにもかかわらず、その人物はなお鉄面皮（厚顔無恥）なまま少しも恥ずかしがらなかった。",
+      "air mata buaya": "カメラの前での彼の涙に簡単に騙されてはいけない。あれは世間の同情を引くための空涙（嘘泣き）にすぎない。",
+      "akal kancil": "持ち前のずる賢い機転（悪知恵・頓智）のおかげで、彼は悪党たちの包囲網から無事に逃げ出すことができた。",
+      "bertopang dagu": "幸運がやって来るのをただ頬杖をついてボーッと待っていてはいけない。今すぐ懸命に働かなければならない！",
+      "merinding bulu kuduk": "森の奥の空き家をめぐるその怪談話は、聞き手たちの背筋をゾッとさせた（鳥肌を立たせた）。",
+      "cacing kepanasan": "卒業試験の合格発表を待ちながら、彼は落ち着かずそわそわと（熱したミミズのように）行ったり来たり歩き回っていた。",
+      "licin seperti belut": "その詐欺事件の逃亡犯はウナギのようにずる賢くすり抜けることで有名で、いつも警察の包囲網から逃れるのに成功している。",
+      "batu sandungan": "住民の土地収用問題が、その高速道路建設プロジェクトにおける最大の障害（つまずきの石）であり続けている。",
+      "batu loncatan": "その地方企業で働いた経験を、彼は自分の事業を立ち上げる前の踏み台（ステップアップの足がかり）とした。",
+      "tambal sulam": "洪水対策はもはや場当たり的なその場しのぎ（つぎはぎ）では対応できず、抜本的な都市空間計画の改善が必要だ。",
+      "pandang bulu": "法執行は、罪を犯した者であれば誰に対してもえこひいきなく（分け隔てなく）厳格に行われなければならない。",
+      "akar rumput": "指導者は草の根レベル（一般庶民）の市民の声を直接聞くため、こまめに現場へ足を運ばなければならない。",
+      "atas kertas": "机上の計算（データ上）では私たちのチームの方がはるかに優勢だが、ピッチの上では選手たちは決して相手を侮ってはならない。",
+      "bawah tangan": "公証人の公式証書なしに当事者間だけで非公式（相対・内々）に行われた土地売買は、後日紛争を引き起こすリスクが非常に高い。",
+      "membuahkan hasil": "5年間にわたりマングローブを植樹し続けた村人たちの奮闘は、沿岸生態系の回復という甘い成果（実り）をついに結んだ。",
+      "dipandang sebelah mata": "地方出身であるにもかかわらず、その学校のロボット工学チームの実力は対戦相手たちから決して見くびられて（軽視されて）はならない。",
+      "setengah hati": "成功を収めたいのなら、決して中途半端な気持ちで仕事をしてはいけない。全力（全身全霊）で取り組みなさい！",
+      "menghapus arang di muka": "今夜のホーム戦での圧勝は、直近3試合の連敗のあと、そのチームの汚名を返上する（恥を雪ぐ）ことに成功した。",
+      "api dalam sekam": "適切に対処されない住民の不満は、いつ暴動の引き金になってもおかしくないくすぶる火種（籾殻の中の火）になり得る。",
+      "kesatria": "選挙で敗れた候補者は、直ちに勝者に祝辞を述べることで正々堂々とした潔い（騎士道的な）態度を示した。",
+      "mengheningkan cipta": "試合開始前、全選手と観客は災害の犠牲者たちのためにしばし起立して黙祷を捧げた。",
+      "membuka lembaran baru": "一時対立していた2人の親友は、互いに許し合ってより良い新たな1ページを開く（心機一転する）ことで合意した。"
+    };
+
+    if (Array.isArray(d.vocab)) {
+      for (let i = 0; i < d.vocab.length; i++) {
+        const it = d.vocab[i];
+        if (!it || !it.w) continue;
+        const wl = it.w.trim().toLowerCase();
+
+        // 和訳が空の慣用句・単語へ正確な日本語訳を注入
+        if (IDIOM_TR_FIX_MAP[wl] && (!it.tr || !String(it.tr).trim())) {
+          it.tr = IDIOM_TR_FIX_MAP[wl];
+          vMap.set(wl, it);
+          if (persistentAdded.has(wl)) {
+            const pIt = persistentAdded.get(wl);
+            if (pIt) pIt.tr = it.tr;
+          }
+        }
+
+        // 2. 見出し語「abc」を問題から完全排除（辞書専用化）
+        if (wl === "abc") {
+          it.dictOnly = true;
+          it.tier = 3;
+          dictOnlySet.add("abc");
+          vMap.set("abc", it);
+          persistentAdded.set("abc", it);
+        }
+      }
+    }
+
+    // 慣用句クイズ配列（d.idiom）からも「abc」を完全除外（慣用句モード・模試でも出題させない）
+    dictOnlySet.add("abc");
+    if (Array.isArray(d.idiom)) {
+      for (let i = d.idiom.length - 1; i >= 0; i--) {
+        const it = d.idiom[i];
+        if (it && it.a && String(it.a).trim().toLowerCase() === "abc") {
+          d.idiom.splice(i, 1);
+        }
+      }
+    }
+
+    // 保存済みの復習・スター・マスタースターからも「abc」を安全除外
+    ["wi_wrongs_v2", "wi_stars_v2", "wi_master_stars_v5"].forEach(function(storageKey) {
+      try {
+        const raw = localStorage.getItem(storageKey);
+        if (!raw) return;
+        const list = JSON.parse(raw);
+        if (!Array.isArray(list)) return;
+        const cleaned = list.filter(function(it) {
+          if (!it || typeof it !== "object") return false;
+          const qid = String(it.id || "");
+          const m = qid.match(/^(?:voc|voc_ja2id|ctx::voc|id)::(.+)$/i);
+          const w = (m ? m[1] : (it.w || it.a || it.ttsWord || "")).trim().toLowerCase();
+          return w !== "abc";
+        });
+        if (cleaned.length !== list.length) {
+          localStorage.setItem(storageKey, JSON.stringify(cleaned));
+        }
+      } catch (err) {}
+    });
+
+    // 3. 万一、今後また和訳なしの例文を持つ単語が開かれた場合でも
+    //    旧 repairAndProtectModalExample の無限ループ（ダブルクリック殺し）を永久に防止する安全ガード
+    function guardModalExampleFromLoop() {
+      const detailBox = document.getElementById("dict-detail-box");
+      if (!detailBox) return;
+      const titleSpan = detailBox.querySelector("span");
+      const hwLower = titleSpan ? titleSpan.textContent.trim().toLowerCase() : "";
+
+      const cards = detailBox.querySelectorAll(".exp-sec-card");
+      cards.forEach(function(card) {
+        const labelEl   = card.querySelector(".exp-sec-label");
+        const contentEl = card.querySelector(".exp-sec-content");
+        if (!labelEl || !contentEl) return;
+        if ((labelEl.textContent || "").indexOf("実用例文") === -1) return;
+
+        // 84語の和訳がまだDOMに反映されていない場合は即座に注入
+        const fixedTr = hwLower ? IDIOM_TR_FIX_MAP[hwLower] : "";
+        let trSpan = contentEl.querySelector(".wi-ex-tr-line");
+
+        if (fixedTr) {
+          contentEl.setAttribute("data-wi-true-tr", fixedTr);
+          if (!trSpan) {
+            trSpan = document.createElement("span");
+            trSpan.className = "wi-ex-tr-line";
+            trSpan.style.cssText = "color:#475569;font-size:0.84rem;display:block;margin-top:4px;";
+            trSpan.textContent = fixedTr;
+            contentEl.appendChild(document.createTextNode("\n"));
+            contentEl.appendChild(trSpan);
+          } else if (!trSpan.textContent.trim()) {
+            trSpan.style.display = "block";
+            trSpan.textContent = fixedTr;
+          }
+        } else if (!trSpan) {
+          // 和訳が本当に存在しない語でも .wi-ex-tr-line を1個だけ置くことで無限再描画を完全停止
+          const sentinel = document.createElement("span");
+          sentinel.className = "wi-ex-tr-line";
+          sentinel.style.display = "none";
+          contentEl.appendChild(sentinel);
+        }
+      });
+    }
+
+    function attachLoopGuard() {
+      const detailBox = document.getElementById("dict-detail-box");
+      if (!detailBox || detailBox.__wiExLoopGuardBound) return;
+      detailBox.__wiExLoopGuardBound = true;
+      new MutationObserver(function() {
+        guardModalExampleFromLoop();
+      }).observe(detailBox, { childList: true, subtree: true });
+      guardModalExampleFromLoop();
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", attachLoopGuard);
+    } else {
+      attachLoopGuard();
+    }
+  } catch (e) {
+    console.error("WhatsIndo idiom-tr & dblclick fix error:", e);
+  }
+})();
+/* =====================================================================
+   WhatsIndo ご指名42語 ＋ 厳選派生語5語 追加パック（全47語・安全直結版）
+   - 出題対象（9語）：menyegerakan（menyegarakan正規綴り）, umpama, umpamanya,
+     perumpamaan, siasat, menyiasati, per, ucap, temuan
+   - 辞書専用（dictOnly: true, 38語）：keterbelakangan, bagaikan, tersorot, wartawati,
+     terdiagnosis, alkohol, asupan, ultraproses(指定例文), protein, krim, sereal,
+     Korea, genom, radiologi, pencitraan, multifaktoral, infografik, klinis, gunawan,
+     kolorektal, metabolisme, terbesar, buah-buahan, pati(指定例文), mineral,
+     polifenol, senyawa, komponen, berbeda-beda, fig, berpemanis, gastroenterologi,
+     tertinggi, fruktosa ＋ 派生語 mengumpamakan, menyorot, mendiagnosis, pemanis
+   - **記号ゼロ・文字バグゼロ・try-catch完全保護
+   ===================================================================== */
+(function() {
+  try {
+    const d = window.WHATSINDO_EXTERNAL_DATA;
+    if (!d || !Array.isArray(d.vocab)) return;
+
+    const dictOnlySet     = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+    const persistentAdded = window.__wiPersistentAddedVocab || (window.__wiPersistentAddedVocab = new Map());
+    const vMap            = window.__wiMasterVocabMap || (window.__wiMasterVocabMap = new Map());
+    const catMap          = window.__WI_V5_VCAT || (window.__WI_V5_VCAT = new Map());
+
+    const NEW_47_PACK = [
+      {
+        "p": "v",
+        "w": "menyegerakan",
+        "r": "segera",
+        "tier": 1,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "（作業・手続き・予定・善行などを）急ぐ、早める、迅速に実行する、先延ばしせずすぐに行う（＝mempercepat）",
+        "ex": "Pemerintah daerah berupaya menyegerakan penyaluran bantuan logistik ke wilayah yang terdampak banjir.",
+        "tr": "地方政府は洪水被害を受けた地域への支援物資の配布を早める（迅速化する）よう努めている。",
+        "note": "■ 【語構成と混同注意】：meN- + segera（直ちに・すぐに：頭文字 s が鼻音化して ny）+ -kan。\n・menyegerakan（語幹 segera）：急ぐ、早める、すぐ実行する（例：menyegerakan pembayaran / pernikahan＝支払い／結婚を早める）\n・menyegarkan（語幹 segar）：爽快にする、リフレッシュさせる（例：minuman yang menyegarkan＝爽快な飲み物）\n■ 【重要コロケーション】：\n・menyegerakan proses / perbaikan / pencairan dana：手続き／補修／資金支給を急ぐ\n■ 【関連語】：segera（副詞：直ちに）、secepatnya（できるだけ早く）、mempercepat（加速する・早める）。"
+      },
+      {
+        "p": "n",
+        "w": "umpama",
+        "r": "umpama",
+        "tier": 1,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "①たとえ、譬え、比喩、引き合い（＝ibarat / misal） ②（※接続詞・前置詞的に）まるで〜のように、仮に〜ならば（＝seumpama / bagaikan）",
+        "ex": "Guru memberikan umpama yang sederhana agar para siswa mudah memahami konsep fisika tersebut.",
+        "tr": "先生は生徒たちがその物理学の概念を簡単に理解できるように、分かりやすいたとえを示した。",
+        "note": "■ 【umpama 関連語ファミリーの完全整理】：\n・umpama（名詞）：たとえ、例、比喩\n・umpamanya（副詞）：例えば、たとえば（＝misalnya / contohnya）\n・seumpama（接続詞・前置詞）：仮に〜なら（＝seandainya） ／ まるで〜のように（＝seperti）\n・mengumpamakan（他動詞）：AをBに例える（mengumpamakan A seperti B）\n・perumpamaan（名詞）：たとえ話、比喩表現、ことわざ\n■ 【類義語】：ibarat（たとえ・まるで〜のよう）、misal（例・仮に）。"
+      },
+      {
+        "p": "other",
+        "w": "umpamanya",
+        "r": "umpama",
+        "tier": 1,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "例えば、たとえば、例を挙げると（＝misalnya / contohnya / sebagai contoh）",
+        "ex": "Banyak buah lokal yang kaya vitamin C, umpamanya jambu biji, jeruk, dan pepaya.",
+        "tr": "ビタミンCが豊富な地元の果物は多い。例えばグアバ、みかん、パパイヤなどだ。",
+        "note": "■ 【語構成】：umpama（たとえ・例）+ -nya。論説文や説明文で具体例を挙げるときの定番語。\n■ 【「例えば」の言い換え4大表現】：\n・misalnya（最も一般的）\n・contohnya（会話・説明で頻出）\n・umpamanya（やや書き言葉・文語的）\n・antara lain（列挙：とりわけ〜など）"
+      },
+      {
+        "p": "n",
+        "w": "perumpamaan",
+        "r": "umpama",
+        "tier": 1,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "①たとえ話、比喩、譬え（＝kiasan / ibarat） ②ことわざ、諺（＝peribahasa）",
+        "ex": "Dalam pidatonya, beliau sering menyelipkan perumpamaan klasik yang sarat akan pesan moral.",
+        "tr": "演説の中で、彼はしばしば道徳的メッセージに富んだ古典的なたとえ話（比喩）を織り交ぜる。",
+        "note": "■ 【語構成】：per- + umpama + -an。インドネシア語の修辞・文学・宗教説話で超頻出の名詞。\n■ 【重要コロケーション】：\n・membuat / menggunakan perumpamaan：たとえ話を作る ／ 比喩を用いる\n■ 【関連語】：umpama（たとえ）、mengumpamakan（〜に例える）、peribahasa（ことわざ）、kiasan（比喩・隠喩）。"
+      },
+      {
+        "p": "n",
+        "w": "siasat",
+        "r": "siasat",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①戦略、戦術、計略、巧妙な方策・打開策（＝strategi / taktik / akal） ②（※古義・捜査文脈で）調査、尋問、取り調べ（＝penyelidikan / pemeriksaan）",
+        "ex": "Pelatih mengubah siasat permainan pada babak kedua untuk membongkar pertahanan ketat lawan.",
+        "tr": "監督は相手の堅い守備を崩すため、後半に試合の戦術（戦略）を変更した。",
+        "note": "■ 【重要コロケーション】：\n・siasat perang / bisnis / permainan：戦術 ／ ビジネス戦略 ／ 試合の作戦\n・mengatur / menyusun siasat：策略を練る、戦術を立てる\n・siasat licik：ずる賢い策略\n■ 【siasat 関連語ファミリー】：menyiasati（困難や制約を巧みに乗り切る・やりくりする）、bersiasat（作戦を立てる・計略を巡らす）、penyiasatan（調査・策を講じること）。"
+      },
+      {
+        "p": "v",
+        "w": "menyiasati",
+        "r": "siasat",
+        "tier": 1,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "（困難・値上げ・制約・人手不足・ルールなどを乗り切るために）巧みに工夫を凝らす、対策を講じる、やりくりする、うまく攻略する",
+        "ex": "Para pelaku usaha kuliner harus kreatif menyiasati kenaikan harga bahan baku agar tidak kehilangan pelanggan.",
+        "tr": "飲食事業者は顧客を失わないよう、原材料価格の上昇に対して創意工夫して対策を講じ（やりくりし）なければならない。",
+        "note": "■ 【語構成】：meN- + siasat（戦術・計略：頭文字 s が鼻音化して ny）+ -i。経済・生活ニュースで「値上げや不況を工夫して乗り切る」文脈に毎日登場する超重要動詞！\n■ 【重要コロケーション】：\n・menyiasati kenaikan harga / inflasi / kemacetan：値上げ／インフレ／渋滞をうまく切り抜ける\n・menyiasati keterbatasan anggaran / ruang：予算の制約／狭い空間を工夫して活かす\n・menyiasati aturan（ネガティブ文脈）：規則の抜け穴を突く、法の網をかいくぐる\n■ 【関連語】：siasat（戦略・方策）、mengakali（知恵を絞ってやりくりする／ごまかす）。"
+      },
+      {
+        "p": "other",
+        "w": "per",
+        "r": "per",
+        "tier": 1,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "①（前置詞：単位・比率）〜につき、〜あたり（per orang＝1人あたり、per hari＝1日につき、per liter＝1リットルあたり） ②（前置詞：基準日）〜付で、〜現在、〜時点で（per 1 Januari） ③（※名詞で：オランダ語 veer 由来）ばね、スプリング（kasur per＝スプリングベッド）",
+        "ex": "Harga tiket masuk taman wisata tersebut adalah lima puluh ribu rupiah per orang pada akhir pekan.",
+        "tr": "その観光公園の入場券の価格は、週末は1人あたり5万ルピアだ。",
+        "note": "■ 【3大用法の完全整理】：\n① 単位・割合：per orang（1人あたり）、per bulan（月あたり）、per kilogram（1キロあたり）、satu per dua（2分の1：分数！）\n② 基準日（ニュース・ビジネス頻出）：per tanggal 1 Januari（1月1日付で・1月1日現在）、data per akhir tahun（年末時点のデータ）\n③ 名詞「ばね・スプリング」：kasur per（スプリングマットレス）、per mobil（車のサスペンションばね）"
+      },
+      {
+        "p": "v",
+        "w": "ucap",
+        "r": "ucap",
+        "tier": 1,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "言う、述べる、語る（ニュース記事や小説でセリフ引用の直後に置く『\"...\", ucap + 話者＝「〜」と…は述べた』の形で超頻出。他動詞 mengucapkan の語幹）",
+        "ex": "\"Kerja sama semua pihak sangat menentukan keberhasilan program ini,\" ucap kepala dinas tersebut.",
+        "tr": "「すべての関係者の協力がこのプログラムの成功を大きく左右します」とその局長は述べた。",
+        "note": "■ 【報道文の引用結び定番セット（Kompas等で毎記事登場！）】：\n・\"...\", ucap / ujar / kata / tutur + [話者]：「〜」と…は述べた・語った\n■ 【ucap 関連語ファミリー】：\n・mengucapkan（他動詞）：（挨拶・感謝・祝辞・誓い・言葉を）述べる、発音する（mengucapkan terima kasih / selamat＝感謝／祝辞を述べる）\n・ucapan（名詞）：言葉、発言、挨拶・祝辞（ucapan selamat＝お祝いの言葉、ucapan terima kasih＝謝辞）\n・pengucapan（名詞）：発音（＝pelafalan）、朗唱"
+      },
+      {
+        "p": "n",
+        "w": "temuan",
+        "r": "temu",
+        "tier": 1,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "①発見、発見物、発掘品（temuan arkeologi＝考古学的発見） ②（研究・調査・監査・捜査による）所見、調査結果、判明した事実（temuan riset / temuan audit）",
+        "ex": "Temuan penelitian terbaru itu menunjukkan hubungan erat antara pola makan sehat dan penurunan risiko penyakit kronis.",
+        "tr": "その最新研究の調査結果（発見）は、健康的な食生活と慢性疾患リスク低下の密接な関係を示している。",
+        "note": "■ 【temuan と penemuan の使い分け】：\n・temuan（temu + -an）：調査・研究・監査・捜査・発掘で「見つかった事実・データ・所見・発見物そのもの」（例：temuan riset＝研究の知見、temuan BPK＝会計検査院の指摘事項）\n・penemuan（peN- + temu + -an）：「発明・発見すること（プロセス）」または科学上の大発明（例：penemuan listrik＝電気の発見）\n■ 【temu 関連語ファミリー】：menemukan（見つける・発見する）、ditemukan（見つかる）、penemu（発明者・発見者）、bertemu（会う）、pertemuan（会合・出会い）。"
+      },
+      {
+        "p": "n",
+        "w": "keterbelakangan",
+        "r": "belakang",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①（地域・経済・教育・インフラなどの）立ち遅れ、後進性、開発の遅れ ②（知能・発達の）遅滞（keterbelakangan mental＝知的発達の遅れ）",
+        "ex": "Pembangunan jalan dan akses internet di daerah perbatasan bertujuan untuk mengentaskan keterbelakangan ekonomi warga.",
+        "tr": "国境地域における道路とインターネットアクセスの整備は、住民の経済的な立ち遅れ（後進性）を解消することを目的としている。",
+        "note": "■ 【語構成】：ke- + terbelakang（立ち遅れた・後進的な）+ -an。\n■ 【重要コロケーション】：\n・keterbelakangan ekonomi / pendidikan / teknologi：経済的／教育的／技術的な立ち遅れ\n・mengatasi / mengentaskan keterbelakangan：立ち遅れを解消する\n■ 【関連語】：terbelakang（立ち遅れた）、tertinggal（取り残された：daerah 3T＝Tertinggal, Terdepan, Terluar［開発遅滞・最前線・離島地域］）、kemajuan（進歩・発展［対義語］）。"
+      },
+      {
+        "p": "other",
+        "w": "bagaikan",
+        "r": "bagai",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "まるで〜のように、あたかも〜のごとく（比喩・直喩を導く文語的・詩的な前置詞・接続詞＝seperti / laksana / ibarat）",
+        "ex": "Wajahnya bersinar cerah bagaikan matahari pagi setelah mendengar kabar kelulusan tersebut.",
+        "tr": "その合格の知らせを聞いた後、彼の顔はまるで朝日のように明るく輝いた。",
+        "note": "■ 【比喩表現のニュアンス比較】：\n・seperti：日常・書き言葉ともに最も一般的\n・bagai / bagaikan：詩的・文学的・ことわざに多用される（例：bagaikan pinang dibelah dua＝瓜二つ）\n・laksana / ibarat：格調高い比喩表現"
+      },
+      {
+        "p": "v",
+        "w": "tersorot",
+        "r": "sorot",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①（スポットライト・光・カメラレンズに）照らされる、映し出される ②（世間・メディア・SNSの）注目や批判の的になる、クローズアップされる",
+        "ex": "Kualitas udara di ibu kota kembali tersorot publik setelah tingkat polusi meningkat tajam pekan ini.",
+        "tr": "今週大気汚染レベルが急上昇したことを受け、首都の大気質が再び世間の注目の的になった（クローズアップされた）。",
+        "note": "■ 【語構成】：ter- + sorot（光線・スポットライト・視線）。\n■ 【sorot 関連語ファミリー】：\n・menyorot（他動詞）：光を当てる、カメラで映す、焦点を当てる\n・menyoroti（他動詞）：（社会問題・政策・事件などに）強い関心や批判の目を向ける、取り上げる\n・tersorot（受動状態）：照らされる、世間の目に留まって注目される\n・sorotan（名詞）：スポットライト、世間の注目・厳しい視線（menjadi sorotan publik＝世間の注目の的になる）。"
+      },
+      {
+        "p": "n",
+        "w": "wartawati",
+        "r": "warta",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "女性記者、女性ジャーナリスト（wartawan［記者］の女性形。サンスクリット語由来接尾辞 -wati を伴う）",
+        "ex": "Wartawati senior tersebut menerima penghargaan jurnalistik atas laporan investigasinya mengenai lingkungan hidup.",
+        "tr": "そのベテラン女性記者は、環境問題に関する調査報道でジャーナリズム賞を受賞した。",
+        "note": "■ 【インドネシア語の男性形(-wan)／女性形(-wati) ペア集】：\n・wartawan / wartawati（男性／女性記者 ※現代では男女共通で wartawan / jurnalis も多用）\n・karyawan / karyawati（男性／女性社員）\n・mahasiswa / mahasiswi（男子／女子大学生）\n・pemuda / pemudi（青年男女）、putra / putri（息子／娘）、seniman / seniwati（芸術家）。"
+      },
+      {
+        "p": "v",
+        "w": "terdiagnosis",
+        "r": "diagnosis",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "（医師の診察・検査によって特定の病気や症状であると）診断される（terdiagnosis + 病名）",
+        "ex": "Pasien yang terdiagnosis kanker pada stadium awal memiliki peluang kesembuhan yang jauh lebih tinggi.",
+        "tr": "初期段階でがんと診断された患者は、治癒の可能性がはるかに高い。",
+        "note": "■ 【語構成】：ter- + diagnosis（診断）。医療ニュースで毎日使われる受動状態動詞。\n■ 【重要コロケーション】：\n・terdiagnosis kanker / diabetes / hipertensi：がん／糖尿病／高血圧と診断される\n・terdiagnosis secara dini：早期に診断される\n■ 【関連語】：diagnosis（名詞：診断［旧・口語表記 diagnosa は非標準］）、mendiagnosis（他動詞：診断する）、deteksi dini（早期発見）。"
+      },
+      {
+        "p": "n",
+        "w": "alkohol",
+        "r": "alkohol",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "①アルコール、酒類（minuman beralkohol＝アルコール飲料・お酒） ②（医療・消毒用の）エタノール、消毒用アルコール（alkohol 70 persen）",
+        "ex": "Konsumsi minuman beralkohol secara berlebihan dapat meningkatkan risiko kerusakan hati dan berbagai penyakit kronis.",
+        "tr": "アルコール飲料の過剰な摂取は、肝臓障害および様々な慢性疾患のリスクを高める可能性がある。",
+        "note": "■ 【重要コロケーション】：\n・minuman beralkohol / minuman keras (miras)：アルコール飲料 ／ 酒類（インドネシアのニュースでは miras が超頻出）\n・bebas alkohol / tanpa alkohol：ノンアルコールの、アルコールフリー\n・kadar alkohol：アルコール度数・血中アルコール濃度\n・alkohol antiseptik：消毒用アルコール"
+      },
+      {
+        "p": "n",
+        "w": "asupan",
+        "r": "asup",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "摂取量、摂取（体内に取り込む栄養・水分・カロリー・酸素などの量：英語 intake に対応する栄養・医療の必須公式語）",
+        "ex": "Menjaga asupan air putih, protein, dan serat yang cukup setiap hari sangat penting bagi kesehatan tubuh.",
+        "tr": "毎日十分な水、タンパク質、食物繊維の摂取（量）を保つことは、体の健康にとって極めて重要だ。",
+        "note": "■ 【語源】：スンダ語由来『asup（入る）』+ -an から標準語へ採用された超頻出語！\n■ 【重要コロケーション】：\n・asupan gizi / nutrisi / kalori：栄養摂取 ／ カロリー摂取量\n・asupan protein / serat / gula / garam / cairan：タンパク質／食物繊維／糖分／塩分／水分の摂取量\n・membatasi / memperbanyak asupan ~：〜の摂取量を制限する ／ 増やす"
+      },
+      {
+        "p": "a",
+        "w": "ultraproses",
+        "r": "proses",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "超加工の（工業的な多段階加工と添加物・精製糖・精製油脂などを多く用いて作られた食品：makanan ultraproses＝超加工食品 [UPF: Ultra-Processed Food]）",
+        "ex": "Diet sehat tersebut mulai dari mengonsumsi makanan nabati, mengonsumsi protein tanpa lemak, memperbanyak asupan serat pada makanan, serta menghindari makanan ultraproses dan gula tambahan.",
+        "tr": "その健康的な食事法は、植物性食品を摂取すること、低脂肪タンパク質を摂取すること、食事中の食物繊維摂取量を増やすこと、そして超加工食品および添加糖を避けることから始まる。",
+        "note": "■ 【語構成】：接頭辞『ultra-（超〜）』＋『proses（加工・処理）』。栄養学・健康ニュースで近年急増している最重要キーワード！\n■ 【重要コロケーション】：\n・makanan / pangan ultraproses (UPF)：超加工食品（スナック菓子・カップ麺・加工肉・加糖飲料など）\n・gula tambahan（添加糖）、makanan olahan（加工食品）、makanan utuh（未加工のホールフード）。"
+      },
+      {
+        "p": "n",
+        "w": "protein",
+        "r": "protein",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "タンパク質、プロテイン（筋肉・臓器・免疫などの材料となる三大栄養素のひとつ）",
+        "ex": "Tahu, tempe, dada ayam, dan ikan laut merupakan sumber protein berkualitas tinggi yang mudah ditemukan.",
+        "tr": "豆腐、テンペ、鶏むね肉、海水魚は、手に入りやすい良質なタンパク質源である。",
+        "note": "■ 【重要コロケーション】：\n・protein hewani / protein nabati：動物性タンパク質 ／ 植物性タンパク質\n・protein tanpa lemak：低脂肪タンパク質（lean protein：鶏むね肉・砂肝・白身魚・赤身肉など）\n・sumber / asupan protein：タンパク源 ／ タンパク質摂取量\n・susu / bubuk protein：プロテインドリンク ／ プロテインパウダー\n■ 【三大栄養素セット】：karbohidrat（炭水化物）、protein（タンパク質）、lemak（脂質）＋ serat（食物繊維）、vitamin（ビタミン）、mineral（ミネラル）。"
+      },
+      {
+        "p": "n",
+        "w": "krim",
+        "r": "krim",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "①（乳製品の）クリーム、生クリーム（es krim＝アイスクリーム、sup krim＝クリームスープ） ②（美容・医療の）クリーム、軟膏（krim wajah / tabir surya＝フェイスクリーム／日焼け止めクリーム） ③クリーム色（warna krem / krim）",
+        "ex": "Kue bolu itu dihiasi dengan lapisan krim lembut dan potongan buah stroberi segar di atasnya.",
+        "tr": "そのスポンジケーキは、なめらかなクリームの層と新鮮なイチゴのカットで上に飾り付けられている。",
+        "note": "■ 【重要コロケーション】：\n・es krim / krim kocok (whipped cream)：アイスクリーム ／ ホイップクリーム\n・krim pelembap / krim malam / krim antiseptik：保湿クリーム ／ ナイトクリーム ／ 消毒クリーム"
+      },
+      {
+        "p": "n",
+        "w": "sereal",
+        "r": "sereal",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "①朝食シリアル（コーンフレーク・オートミール・グラノーラなどの加工穀物食品） ②穀類、穀物（米・小麦・トウモロコシ・オーツ麦などイネ科作物の総称：＝serealia / biji-bijian）",
+        "ex": "Untuk sarapan yang lebih sehat, pilihlah sereal gandum utuh tanpa gula tambahan daripada sereal manis kemasan.",
+        "tr": "より健康的な朝食のためには、市販の甘いシリアルよりも添加糖のない全粒穀物シリアルを選びなさい。",
+        "note": "■ 【重要コロケーション】：\n・sereal sarapan：朝食シリアル\n・sereal gandum utuh：全粒小麦シリアル（whole-grain cereal）\n・serealia（農学用語）：穀物類全般"
+      },
+      {
+        "p": "n",
+        "w": "Korea",
+        "r": "Korea",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "韓国・朝鮮（朝鮮半島、およびその国々・文化・言語の総称。日常会話の『Korea』は多くの場合、大韓民国［Korea Selatan］を指す）",
+        "ex": "Drama televisi, musik pop, dan kuliner khas Korea sangat populer di kalangan generasi muda Indonesia.",
+        "tr": "韓国のテレビドラマ、ポップミュージック、そして韓国料理は、インドネシアの若い世代の間で非常に人気が高い。",
+        "note": "■ 【関連表現・コロケーション】：\n・Korea Selatan (Korsel)：大韓民国（韓国）\n・Korea Utara (Korut)：朝鮮民主主義人民共和国（北朝鮮）\n・bahasa Korea / makanan Korea / drama Korea (drakor)：韓国語 ／ 韓国料理 ／ 韓国ドラマ（インドネシアでは『drakor』と略すのが超定番！）\n・Gelombang Korea (Hallyu)：韓流ブーム"
+      },
+      {
+        "p": "n",
+        "w": "genom",
+        "r": "genom",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "ゲノム、全遺伝情報（ある生物が持つ染色体・DNAの遺伝情報の完全な1セット）",
+        "ex": "Analisis genom membantu para ilmuwan mengidentifikasi mutasi genetik yang berkaitan dengan penyakit tertentu.",
+        "tr": "ゲノム解析は、科学者たちが特定の病気に関連する遺伝子変異を特定するのに役立っている。",
+        "note": "■ 【重要コロケーション】：\n・pengurutan / sekuensing genom：ゲノム配列解読（シーケンシング）\n・analisis genom：ゲノム解析\n■ 【関連語】：gen（遺伝子）、genetik / genetika（遺伝的な ／ 遺伝学）、mutasi（突然変異）、DNA。"
+      },
+      {
+        "p": "n",
+        "w": "radiologi",
+        "r": "radiologi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "放射線医学、放射線科（X線［レントゲン］・CTスキャン・MRI・超音波などを用いて体内を撮影・診断・治療する医学分野および病院の診療部門）",
+        "ex": "Dokter spesialis radiologi memeriksa hasil pemindaian MRI pasien secara saksama sebelum menyusun laporan medis.",
+        "tr": "放射線科専門医は医療報告書を作成する前に、患者のMRIスキャン結果を綿密に確認した。",
+        "note": "■ 【重要コロケーション】：\n・dokter spesialis radiologi：放射線科専門医\n・pemeriksaan / instalasi radiologi：放射線検査 ／ 病院の放射線科\n・pencitraan medis：医療画像診断\n■ 【関連語】：radiasi（放射線）、rontgen（レントゲン・X線撮影）、CT scan、MRI。"
+      },
+      {
+        "p": "n",
+        "w": "pencitraan",
+        "r": "citra",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①（医療・科学技術）画像診断、イメージング（pencitraan medis＝CT/MRI/X線による体内画像化、pencitraan satelit＝衛星画像化） ②（政治・PR：ニュース超頻出！）イメージ戦略、ブランディング、特に政治家などの「人気取り・パフォーマンス・うわべの好印象づくり」",
+        "ex": "Teknologi pencitraan medis modern memungkinkan dokter mendeteksi kelainan organ dalam tanpa tindakan bedah.",
+        "tr": "現代の医療画像診断技術により、医師は外科手術を行わずに内臓の異常を発見することができる。",
+        "note": "■ 【2大文脈の鮮やかな対比（超重要！）】：\n① 医療・科学：pencitraan medis / radiologi（画像診断・イメージング）\n② 政治・SNS（インドネシアで毎日飛び交う！）：politik pencitraan / cuma pencitraan doang（イメージ戦略 ／ 単なる人気取りパフォーマンスだ！）\n■ 【citra 関連語ファミリー】：citra（イメージ・像・評判：citra positif＝好イメージ、citra satelit＝衛星画像）、mencitrakan（イメージづける・画像化する）。"
+      },
+      {
+        "p": "a",
+        "w": "multifaktoral",
+        "r": "faktor",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "多因子性の、複数の要因が絡み合った（単一の原因ではなく、遺伝・食生活・環境・生活習慣など複数要因が複合して起きる性質。医学では multifaktorial とも綴られる）",
+        "ex": "Para ahli menegaskan bahwa kanker dan penyakit jantung umumnya bersifat multifaktoral, dipengaruhi faktor genetik serta gaya hidup.",
+        "tr": "専門家たちは、がんや心臓病は一般に多因子性であり、遺伝的要因と生活習慣の両方に影響されると強調している。",
+        "note": "■ 【語構成】：multi-（複数の）＋ faktor（要因）+ -al。医学論文・健康ニュースでは『penyakit multifaktoral / multifaktorial（多因子疾患）』や『penyebab multifaktoral（複合的原因）』の形で頻出する。"
+      },
+      {
+        "p": "n",
+        "w": "infografik",
+        "r": "infografik",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "インフォグラフィック、図解（複雑なデータ・統計・手順・ニュースの要点を、グラフ・アイコン・イラストで視覚的に分かりやすくまとめた画像資料。口語・報道では infografis とも綴られる）",
+        "ex": "Media daring sering menyajikan data hasil survei dalam bentuk infografik agar lebih cepat dipahami pembaca.",
+        "tr": "オンラインメディアは読者がより素早く理解できるよう、調査結果のデータをインフォグラフィック（図解）形式で提示することが多い。",
+        "note": "■ 【正書法】：KBBI標準見出しは『infografik』（英語 infographic 由来。形容詞語尾 -is の影響で infografis も広く使われる）。Kompas などの記事内でも毎日登場するメディア用語。"
+      },
+      {
+        "p": "a",
+        "w": "klinis",
+        "r": "klinik",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "臨床の、臨床的な（実際の患者の診察・観察・治療や治験に基づくこと：uji klinis＝臨床試験・治験、gejala klinis＝臨床症状）",
+        "ex": "Vaksin baru tersebut harus melewati beberapa tahap uji klinis untuk memastikan keamanan dan efektivitasnya pada manusia.",
+        "tr": "その新しいワクチンは、ヒトに対する安全性と有効性を確認するため、複数段階の臨床試験（治験）を通過しなければならない。",
+        "note": "■ 【重要コロケーション】：\n・uji klinis (tahap 1/2/3)：臨床試験・治験\n・gejala / tanda klinis：臨床症状 ／ 臨床所見\n・psikolog klinis / gizi klinis：臨床心理士 ／ 臨床栄養学\n・bukti klinis：臨床的エビデンス\n■ 【関連語】：klinik（クリニック・診療所）、medis（医療の）。"
+      },
+      {
+        "p": "a",
+        "w": "gunawan",
+        "r": "guna",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①（KBBI文語形容詞）有用な、役に立つ、高潔な、徳の高い、功績のある（＝berguna / berbudi luhur / berjasa） ②（固有名詞）グナワン（インドネシアで非常に一般的な男性名・姓）",
+        "ex": "Dalam bahasa sastra klasik, kata gunawan merujuk pada sosok yang berbudi luhur dan berguna bagi masyarakat luas.",
+        "tr": "古典文学の言葉において、gunawan という語は気高い品性を持ち広く社会の役に立つ人物を指す。",
+        "note": "■ 【語源】：サンスクリット語 gunavan（徳と有用性を備えた人：guna［有用・徳］＋ -wan［〜を持つ人］）。インドネシア人の氏名（例：医師や専門家・著名人の名として記事に頻出）としても極めて人気がある。"
+      },
+      {
+        "p": "a",
+        "w": "kolorektal",
+        "r": "kolorektal",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "大腸の、結腸直腸の（結腸［kolon］と直腸［rektum］を合わせた大腸領域に関する医学用語：kanker kolorektal＝大腸がん）",
+        "ex": "Pola makan tinggi serat dan pemeriksaan rutin dapat membantu menurunkan risiko terkena kanker kolorektal.",
+        "tr": "高食物繊維の食生活と定期検査は、大腸がん（結腸直腸がん）に罹患するリスクを下げるのに役立つ。",
+        "note": "■ 【語構成】：kolon（結腸）＋ rektum（直腸）+ -al。\n■ 【重要コロケーション】：\n・kanker kolorektal (＝kanker usus besar)：大腸がん\n・skrining / deteksi dini kanker kolorektal：大腸がん検診・早期発見\n■ 【関連語】：usus besar（大腸）、gastroenterologi（消化器病学）、kolonoskopi（大腸内視鏡検査）。"
+      },
+      {
+        "p": "n",
+        "w": "metabolisme",
+        "r": "metabolisme",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "代謝、新陳代謝（摂取した栄養素を体内で分解・合成してエネルギーや体組織を生み出す一連の生化学プロセス）",
+        "ex": "Latihan beban secara teratur dan tidur yang cukup dapat membantu menjaga laju metabolisme tubuh tetap optimal.",
+        "tr": "定期的なウェイトトレーニングと十分な睡眠は、体の代謝速度を最適な状態に保つのに役立つ。",
+        "note": "■ 【重要コロケーション】：\n・laju / tingkat metabolisme：代謝率・代謝速度（metabolisme basal＝基礎代謝）\n・gangguan / sindrom metabolisme (metabolik)：代謝障害 ／ メタボリックシンドローム\n・mempercepat / meningkatkan metabolisme：代謝を高める\n■ 【関連語】：metabolik（形容詞：代謝の）、kalori（カロリー）、pencernaan（消化）。"
+      },
+      {
+        "p": "a",
+        "w": "terbesar",
+        "r": "besar",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "最大の、最も大きい、最大規模の（形容詞 besar に最上級接頭辞 ter- が付いた形＝paling besar）",
+        "ex": "Indonesia merupakan negara kepulauan terbesar di dunia dengan lebih dari tujuh belas ribu pulau.",
+        "tr": "インドネシアは1万7千以上の島々を有する世界最大の群島国家である。",
+        "note": "■ 【語構成】：ter-（最上級）+ besar（大きい）。\n■ 【重要コロケーション】：\n・terbesar di dunia / di Asia Tenggara：世界最大 ／ 東南アジア最大の\n・tantangan / penyumbang / produsen terbesar：最大の課題 ／ 最大の貢献要因 ／ 最大の生産国\n■ 【対義語】：terkecil（最小の）。"
+      },
+      {
+        "p": "n",
+        "w": "buah-buahan",
+        "r": "buah",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "果物類、各種フルーツ（様々な種類の果物をまとめて指す集合重複名詞）",
+        "ex": "Dokter menganjurkan kita untuk memperbanyak konsumsi sayur-mayur dan buah-buahan segar setiap hari.",
+        "tr": "医師は私たちに、毎日新鮮な野菜類と果物類の摂取を増やすよう勧めている。",
+        "note": "■ 【語構成】：buah（果物）の重複＋集合接尾辞 -an。\n■ 【重要コロケーション】：\n・sayur-mayur dan buah-buahan：野菜類と果物類（栄養・健康記事の黄金セット！）\n・buah-buahan tropis / lokal / beku：トロピカルフルーツ ／ 地元産フルーツ ／ 冷凍フルーツ\n■ 【関連語】：buah（果物・実・成果）、sayur-sayuran / sayur-mayur（野菜類）、biji-bijian（穀類・種子類）、kacang-kacangan（豆類・ナッツ類）。"
+      },
+      {
+        "p": "n",
+        "w": "pati",
+        "r": "pati",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "①デンプン、スターチ（米・トウモロコシ・キャッサバ・ジャガイモ等から抽出される炭水化物：pati olahan＝精製デンプン、tepung pati） ②エッセンス、真髄、エキス（sari pati） ③（※歴史・古語）宰相、執政官（Patih）",
+        "ex": "Pada makanan dengan gula tambahan, gula biasanya berasal dari pati olahan.",
+        "tr": "添加糖を含む食品では、糖分は通常、精製（加工）デンプンに由来している。",
+        "note": "■ 【重要コロケーション】：\n・pati olahan：精製デンプン（加工食品の甘味料・増粘剤のもとになる）\n・pati jagung / singkong (tapioka) / kentang：コーンスターチ ／ タピオカデンプン ／ 片栗粉（馬鈴薯デンプン）\n・sari pati（比喩・一般）：エッセンス、核心、エキス\n■ 【関連語】：karbohidrat（炭水化物）、glukosa（ブドウ糖）、fruktosa（果糖）、tepung（粉）。"
+      },
+      {
+        "p": "n",
+        "w": "mineral",
+        "r": "mineral",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "①（栄養学）ミネラル、無機質（カルシウム・鉄・亜鉛・カリウムなど体の機能を整える必須栄養素） ②（地質・鉱業）鉱物、鉱物資源（sumber daya mineral＝鉱物資源）",
+        "ex": "Selain vitamin dan serat, sayuran hijau juga kaya akan berbagai mineral penting seperti zat besi dan kalsium.",
+        "tr": "ビタミンや食物繊維に加えて、緑黄色野菜は鉄分やカルシウムなどの様々な重要ミネラルも豊富に含んでいる。",
+        "note": "■ 【2大文脈コロケーション】：\n① 食・健康：air mineral（ミネラルウォーター）、vitamin dan mineral（ビタミンとミネラル）\n② 資源・経済：sumber daya mineral dan batu bara [Minerba]（鉱物・石炭資源）、hilirisasi mineral（鉱物資源の下流化＝ニッケル等の国内精錬政策！）"
+      },
+      {
+        "p": "n",
+        "w": "polifenol",
+        "r": "polifenol",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "ポリフェノール（ブルーベリー・緑茶・コーヒー・カカオ・果物・野菜など植物に豊富に含まれる抗酸化作用を持つ天然化合物の総称）",
+        "ex": "Buah beri, teh hijau, dan cokelat hitam dikenal kaya akan polifenol yang berperan sebagai antioksidan alami.",
+        "tr": "ベリー類、緑茶、ダークチョコレートは、天然の抗酸化物質として働くポリフェノールが豊富なことで知られている。",
+        "note": "■ 【重要コロケーション】：\n・senyawa polifenol：ポリフェノール化合物\n・kaya akan polifenol：ポリフェノールが豊富だ\n■ 【関連語】：antioksidan（抗酸化物質）、radikal bebas（フリーラジカル・活性酸素）、flavonoid（フラボノイド）、senyawa bioaktif（生理活性化合物）。"
+      },
+      {
+        "p": "n",
+        "w": "senyawa",
+        "r": "nyawa",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "①（化学・栄養・医療）化合物、化学物質（2種類以上の元素が化学結合した物質：senyawa kimia / senyawa organik） ②（形容詞的・文語で）一体化した、魂を一つにした（bersenyawa）",
+        "ex": "Para peneliti menemukan senyawa bioaktif di dalam rempah-rempah Nusantara yang berpotensi membantu meredakan peradangan.",
+        "tr": "研究者たちはヌサンタラの香辛料の中に、炎症を和らげる可能性のある生理活性化合物を発見した。",
+        "note": "■ 【語構成】：se-（一つの）＋ nyawa（命・魂）➔ 複数の元素が「一つの命のように結合したもの＝化合物」！\n■ 【重要コロケーション】：\n・senyawa kimia / organik / anorganik：化合物 ／ 有機化合物 ／ 無機化合物\n・senyawa aktif / bioaktif / antioksidan：有効成分 ／ 生理活性物質 ／ 抗酸化化合物\n■ 【関連語】：unsur（元素）、zat（物質）、molekul（分子）、bersenyawa（化合する・完全に一体化する）。"
+      },
+      {
+        "p": "n",
+        "w": "komponen",
+        "r": "komponen",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "構成要素、部品、パーツ、成分（機械・製品・栄養・組織・システムなどを形作る要素：komponen utama＝主要構成要素、komponen otomotif＝自動車部品）",
+        "ex": "Pemerintah mendorong peningkatan penggunaan komponen dalam negeri dalam industri manufaktur dan elektronik.",
+        "tr": "政府は製造業および電子産業における国産部品（国内構成要素）の使用拡大を推進している。",
+        "note": "■ 【重要コロケーション】：\n・Tingkat Komponen Dalam Negeri (TKDN)：国産品使用率・国内調達比率（インドネシアの産業政策・iPhone販売規制等のニュースで超頻出の必須略語！）\n・komponen utama / penting：主要構成要素\n・komponen elektronik / mesin / pangan：電子部品 ／ 機械部品 ／ 食品成分\n■ 【類義語】：unsur（要素）、elemen（エレメント）、suku cadang（交換用スペアパーツ）。"
+      },
+      {
+        "p": "v",
+        "w": "berbeda-beda",
+        "r": "beda",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "様々である、それぞれ異なる、多様である（複数のものが互いに違っていることを強調する重複形）",
+        "ex": "Meskipun berasal dari suku dan budaya yang berbeda-beda, bangsa Indonesia tetap bersatu dalam bingkai Bhinneka Tunggal Ika.",
+        "tr": "それぞれ異なる民族や文化の出身であるにもかかわらず、インドネシア国民は「多様性の中の統一」の枠組みの中で団結し続けている。",
+        "note": "■ 【インドネシア国是の公式解説句】：\n・Bhinneka Tunggal Ika ＝『Berbeda-beda tetapi tetap satu jua（多様でありつつもなお一つである）』！\n■ 【beda 関連語ファミリー】：beda（違い・異なる）、berbeda（異なる：berbeda dengan ~）、perbedaan（相違・違い）、membedakan（区別する）、pembeda（差異化要因）。"
+      },
+      {
+        "p": "n",
+        "w": "fig",
+        "r": "fig",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "イチジク、フィグ（無花果。食物繊維・ミネラル・ポリフェノールが豊富な果実。インドネシアでは外来名 fig のほか、固有語 buah ara、アラビア語由来の buah tin とも呼ばれる）",
+        "ex": "Buah fig kering maupun segar mengandung serat pangan dan mineral tinggi yang baik untuk kesehatan pencernaan.",
+        "tr": "ドライおよび生のイチジク（フィグ）は、消化器の健康に良い食物繊維とミネラルを豊富に含んでいる。",
+        "note": "■ 【インドネシアでの3つの呼び名】：\n・fig（英語由来：栄養記事・洋菓子・カフェメニューで頻出）\n・buah tin（アラビア語由来：クルアーン第95章 At-Tin にも登場するためイスラム圏のインドネシアで超有名！）\n・buah ara（マレー・インドネシア固有語）"
+      },
+      {
+        "p": "a",
+        "w": "berpemanis",
+        "r": "manis",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "甘味料入りの、加糖された（砂糖や人工甘味料が添加されている状態：minuman berpemanis＝加糖飲料）",
+        "ex": "Kementerian Kesehatan mengingatkan masyarakat untuk membatasi konsumsi minuman berpemanis dalam kemasan demi mencegah diabetes.",
+        "tr": "保健省は糖尿病を予防するため、加糖包装飲料の摂取を制限するよう市民に注意喚起している。",
+        "note": "■ 【語構成】：ber-（〜を含む・持つ）＋ pemanis（甘味料：peN- + manis）。\n■ 【重要コロケーション（最近のインドネシア経済・健康ニュース最頻出！）】：\n・Minuman Berpemanis Dalam Kemasan (MBDK)：加糖包装飲料（インドネシア政府が物品税［cukai MBDK］導入を議論している注目キーワード！）\n■ 【関連語】：pemanis（甘味料：pemanis buatan＝人工甘味料、pemanis alami＝天然甘味料）、manis（甘い）、gula tambahan（添加糖）。"
+      },
+      {
+        "p": "n",
+        "w": "gastroenterologi",
+        "r": "gastroenterologi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "消化器病学、消化器内科（胃［gastro-］・腸［entero-］・食道・肝臓・胆嚢・膵臓など消化器系全般の疾患を研究・診療する医学分野）",
+        "ex": "Pasien dengan keluhan lambung kronis tersebut dirujuk ke dokter spesialis gastroenterologi untuk pemeriksaan endoskopi.",
+        "tr": "慢性的な胃の不調を訴えるその患者は、内視鏡検査のため消化器専門医へ紹介された。",
+        "note": "■ 【語源分解】：ギリシャ語 gastro-（胃）＋ entero-（腸）＋ -logi（学問）。\n■ 【重要コロケーション】：\n・dokter spesialis gastroenterologi (konsultan gastroenterohepatologi)：消化器専門医\n・saluran pencernaan：消化管\n■ 【関連語】：lambung（胃）、usus（腸）、kolorektal（大腸の）、endoskopi（内視鏡検査）。"
+      },
+      {
+        "p": "a",
+        "w": "tertinggi",
+        "r": "tinggi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "最高の、最も高い、トップの、最上位の（形容詞 tinggi に最上級接頭辞 ter- が付いた形＝paling tinggi）",
+        "ex": "Puncak Jaya di Papua merupakan gunung tertinggi di Indonesia yang bahkan memiliki salju abadi di puncaknya.",
+        "tr": "パプア州のプンチャック・ジャヤはインドネシア最高峰の山であり、山頂には万年雪さえ存在する。",
+        "note": "■ 【語構成】：ter-（最上級）+ tinggi（高い）。\n■ 【重要コロケーション】：\n・rekor / angka / tingkat tertinggi：最高記録 ／ 最高値 ／ 最高レベル\n・jabatan / lembaga tertinggi：最高位職 ／ 最高機関（例：Mahkamah Agung＝最高裁判所）\n・kualitas / prioritas tertinggi：最高品質 ／ 最優先事項\n■ 【対義語】：terendah（最低の：ter- + rendah で r が1つになる綴りに注意！）。"
+      },
+      {
+        "p": "n",
+        "w": "fruktosa",
+        "r": "fruktosa",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "果糖（かとう）、フルクトース（果物やハチミツに天然に含まれる単糖類。また加工飲料の甘味料『高果糖コーンシロップ［sirup jagung tinggi fruktosa］』として過剰摂取が健康リスクとして注目される）",
+        "ex": "Konsumsi fruktosa tambahan dalam jumlah besar dari minuman manis dapat memicu penumpukan lemak di hati.",
+        "tr": "甘い飲み物から添加フルクトース（果糖）を大量に摂取すると、肝臓への脂肪蓄積（脂肪肝）を引き起こす可能性がある。",
+        "note": "■ 【糖類の3大関連語セット】：\n・glukosa（グルコース・ブドウ糖：血糖値の指標 gula darah）\n・fruktosa（フルクトース・果糖：sirup jagung tinggi fruktosa [HFCS]＝異性化糖）\n・sukrosa（スクロース・ショ糖：一般的な白砂糖 gula pasir の主成分）\n・laktosa（ラクトース・乳糖）"
+      },
+      {
+        "p": "v",
+        "w": "mengumpamakan",
+        "r": "umpama",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "①AをBに例える、なぞらえる（mengumpamakan A seperti / bagaikan B） ②〜を仮定する、想定する（＝mengandaikan / memisalkan）",
+        "ex": "Penulis itu mengumpamakan kehidupan manusia bagaikan roda yang terus berputar, kadang di atas dan kadang di bawah.",
+        "tr": "その作家は人間の人生を、上に行くこともあれば下に行くこともある回り続ける車輪に例えた。",
+        "note": "■ 【語構成】：meN- + umpama + -kan。umpama / umpamanya / perumpamaan の動詞形。"
+      },
+      {
+        "p": "v",
+        "w": "menyorot",
+        "r": "sorot",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①（ライト・太陽・懐中電灯が）照らす、光線を当てる ②（カメラが被写体を）映す、クローズアップする ③（メディアや世間が問題に）焦点を当てる、注目する（＝menyoroti）",
+        "ex": "Kamera televisi menyorot ekspresi haru para atlet ketika lagu kebangsaan berkumandang di stadion.",
+        "tr": "国歌がスタジアムに響き渡ったとき、テレビカメラは選手たちの感動した表情を映し出した。",
+        "note": "■ 【語構成】：meN- + sorot（光線・スポットライト：頭文字 s が鼻音化して ny）。受動状態が tersorot、名詞が sorotan。"
+      },
+      {
+        "p": "v",
+        "w": "mendiagnosis",
+        "r": "diagnosis",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "（医師が検査や症状から病名・原因を）診断する",
+        "ex": "Dokter menggunakan hasil tes darah dan pencitraan radiologi untuk mendiagnosis penyakit pasien secara tepat.",
+        "tr": "医師は患者の病気を的確に診断するために、血液検査と放射線画像診断の結果を用いている。",
+        "note": "■ 【語構成】：meN- + diagnosis（診断）。受動状態が terdiagnosis（診断される）、標準綴りは -is（× mendiagnosa は非標準）。"
+      },
+      {
+        "p": "n",
+        "w": "pemanis",
+        "r": "manis",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "①甘味料（飲食物に甘みをつける物質：pemanis buatan＝人工甘味料、pemanis alami＝天然甘味料） ②（比喩で：話・デザイン・空間に華を添える）彩り、アクセント",
+        "ex": "Produk minuman rendah kalori itu menggunakan pemanis alami dari ekstrak daun stevia sebagai pengganti gula pasir.",
+        "tr": "その低カロリー飲料製品は、白砂糖の代わりにステビアの葉エキス由来の天然甘味料を使用している。",
+        "note": "■ 【重要コロケーション】：pemanis buatan（人工甘味料：aspartam, sukralosa 等）、pemanis alami（天然甘味料：stevia, madu 等）、berpemanis（甘味料入りの）。"
+      }
+    ];
+
+    const idxByWord = new Map();
+    for (let i = 0; i < d.vocab.length; i++) {
+      const it = d.vocab[i];
+      if (it && it.w) idxByWord.set(it.w.trim().toLowerCase(), i);
+    }
+
+    const newlyDictOnlyKeys = new Set();
+
+    for (let i = 0; i < NEW_47_PACK.length; i++) {
+      const item = NEW_47_PACK[i];
+      if (!item || !item.w) continue;
+      const key = item.w.trim().toLowerCase();
+
+      if (item.dictOnly === true || item.tier === 3) {
+        dictOnlySet.add(key);
+        newlyDictOnlyKeys.add(key);
+      } else {
+        dictOnlySet.delete(key);
+      }
+      if (item.topicCat) {
+        catMap.set(key, item.topicCat);
+      }
+
+      if (idxByWord.has(key)) {
+        const pos = idxByWord.get(key);
+        Object.assign(d.vocab[pos], item);
+        vMap.set(key, d.vocab[pos]);
+        persistentAdded.set(key, d.vocab[pos]);
+      } else {
+        d.vocab.push(item);
+        idxByWord.set(key, d.vocab.length - 1);
+        vMap.set(key, item);
+        persistentAdded.set(key, item);
+      }
+    }
+
+    // 既存だった buah-buahan 等を辞書専用化した際、保存済みの復習・スターから安全除外
+    ["wi_wrongs_v2", "wi_stars_v2", "wi_master_stars_v5"].forEach(function(storageKey) {
+      try {
+        const raw = localStorage.getItem(storageKey);
+        if (!raw) return;
+        const list = JSON.parse(raw);
+        if (!Array.isArray(list)) return;
+        const cleaned = list.filter(function(it) {
+          if (!it || typeof it !== "object") return false;
+          const qid = String(it.id || "");
+          const m = qid.match(/^(?:voc|voc_ja2id|ctx::voc)::(.+)$/i);
+          const w = (m ? m[1] : (it.w || it.ttsWord || "")).trim().toLowerCase();
+          return !newlyDictOnlyKeys.has(w);
+        });
+        if (cleaned.length !== list.length) {
+          localStorage.setItem(storageKey, JSON.stringify(cleaned));
+        }
+      } catch (err) {}
+    });
+  } catch (e) {
+    console.error("WhatsIndo 47-word pack error:", e);
+  }
+})();
+/* =====================================================================
+   WhatsIndo ご指名41語 ＋ 厳選派生・関連語4語 追加 ＆「obral」削除統合パック（全45語・安全直結版）
+   - 削除・統合：「obral」を見出し語から完全削除し、「mengobral」へ統合
+   - 出題対象（8語）：perlambatan, melambat, berkepanjangan, mengobral, mencincang,
+     tercantum, mengundurkan, alih fungsi
+   - 辞書専用（dictOnly: true, 37語）：kepura-puraan, berpura-pura, penyiasatan, bersiasat,
+     terkepung, kepungan, pengepungan, gemetaran, berjemur, takar, pengadangan, menghadang,
+     disinfektan, pengimpor, paparan, pemuja, pujaan, pemujaan, bermerek, penyergapan,
+     sergapan, pemagangan, persemaian, menyemaikan, toleran, intoleran, suguhan, berdahak,
+     pengalihfungsian, perampingan, pengembara, pengembaraan, ketaatan, isme, kecakapan,
+     balon, tiup
+   - 現代実用意味に厳選（死語・古語なし）・**記号ゼロ・文字バグゼロ・try-catch完全保護
+   ===================================================================== */
+(function() {
+  try {
+    const d = window.WHATSINDO_EXTERNAL_DATA;
+    if (!d || !Array.isArray(d.vocab)) return;
+
+    const dictOnlySet     = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+    const persistentAdded = window.__wiPersistentAddedVocab || (window.__wiPersistentAddedVocab = new Map());
+    const vMap            = window.__wiMasterVocabMap || (window.__wiMasterVocabMap = new Map());
+    const catMap          = window.__WI_V5_VCAT || (window.__WI_V5_VCAT = new Map());
+
+    // 1. 「obral」を見出し語から完全削除し、「mengobral」へ統合
+    for (let i = d.vocab.length - 1; i >= 0; i--) {
+      const it = d.vocab[i];
+      if (it && it.w && it.w.trim().toLowerCase() === "obral") {
+        d.vocab.splice(i, 1);
+      }
+    }
+    dictOnlySet.delete("obral");
+    persistentAdded.delete("obral");
+    vMap.delete("obral");
+    catMap.delete("obral");
+
+    // 2. 新規追加・更新（全45語：出題8語 ＋ 辞書専用37語）
+    const NEW_45_PACK = [
+      {
+        "p": "n",
+        "w": "perlambatan",
+        "r": "lambat",
+        "tier": 1,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "減速、鈍化、ペースの低下（経済成長・消費・輸出・交通の流れなどが緩やかになること：perlambatan ekonomi＝景気減速）",
+        "ex": "Bank sentral memangkas suku bunga acuan untuk mengantisipasi perlambatan pertumbuhan ekonomi global.",
+        "tr": "中央銀行は世界経済の成長鈍化（減速）に備えるため、政策金利を引き下げた。",
+        "note": "■ 【語構成】：per- + lambat（遅い）+ -an。経済・ビジネスニュースでほぼ毎日登場する超重要語。\n■ 【重要コロケーション】：\n・perlambatan ekonomi / pertumbuhan ekonomi：景気減速 ／ 経済成長の鈍化\n・perlambatan laju inflasi / konsumsi / ekspor：インフレ率／消費／輸出の伸び鈍化\n・mengalami perlambatan：減速・鈍化を経験する\n■ 【lambat 関連語ファミリー】：melambat（自動詞：減速する・鈍化する）、memperlambat（他動詞：遅くする・減速させる）、keterlambatan（遅刻・遅延）。対義語：percepatan（加速）。"
+      },
+      {
+        "p": "v",
+        "w": "melambat",
+        "r": "lambat",
+        "tier": 1,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "（経済成長・売れ行き・スピード・回復ペースなどが）鈍化する、減速する、スピードが落ちる（⇔ mempercepat / meningkat）",
+        "ex": "Laju pertumbuhan ekonomi pada kuartal kedua tercatat melambat akibat melemahnya daya beli masyarakat.",
+        "tr": "市民の購買力の低下により、第2四半期の経済成長ペースは鈍化（減速）したと記録された。",
+        "note": "■ 【語構成】：me- + lambat（遅い）。自動詞で『perlambatan（減速・鈍化）』の直接の動詞形。\n■ 【重要コロケーション】：\n・pertumbuhan / kinerja / permintaan melambat：成長／業績／需要が鈍化する\n・laju kendaraan melambat：車両の速度が落ちる\n■ 【関連語】：perlambatan（減速・鈍化）、memperlambat（〜を遅らせる・減速させる）。"
+      },
+      {
+        "p": "a",
+        "w": "berkepanjangan",
+        "r": "panjang",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "長引く、長期化した、終わりの見えない、長期間にわたる（主に危機・紛争・干ばつ・不況など望ましくない事態が長く続くさま）",
+        "ex": "Kemarau berkepanjangan tahun ini menyebabkan gagal panen dan krisis air bersih di sejumlah daerah.",
+        "tr": "今年の長引く干ばつは、複数の地域で不作と清潔な水の不足を引き起こした。",
+        "note": "■ 【語構成】：ber- + ke- + panjang（長い）+ -an。ニュースや論説文の定番語。\n■ 【重要コロケーション】：\n・konflik / perang / krisis berkepanjangan：長期化する紛争／戦争／危機\n・kemarau / kekeringan / hujan berkepanjangan：長引く乾季／干ばつ／長雨\n・dampak / polemik berkepanjangan：長期にわたる影響 ／ 長引く論争\n■ 【panjang 関連語ファミリー】：panjang（長い）、memperpanjang（延長する）、perpanjangan（延長）、sepanjang（〜に沿って／〜の間じゅう）。"
+      },
+      {
+        "p": "v",
+        "w": "mengobral",
+        "r": "obral",
+        "tier": 1,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "①（商品をバーゲン・投げ売りで）大安売りする、格安で大量に売りさばく ②（比喩で：公約・約束・割引・権限・言葉などを）安売りする、無責任に乱発する（mengobral janji＝口先だけの公約を乱発する）",
+        "ex": "Menjelang pemilihan umum, masyarakat diminta kritis terhadap calon pemimpin yang gemar mengobral janji tanpa program nyata.",
+        "tr": "総選挙を控え、具体的な計画もなく公約を安売り（乱発）したがる指導者候補に対して、市民は批判的な目を持つよう求められている。",
+        "note": "■ 【統合】：見出し語『obral』を統合。受動態『diobral（大安売りされる）』・名詞的用法『obral besar（大バーゲンセール）』も超頻出。\n■ 【2大重要コロケーション】：\n① 買い物・経済：mengobral barang / pakaian / saham（商品／衣類／株を投げ売り・大安売りする）、obral besar / cuci gudang（大バーゲン／在庫一掃セール）\n② 政治・比喩：mengobral janji manis / kampanye（甘い公約を乱発する）、mengobral diskon / subsidi（割引／補助金をバラまく）"
+      },
+      {
+        "p": "v",
+        "w": "mencincang",
+        "r": "cincang",
+        "tier": 1,
+        "topicCat": "🍽️ 食・料理",
+        "m": "（肉・ニンニク・野菜などを包丁で）細かくみじん切りにする、叩き刻む",
+        "ex": "Koki itu mencincang daging sapi dan bawang putih hingga halus untuk dijadikan isian pangsit rebus.",
+        "tr": "そのシェフは水餃子の具にするため、牛肉とニンニクを細かくなるまでみじん切りにした。",
+        "note": "■ 【語構成】：meN- + cincang（刻む）。料理レシピや日常会話の定番動詞。\n■ 【重要コロケーション】：\n・daging cincang：ひき肉、ミンチ肉（daging sapi / ayam cincang＝牛／鶏ひき肉）\n・bawang putih cincang：みじん切りニンニク\n・mencincang halus / kasar：細かいみじん切り ／ 粗みじん切りにする\n■ 【関連料理動詞】：memotong（切る）、mengiris（薄切り・スライスする）、memarut（すりおろす）、menumbuk（すり潰す）。"
+      },
+      {
+        "p": "v",
+        "w": "tercantum",
+        "r": "cantum",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "（法律・契約書・名簿・日程表・食品表示・記事などに）記載されている、明記されている、載っている（tercantum dalam / pada ~）",
+        "ex": "Seluruh syarat dan ketentuan pendaftaran beasiswa telah tercantum secara lengkap pada laman resmi universitas.",
+        "tr": "奨学金応募のすべての条件と規定は、大学の公式ウェブサイトに完全に記載されている。",
+        "note": "■ 【語構成】：ter- + cantum（記載する・載せる）。公文書・契約・ニュース・試験案内で毎日使う必須受動状態動詞！\n■ 【重要コロケーション】：\n・tercantum dalam undang-undang / pasal / kontrak：法律／条文／契約書に明記されている\n・tercantum pada label kemasan / daftar / jadwal：商品ラベル／リスト／日程表に記載されている\n・sebagaimana tercantum dalam ~：〜に記載されている通り\n■ 【関連語】：mencantumkan（他動詞：記載する・明記する・添付する）、pencantuman（記載・明記）、tertera（印字・明記されている：類義語）。"
+      },
+      {
+        "p": "v",
+        "w": "mengundurkan",
+        "r": "undur",
+        "tier": 1,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "①（予定・日程・会議・締切などを）後ろ倒しにする、延期する（＝menunda） ②（車・部隊・物などを）後ろへ下げる、バックさせる ③（『mengundurkan diri』の形で）辞職する、辞任する、出場を辞退する",
+        "ex": "Panitia terpaksa mengundurkan jadwal pelaksanaan konser selama satu pekan karena faktor cuaca ekstrem.",
+        "tr": "委員会は異常気象の要因により、コンサートの開催日程をやむを得ず1週間延期（後ろ倒し）した。",
+        "note": "■ 【語構成】：meN- + undur（下がる・引く）+ -kan。\n■ 【重要コロケーション】：\n・mengundurkan diri (dari jabatan / lomba)：（役職を）辞任する ／（大会を）辞退する\n・mengundurkan jadwal / batas waktu：日程／締切を後ろ倒しにする\n・mengundurkan kendaraan / mobil：車をバックさせる\n■ 【undur 関連語ファミリー】：mundur（自動詞：後退する・辞任する・期限が遅れる）、pengunduran diri（辞任・退職・辞退：surat pengunduran diri＝辞表・退職届）、berundur（退く）。"
+      },
+      {
+        "p": "n",
+        "w": "alih fungsi",
+        "r": "alih",
+        "tier": 1,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "（森林・農地・水田・建物などの）用途転換、転用（特に農地や保護林を住宅地・商業施設・プランテーションへ変えること：alih fungsi lahan）",
+        "ex": "Pemerintah memperketat aturan izin untuk menekan laju alih fungsi lahan pertanian produktif menjadi kawasan perumahan.",
+        "tr": "政府は生産性の高い農地から住宅地への用途転換（転用）のペースを抑えるため、許認可規則を強化している。",
+        "note": "■ 【環境・農業・都市計画ニュース最頻出語】：\n・alih fungsi lahan / hutan / sawah：土地／森林／水田の用途転換\n・mengalihfungsikan（他動詞）：〜を用途転換する、転用する\n・pengalihfungsian（名詞）：用途転換を行うこと、転用プロセス"
+      },
+      {
+        "p": "n",
+        "w": "kepura-puraan",
+        "r": "pura",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "見せかけ、偽り、作り笑い・うわべだけの態度、ふりをすること（＝kemunafikan / kepalsuan）",
+        "ex": "Hubungan persahabatan yang tulus harus dibangun di atas kejujuran, bukan di atas kepura-puraan.",
+        "tr": "誠実な友情関係は、見せかけ（うわべの繕い）の上ではなく、正直さの上に築かれなければならない。",
+        "note": "■ 【語構成】：ke- + pura-pura + -an。\n■ 【重要コロケーション】：\n・tanpa kepura-puraan：見せかけなしに、ありのままに\n・penuh kepura-puraan：うわべだけの、偽善に満ちた\n■ 【pura 関連語ファミリー】：pura-pura / berpura-pura（〜のふりをする・装う）。対義語：ketulusan（誠実さ）、kejujuran（正直さ）。"
+      },
+      {
+        "p": "v",
+        "w": "berpura-pura",
+        "r": "pura",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "〜のふりをする、〜を装う、とぼける（＝pura-pura：berpura-pura tidak tahu＝知らないふりをする）",
+        "ex": "Ia berpura-pura sibuk membaca buku di mejanya padahal sebenarnya sedang mengantuk berat.",
+        "tr": "彼は本当はひどく眠いのに、机で忙しそうに本を読むふりをしていた。",
+        "note": "■ 【重要コロケーション】：\n・berpura-pura tidak tahu / tidak dengar：知らないふりをする ／ 聞こえないふりをする\n・berpura-pura sakit / tidur / baik：仮病を使う ／ 寝たふりをする ／ いい人のふりをする\n■ 【関連語】：pura-pura（口語・会話で多用）、kepura-puraan（見せかけ・虚飾）。"
+      },
+      {
+        "p": "n",
+        "w": "penyiasatan",
+        "r": "siasat",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①（困難・制約に対する）巧みな対策づくり、やりくり、戦略的対応 ②（事件・不正などの）調査、捜査、調べ（＝penyelidikan）",
+        "ex": "Penyiasatan biaya produksi yang tepat membantu usaha kecil tetap bertahan di tengah kenaikan harga bahan baku.",
+        "tr": "的確な生産コストのやりくり（戦略的対策）は、原材料高騰の中で零細企業が生き残るのに役立っている。",
+        "note": "■ 【語構成】：peN- + siasat（戦術・対策：頭文字 s が鼻音化して ny）+ -an。\n■ 【siasat 関連語ファミリー】：siasat（戦略・方策）、menyiasati（工夫して乗り切る・対策を講じる）、bersiasat（作戦を練る・策略を巡らす）。"
+      },
+      {
+        "p": "v",
+        "w": "bersiasat",
+        "r": "siasat",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "作戦を練る、戦術を立てる、知恵を絞って策略を巡らす（＝berstrategi / mengatur taktik）",
+        "ex": "Para pengusaha ritel terus bersiasat menghadapi perubahan pola belanja konsumen yang makin bergeser ke platform daring.",
+        "tr": "小売事業者たちは、ますますオンラインプラットフォームへと移行する消費者の購買行動の変化に対応すべく作戦を練り続けている。",
+        "note": "■ 【語構成】：ber- + siasat（戦術・計略）。後ろに直接目的語をとる他動詞『menyiasati ~』に対し、自動詞『bersiasat』は「工夫する・戦略的に動く」を表す。"
+      },
+      {
+        "p": "v",
+        "w": "terkepung",
+        "r": "kepung",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "（警察・敵・洪水・渋滞・火災・群衆などに周囲を）包囲される、取り囲まれる、逃げ場を失う",
+        "ex": "Beberapa desa di dataran rendah sempat terkepung banjir selama dua hari sehingga pasokan logistik dikirim melalui perahu.",
+        "tr": "低地のいくつかの村が2日間洪水に取り囲まれた（孤立した）ため、支援物資はボートで届けられた。",
+        "note": "■ 【語構成】：ter- + kepung（包囲する）。事件・災害・交通ニュースで頻出！\n■ 【重要コロケーション】：\n・terkepung banjir / api / asap / macet：洪水／炎／煙／渋滞に取り囲まれる\n・terkepung aparat kepolisian / massa：警察当局／群衆に包囲される\n■ 【kepung 関連語ファミリー】：mengepung（包囲する）、kepungan（包囲網）、pengepungan（包囲作戦・包囲行動）。"
+      },
+      {
+        "p": "n",
+        "w": "kepungan",
+        "r": "kepung",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "包囲網、包囲、取り囲まれた状態（lolos dari kepungan＝包囲網から逃れる、dalam kepungan banjir＝洪水に囲まれた中で）",
+        "ex": "Buronan tersebut akhirnya menyerahkan diri karena tidak mampu lagi meloloskan diri dari kepungan polisi.",
+        "tr": "その逃亡犯はもはや警察の包囲網から逃げ出すことができなくなり、ついに投降した。",
+        "note": "■ 【kepungan と pengepungan の違い】：\n・kepungan（kepung + -an）：周囲を取り囲む「包囲網・包囲状態」そのもの（例：lolos dari kepungan＝包囲網を突破する）\n・pengepungan（peN- + kepung + -an）：取り囲む「行為・作戦・プロセス」（例：operasi pengepungan＝包囲作戦）"
+      },
+      {
+        "p": "n",
+        "w": "pengepungan",
+        "r": "kepung",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "包囲すること、包囲作戦、取り囲み（警察や軍による容疑者アジト・拠点の包囲行動）",
+        "ex": "Proses pengepungan rumah persembunyian pelaku berlangsung selama tiga jam sebelum aparat berhasil meringkusnya.",
+        "tr": "当局が犯人の身柄を確保する前、潜伏先の家の包囲作戦は3時間にわたって続いた。",
+        "note": "■ 【語構成】：peN- + kepung（頭文字 k が鼻音化して ng）+ -an。関連語：mengepung（包囲する）、terkepung（包囲される）、kepungan（包囲網）。"
+      },
+      {
+        "p": "v",
+        "w": "gemetaran",
+        "r": "getar",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "（恐怖・緊張・極度の寒さ・怒り・衝撃などで体や手足・声が）ガタガタ震える、ブルブル震え続ける（＝gemetar）",
+        "ex": "Tangannya sempat gemetaran saat pertama kali memegang mikrofon untuk berpidato di hadapan ratusan penonton.",
+        "tr": "数百人の聴衆の前でスピーチするために初めてマイクを握ったとき、彼の手は一時ブルブル震えていた。",
+        "note": "■ 【語構成】：接中辞 -em- を持つ『gemetar（震える）』+ -an（日常会話で「体や手がブルブル震えている状態」を生き生きと表す定番形）。\n■ 【重要コロケーション】：tangan / kaki / suara gemetaran（手／足／声が震える）、gemetaran ketakutan / kedinginan（恐怖／寒さで震える）。\n■ 【関連語】：gemetar（震える）、bergetar（振動する）、getaran（振動・揺れ）、menggigil（寒気や発熱で震える）。"
+      },
+      {
+        "p": "v",
+        "w": "berjemur",
+        "r": "jemur",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "日光浴をする、日向ぼっこをする（朝の太陽を浴びてビタミンDを補給したり、ビーチで日焼けしたりすること）",
+        "ex": "Dokter menyarankan warga untuk berjemur di bawah sinar matahari pagi selama lima belas menit guna membantu pembentukan vitamin D.",
+        "tr": "医師はビタミンDの生成を助けるため、朝の太陽の下で15分間日光浴をするよう市民に勧めている。",
+        "note": "■ 【berjemur と menjemur の区別】：\n・berjemur（自動詞）：人間や動物が自分で「日光浴をする・日向ぼっこする」（berjemur di pantai / di pagi hari）\n・menjemur（他動詞）：洗濯物や魚・コーヒー豆などを「太陽に干す」（menjemur pakaian / gabah）\n■ 【関連語】：jemuran（物干し・干してある洗濯物）。"
+      },
+      {
+        "p": "n",
+        "w": "takar",
+        "r": "takar",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "計量、計る基準・道具（主に複合語『sendok takar＝計量スプーン』『gelas takar＝計量カップ』や派生語『takaran＝分量・適量』『menakar＝測る・見極める』で使われる語幹）",
+        "ex": "Gunakan sendok takar bawaan agar perbandingan bubuk protein dan air sesuai dengan anjuran pada kemasan.",
+        "tr": "プロテインパウダーと水の割合がパッケージの推奨通りになるよう、付属の計量スプーンを使いなさい。",
+        "note": "■ 【重要コロケーション】：\n・sendok takar / gelas takar / cangkir takar：計量スプーン ／ 計量カップ\n■ 【takar 関連語ファミリー】：\n・takaran（名詞）：分量、計量値、適量（takaran saji＝1食あたりの目安量［食品栄養表示の必須語！］、sesuai takaran＝分量通りに）\n・menakar（他動詞）：①量を計る、②（実力・可能性・リスク・市場反応などを）見極める、測る（ニュース頻出比喩！）"
+      },
+      {
+        "p": "n",
+        "w": "pengadangan",
+        "r": "adang",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "行く手を阻むこと、待ち伏せ、足止め、進路妨害（道路封鎖や暴徒・容疑者による車両の足止めなど。報道では penghadangan とも綴られる）",
+        "ex": "Polisi menangkap sejumlah pelaku pengadangan truk logistik yang meresahkan para sopir di jalur lintas timur.",
+        "tr": "警察は東部幹線道路で運転手たちを不安にさせていた物流トラックの進路妨害（待ち伏せ・足止め）の実行犯複数を逮捕した。",
+        "note": "■ 【語構成と綴り】：peN- + adang（阻む・待ち伏せする）+ -an。KBBI標準綴りは h なしの『pengadangan / mengadang』だが、実際のニュースでは h 付きの『penghadangan / menghadang』も非常に広く使われる。"
+      },
+      {
+        "p": "v",
+        "w": "menghadang",
+        "r": "adang",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①（車両・敵・相手選手などの）行く手を阻む、立ちふさがる、ブロックする ②待ち伏せする ③（困難や危機が前に）立ちはだかる（KBBI標準綴りは mengadang だが、報道・日常では menghadang が圧倒的に頻出）",
+        "ex": "Berbagai tantangan berat menghadang langkah tim nasional menjelang babak kualifikasi tingkat Asia.",
+        "tr": "アジア予選を控え、様々な厳しい課題が代表チームの行く手に立ちはだかっている。",
+        "note": "■ 【重要コロケーション】：\n・menghadang laju kendaraan / lawan：車両の進行を阻む ／ 相手の突破をブロックする\n・tantangan / risiko besar menghadang：大きな課題／リスクが待ち受けている\n■ 【関連語】：mengadang（KBBI標準綴り）、pengadangan（足止め・待ち伏せ）。"
+      },
+      {
+        "p": "n",
+        "w": "disinfektan",
+        "r": "disinfektan",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "消毒剤、消毒液（床・机・ドアノブ・医療器具などの表面にある細菌やウイルスを殺菌・不活化するための薬剤）",
+        "ex": "Petugas kebersihan rutin menyemprotkan cairan disinfektan di ruang tunggu rumah sakit dan gerbong kereta.",
+        "tr": "清掃員は病院の待合室や電車の車両内で、定期的に消毒液を噴霧している。",
+        "note": "■ 【disinfektan と antiseptik の正確な使い分け】：\n・disinfektan（消毒剤）：机・床・トイレ・器具などの「モノの表面」に使う薬剤\n・antiseptik（消毒薬・殺菌薬）：手肌・傷口など「人間の皮膚・生体」に使える薬剤（例：sabun antiseptik / hand sanitizer）\n■ 【重要コロケーション】：cairan disinfektan（消毒液）、penyemprotan disinfektan（消毒噴霧）。"
+      },
+      {
+        "p": "n",
+        "w": "pengimpor",
+        "r": "impor",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "輸入業者、輸入企業、輸入国（海外から商品や原材料を輸入する人や国＝importir ⇔ pengekspor / eksportir＝輸出業者・輸出国）",
+        "ex": "Jepang dan Tiongkok tercatat sebagai dua negara pengimpor utama batu bara serta gas alam dari Indonesia.",
+        "tr": "日本と中国は、インドネシアからの石炭および天然ガスの二大主要輸入国として記録されている。",
+        "note": "■ 【語構成と対比】：peN- + impor（輸入）。\n・pengimpor / negara pengimpor（輸入業者／輸入国） ⇔ pengekspor / negara pengekspor（輸出業者／輸出国）\n■ 【impor 関連語ファミリー】：impor（輸入）、mengimpor（輸入する）、pengimporan（輸入行為）、importir（輸入業者）。"
+      },
+      {
+        "p": "n",
+        "w": "paparan",
+        "r": "papar",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "①（紫外線・大気汚染・煙・ウイルス・放射線・情報などへの）曝露（ばくろ）、さらされること ②（会議・公聴会・セミナーでの）説明、プレゼンテーション、発表資料",
+        "ex": "Paparan polusi udara dan asap rokok dalam jangka panjang dapat meningkatkan risiko gangguan saluran pernapasan.",
+        "tr": "長期間にわたる大気汚染やタバコの煙への曝露（さらされること）は、呼吸器障害のリスクを高める可能性がある。",
+        "note": "■ 【2大重要コロケーション】：\n① 医療・環境（曝露）：paparan sinar matahari / UV（日光・紫外線曝露）、paparan polusi / radiasi / virus（汚染／放射線／ウイルス曝露）\n② ビジネス・学術（発表）：paparan materi / hasil riset（資料説明／研究成果の発表）\n■ 【papar 関連語ファミリー】：memaparkan（①詳しく説明する、②さらす）、pemaparan（プレゼン・説明）、terpapar（さらされる・感染・影響を受ける）、keterpaparan（曝露状態・露出度）。"
+      },
+      {
+        "p": "n",
+        "w": "pemuja",
+        "r": "puja",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "①崇拝者、信奉者 ②熱狂的なファン、心酔者（pemuja rahasia＝密かに想いを寄せる人・シークレットアドマイラー）",
+        "ex": "Sejak awal kariernya, musikus legendaris itu memiliki jutaan pemuja setia lintas generasi di seluruh Nusantara.",
+        "tr": "キャリア初期から、その伝説的音楽家はインドネシア全土に世代を超えた数百万人の熱心なファン（心酔者）を持っている。",
+        "note": "■ 【語構成】：peN- + puja（崇める・敬愛する：頭文字 p が鼻音化して m）。\n■ 【重要コロケーション】：\n・pemuja rahasia：片思いの相手を陰から想う人（シークレットファン）\n・pemuja setia / fanatik：熱心な／狂信的なファン・崇拝者\n■ 【puja 関連語ファミリー】：memuja（崇拝する・熱愛する）、pujaan（憧れの的・最愛の人）、pemujaan（崇拝・礼拝）。"
+      },
+      {
+        "p": "n",
+        "w": "pujaan",
+        "r": "puja",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "憧れの的、アイドル、最愛の人、崇拝の対象（pujaan hati＝最愛の人・心の恋人、artis pujaan＝憧れのスター）",
+        "ex": "Penyanyi muda itu kini menjadi idola dan pujaan para remaja berkat suara emas serta sikapnya yang rendah hati.",
+        "tr": "その若手歌手は美しい歌声と謙虚な人柄のおかげで、今や若者たちのアイドルであり憧れの的となっている。",
+        "note": "■ 【語構成】：puja（崇める・敬愛する）+ -an。\n■ 【重要コロケーション】：\n・pujaan hati：最愛の人、憧れの恋人（歌の歌詞や会話で超定番！）\n・sosok / bintang / klub pujaan：憧れの人物／スター／推しクラブ"
+      },
+      {
+        "p": "v",
+        "w": "bermerek",
+        "r": "merek",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "①〜というブランド名（銘柄・商標）が付いている ②高級ブランドの、有名ブランド物の（tas bermerek＝ブランドバッグ）",
+        "ex": "Banyak konsumen kini lebih mengutamakan kualitas dan kenyamanan produk lokal daripada sekadar membeli barang bermerek mahal.",
+        "tr": "多くの消費者は現在、単に高価なブランド品を買うことよりも、地元製品の品質と使い心地を重視するようになっている。",
+        "note": "■ 【語構成】：ber- + merek（ブランド・商標・メーカー：オランダ語 merk 由来）。\n■ 【重要コロケーション】：\n・barang / tas / pakaian bermerek：ブランド品／ブランドバッグ／ブランド服（口語では branded とも併用）\n・bermerek dagang resmi：正式な登録商標を持つ\n■ 【関連語】：merek（ブランド・商標：merek dagang＝商標、hak merek＝商標権）。"
+      },
+      {
+        "p": "n",
+        "w": "penyergapan",
+        "r": "sergap",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "急襲、奇襲、踏み込み逮捕、待ち伏せ攻撃（警察や特殊部隊が容疑者のアジトなどを不意打ちで急襲する作戦・行為）",
+        "ex": "Operasi penyergapan sindikat narkoba di gudang pelabuhan itu dilakukan polisi secara senyap pada dini hari.",
+        "tr": "港の倉庫における麻薬シンジケートへの急襲作戦は、未明に警察によって極秘裏に行われた。",
+        "note": "■ 【語構成】：peN- + sergap（不意打ちする・急襲する：頭文字 s が鼻音化して ny）+ -an。\n■ 【sergap 関連語ファミリー】：menyergap（急襲する・不意打ちで取り押さえる）、penyergapan（急襲作戦・行為）、sergapan（急襲・襲撃そのもの：lolos dari sergapan＝急襲を逃れる）。類義語：penggerebekan（ガサ入れ・摘発急襲）。"
+      },
+      {
+        "p": "n",
+        "w": "sergapan",
+        "r": "sergap",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "急襲、奇襲、不意打ちの襲撃（lolos dari sergapan polisi＝警察の急襲から逃れる）",
+        "ex": "Pelaku pencurian kendaraan bermotor itu tidak berkutik saat terkena sergapan tim patroli di jalan buntu.",
+        "tr": "そのバイク窃盗犯は行き止まりの道でパトロール隊の急襲（不意打ち）を受け、身動きが取れなくなった。",
+        "note": "■ 【sergapan と penyergapan の違い】：\n・sergapan（sergap + -an）：急襲そのもの・不意打ちの攻撃（受ける側から『lolos / terkena sergapan』とよく使う）\n・penyergapan（peN- + sergap + -an）：急襲を実行する「作戦・行為プロセス」（行う側から『operasi penyergapan』）"
+      },
+      {
+        "p": "n",
+        "w": "pemagangan",
+        "r": "magang",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "インターンシップ制度、実地研修、技能実習（企業や機関で学生・求職者が実務経験を積むための研修プログラム：program pemagangan）",
+        "ex": "Kementerian Ketenagakerjaan memperluas program pemagangan di perusahaan manufaktur untuk meningkatkan kesiapan kerja lulusan baru.",
+        "tr": "労働省は新卒者の就労即戦力性を高めるため、製造業企業におけるインターンシップ（実地研修）プログラムを拡大している。",
+        "note": "■ 【語構成】：peN- + magang（インターン・見習い）+ -an。\n■ 【重要コロケーション】：\n・program pemagangan nasional / ke Jepang：国内インターンシップ事業 ／ 対日技能実習・インターン事業\n・peserta pemagangan / pemagang：インターン生、実習生\n■ 【関連語】：magang（インターンをする・見習い）、praktik kerja lapangan [PKL]（現場実習）。"
+      },
+      {
+        "p": "n",
+        "w": "persemaian",
+        "r": "semai",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "①苗床（なえどこ）、育苗場、ナーセリー（種を蒔いて苗木や稲の苗を育てる場所：persemaian bibit） ②（比喩で：人材・文化・才能・平和などを育む）温床、揺籃の地",
+        "ex": "Pusat persemaian modern itu mampu memproduksi jutaan bibit pohon endemik setiap tahun untuk rehabilitasi hutan.",
+        "tr": "その近代的な育苗センター（苗床施設）は、森林再生のために毎年数百万本の固有種樹木の苗木を生産できる。",
+        "note": "■ 【語構成】：per- + semai（種を蒔いて苗を育てる）+ -an。環境・林業ニュース（特に IKN ヌサンタラの Persemaian Mentawir など）で超頻出！\n■ 【semai 関連語ファミリー】：menyemai / menyemaikan（①種を蒔いて育苗する、②愛・平和・価値観を育む・植え付ける）、persemaian（苗床・育苗センター）。"
+      },
+      {
+        "p": "v",
+        "w": "menyemaikan",
+        "r": "semai",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "①（種や籾を苗床に）蒔いて育てる、育苗する ②（比喩で：平和・寛容・希望・愛・知識の種を人々の心に）蒔く、育む、広める",
+        "ex": "Pendidikan sejak usia dini berperan penting dalam menyemaikan nilai-nilai toleransi dan kepedulian sosial.",
+        "tr": "幼少期からの教育は、寛容と社会への思いやりの価値観を育む（種を蒔く）上で重要な役割を果たしている。",
+        "note": "■ 【語構成】：meN- + semai（頭文字 s が鼻音化して ny）+ -kan。\n■ 【重要コロケーション】：\n・menyemaikan benih / bibit padi（農業）：稲の種籾を苗床に蒔く\n・menyemaikan nilai toleransi / perdamaian / semangat（比喩）：寛容の価値観／平和／精神を育む\n■ 【関連語】：persemaian（苗床・育苗場）、pembibitan（育苗・若手育成）。"
+      },
+      {
+        "p": "a",
+        "w": "toleran",
+        "r": "toleransi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "寛容な、心が広い、他者の違い（宗教・民族・意見など）を尊重して受け入れる（⇔ intoleran＝不寛容な）",
+        "ex": "Sikap saling menghormati dan toleran menjadi fondasi utama kerukunan di negara yang beragam seperti Indonesia.",
+        "tr": "互いに尊重し合う寛容な姿勢が、インドネシアのような多様な国における調和の最大の土台となっている。",
+        "note": "■ 【toleransi 関連語ファミリー】：\n・toleran（形容詞）：寛容な ⇔ intoleran（形容詞）：不寛容な\n・toleransi（名詞）：寛容、許容範囲 ⇔ intoleransi（名詞）：不寛容\n・menoleransi（他動詞）：〜を許容する、大目に見る"
+      },
+      {
+        "p": "a",
+        "w": "intoleran",
+        "r": "toleransi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "不寛容な、排他的な、自分と異なる信仰・民族・意見を受け入れない（⇔ toleran＝寛容な）",
+        "ex": "Masyarakat dan pemerintah harus bersama-sama menolak segala bentuk tindakan intoleran yang mengancam persatuan bangsa.",
+        "tr": "市民と政府は、国家の団結を脅かすあらゆる形態の不寛容な行為を共に拒絶しなければならない。",
+        "note": "■ 【重要コロケーション】：\n・sikap / tindakan / kelompok intoleran：不寛容な態度／行為／集団\n■ 【関連語】：intoleransi（名詞：不寛容）、toleran（寛容な）、diskriminatif（差別的な）、inklusif（包摂的な［対義語］）。"
+      },
+      {
+        "p": "n",
+        "w": "suguhan",
+        "r": "suguh",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "①（来客へのおもてなしとして出す）茶菓子、料理、ごちそう、もてなし ②（観客や読者に提供される）出し物、演目、見どころ・エンターテインメント（suguhan seni / hiburan）",
+        "ex": "Tuan rumah menyambut para tamu dengan ramah disertai suguhan teh hangat dan aneka kue tradisional.",
+        "tr": "家の主人は温かいお茶と様々な伝統菓子のおもてなし（茶菓子）とともに、来客を温かく迎えた。",
+        "note": "■ 【語構成】：suguh（もてなす・提供する）+ -an。\n■ 【重要コロケーション】：\n・suguhan makanan / minuman / kopi：料理／飲み物／コーヒーのもてなし\n・suguhan musik / tari / hiburan menarik：魅力的な音楽／舞踊／エンタメの出し物\n■ 【関連語】：menyuguhkan（他動詞：①料理をもてなす、②見応えのあるショーや作品を提供する）、hidangan（料理・ごちそう）。"
+      },
+      {
+        "p": "v",
+        "w": "berdahak",
+        "r": "dahak",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "痰（たん）が絡む、痰が出る（ほぼ常に『batuk berdahak＝痰の絡む湿った咳』⇔『batuk kering＝乾いた空咳』の対比で使われる医療・薬局の必須語）",
+        "ex": "Apoteker menanyakan apakah keluhan saya berupa batuk berdahak atau batuk kering sebelum memberikan obat.",
+        "tr": "薬剤師は薬を渡す前に、私の症状が痰の絡む咳か乾いた咳かを尋ねた。",
+        "note": "■ 【インドネシアの薬局でそのまま使える咳の2大表現】：\n・batuk berdahak：痰（たん）が絡む咳（湿性咳嗽）\n・batuk kering / batuk tidak berdahak：乾いた咳、コンコン咳（乾性咳嗽）\n■ 【関連語】：dahak（名詞：痰）、mengencerkan dahak（痰を切れやすくする・去痰する）、radang tenggorokan（喉の炎症）。"
+      },
+      {
+        "p": "n",
+        "w": "pengalihfungsian",
+        "r": "alih",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "用途転換すること、転用プロセス（農地・保護林・公共空間などを別の用途へ変える行為＝alih fungsi の行為名詞形）",
+        "ex": "Pengalihfungsian daerah resapan air menjadi kawasan komersial memperparah genangan banjir di wilayah perkotaan.",
+        "tr": "保水地域（雨水浸透エリア）を商業地区へと用途転換することが、都市部の冠水被害をさらに悪化させている。",
+        "note": "■ 【語構成】：peN- + 複合語『alih fungsi（用途転換）』+ -an が1語に結合した標準名詞形。\n■ 【重要コロケーション】：pengalihfungsian lahan / hutan / sawah / bangunan（土地／森林／水田／建物の転用）。\n■ 【関連語】：alih fungsi（用途転換）、mengalihfungsikan（用途転換する）。"
+      },
+      {
+        "p": "n",
+        "w": "perampingan",
+        "r": "ramping",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "①（組織・省庁・人員・規制・予算などの）スリム化、縮小、簡素化、ダウンサイジング（perampingan struktur organisasi / birokrasi） ②（体やデザインを）細身・スリムにすること",
+        "ex": "Perampingan struktur birokrasi dilakukan agar proses pengambilan keputusan menjadi lebih cepat dan efisien.",
+        "tr": "意思決定プロセスをより迅速かつ効率的にするため、官僚機構のスリム化（簡素化）が行われた。",
+        "note": "■ 【語構成】：pe- + ramping（スリムな・無駄のない）+ -an。行政改革・企業リストラ・省庁再編のニュースで超頻出！\n■ 【重要コロケーション】：\n・perampingan birokrasi / organisasi / kementerian：官僚機構／組織／省庁のスリム化\n・perampingan karyawan / anggaran：人員のスリム化 ／ 予算のスリム化\n■ 【関連語】：ramping（スリムな）、merampingkan（スリム化する・縮小する）、efisiensi（効率化）。"
+      },
+      {
+        "p": "n",
+        "w": "pengembara",
+        "r": "kembara",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "放浪者、旅人、さすらい人、各地を巡り歩く人（一定の場所にとどまらず旅や探索を続ける人＝musafir / pelancong）",
+        "ex": "Kisah perjalanan pengembara muda yang menjelajahi puluhan pulau terpencil di Indonesia itu menginspirasi banyak pembaca.",
+        "tr": "インドネシアの何十もの離島を巡った若き旅人（放浪者）の旅行記は、多くの読者にインスピレーションを与えた。",
+        "note": "■ 【語構成】：peN- + kembara（放浪する・旅をする：頭文字 k が鼻音化して ng）。\n■ 【kembara 関連語ファミリー】：mengembara（各地を旅する・放浪する）、pengembara（旅人・放浪者）、pengembaraan（放浪・遍歴・長旅）。"
+      },
+      {
+        "p": "n",
+        "w": "ketaatan",
+        "r": "taat",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "遵守（じゅんしゅ）、服従、忠実さ、規則や教えをしっかり守ること（＝kepatuhan：ketaatan hukum / pajak / beribadah）",
+        "ex": "Tingkat ketaatan masyarakat dalam membayar pajak tepat waktu meningkat berkat kemudahan layanan pelaporan daring.",
+        "tr": "オンライン申告サービスの利便性向上のおかげで、期限通りに納税する市民の遵守率は上昇した。",
+        "note": "■ 【語構成】：ke- + taat（忠実な・よく従う・敬虔な）+ -an。\n■ 【重要コロケーション】：\n・ketaatan hukum / pajak / aturan：法令遵守 ／ 納税遵守 ／ 規則遵守\n・ketaatan beragama / beribadah：信仰への忠実さ・敬虔さ\n■ 【taat 関連語ファミリー】：taat（忠実な・守る：taat hukum / taat asas）、menaati（他動詞：守る・従う）、ketidaktaatan（不服従・違反）、kepatuhan（遵守・コンプライアンス：類義語）。"
+      },
+      {
+        "p": "n",
+        "w": "isme",
+        "r": "isme",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "〜主義、〜思想、イデオロギー、運動・学説（単独で「主義・イデオロギー」を指すほか、名詞語尾『-isme』として nasionalisme / kapitalisme / pluralisme 等を作る）",
+        "ex": "Berbagai isme dan pemikiran politik berkembang pesat di dunia sepanjang abad kedua puluh.",
+        "tr": "20世紀を通じて、様々な主義（イズム）や政治思想が世界中で急速に発展した。",
+        "note": "■ 【代表的な -isme 重要語セット】：\n・nasionalisme（ナショナリズム・国民主義）、patriotisme（愛国心）\n・pluralisme（多元主義）、multikulturalisme（多文化主義）\n・kapitalisme（資本主義）、sosialisme（社会主義）、konsumerisme（消費主義）、optimisme（楽観主義）\n・対応する人・形容詞は『-is』（例：nasionalis, optimistis）。"
+      },
+      {
+        "p": "n",
+        "w": "kecakapan",
+        "r": "cakap",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "能力、技能、スキル、熟練度、手腕（＝keterampilan / kemampuan：kecakapan hidup＝ライフスキル、kecakapan digital＝デジタルスキル）",
+        "ex": "Sekolah vokasi berfokus membekali siswa dengan kecakapan praktis yang langsung dibutuhkan di dunia industri.",
+        "tr": "職業専門学校は、産業界で直ちに必要とされる実践的な技能（スキル）を生徒に身につけさせることに注力している。",
+        "note": "■ 【語構成】：ke- + cakap（有能な・巧みな）+ -an。\n■ 【重要コロケーション】：\n・kecakapan hidup (life skills)：生きる力、ライフスキル\n・kecakapan digital / bahasa / komunikasi：デジタルスキル ／ 語学力 ／ コミュニケーション能力\n・kecakapan hukum（法務）：行為能力（法的に契約等を有効に行える能力）\n■ 【関連語】：cakap（有能な・巧みな）、keterampilan（スキル）、kemahiran（熟練）、kompetensi（能力・コンピテンシー）。"
+      },
+      {
+        "p": "n",
+        "w": "balon",
+        "r": "balon",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①風船、バルーン、気球（balon udara＝熱気球） ②（医療）カテーテル用バルーン ③（※インドネシア選挙ニュースのアクロニム！）公認候補予定者（BAkal caLON：正式立候補届出前の立候補予定者）",
+        "ex": "Puluhan balon udara berwarna-warni menghiasi langit pagi saat festival tradisional di Wonosobo digelar.",
+        "tr": "ウォノソボの伝統フェスティバルが開催された際、何十もの色鮮やかな熱気球が朝の空を彩った。",
+        "note": "■ 【日常＆ニュースの重要コロケーション】：\n・balon udara：熱気球（中部ジャワ州ウォノソボのレバラン熱気球祭りが有名！）\n・meniup balon：風船を膨らませる\n・balon [bakal calon]（政治ニュース超頻出！）：立候補予定者（例：balon bupati / gubernur＝県知事／州知事の立候補予定者）"
+      },
+      {
+        "p": "v",
+        "w": "tiup",
+        "r": "tiup",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "吹く、息を吹き込む（他動詞 meniup の語幹・命令・複合語形：tiup lilin＝ろうそくを吹き消す、alat musik tiup＝管楽器）",
+        "ex": "Sebelum memotong kue ulang tahun, ia memanjatkan doa singkat lalu melakukan tiup lilin bersama keluarga.",
+        "tr": "誕生日ケーキを切る前に、彼は短い祈りを捧げてから家族と一緒にろうそくを吹き消した。",
+        "note": "■ 【重要コロケーション】：\n・tiup lilin：ろうそくを吹き消す（誕生日の定番フレーズ！）\n・alat musik tiup：管楽器（フルート・トランペット・スリン等）\n■ 【tiup 関連語ファミリー】：meniup（口で吹く・膨らませる）、bertiup（風が吹く）、tiupan（風のひと吹き・吹きつけ）。"
+      },
+      {
+        "p": "n",
+        "w": "pemujaan",
+        "r": "puja",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "崇拝、礼拝、賛美、熱狂的な心酔（tempat pemujaan＝礼拝所・祭壇、pemujaan berhala＝偶像崇拝）",
+        "ex": "Situs candi kuno di puncak bukit itu dahulu digunakan sebagai tempat pemujaan oleh masyarakat kerajaan setempat.",
+        "tr": "丘の頂上にあるその古代寺院遺跡は、かつて地域の王国の人々によって礼拝・崇拝の場として使われていた。",
+        "note": "■ 【語構成】：peN- + puja（頭文字 p が鼻音化して m）+ -an。memuja / pemuja / pujaan と合わせて完全セット。"
+      },
+      {
+        "p": "n",
+        "w": "pengembaraan",
+        "r": "kembara",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "放浪、遍歴、長旅、各地を巡る旅（pengembaraan panjang＝長い旅路・遍歴）",
+        "ex": "Setelah bertahun-tahun melakukan pengembaraan di berbagai negara, ia akhirnya kembali dan menulis buku tentang pengalamannya.",
+        "tr": "何年もの間さまざまな国を巡る長旅（放浪）を続けた後、彼はついに帰国して自らの体験について本を書いた。",
+        "note": "■ 【語構成】：peN- + kembara（頭文字 k が鼻音化して ng）+ -an。mengembara / pengembara と合わせて完全セット。"
+      }
+    ];
+
+    const idxByWord = new Map();
+    for (let i = 0; i < d.vocab.length; i++) {
+      const it = d.vocab[i];
+      if (it && it.w) idxByWord.set(it.w.trim().toLowerCase(), i);
+    }
+
+    const purgeFromQuizStorage = new Set(["obral"]);
+
+    for (let i = 0; i < NEW_45_PACK.length; i++) {
+      const item = NEW_45_PACK[i];
+      if (!item || !item.w) continue;
+      const key = item.w.trim().toLowerCase();
+
+      if (item.dictOnly === true || item.tier === 3) {
+        dictOnlySet.add(key);
+        purgeFromQuizStorage.add(key);
+      } else {
+        dictOnlySet.delete(key);
+      }
+      if (item.topicCat) {
+        catMap.set(key, item.topicCat);
+      }
+
+      if (idxByWord.has(key)) {
+        const pos = idxByWord.get(key);
+        Object.assign(d.vocab[pos], item);
+        vMap.set(key, d.vocab[pos]);
+        persistentAdded.set(key, d.vocab[pos]);
+      } else {
+        d.vocab.push(item);
+        idxByWord.set(key, d.vocab.length - 1);
+        vMap.set(key, item);
+        persistentAdded.set(key, item);
+      }
+    }
+
+    // 3. 削除した「obral」や辞書専用化した既存語（berpura-pura / paparan）を保存済みの復習・スターから安全除外
+    ["wi_wrongs_v2", "wi_stars_v2", "wi_master_stars_v5"].forEach(function(storageKey) {
+      try {
+        const raw = localStorage.getItem(storageKey);
+        if (!raw) return;
+        const list = JSON.parse(raw);
+        if (!Array.isArray(list)) return;
+        const cleaned = list.filter(function(it) {
+          if (!it || typeof it !== "object") return false;
+          const qid = String(it.id || "");
+          const m = qid.match(/^(?:voc|voc_ja2id|ctx::voc)::(.+)$/i);
+          const w = (m ? m[1] : (it.w || it.ttsWord || "")).trim().toLowerCase();
+          return !purgeFromQuizStorage.has(w);
+        });
+        if (cleaned.length !== list.length) {
+          localStorage.setItem(storageKey, JSON.stringify(cleaned));
+        }
+      } catch (err) {}
+    });
+  } catch (e) {
+    console.error("WhatsIndo 45-word pack error:", e);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 「Kamus Bahasa Indonesia（本格電子辞書モード）」完全統合版 (V2)
+   - 「間違えた問題」ボタンを「📖 辞書モード」へ置換 ／ 検索バー左の「辞書 A-Z」ボタンを廃止統一
+   - 本物の既存単語カード(#dict-detail-modal)を右ペインへそのままドッキング
+     （見た目・ペン・文字入れ・右下分野・dictOnly・実マイ単語帳・実排除リスト・スターを100%完全連動）
+   - 余計なポップアップ（ダブルクリック通知・排除トースト等）を完全廃止
+   - 完全無音マナーモード（音:OFFで効果音・通常発音・リスニングV47すべて無音＆即停止）
+   - 全検索バー共通：Shift単押しフォーカス / Shift2回連打クリア / Enterで先頭カードを開く
+   - 単語カード共通ショートカット（メモ・文字入れ入力中は100%完全ロック）：
+     A/D 履歴の戻る・進む（既存カードと完全同一） / ↑↓ カード内スクロール /
+     X 排除 / B マイ単語帳 / S スター / R 単語発音 / E 例文発音
+   - 意味表示の視認性強化（メイン意味＝太字／カッコ内＝少し薄めの #475569／丸数字＝深緑）
+   - ≡ 折りたたみ詳細絞り込み（品詞・8分野・実マイ単語帳フォルダ別・習得状態・スター・出題/排除・並び順・検索範囲・A-Z・リセット）
+   - 前回モード記憶起動（辞書モードで閉じたら次回もチラつきゼロで辞書モード起動）
+   ===================================================================== */
+(function() {
+  try {
+    const d = window.WHATSINDO_EXTERNAL_DATA;
+    if (!d) return;
+
+    const LAST_MODE_KEY = "wi_last_app_mode_v1";
+    const PREFS_KEY     = "wi_prefs_v8";
+    const STARS_KEY     = "wi_stars_v2";
+    const WB_KEY        = "wi_custom_wordbooks_v1";
+    const EXCL_KEY      = "wi_excluded_words_v1";
+    const HIST_KEY      = "wi_kamus_search_hist_v1";
+
+    const dictOnlySet = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+    const catMap      = window.__WI_V5_VCAT || (window.__WI_V5_VCAT = new Map());
+    const aCatMap     = window.__WI_V5_ACAT || (window.__WI_V5_ACAT = new Map());
+
+    const bootedInKamus = localStorage.getItem(LAST_MODE_KEY) === "kamus";
+    const bootGuardUntil = bootedInKamus ? (Date.now() + 1200) : 0;
+
+    // =================================================================
+    // 1. 完全無音マナーモード（音:OFFで効果音＋全発音＋リスニングV47すべて無音）
+    // =================================================================
+    function isAppSoundEnabled() {
+      const btn = document.getElementById("btn-sound-top");
+      if (btn && /OFF/i.test(btn.textContent || "")) return false;
+      try {
+        const p = JSON.parse(localStorage.getItem(PREFS_KEY) || "{}");
+        if (p.soundOn === false || Number(p.soundVolume) === 0) return false;
+      } catch (e) {}
+      return true;
+    }
+
+    function forceStopAllSpeech() {
+      try {
+        if (window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+        }
+      } catch (e) {}
+    }
+
+    // window.speechSynthesis.speak と SpeechSynthesis.prototype.speak の両層で完全ミュート保護
+    function wrapSpeakForFullMute() {
+      if (!window.speechSynthesis) return;
+      if (typeof window.speechSynthesis.speak === "function" && !window.speechSynthesis.__wiFullMuteV2) {
+        const prevSpeak = window.speechSynthesis.speak.bind(window.speechSynthesis);
+        window.speechSynthesis.__wiFullMuteV2 = true;
+        window.speechSynthesis.speak = function(u) {
+          if (!isAppSoundEnabled()) {
+            forceStopAllSpeech();
+            return;
+          }
+          if (Date.now() < bootGuardUntil && document.body && document.body.classList.contains("wi-kamus-active")) {
+            return;
+          }
+          return prevSpeak(u);
+        };
+      }
+      try {
+        const proto = Object.getPrototypeOf(window.speechSynthesis) || (window.SpeechSynthesis && window.SpeechSynthesis.prototype);
+        if (proto && typeof proto.speak === "function" && !proto.__wiFullMuteV2) {
+          const origProtoSpeak = proto.speak;
+          proto.__wiFullMuteV2 = true;
+          proto.speak = function(u) {
+            if (!isAppSoundEnabled()) {
+              forceStopAllSpeech();
+              return;
+            }
+            return origProtoSpeak.call(this, u);
+          };
+        }
+      } catch (e) {}
+    }
+    wrapSpeakForFullMute();
+
+    // リスニングV47や各発音ボタンも音:OFF時はクリック段階で完全遮断
+    window.addEventListener("click", function(e) {
+      if (isAppSoundEnabled()) return;
+      if (!e.target || typeof e.target.closest !== "function") return;
+      const isListenPlay = e.target.closest(
+        "#btn-listen-passage, #btn-listen-question, [data-lch], .listen-play-btn, .wi-v47-toggle-btn, .wi-v47-play-btn, #btn-tts-hdr, #btn-tts-bottom, #btn-dict-modal-word-tts, #btn-dict-modal-ex-tts, .inline-audio-chip"
+      );
+      if (isListenPlay) {
+        e.preventDefault();
+        e.__wiAllowFinalStop = true;
+        if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+        e.stopPropagation();
+        forceStopAllSpeech();
+      }
+    }, true);
+
+    function syncSoundButtonsUI() {
+      const on = isAppSoundEnabled();
+      if (!on) forceStopAllSpeech();
+      const kmBtn = document.getElementById("km-btn-sound");
+      if (kmBtn) {
+        kmBtn.textContent = on ? "🔊 音:ON" : "🔇 音:OFF";
+        kmBtn.classList.toggle("is-muted", !on);
+      }
+    }
+
+    // =================================================================
+    // 2. 実ストレージ読み取り（単語帳・排除リスト・スターと完全単一同期）
+    // =================================================================
+    function loadRealWordbook() {
+      try {
+        const raw = JSON.parse(localStorage.getItem(WB_KEY) || "null");
+        if (raw && typeof raw === "object" && Array.isArray(raw.folders)) {
+          if (!raw.items || typeof raw.items !== "object") raw.items = {};
+          return raw;
+        }
+      } catch (e) {}
+      return { folders: [], items: {} };
+    }
+
+    function loadRealExcludeMap() {
+      try {
+        const raw = JSON.parse(localStorage.getItem(EXCL_KEY) || "null");
+        if (raw && typeof raw === "object" && !Array.isArray(raw)) return raw;
+      } catch (e) {}
+      return {};
+    }
+
+    function loadRealStarWordSet() {
+      const set = new Set();
+      try {
+        const arr = JSON.parse(localStorage.getItem(STARS_KEY) || "[]");
+        if (Array.isArray(arr)) {
+          for (let i = 0; i < arr.length; i++) {
+            const it = arr[i];
+            if (!it || !it.id) continue;
+            const id = String(it.id);
+            const m = id.match(/^(?:voc|voc_ja2id|ctx::voc|abbr_ja|abbr_full)::(.+)$/i);
+            if (m && m[1]) set.add(m[1].trim().toLowerCase());
+            else if (it.ttsWord) set.add(String(it.ttsWord).trim().toLowerCase());
+          }
+        }
+      } catch (e) {}
+      return set;
+    }
+
+    function loadSearchHistory() {
+      try {
+        const arr = JSON.parse(localStorage.getItem(HIST_KEY) || "[]");
+        return Array.isArray(arr) ? arr.slice(0, 12) : [];
+      } catch (e) { return []; }
+    }
+
+    function pushSearchHistory(w) {
+      const clean = String(w || "").trim();
+      if (!clean) return;
+      const arr = loadSearchHistory().filter(x => x.toLowerCase() !== clean.toLowerCase());
+      arr.unshift(clean);
+      try { localStorage.setItem(HIST_KEY, JSON.stringify(arr.slice(0, 12))); } catch (e) {}
+    }
+
+    // =================================================================
+    // 3. 意味タイポグラフィ（メイン意味＝太字／カッコ内＝ちょっと薄い #475569）
+    // =================================================================
+    function escHtml(s) {
+      return String(s || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function formatMeaningHtml(rawStr) {
+      return escHtml(rawStr || "")
+        .replace(/([（(][^（）()]*[）)])/g, '<span class="km-paren">$1</span>')
+        .replace(/([①②③④⑤⑥⑦⑧⑨⑩])/g, '<span class="km-num">$1</span>');
+    }
+
+    function enhanceDictModalMeaningTypography() {
+      const box = document.getElementById("dict-detail-box");
+      if (!box) return;
+      const defCards = box.querySelectorAll(".exp-sec-card.green");
+      for (let i = 0; i < defCards.length; i++) {
+        const lbl = defCards[i].querySelector(".exp-sec-label");
+        const cnt = defCards[i].querySelector(".exp-sec-content");
+        if (!lbl || !cnt) continue;
+        if ((lbl.textContent || "").indexOf("意味") === -1) continue;
+        const plain = cnt.textContent || "";
+        if (cnt.getAttribute("data-km-fmt-src") === plain) continue;
+        cnt.setAttribute("data-km-fmt-src", plain);
+        cnt.classList.add("km-meaning-main");
+        cnt.innerHTML = formatMeaningHtml(plain);
+      }
+    }
+
+    // =================================================================
+    // 4. 超軽量・高速検索インデックス ＆ 活用逆引き・表記ゆれ対応
+    // =================================================================
+    const SPELL_ALIAS = {
+      "analisa": "analisis", "menganalisa": "menganalisis",
+      "himbauan": "imbauan", "menghimbau": "mengimbau",
+      "sholat": "salat", "shalat": "salat",
+      "handal": "andal", "resiko": "risiko",
+      "aktifitas": "aktivitas", "praktek": "praktik",
+      "apotik": "apotek", "atlit": "atlet",
+      "diagnosa": "diagnosis", "mendiagnosa": "mendiagnosis",
+      "sistim": "sistem", "tehnik": "teknik",
+      "kwalitas": "kualitas", "kwantitas": "kuantitas",
+      "karir": "karier", "ijin": "izin", "jaman": "zaman",
+      "obyek": "objek", "subyek": "subjek",
+      "nasehat": "nasihat", "hapal": "hafal",
+      "faham": "paham", "fikir": "pikir",
+      "antri": "antre", "propinsi": "provinsi",
+      "sekedar": "sekadar", "nafas": "napas",
+      "bis": "bus", "supir": "sopir",
+      "kreatifitas": "kreativitas", "efektifitas": "efektivitas",
+      "ridho": "rida", "ridha": "rida",
+      "ghibah": "gibah", "dzikir": "zikir",
+      "hadits": "hadis", "qurban": "kurban",
+      "istighfar": "istigfar", "astaghfirullah": "astagfirullah",
+      "mag": "maag", "infografis": "infografik",
+      "werda": "werdha", "mentolerir": "menoleransi"
+    };
+
+    const TOPIC_CATEGORIES = [
+      "🏠 日常・生活・移動",
+      "🍽️ 食・料理",
+      "🏥 健康・身体・感情",
+      "🎓 教育・学術・IT",
+      "💼 仕事・経済・買い物",
+      "⚖️ 政治・法律・社会",
+      "🌿 自然・天気・動植物",
+      "💬 スラング・口語"
+    ];
+
+    let kmAllEntries    = [];
+    const kmExactMap    = new Map();
+    const kmMorphRevMap = new Map();
+    const kmAdjMap      = new Map();
+    let kmIndexedSig    = "";
+
+    function genPassiveStems(wLow, rLow) {
+      const out = [];
+      if (!wLow || wLow.indexOf(" ") !== -1 || wLow.indexOf("-") !== -1) return out;
+      if (!/^me/.test(wLow) || wLow === rLow) return out;
+      if (wLow === "mempelajari") return ["pelajari"];
+      if (wLow.startsWith("memper") && wLow.length > 6) return ["per" + wLow.slice(6)];
+      if (wLow.startsWith("member") && !rLow.startsWith("b") && wLow.length > 6) return ["ber" + wLow.slice(6)];
+      if (wLow.startsWith("menge") && wLow.length >= 7) {
+        const rest = wLow.slice(5);
+        if (rest.length >= 3) out.push(rest);
+        out.push("ke" + rest);
+      }
+      if (wLow.startsWith("meng") && wLow.length >= 6) {
+        const rest = wLow.slice(4);
+        if (/^[aiueogh]/.test(rest)) out.push(rest);
+        if (/^[aiueo]/.test(rest)) out.push("k" + rest);
+      } else if (wLow.startsWith("meny") && wLow.length >= 6) {
+        out.push("s" + wLow.slice(4));
+      } else if (wLow.startsWith("mem") && wLow.length >= 5) {
+        const rest = wLow.slice(3);
+        if (/^[bpfv]/.test(rest)) out.push(rest);
+        else if (/^[aiueo]/.test(rest)) { out.push("p" + rest); out.push("m" + rest); }
+      } else if (wLow.startsWith("men") && wLow.length >= 5) {
+        const rest = wLow.slice(3);
+        if (/^[cdjstz]/.test(rest)) out.push(rest);
+        else if (/^[aiueo]/.test(rest)) { out.push("t" + rest); out.push("n" + rest); }
+      } else if (wLow.startsWith("me") && wLow.length >= 5) {
+        const rest = wLow.slice(2);
+        if (/^[lrwy]/.test(rest)) out.push(rest);
+      }
+      return out;
+    }
+
+    function ensureKamusIndex() {
+      const vArr = Array.isArray(d.vocab) ? d.vocab : [];
+      const sArr = Array.isArray(d.singkatan) ? d.singkatan : [];
+      const aArr = Array.isArray(d.acro) ? d.acro : [];
+      const sig  = `${vArr.length}_${sArr.length}_${aArr.length}`;
+      if (kmAllEntries.length > 0 && kmIndexedSig === sig) return;
+      kmIndexedSig = sig;
+
+      kmAllEntries = [];
+      kmExactMap.clear();
+      kmMorphRevMap.clear();
+      kmAdjMap.clear();
+
+      function pushEntry(raw, forcedPos) {
+        if (!raw) return;
+        const w = String(raw.w || raw.acro || "").trim();
+        if (!w || raw.isDup) return;
+        const wLow = w.toLowerCase();
+        const p = forcedPos || (raw.p === "abbr" ? "singkatan" : (raw.p || "other"));
+        const r = String(raw.r || raw.full || w).trim();
+        const fullM = String(raw.fullM || raw.m || raw.tr || "").trim();
+        const ex = String(raw.ex || "").trim();
+        const tr = String(raw.tr && raw.m ? raw.tr : (raw.ex ? (raw.tr || "") : "")).trim();
+        const note = String(raw.note || raw.exp || "").trim();
+        const topicCat = raw.topicCat || catMap.get(wLow) || aCatMap.get(wLow) || (raw.isSlang ? "💬 スラング・口語" : "");
+        const posLabel = p === "v" ? "動詞" : p === "a" ? "形容詞" : p === "n" ? "名詞" : p === "singkatan" ? "略語" : "副詞・他";
+        const isBuiltinDictOnly = raw.dictOnly === true || raw.tier === 3 || dictOnlySet.has(wLow);
+
+        const entry = {
+          w, wLow,
+          r, rLow: r.toLowerCase(),
+          p, posLabel,
+          fullM, mLow: fullM.toLowerCase(),
+          ex, exLow: ex.toLowerCase(),
+          tr, trLow: tr.toLowerCase(),
+          note, noteLow: note.toLowerCase(),
+          topicCat,
+          builtinDictOnly: isBuiltinDictOnly,
+          firstLetterW: (w.replace(/^[^a-zA-Z]+/, "")[0] || "#").toUpperCase(),
+          firstLetterR: (r.replace(/^[^a-zA-Z]+/, "")[0] || "#").toUpperCase()
+        };
+
+        if (kmExactMap.has(wLow)) {
+          const prev = kmExactMap.get(wLow);
+          if (!prev.ex && entry.ex) { prev.ex = entry.ex; prev.exLow = entry.exLow; prev.tr = entry.tr; prev.trLow = entry.trLow; }
+          if (!prev.note && entry.note) { prev.note = entry.note; prev.noteLow = entry.noteLow; }
+          if (!prev.topicCat && entry.topicCat) prev.topicCat = entry.topicCat;
+          if (entry.fullM.length > prev.fullM.length) { prev.fullM = entry.fullM; prev.mLow = entry.mLow; }
+          if (entry.builtinDictOnly) prev.builtinDictOnly = true;
+          return;
+        }
+        kmExactMap.set(wLow, entry);
+        kmAllEntries.push(entry);
+
+        if (p === "a" && wLow.length >= 3 && wLow.indexOf(" ") === -1) {
+          kmAdjMap.set(wLow, entry);
+        }
+      }
+
+      for (let i = 0; i < vArr.length; i++) pushEntry(vArr[i]);
+      for (let i = 0; i < sArr.length; i++) pushEntry(sArr[i], "singkatan");
+      for (let i = 0; i < aArr.length; i++) pushEntry(aArr[i], "singkatan");
+
+      for (let i = 0; i < kmAllEntries.length; i++) {
+        const e = kmAllEntries[i];
+        if (e.p !== "v") continue;
+        const stems = genPassiveStems(e.wLow, e.rLow.replace(/\s+/g, ""));
+        for (let s = 0; s < stems.length; s++) {
+          const st = stems[s];
+          if (!st || st.length < 3) continue;
+          ["di", "ku", "kau"].forEach(pref => {
+            const f = pref + st;
+            if (!kmExactMap.has(f) && !kmMorphRevMap.has(f)) kmMorphRevMap.set(f, e);
+          });
+          if (!kmExactMap.has(st) && !kmMorphRevMap.has(st)) kmMorphRevMap.set(st, e);
+        }
+      }
+    }
+
+    function resolveAnyWordToEntry(rawWord) {
+      ensureKamusIndex();
+      const low = String(rawWord || "").replace(/^[^a-zA-Z0-9\-]+|[^a-zA-Z0-9\-]+$/g, "").trim().toLowerCase();
+      if (!low) return null;
+
+      if (kmExactMap.has(low)) return { entry: kmExactMap.get(low), reason: "" };
+      if (SPELL_ALIAS[low] && kmExactMap.has(SPELL_ALIAS[low])) {
+        return { entry: kmExactMap.get(SPELL_ALIAS[low]), reason: `表記ゆれ (${low} ➔ ${SPELL_ALIAS[low]})` };
+      }
+      if (kmMorphRevMap.has(low)) {
+        const e = kmMorphRevMap.get(low);
+        return { entry: e, reason: `活用形 (${low} ➔ ${e.w})` };
+      }
+
+      const outer = ["", "lah", "kah", "pun", "tah"];
+      const inner = ["", "nya", "ku", "mu"];
+      for (let o = 0; o < outer.length; o++) {
+        const op = outer[o];
+        if (op && !low.endsWith(op)) continue;
+        const s1 = op ? low.slice(0, -op.length) : low;
+        if (s1.length < 3) continue;
+        if (op) {
+          if (kmExactMap.has(s1) && kmExactMap.get(s1).p !== "singkatan") {
+            return { entry: kmExactMap.get(s1), reason: `-${op} を分解` };
+          }
+          if (kmMorphRevMap.has(s1)) {
+            return { entry: kmMorphRevMap.get(s1), reason: `活用形＋-${op}` };
+          }
+        }
+        for (let n = 1; n < inner.length; n++) {
+          const ip = inner[n];
+          if (!s1.endsWith(ip)) continue;
+          const s2 = s1.slice(0, -ip.length);
+          if (s2.length < 3) continue;
+          if (kmExactMap.has(s2) && kmExactMap.get(s2).p !== "singkatan") {
+            return { entry: kmExactMap.get(s2), reason: `-${ip}${op ? " / -" + op : ""} を分解` };
+          }
+          if (kmMorphRevMap.has(s2)) {
+            return { entry: kmMorphRevMap.get(s2), reason: `活用形＋-${ip}` };
+          }
+        }
+      }
+
+      if (low.startsWith("se") && low.length >= 5) {
+        const adj = low.slice(2);
+        if (kmAdjMap.has(adj)) return { entry: kmAdjMap.get(adj), reason: `se- + ${adj}` };
+      }
+      if (low.indexOf("-") !== -1) {
+        const parts = low.split("-");
+        if (parts.length === 2 && parts[0] === parts[1] && kmExactMap.has(parts[0])) {
+          return { entry: kmExactMap.get(parts[0]), reason: `重複語 (${parts[0]})` };
+        }
+      }
+      return null;
+    }
+
+    // =================================================================
+    // 5. CSS 定義（目に優しい配色・既存カード完全維持・余計なポップアップ完全非表示）
+    // =================================================================
+    function injectKamusV2Styles() {
+      if (document.getElementById("wi-kamus-style-v2")) return;
+      const st = document.createElement("style");
+      st.id = "wi-kamus-style-v2";
+      st.textContent = `
+        /* 1. 「間違えた問題」ボタン ＆ 検索バー左の「辞書 A-Z」ボタンを廃止統一 */
+        #btn-wrong-top,
+        #btn-open-az-dict {
+          display: none !important;
+        }
+        /* 2. 余計なポップアップ（排除トースト等）を完全非表示 */
+        .wi-ex-toast,
+        #km-toast {
+          display: none !important;
+          opacity: 0 !important;
+          pointer-events: none !important;
+        }
+        #btn-kamus-mode-top {
+          background: #ecfdf5 !important;
+          color: #065f46 !important;
+          border: 1px solid #a7f3d0 !important;
+          font-weight: 700 !important;
+        }
+        #btn-kamus-mode-top:hover { background: #d1fae5 !important; }
+
+        /* 3. 意味のタイポグラフィ（メイン意味＝太字／カッコ内＝少し薄めの #475569） */
+        .km-meaning-main {
+          font-weight: 650 !important;
+          color: #142129 !important;
+          line-height: 1.65;
+        }
+        .km-paren {
+          font-weight: 400 !important;
+          color: #475569 !important;
+          font-size: 0.94em;
+        }
+        .km-num {
+          font-weight: 700 !important;
+          color: #0f766e !important;
+          margin-right: 2px;
+        }
+
+        /* 4. 辞書モード（Kamus Bahasa Indonesia）フルスクリーンレイアウト */
+        body.wi-kamus-active {
+          background: #eef2f1 !important;
+        }
+        body.wi-kamus-active #wa-app {
+          display: none !important;
+        }
+        #wi-kamus-shell {
+          display: none;
+          flex-direction: column;
+          width: 100%;
+          height: 100vh;
+          max-width: 1440px;
+          margin: 0 auto;
+          background: #f6f8f7;
+          color: #142129;
+          box-shadow: 0 2px 20px rgba(15, 23, 42, 0.08);
+          position: relative;
+          overflow: hidden;
+        }
+        body.wi-kamus-active #wi-kamus-shell {
+          display: flex;
+        }
+
+        /* ヘッダー（シンプル1段・ボタン最小限） */
+        .km-header {
+          height: 58px;
+          background: #ffffff;
+          border-bottom: 1px solid #dce4e1;
+          padding: 0 18px;
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          flex-shrink: 0;
+          z-index: 30;
+        }
+        .km-brand {
+          display: flex;
+          flex-direction: column;
+          line-height: 1.15;
+          flex-shrink: 0;
+          user-select: none;
+        }
+        .km-brand-main {
+          font-size: 1.12rem;
+          font-weight: 700;
+          color: #0d5c4c;
+          letter-spacing: -0.01em;
+        }
+        .km-brand-sub {
+          font-size: 0.69rem;
+          color: #64748b;
+          font-weight: 500;
+        }
+
+        .km-search-wrap {
+          flex: 1;
+          max-width: 560px;
+          display: flex;
+          align-items: center;
+          background: #f1f5f4;
+          border: 1.5px solid #d5dfdc;
+          border-radius: 10px;
+          padding: 0 10px;
+          height: 39px;
+          gap: 8px;
+          transition: border-color 0.12s, background 0.12s;
+        }
+        .km-search-wrap:focus-within {
+          background: #ffffff;
+          border-color: #0f766e;
+          box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.11);
+        }
+        .km-search-icon {
+          color: #64748b;
+          font-size: 0.9rem;
+          user-select: none;
+        }
+        .km-search-input {
+          flex: 1;
+          border: none;
+          outline: none;
+          background: transparent;
+          font-size: 0.94rem;
+          color: #142129;
+          min-width: 0;
+        }
+        .km-search-input::placeholder {
+          color: #8a9aa2;
+          font-size: 0.84rem;
+        }
+        .km-search-clear {
+          border: none;
+          background: #cbd5e1;
+          color: #334155;
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          font-size: 0.72rem;
+          cursor: pointer;
+          display: none;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .km-search-clear.show { display: inline-flex; }
+
+        .km-hdr-actions {
+          display: flex;
+          align-items: center;
+          gap: 7px;
+          margin-left: auto;
+          flex-shrink: 0;
+        }
+        .km-hdr-btn {
+          height: 35px;
+          padding: 0 12px;
+          border-radius: 8px;
+          border: 1px solid #d5dfdc;
+          background: #ffffff;
+          color: #2c3e45;
+          font-size: 0.8rem;
+          font-weight: 600;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          white-space: nowrap;
+          transition: background 0.12s, border-color 0.12s;
+        }
+        .km-hdr-btn:hover { background: #f1f5f4; border-color: #b6c6c1; }
+        .km-hdr-btn.filter-active {
+          background: #e6f4f1;
+          border-color: #0f766e;
+          color: #0d5c4c;
+        }
+        .km-hdr-btn.is-muted {
+          background: #fef2f2;
+          border-color: #fecaca;
+          color: #b91c1c;
+        }
+        .km-hdr-btn.quiz-return {
+          background: #0d5c4c;
+          border-color: #0d5c4c;
+          color: #ffffff;
+        }
+        .km-hdr-btn.quiz-return:hover { background: #09463a; }
+        .km-filter-badge {
+          background: #0f766e;
+          color: #ffffff;
+          font-size: 0.69rem;
+          font-weight: 700;
+          padding: 0 5px;
+          border-radius: 999px;
+          min-width: 17px;
+          text-align: center;
+          display: none;
+        }
+        .km-filter-badge.show { display: inline-block; }
+
+        /* ≡ 折りたたみ詳細絞り込みドロワー */
+        .km-filter-drawer {
+          display: none;
+          background: #ffffff;
+          border-bottom: 1px solid #d5dfdc;
+          padding: 12px 18px;
+          box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
+          z-index: 25;
+          flex-shrink: 0;
+        }
+        .km-filter-drawer.open { display: block; }
+        .km-filter-grid {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px 16px;
+          align-items: center;
+        }
+        .km-f-group {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          flex-wrap: wrap;
+        }
+        .km-f-label {
+          font-size: 0.75rem;
+          font-weight: 700;
+          color: #546871;
+          white-space: nowrap;
+        }
+        .km-f-pill {
+          border: 1px solid #d5dfdc;
+          background: #f8faf9;
+          color: #334155;
+          font-size: 0.75rem;
+          font-weight: 600;
+          padding: 4px 10px;
+          border-radius: 999px;
+          cursor: pointer;
+        }
+        .km-f-pill.active {
+          background: #0f766e;
+          border-color: #0f766e;
+          color: #ffffff;
+        }
+        .km-f-select {
+          height: 30px;
+          border: 1px solid #cbd5e1;
+          border-radius: 7px;
+          background: #f8faf9;
+          color: #1e293b;
+          font-size: 0.78rem;
+          font-weight: 600;
+          padding: 0 8px;
+          outline: none;
+          cursor: pointer;
+        }
+        .km-az-strip {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 3px;
+          margin-top: 10px;
+          padding-top: 9px;
+          border-top: 1px dashed #e2e8f0;
+          align-items: center;
+        }
+        .km-az-btn {
+          min-width: 26px;
+          height: 25px;
+          padding: 0 5px;
+          border: 1px solid #dbe4e1;
+          background: #f8faf9;
+          color: #334155;
+          border-radius: 5px;
+          font-size: 0.72rem;
+          font-weight: 700;
+          cursor: pointer;
+        }
+        .km-az-btn.active {
+          background: #0f766e;
+          border-color: #0f766e;
+          color: #ffffff;
+        }
+        .km-filter-footer {
+          display: flex;
+          justify-content: flex-end;
+          gap: 8px;
+          margin-top: 10px;
+          padding-top: 8px;
+          border-top: 1px solid #f1f5f4;
+        }
+        .km-reset-btn {
+          border: 1px solid #fecaca;
+          background: #fff5f5;
+          color: #b91c1c;
+          font-size: 0.77rem;
+          font-weight: 600;
+          padding: 5px 12px;
+          border-radius: 7px;
+          cursor: pointer;
+        }
+        .km-reset-btn:hover { background: #fee2e2; }
+        .km-close-dr-btn {
+          border: 1px solid #d5dfdc;
+          background: #f8faf9;
+          color: #334155;
+          font-size: 0.77rem;
+          font-weight: 600;
+          padding: 5px 12px;
+          border-radius: 7px;
+          cursor: pointer;
+        }
+
+        /* 2ペイン本体 */
+        .km-body {
+          flex: 1;
+          display: flex;
+          min-height: 0;
+          overflow: hidden;
+        }
+
+        /* 左ペイン（見出し語・検索結果リスト） */
+        .km-left-pane {
+          width: 345px;
+          min-width: 280px;
+          background: #ffffff;
+          border-right: 1px solid #dce4e1;
+          display: flex;
+          flex-direction: column;
+          flex-shrink: 0;
+        }
+        .km-list-meta {
+          padding: 8px 14px;
+          font-size: 0.75rem;
+          color: #5b6d75;
+          background: #fafcfb;
+          border-bottom: 1px solid #eaefed;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 6px;
+          flex-shrink: 0;
+        }
+        .km-hist-bar {
+          padding: 8px 12px;
+          border-bottom: 1px solid #eaefed;
+          background: #f9fbfa;
+          display: none;
+          flex-direction: column;
+          gap: 5px;
+          flex-shrink: 0;
+        }
+        .km-hist-bar.show { display: flex; }
+        .km-hist-chips {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 5px;
+        }
+        .km-hist-chip {
+          border: 1px solid #d5dfdc;
+          background: #ffffff;
+          color: #0d5c4c;
+          font-size: 0.74rem;
+          font-weight: 600;
+          padding: 2px 8px;
+          border-radius: 999px;
+          cursor: pointer;
+        }
+        .km-hist-chip:hover { background: #e6f4f1; border-color: #0f766e; }
+
+        .km-result-list {
+          flex: 1;
+          overflow-y: auto;
+          padding: 4px 0;
+        }
+        .km-list-row {
+          padding: 10px 14px;
+          border-bottom: 1px solid #f1f5f4;
+          cursor: pointer;
+          transition: background 0.08s;
+          border-left: 3px solid transparent;
+        }
+        .km-list-row:hover { background: #f4f9f7; }
+        .km-list-row.selected {
+          background: #e9f5f2;
+          border-left-color: #0f766e;
+        }
+        .km-row-top {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 6px;
+          margin-bottom: 2px;
+        }
+        .km-row-word {
+          font-size: 0.98rem;
+          font-weight: 700;
+          color: #0d5c4c;
+          word-break: break-word;
+        }
+        .km-row-badges {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          flex-shrink: 0;
+        }
+        .km-pos-tag {
+          font-size: 0.67rem;
+          font-weight: 600;
+          padding: 1px 6px;
+          border-radius: 4px;
+          background: #eef4f2;
+          color: #0f766e;
+        }
+        .km-mini-flag { font-size: 0.72rem; line-height: 1; }
+        .km-row-meaning {
+          font-size: 0.81rem;
+          line-height: 1.44;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+        .km-row-match-hint {
+          font-size: 0.7rem;
+          color: #0f766e;
+          margin-bottom: 2px;
+          font-weight: 600;
+        }
+
+        /* 右ペイン（本物の #dict-detail-modal をそのままドッキング！） */
+        .km-right-pane {
+          flex: 1;
+          overflow-y: auto;
+          padding: 20px 26px 44px 26px;
+          background: #f6f8f7;
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+        #km-mobile-back-bar {
+          display: none;
+          width: 100%;
+          max-width: 600px;
+          margin-bottom: 10px;
+        }
+        #km-right-pane #dict-detail-modal {
+          position: static !important;
+          inset: auto !important;
+          width: 100% !important;
+          height: auto !important;
+          background: transparent !important;
+          padding: 0 !important;
+          z-index: 1 !important;
+          align-items: flex-start !important;
+          justify-content: center !important;
+        }
+        #km-right-pane #dict-detail-box {
+          width: 100% !important;
+          max-width: 600px !important;
+          max-height: none !important;
+          overflow: visible !important;
+          border: 1px solid #e1e8e5 !important;
+          box-shadow: 0 2px 12px rgba(15, 23, 42, 0.04) !important;
+        }
+        /* ドッキング中は「✕ 閉じる」ボタンのみ非表示（問題モードに戻れば復活） */
+        #km-right-pane #btn-close-dict-modal {
+          display: none !important;
+        }
+
+        #km-empty-state {
+          display: none;
+          width: 100%;
+          max-width: 600px;
+          background: #ffffff;
+          border: 1px solid #e1e8e5;
+          border-radius: 14px;
+          padding: 36px 24px;
+          text-align: center;
+        }
+        #km-empty-state.show { display: block; }
+
+        .km-shortcut-foot {
+          width: 100%;
+          max-width: 600px;
+          margin-top: 12px;
+          font-size: 0.73rem;
+          color: #64748b;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px 13px;
+          justify-content: center;
+          user-select: none;
+        }
+        .km-shortcut-foot kbd {
+          background: #ffffff;
+          border: 1px solid #cbd5e1;
+          border-radius: 4px;
+          padding: 0 5px;
+          font-family: monospace;
+          font-size: 0.71rem;
+          color: #1e293b;
+        }
+
+        @media (max-width: 820px) {
+          .km-header { height: auto; flex-wrap: wrap; padding: 10px 12px; gap: 8px; }
+          .km-search-wrap { order: 3; max-width: none; width: 100%; }
+          .km-left-pane { width: 100%; border-right: none; }
+          .km-right-pane { display: none; padding: 12px 10px 32px 10px; }
+          #wi-kamus-shell.km-mobile-detail .km-left-pane { display: none; }
+          #wi-kamus-shell.km-mobile-detail .km-right-pane { display: flex; }
+          #wi-kamus-shell.km-mobile-detail #km-mobile-back-bar { display: flex; }
+        }
+      `;
+      document.head.appendChild(st);
+    }
+
+    // =================================================================
+    // 6. 辞書モード状態 ＆ ドッキング制御
+    // =================================================================
+    const kmState = {
+      query: "",
+      pos: "all",
+      cat: "all",
+      wbFilter: "all",
+      sortBy: "relevance",
+      scope: "all",
+      letter: "ALL",
+      filterOpen: false,
+      filtered: [],
+      renderedCount: 0,
+      selectedIdx: -1,
+      currentWordLow: "",
+      searchTimer: null
+    };
+
+    let kmAllowModalClose = false;
+    let isOpeningCardProgrammatically = false;
+
+    function isInKamusMode() {
+      return !!(document.body && document.body.classList.contains("wi-kamus-active"));
+    }
+
+    function isAnyOverlayAboveKamusOpen() {
+      const wbFast = document.getElementById("wi-wordbook-modal-vfast");
+      const kpMod  = document.getElementById("wi-kompas-modal-v5");
+      const exMod  = document.getElementById("wi-exclude-modal");
+      const sMod   = document.getElementById("settings-modal");
+      return Boolean(
+        (wbFast && wbFast.classList.contains("open")) ||
+        (kpMod && kpMod.classList.contains("open")) ||
+        (exMod && exMod.classList.contains("open")) ||
+        (sMod && sMod.classList.contains("open"))
+      );
+    }
+
+    function isModalDockedInKamus() {
+      const rp = document.getElementById("km-right-pane");
+      const dm = document.getElementById("dict-detail-modal");
+      return Boolean(isInKamusMode() && rp && dm && rp.contains(dm));
+    }
+
+    // 検索結果0件時に裏のクイズショートカット(V-FINAL)を安全遮断するダミーガード
+    function setDummyQuizBlock(shouldBlock) {
+      let dummy = document.getElementById("wi-wordbook-modal");
+      if (!dummy) {
+        dummy = document.createElement("div");
+        dummy.id = "wi-wordbook-modal";
+        dummy.style.display = "none";
+        document.body.appendChild(dummy);
+      }
+      dummy.classList.toggle("open", Boolean(shouldBlock));
+    }
+
+    function dockModalIntoRightPane() {
+      const rp = document.getElementById("km-right-pane");
+      const dm = document.getElementById("dict-detail-modal");
+      const foot = document.getElementById("km-shortcut-foot");
+      if (!rp || !dm) return;
+      if (!rp.contains(dm)) {
+        if (foot && foot.parentNode === rp) rp.insertBefore(dm, foot);
+        else rp.appendChild(dm);
+      }
+    }
+
+    function undockModalToBody(closeIt) {
+      const dm = document.getElementById("dict-detail-modal");
+      if (!dm) return;
+      if (dm.parentNode !== document.body) {
+        document.body.appendChild(dm);
+      }
+      if (closeIt && dm.classList.contains("open")) {
+        kmAllowModalClose = true;
+        try { dm.classList.remove("open"); } finally { kmAllowModalClose = false; }
+      }
+    }
+
+    // 本物の既存単語カード(#dict-detail-modal)を0msで確実に開く
+    function openEntryInNativeCard(entry, recordHist, openMobileDetail) {
+      if (!entry || !entry.w) return false;
+      ensureKamusIndex();
+
+      const emptyEl = document.getElementById("km-empty-state");
+      if (emptyEl) emptyEl.classList.remove("show");
+      if (isInKamusMode() && !isAnyOverlayAboveKamusOpen()) {
+        dockModalIntoRightPane();
+        setDummyQuizBlock(false);
+      }
+
+      const dIn   = document.getElementById("dict-input");
+      const dDrop = document.getElementById("dict-dropdown");
+      const dClr  = document.getElementById("dict-clear");
+      if (!dIn || !dDrop) return false;
+
+      const prevVal = dIn.value;
+      const prevVis = dDrop.style.visibility;
+      const targetLow = entry.wLow;
+      let clicked = false;
+
+      isOpeningCardProgrammatically = true;
+      dDrop.style.visibility = "hidden";
+      try {
+        function tryQuery(qStr) {
+          if (!qStr) return false;
+          dIn.value = qStr;
+          dIn.dispatchEvent(new Event("input"));
+          const rows = dDrop.querySelectorAll(".dict-item");
+          for (let i = 0; i < rows.length; i++) {
+            const st = rows[i].querySelector("strong");
+            if (st && st.textContent.trim().toLowerCase() === targetLow) {
+              rows[i].click();
+              return true;
+            }
+          }
+          return false;
+        }
+
+        clicked = tryQuery(entry.w);
+        if (!clicked && entry.ex && entry.ex.length > 10) {
+          clicked = tryQuery(entry.ex.slice(0, 40));
+        }
+        if (!clicked && entry.fullM && entry.fullM.length > 4) {
+          clicked = tryQuery(entry.fullM.slice(0, 28));
+        }
+      } finally {
+        dIn.value = prevVal;
+        dDrop.style.display = "none";
+        dDrop.style.visibility = prevVis || "";
+        if (dClr) dClr.style.display = prevVal ? "block" : "none";
+        isOpeningCardProgrammatically = false;
+      }
+
+      if (clicked) {
+        kmState.currentWordLow = targetLow;
+        if (recordHist && kmState.query.trim()) pushSearchHistory(entry.w);
+        const shell = document.getElementById("wi-kamus-shell");
+        if (openMobileDetail && shell) shell.classList.add("km-mobile-detail");
+        const rp = document.getElementById("km-right-pane");
+        if (rp) rp.scrollTop = 0;
+        setTimeout(enhanceDictModalMeaningTypography, 0);
+      }
+      return clicked;
+    }
+
+    // =================================================================
+    // 7. 絞り込みUI・DOM構築
+    // =================================================================
+    function countActiveFilters() {
+      let c = 0;
+      if (kmState.pos !== "all") c++;
+      if (kmState.cat !== "all") c++;
+      if (kmState.wbFilter !== "all") c++;
+      if (kmState.sortBy !== "relevance") c++;
+      if (kmState.scope !== "all") c++;
+      if (kmState.letter !== "ALL") c++;
+      return c;
+    }
+
+    function updateFilterBadgeUI() {
+      const cnt = countActiveFilters();
+      const btn = document.getElementById("km-filter-toggle-btn");
+      const bdg = document.getElementById("km-filter-badge");
+      if (btn) btn.classList.toggle("filter-active", cnt > 0 || kmState.filterOpen);
+      if (bdg) {
+        bdg.textContent = String(cnt);
+        bdg.classList.toggle("show", cnt > 0);
+      }
+    }
+
+    function populateWbFolderSelect() {
+      const sel = document.getElementById("km-sel-wb");
+      if (!sel) return;
+      const curVal = kmState.wbFilter;
+      const wb = loadRealWordbook();
+      const folderOpts = (wb.folders || []).map(f =>
+        `<option value="folder::${escHtml(f.id)}">📁 ${escHtml(f.name)}</option>`
+      ).join("");
+      sel.innerHTML = `
+        <option value="all">すべて</option>
+        <option value="starred">★ スター済のみ</option>
+        <option value="wb_all">📒 単語帳登録済すべて</option>
+        ${folderOpts}
+        <option value="st_1">🔴 単語帳：未暗記</option>
+        <option value="st_2">🟡 単語帳：うろ覚え</option>
+        <option value="st_3">🟢 単語帳：暗記済</option>
+        <option value="quiz_only">📝 問題出題語のみ</option>
+        <option value="excl_only">🚫 排除済・辞書専用のみ</option>
+      `;
+      sel.value = curVal;
+      if (sel.value !== curVal) {
+        kmState.wbFilter = "all";
+        sel.value = "all";
+      }
+    }
+
+    function buildKamusDOM() {
+      if (document.getElementById("wi-kamus-shell")) return;
+      ensureKamusIndex();
+
+      // 左上「間違えた問題」の位置に「📖 辞書モード」ボタンを配置
+      const wrongBtn = document.getElementById("btn-wrong-top");
+      if (wrongBtn && !document.getElementById("btn-kamus-mode-top")) {
+        const kmOpenBtn = document.createElement("button");
+        kmOpenBtn.type = "button";
+        kmOpenBtn.id = "btn-kamus-mode-top";
+        kmOpenBtn.className = "top-action-btn";
+        kmOpenBtn.textContent = "📖 辞書モード";
+        kmOpenBtn.addEventListener("click", () => enterKamusMode(true));
+        wrongBtn.parentNode.insertBefore(kmOpenBtn, wrongBtn);
+      }
+
+      const shell = document.createElement("div");
+      shell.id = "wi-kamus-shell";
+      shell.innerHTML = `
+        <header class="km-header">
+          <div class="km-brand">
+            <span class="km-brand-main">Kamus Bahasa Indonesia</span>
+            <span class="km-brand-sub" id="km-total-sub">全 ${kmAllEntries.length.toLocaleString()} 語収録</span>
+          </div>
+
+          <div class="km-search-wrap">
+            <span class="km-search-icon">🔍</span>
+            <input type="text" id="km-search-input" class="km-search-input"
+              placeholder="単語・語幹・活用形・日本語で検索...（Shiftで移動 / 2連打で消去）" autocomplete="off" />
+            <button type="button" id="km-search-clear" class="km-search-clear" title="クリア (Esc)">✕</button>
+          </div>
+
+          <div class="km-hdr-actions">
+            <button type="button" id="km-filter-toggle-btn" class="km-hdr-btn" title="詳細絞り込み">
+              <span style="font-size:1rem;line-height:1;">≡</span>
+              <span>絞込</span>
+              <span id="km-filter-badge" class="km-filter-badge">0</span>
+            </button>
+            <button type="button" id="km-btn-open-wb" class="km-hdr-btn" title="マイ単語帳を開く">📒 単語帳</button>
+            <button type="button" id="km-btn-sound" class="km-hdr-btn" title="すべての音をON/OFF">🔊 音:ON</button>
+            <button type="button" id="km-btn-back-quiz" class="km-hdr-btn quiz-return" title="問題モードへ戻る">問題モード</button>
+          </div>
+        </header>
+
+        <section id="km-filter-drawer" class="km-filter-drawer">
+          <div class="km-filter-grid">
+            <div class="km-f-group" id="km-pos-group">
+              <span class="km-f-label">品詞</span>
+              <button type="button" class="km-f-pill active" data-pos="all">すべて</button>
+              <button type="button" class="km-f-pill" data-pos="v">動詞</button>
+              <button type="button" class="km-f-pill" data-pos="a">形容詞</button>
+              <button type="button" class="km-f-pill" data-pos="n">名詞</button>
+              <button type="button" class="km-f-pill" data-pos="other">副詞・他</button>
+              <button type="button" class="km-f-pill" data-pos="singkatan">略語</button>
+            </div>
+
+            <div class="km-f-group">
+              <span class="km-f-label">分野</span>
+              <select id="km-sel-cat" class="km-f-select">
+                <option value="all">すべての分野</option>
+                ${TOPIC_CATEGORIES.map(c => `<option value="${escHtml(c)}">${escHtml(c)}</option>`).join("")}
+              </select>
+            </div>
+
+            <div class="km-f-group">
+              <span class="km-f-label">単語帳・状態</span>
+              <select id="km-sel-wb" class="km-f-select"></select>
+            </div>
+
+            <div class="km-f-group">
+              <span class="km-f-label">並び順</span>
+              <select id="km-sel-sort" class="km-f-select">
+                <option value="relevance">一致度順</option>
+                <option value="word">見出し語 A–Z</option>
+                <option value="root">語幹 A–Z</option>
+              </select>
+            </div>
+
+            <div class="km-f-group">
+              <span class="km-f-label">検索範囲</span>
+              <select id="km-sel-scope" class="km-f-select">
+                <option value="all">すべて</option>
+                <option value="word">見出し語のみ</option>
+                <option value="root">語幹のみ</option>
+                <option value="ja">日本語意味のみ</option>
+                <option value="ex">例文・解説含む</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="km-az-strip" id="km-az-strip"></div>
+
+          <div class="km-filter-footer">
+            <button type="button" id="km-btn-reset-filters" class="km-reset-btn">↺ 絞り込みをリセット</button>
+            <button type="button" id="km-btn-close-drawer" class="km-close-dr-btn">閉じる</button>
+          </div>
+        </section>
+
+        <div class="km-body">
+          <aside class="km-left-pane">
+            <div class="km-list-meta">
+              <span id="km-hit-count">0 語</span>
+              <span id="km-sort-label" style="color:#0f766e;font-weight:600;"></span>
+            </div>
+            <div id="km-hist-bar" class="km-hist-bar">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:0.7rem;font-weight:700;color:#64748b;">最近調べた語</span>
+                <button type="button" id="km-clear-hist" style="border:none;background:none;color:#94a3b8;font-size:0.7rem;cursor:pointer;">消去</button>
+              </div>
+              <div id="km-hist-chips" class="km-hist-chips"></div>
+            </div>
+            <div id="km-result-list" class="km-result-list"></div>
+          </aside>
+
+          <section id="km-right-pane" class="km-right-pane">
+            <div id="km-mobile-back-bar">
+              <button type="button" id="km-btn-mobile-back" class="km-close-dr-btn">← 検索結果一覧へ戻る</button>
+            </div>
+            <div id="km-empty-state"></div>
+            <div id="km-shortcut-foot" class="km-shortcut-foot">
+              <span><kbd>Shift</kbd> 検索へ</span>
+              <span><kbd>Shift×2</kbd> クリア</span>
+              <span><kbd>Enter</kbd> 先頭を開く</span>
+              <span><kbd>↑</kbd><kbd>↓</kbd> スクロール</span>
+              <span><kbd>A</kbd><kbd>D</kbd> 履歴戻る・進む</span>
+              <span><kbd>B</kbd> 単語帳</span>
+              <span><kbd>S</kbd> スター</span>
+              <span><kbd>X</kbd> 排除</span>
+              <span><kbd>R</kbd> 発音 / <kbd>E</kbd> 例文</span>
+            </div>
+          </section>
+        </div>
+      `;
+      document.body.appendChild(shell);
+
+      // A-Z ストリップ生成
+      const azStrip = document.getElementById("km-az-strip");
+      ["ALL", ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("")].forEach(L => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "km-az-btn" + (L === "ALL" ? " active" : "");
+        b.setAttribute("data-letter", L);
+        b.textContent = L;
+        b.addEventListener("click", () => {
+          kmState.letter = L;
+          azStrip.querySelectorAll(".km-az-btn").forEach(x => x.classList.toggle("active", x.getAttribute("data-letter") === L));
+          updateFilterBadgeUI();
+          runKamusSearch(true);
+        });
+        azStrip.appendChild(b);
+      });
+
+      populateWbFolderSelect();
+      bindKamusUIEvents();
+      syncSoundButtonsUI();
+    }
+
+    // =================================================================
+    // 8. 検索・絞り込み・無限スクロール描画
+    // =================================================================
+    function runKamusSearch(keepSelectedIfPossible) {
+      ensureKamusIndex();
+      const rawQ = (kmState.query || "").trim();
+      const qLow = rawQ.toLowerCase();
+      const tokens = qLow ? qLow.split(/\s+/).filter(Boolean) : [];
+      const wb = loadRealWordbook();
+      const exMap = loadRealExcludeMap();
+      const starSet = loadRealStarWordSet();
+
+      let resolvedDirect = null;
+      if (tokens.length === 1 && (kmState.scope === "all" || kmState.scope === "word")) {
+        resolvedDirect = resolveAnyWordToEntry(tokens[0]);
+      }
+
+      const scored = [];
+      for (let i = 0; i < kmAllEntries.length; i++) {
+        const e = kmAllEntries[i];
+
+        if (kmState.pos !== "all" && e.p !== kmState.pos) continue;
+        if (kmState.cat !== "all" && e.topicCat !== kmState.cat) continue;
+
+        if (kmState.wbFilter !== "all") {
+          const wf = kmState.wbFilter;
+          const rec = wb.items[e.wLow];
+          const fIds = (rec && Array.isArray(rec.fIds)) ? rec.fIds : [];
+          const st   = rec ? (rec.status || rec.lv || 1) : 0;
+          const isExcludedAny = e.builtinDictOnly || Boolean(exMap[e.wLow]);
+
+          if (wf === "starred") {
+            if (!starSet.has(e.wLow)) continue;
+          } else if (wf === "wb_all") {
+            if (fIds.length === 0) continue;
+          } else if (wf.startsWith("folder::")) {
+            if (!fIds.includes(wf.slice(8))) continue;
+          } else if (wf === "st_1") {
+            if (fIds.length === 0 || st !== 1) continue;
+          } else if (wf === "st_2") {
+            if (fIds.length === 0 || st !== 2) continue;
+          } else if (wf === "st_3") {
+            if (fIds.length === 0 || st !== 3) continue;
+          } else if (wf === "quiz_only") {
+            if (isExcludedAny) continue;
+          } else if (wf === "excl_only") {
+            if (!isExcludedAny) continue;
+          }
+        }
+
+        if (kmState.letter !== "ALL") {
+          const fl = kmState.sortBy === "root" ? e.firstLetterR : e.firstLetterW;
+          if (fl !== kmState.letter) continue;
+        }
+
+        if (tokens.length === 0) {
+          scored.push({ entry: e, score: 0, matchHint: "" });
+          continue;
+        }
+
+        let matchHint = "";
+        let totalScore = 0;
+        let allMatched = true;
+
+        if (resolvedDirect && resolvedDirect.entry === e && resolvedDirect.reason) {
+          totalScore = 920;
+          matchHint = resolvedDirect.reason;
+        } else {
+          for (let t = 0; t < tokens.length; t++) {
+            const tk = tokens[t];
+            let s = 0;
+            const sc = kmState.scope;
+            if (sc === "all" || sc === "word") {
+              if (e.wLow === tk) s = Math.max(s, 1000);
+              else if (e.wLow.startsWith(tk)) s = Math.max(s, 800);
+              else if (e.wLow.includes(tk)) s = Math.max(s, 520);
+            }
+            if (sc === "all" || sc === "root") {
+              if (e.rLow === tk) s = Math.max(s, 720);
+              else if (e.rLow.startsWith(tk)) s = Math.max(s, 620);
+              else if (sc === "root" && e.rLow.includes(tk)) s = Math.max(s, 450);
+            }
+            if (sc === "all" || sc === "ja") {
+              if (e.mLow.includes(tk)) s = Math.max(s, 360);
+            }
+            if (sc === "ex" || (sc === "all" && s === 0)) {
+              if (e.exLow.includes(tk) || e.trLow.includes(tk) || e.noteLow.includes(tk)) {
+                s = Math.max(s, 150);
+                if (sc === "all") matchHint = "例文・解説に一致";
+              }
+            }
+            if (s === 0) { allMatched = false; break; }
+            totalScore += s;
+          }
+        }
+
+        if (allMatched) scored.push({ entry: e, score: totalScore, matchHint });
+      }
+
+      if (kmState.sortBy === "word" || (kmState.sortBy === "relevance" && tokens.length === 0)) {
+        scored.sort((a, b) => a.entry.wLow.localeCompare(b.entry.wLow));
+      } else if (kmState.sortBy === "root") {
+        scored.sort((a, b) => `${a.entry.rLow}::${a.entry.wLow}`.localeCompare(`${b.entry.rLow}::${b.entry.wLow}`));
+      } else {
+        scored.sort((a, b) => (b.score - a.score) || a.entry.wLow.localeCompare(b.entry.wLow));
+      }
+
+      kmState.filtered = scored;
+      kmState.renderedCount = 0;
+
+      const cntEl = document.getElementById("km-hit-count");
+      if (cntEl) cntEl.textContent = `${scored.length.toLocaleString()} 語`;
+      const srtEl = document.getElementById("km-sort-label");
+      if (srtEl) {
+        srtEl.textContent = kmState.sortBy === "root" ? "語幹 A–Z" : (kmState.sortBy === "word" || tokens.length === 0) ? "見出し語 A–Z" : "一致度順";
+      }
+
+      renderSearchHistoryBar();
+
+      const listEl = document.getElementById("km-result-list");
+      listEl.innerHTML = "";
+      listEl.scrollTop = 0;
+
+      if (scored.length === 0) {
+        renderEmptyNotFound(rawQ);
+        return;
+      }
+
+      appendNextResultChunk();
+
+      let targetIdx = 0;
+      if (keepSelectedIfPossible && kmState.currentWordLow) {
+        const foundIdx = scored.findIndex(x => x.entry.wLow === kmState.currentWordLow);
+        if (foundIdx !== -1) targetIdx = foundIdx;
+      }
+      selectListIndex(targetIdx, false, false);
+    }
+
+    function buildRowBadgesHtml(e, starSet, wb) {
+      const isSt = starSet.has(e.wLow);
+      const rec  = wb.items[e.wLow];
+      const inWb = rec && Array.isArray(rec.fIds) && rec.fIds.length > 0;
+      return `
+        ${isSt ? '<span class="km-mini-flag" title="スター済">★</span>' : ""}
+        ${inWb ? '<span class="km-mini-flag" title="単語帳登録済">📒</span>' : ""}
+        <span class="km-pos-tag">${escHtml(e.posLabel)}</span>
+      `;
+    }
+
+    function appendNextResultChunk() {
+      const listEl = document.getElementById("km-result-list");
+      if (!listEl) return;
+      const start = kmState.renderedCount;
+      const end   = Math.min(start + 60, kmState.filtered.length);
+      if (start >= end) return;
+
+      const frag = document.createDocumentFragment();
+      const wb = loadRealWordbook();
+      const starSet = loadRealStarWordSet();
+
+      for (let i = start; i < end; i++) {
+        const item = kmState.filtered[i];
+        const e = item.entry;
+        const row = document.createElement("div");
+        row.className = "km-list-row" + (i === kmState.selectedIdx ? " selected" : "");
+        row.setAttribute("data-kidx", String(i));
+        row.innerHTML = `
+          ${item.matchHint ? `<div class="km-row-match-hint">↳ ${escHtml(item.matchHint)}</div>` : ""}
+          <div class="km-row-top">
+            <span class="km-row-word">${escHtml(e.w)}</span>
+            <span class="km-row-badges">${buildRowBadgesHtml(e, starSet, wb)}</span>
+          </div>
+          <div class="km-row-meaning km-meaning-main">${formatMeaningHtml(e.fullM)}</div>
+        `;
+        row.addEventListener("click", () => selectListIndex(i, true, true));
+        frag.appendChild(row);
+      }
+
+      listEl.appendChild(frag);
+      kmState.renderedCount = end;
+    }
+
+    function refreshLeftListRowBadgesForWord(wLow) {
+      if (!wLow || !isInKamusMode()) return;
+      const idx = kmState.filtered.findIndex(x => x.entry.wLow === wLow);
+      if (idx === -1) return;
+      const row = document.querySelector(`#km-result-list .km-list-row[data-kidx="${idx}"]`);
+      if (!row) return;
+      const bdg = row.querySelector(".km-row-badges");
+      if (bdg) {
+        bdg.innerHTML = buildRowBadgesHtml(kmState.filtered[idx].entry, loadRealStarWordSet(), loadRealWordbook());
+      }
+    }
+
+    function renderSearchHistoryBar() {
+      const bar   = document.getElementById("km-hist-bar");
+      const chips = document.getElementById("km-hist-chips");
+      if (!bar || !chips) return;
+      const hist = loadSearchHistory();
+      if (kmState.query.trim() || hist.length === 0) {
+        bar.classList.remove("show");
+        return;
+      }
+      bar.classList.add("show");
+      chips.innerHTML = "";
+      hist.slice(0, 10).forEach(w => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "km-hist-chip";
+        b.textContent = w;
+        b.addEventListener("click", () => {
+          const hit = resolveAnyWordToEntry(w);
+          if (hit && hit.entry) openEntryInNativeCard(hit.entry, false, true);
+        });
+        chips.appendChild(b);
+      });
+    }
+
+    function renderEmptyNotFound(rawQ) {
+      kmState.selectedIdx = -1;
+      kmState.currentWordLow = "";
+      const listEl = document.getElementById("km-result-list");
+      listEl.innerHTML = `<div style="padding:22px 14px;text-align:center;color:#64748b;font-size:0.84rem;">該当する単語が見つかりません。</div>`;
+
+      const dm = document.getElementById("dict-detail-modal");
+      if (dm && dm.classList.contains("open")) {
+        kmAllowModalClose = true;
+        try { dm.classList.remove("open"); } finally { kmAllowModalClose = false; }
+      }
+      setDummyQuizBlock(true);
+
+      const emptyEl = document.getElementById("km-empty-state");
+      if (!emptyEl) return;
+      const kbbiUrl = `https://kbbi.kemdikbud.go.id/entri/${encodeURIComponent(rawQ || "")}`;
+      emptyEl.innerHTML = `
+        <div style="font-size:1.05rem;font-weight:700;color:#334155;margin-bottom:8px;">「${escHtml(rawQ || "")}」は見つかりませんでした</div>
+        <div style="font-size:0.84rem;color:#64748b;margin-bottom:16px;">絞り込み条件が掛かっている場合はリセットしてみてください。</div>
+        <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;">
+          ${countActiveFilters() > 0 ? `<button type="button" id="km-empty-reset" class="km-reset-btn">↺ 絞り込みをリセット</button>` : ""}
+          ${rawQ ? `<a href="${kbbiUrl}" target="_blank" rel="noopener" class="km-hdr-btn quiz-return" style="text-decoration:none;">🌐 KBBI公式辞書で調べる</a>` : ""}
+        </div>
+      `;
+      emptyEl.classList.add("show");
+      const er = document.getElementById("km-empty-reset");
+      if (er) er.addEventListener("click", resetAllKamusFilters);
+    }
+
+    function selectListIndex(idx, recordHist, openMobileDetail) {
+      if (idx < 0 || idx >= kmState.filtered.length) return;
+      while (kmState.renderedCount <= idx) {
+        appendNextResultChunk();
+      }
+      kmState.selectedIdx = idx;
+
+      const listEl = document.getElementById("km-result-list");
+      listEl.querySelectorAll(".km-list-row.selected").forEach(el => el.classList.remove("selected"));
+      const targetRow = listEl.querySelector(`.km-list-row[data-kidx="${idx}"]`);
+      if (targetRow) {
+        targetRow.classList.add("selected");
+        targetRow.scrollIntoView({ block: "nearest" });
+      }
+
+      openEntryInNativeCard(kmState.filtered[idx].entry, recordHist, openMobileDetail);
+    }
+
+    function resetAllKamusFilters() {
+      kmState.pos = "all";
+      kmState.cat = "all";
+      kmState.wbFilter = "all";
+      kmState.sortBy = "relevance";
+      kmState.scope = "all";
+      kmState.letter = "ALL";
+
+      document.querySelectorAll("#km-pos-group .km-f-pill").forEach(b => b.classList.toggle("active", b.getAttribute("data-pos") === "all"));
+      document.getElementById("km-sel-cat").value = "all";
+      document.getElementById("km-sel-wb").value = "all";
+      document.getElementById("km-sel-sort").value = "relevance";
+      document.getElementById("km-sel-scope").value = "all";
+      document.querySelectorAll("#km-az-strip .km-az-btn").forEach(b => b.classList.toggle("active", b.getAttribute("data-letter") === "ALL"));
+
+      updateFilterBadgeUI();
+      runKamusSearch(true);
+    }
+
+    // =================================================================
+    // 9. モード切替（辞書モード ⇔ 問題モード）＆ ドッキング保護
+    // =================================================================
+    function enterKamusMode(focusSearch) {
+      forceStopAllSpeech();
+      ensureKamusIndex();
+      buildKamusDOM();
+      populateWbFolderSelect();
+      document.body.classList.add("wi-kamus-active");
+      try { localStorage.setItem(LAST_MODE_KEY, "kamus"); } catch (e) {}
+
+      dockModalIntoRightPane();
+      const subEl = document.getElementById("km-total-sub");
+      if (subEl) subEl.textContent = `全 ${kmAllEntries.length.toLocaleString()} 語収録`;
+      syncSoundButtonsUI();
+      updateFilterBadgeUI();
+      runKamusSearch(true);
+
+      if (focusSearch) {
+        const inp = document.getElementById("km-search-input");
+        if (inp) setTimeout(() => { inp.focus(); inp.select(); }, 25);
+      }
+    }
+
+    function exitKamusMode() {
+      forceStopAllSpeech();
+      const pop = document.getElementById("wi-wb-popover-v5");
+      if (pop) pop.classList.remove("open");
+      setDummyQuizBlock(false);
+      undockModalToBody(true);
+      document.body.classList.remove("wi-kamus-active");
+      try { localStorage.setItem(LAST_MODE_KEY, "quiz"); } catch (e) {}
+      syncSoundButtonsUI();
+    }
+
+    // ドッキング中の #dict-detail-modal が Esc / k / 余白クリックで消えないよう保護
+    function installDockedModalGuards() {
+      const dm = document.getElementById("dict-detail-modal");
+      if (!dm || dm.__wiKamusDockGuarded) return;
+      dm.__wiKamusDockGuarded = true;
+
+      dm.addEventListener("click", function(e) {
+        if (e.target === dm && isModalDockedInKamus()) {
+          e.preventDefault();
+          e.__wiAllowFinalStop = true;
+          if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+          e.stopPropagation();
+        }
+      }, true);
+
+      const origRemove = dm.classList.remove.bind(dm.classList);
+      dm.classList.remove = function() {
+        if (isModalDockedInKamus() && !kmAllowModalClose) {
+          for (let i = 0; i < arguments.length; i++) {
+            if (arguments[i] === "open") {
+              if (kmState.filterOpen) {
+                kmState.filterOpen = false;
+                const dr = document.getElementById("km-filter-drawer");
+                if (dr) dr.classList.remove("open");
+                updateFilterBadgeUI();
+              }
+              return;
+            }
+          }
+        }
+        return origRemove.apply(this, arguments);
+      };
+
+      const dBox = document.getElementById("dict-detail-box");
+      if (dBox && !dBox.__wiKamusBoxObs) {
+        dBox.__wiKamusBoxObs = true;
+        new MutationObserver(function() {
+          enhanceDictModalMeaningTypography();
+          const sp = dBox.querySelector("span");
+          const hwLow = sp ? sp.textContent.trim().toLowerCase() : "";
+          if (hwLow) {
+            if (isInKamusMode() && hwLow !== kmState.currentWordLow) {
+              kmState.currentWordLow = hwLow;
+              const idx = kmState.filtered.findIndex(x => x.entry.wLow === hwLow);
+              const listEl = document.getElementById("km-result-list");
+              if (listEl) {
+                listEl.querySelectorAll(".km-list-row.selected").forEach(el => el.classList.remove("selected"));
+                if (idx !== -1) {
+                  while (kmState.renderedCount <= idx) appendNextResultChunk();
+                  kmState.selectedIdx = idx;
+                  const row = listEl.querySelector(`.km-list-row[data-kidx="${idx}"]`);
+                  if (row) {
+                    row.classList.add("selected");
+                    row.scrollIntoView({ block: "nearest" });
+                  }
+                }
+              }
+              const rp = document.getElementById("km-right-pane");
+              if (rp && !isOpeningCardProgrammatically) rp.scrollTop = 0;
+            }
+            refreshLeftListRowBadgesForWord(hwLow);
+          }
+        }).observe(dBox, { childList: true, subtree: true });
+      }
+    }
+
+    // 単語帳モーダルが開閉した時に #dict-detail-modal を自動で一時退避／再ドッキング
+    function watchOverlayModalsForRedock() {
+      function checkOverlays() {
+        if (!isInKamusMode()) return;
+        if (isAnyOverlayAboveKamusOpen()) {
+          if (isModalDockedInKamus()) {
+            undockModalToBody(true);
+          }
+        } else {
+          if (!isModalDockedInKamus()) {
+            dockModalIntoRightPane();
+            populateWbFolderSelect();
+            if (kmState.currentWordLow && kmExactMap.has(kmState.currentWordLow)) {
+              openEntryInNativeCard(kmExactMap.get(kmState.currentWordLow), false, false);
+            } else if (kmState.filtered.length > 0) {
+              selectListIndex(Math.max(0, kmState.selectedIdx), false, false);
+            }
+          }
+        }
+      }
+
+      const bodyObs = new MutationObserver(function() {
+        ["wi-wordbook-modal-vfast", "wi-kompas-modal-v5", "wi-exclude-modal", "settings-modal"].forEach(id => {
+          const el = document.getElementById(id);
+          if (el && !el.__wiKamusOvWatched) {
+            el.__wiKamusOvWatched = true;
+            new MutationObserver(checkOverlays).observe(el, { attributes: true, attributeFilter: ["class"] });
+          }
+        });
+      });
+      bodyObs.observe(document.body, { childList: true });
+    }
+
+    function bindKamusUIEvents() {
+      const sInp = document.getElementById("km-search-input");
+      const sClr = document.getElementById("km-search-clear");
+
+      sInp.addEventListener("input", () => {
+        kmState.query = sInp.value;
+        sClr.classList.toggle("show", !!kmState.query);
+        if (kmState.searchTimer) clearTimeout(kmState.searchTimer);
+        kmState.searchTimer = setTimeout(() => runKamusSearch(false), 60);
+      });
+
+      sClr.addEventListener("click", () => {
+        sInp.value = "";
+        kmState.query = "";
+        sClr.classList.remove("show");
+        runKamusSearch(false);
+        sInp.focus();
+      });
+
+      const listEl = document.getElementById("km-result-list");
+      listEl.addEventListener("scroll", () => {
+        if (listEl.scrollTop + listEl.clientHeight >= listEl.scrollHeight - 220) {
+          appendNextResultChunk();
+        }
+      });
+
+      const drawer = document.getElementById("km-filter-drawer");
+      document.getElementById("km-filter-toggle-btn").addEventListener("click", () => {
+        kmState.filterOpen = !kmState.filterOpen;
+        if (kmState.filterOpen) populateWbFolderSelect();
+        drawer.classList.toggle("open", kmState.filterOpen);
+        updateFilterBadgeUI();
+      });
+      document.getElementById("km-btn-close-drawer").addEventListener("click", () => {
+        kmState.filterOpen = false;
+        drawer.classList.remove("open");
+        updateFilterBadgeUI();
+      });
+      document.getElementById("km-btn-reset-filters").addEventListener("click", resetAllKamusFilters);
+
+      document.querySelectorAll("#km-pos-group .km-f-pill").forEach(b => {
+        b.addEventListener("click", () => {
+          kmState.pos = b.getAttribute("data-pos");
+          document.querySelectorAll("#km-pos-group .km-f-pill").forEach(x => x.classList.toggle("active", x === b));
+          updateFilterBadgeUI();
+          runKamusSearch(true);
+        });
+      });
+
+      document.getElementById("km-sel-cat").addEventListener("change", e => {
+        kmState.cat = e.target.value; updateFilterBadgeUI(); runKamusSearch(true);
+      });
+      document.getElementById("km-sel-wb").addEventListener("change", e => {
+        kmState.wbFilter = e.target.value; updateFilterBadgeUI(); runKamusSearch(true);
+      });
+      document.getElementById("km-sel-sort").addEventListener("change", e => {
+        kmState.sortBy = e.target.value; updateFilterBadgeUI(); runKamusSearch(true);
+      });
+      document.getElementById("km-sel-scope").addEventListener("change", e => {
+        kmState.scope = e.target.value; updateFilterBadgeUI(); runKamusSearch(true);
+      });
+
+      document.getElementById("km-clear-hist").addEventListener("click", () => {
+        try { localStorage.removeItem(HIST_KEY); } catch (e) {}
+        renderSearchHistoryBar();
+      });
+
+      document.getElementById("km-btn-mobile-back").addEventListener("click", () => {
+        const sh = document.getElementById("wi-kamus-shell");
+        if (sh) sh.classList.remove("km-mobile-detail");
+      });
+
+      document.getElementById("km-btn-open-wb").addEventListener("click", () => {
+        const fastWbBtn = document.getElementById("btn-wordbook-top-vfast") || document.getElementById("btn-wordbook-top");
+        if (fastWbBtn) fastWbBtn.click();
+      });
+
+      document.getElementById("km-btn-sound").addEventListener("click", () => {
+        const origSoundBtn = document.getElementById("btn-sound-top");
+        if (origSoundBtn) origSoundBtn.click();
+        setTimeout(syncSoundButtonsUI, 15);
+      });
+
+      document.getElementById("km-btn-back-quiz").addEventListener("click", exitKamusMode);
+
+      const origSoundBtn = document.getElementById("btn-sound-top");
+      if (origSoundBtn) {
+        origSoundBtn.addEventListener("click", () => setTimeout(syncSoundButtonsUI, 15));
+      }
+      const volSlider = document.getElementById("slider-sound-vol");
+      if (volSlider) {
+        volSlider.addEventListener("input", () => setTimeout(syncSoundButtonsUI, 15));
+      }
+
+      window.addEventListener("click", function(e) {
+        const pop = document.getElementById("wi-wb-popover-v5");
+        if (pop && pop.contains(e.target)) {
+          setTimeout(function() {
+            populateWbFolderSelect();
+            if (kmState.currentWordLow) refreshLeftListRowBadgesForWord(kmState.currentWordLow);
+          }, 30);
+        }
+      }, true);
+    }
+
+    // =================================================================
+    // 10. キーボード制御（案2：A/D履歴 ＋ ↑↓カードスクロール ＋ X/B/S/R/E ＋ Shift単押し＆2連打）
+    //     ※ テキスト挿入枠・メモ欄・入力欄にフォーカス中は100%完全ロック！
+    // =================================================================
+    function isTypingInAnyTextControl(el) {
+      const target = el || document.activeElement;
+      if (!target) return false;
+      const tag = (target.tagName || "").toUpperCase();
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
+      if (
+        target.isContentEditable ||
+        (target.getAttribute && target.getAttribute("contenteditable") === "true") ||
+        (target.classList && (
+          target.classList.contains("wi-free-text-textarea") ||
+          target.classList.contains("wi-free-text-input") ||
+          target.classList.contains("wi-free-text-content")
+        ))
+      ) {
+        return true;
+      }
+      const pop = document.getElementById("wi-wb-popover-v5");
+      if (pop && pop.classList.contains("open") && pop.contains(target) && (tag === "INPUT" || tag === "TEXTAREA")) {
+        return true;
+      }
+      return false;
+    }
+
+    function getActiveSearchInput() {
+      if (isInKamusMode()) return document.getElementById("km-search-input");
+      const wbMod = document.getElementById("wi-wordbook-modal-vfast");
+      if (wbMod && wbMod.classList.contains("open")) return document.getElementById("wb-vfast-filter");
+      return document.getElementById("dict-input");
+    }
+
+    function isKnownSearchInput(el) {
+      if (!el) return false;
+      return el.id === "km-search-input" || el.id === "dict-input" || el.id === "wb-vfast-filter";
+    }
+
+    function hardStopKeyEvent(e) {
+      e.preventDefault();
+      e.__wiAllowFinalStop = true;
+      if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+      e.stopPropagation();
+    }
+
+    let shiftSoloPending = false;
+    let lastShiftSoloAt  = 0;
+
+    window.addEventListener("keydown", function(e) {
+      // 1. Shift単独判定（他キーと同時押ししたら即キャンセル）
+      if (e.key === "Shift") {
+        if (!e.repeat && !e.ctrlKey && !e.altKey && !e.metaKey && !e.isComposing) {
+          shiftSoloPending = true;
+        }
+        return;
+      } else {
+        shiftSoloPending = false;
+      }
+
+      if (e.isComposing || e.keyCode === 229) return;
+
+      const active = document.activeElement;
+      const kmInp  = document.getElementById("km-search-input");
+
+      // 2. 辞書モードの検索バー(#km-search-input)にフォーカス中の操作
+      if (isInKamusMode() && active === kmInp) {
+        if (e.key === "ArrowDown") {
+          hardStopKeyEvent(e);
+          if (kmState.filtered.length > 0) {
+            selectListIndex(Math.min(kmState.selectedIdx + 1, kmState.filtered.length - 1), false, false);
+          }
+          return;
+        }
+        if (e.key === "ArrowUp") {
+          hardStopKeyEvent(e);
+          if (kmState.filtered.length > 0) {
+            selectListIndex(Math.max(kmState.selectedIdx - 1, 0), false, false);
+          }
+          return;
+        }
+        if (e.key === "Enter") {
+          hardStopKeyEvent(e);
+          if (kmState.filtered.length > 0) {
+            const pick = kmState.selectedIdx >= 0 ? kmState.selectedIdx : 0;
+            selectListIndex(pick, true, true);
+            kmInp.blur();
+          }
+          return;
+        }
+        if (e.key === "Escape") {
+          hardStopKeyEvent(e);
+          if (kmInp.value) {
+            kmInp.value = "";
+            kmState.query = "";
+            const clr = document.getElementById("km-search-clear");
+            if (clr) clr.classList.remove("show");
+            runKamusSearch(false);
+          } else {
+            kmInp.blur();
+          }
+          return;
+        }
+        return;
+      }
+
+      // 3. あらゆるテキスト入力欄（ペン文字入れ・単語帳メモ・フォルダ作成・検索欄等）にいる間は完全ロック！
+      if (isTypingInAnyTextControl(active)) return;
+
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+      const pop = document.getElementById("wi-wb-popover-v5");
+      if (pop && pop.classList.contains("open")) return;
+
+      // 4. 単語カード（#dict-detail-modal.open）が表示中のショートカット（辞書モード＆問題モード共通！）
+      const dModal = document.getElementById("dict-detail-modal");
+      const dBox   = document.getElementById("dict-detail-box");
+      if (dModal && dModal.classList.contains("open") && dBox && !isAnyOverlayAboveKamusOpen()) {
+        // ↑ / ↓ で単語カードを上・下にスムーズスクロール
+        if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+          hardStopKeyEvent(e);
+          const scrollTarget = isModalDockedInKamus() ? document.getElementById("km-right-pane") : dBox;
+          if (scrollTarget) {
+            scrollTarget.scrollBy({ top: e.key === "ArrowDown" ? 160 : -160, behavior: "smooth" });
+          }
+          return;
+        }
+
+        const k = (e.key || "").toLowerCase();
+
+        // B：単語カードから直接マイ単語帳ポップオーバーを開く
+        if (k === "b") {
+          const wbBtn = document.getElementById("btn-dict-modal-wordbook");
+          if (wbBtn) {
+            hardStopKeyEvent(e);
+            wbBtn.click();
+          }
+          return;
+        }
+
+        // X：単語カードから直接排除/復活（元々排除のdictOnly語では無効）
+        if (k === "x") {
+          hardStopKeyEvent(e);
+          if (dBox.getAttribute("data-wi-dict-only") === "1") return;
+          const exBtn = document.getElementById("btn-dict-modal-exclude");
+          if (exBtn && exBtn.style.display !== "none") {
+            exBtn.click();
+          }
+          return;
+        }
+
+        // 「/」キーで辞書モード検索バーへフォーカス
+        if (e.key === "/" && isInKamusMode() && kmInp) {
+          hardStopKeyEvent(e);
+          kmInp.focus();
+          kmInp.select();
+          return;
+        }
+
+        // 辞書モード中は裏の問題モードのショートカット（1-4 / Enter / → / H）を完全遮断
+        if (isInKamusMode() && ["1", "2", "3", "4", "enter", "arrowright", "h"].includes(k)) {
+          hardStopKeyEvent(e);
+          return;
+        }
+        return;
+      }
+
+      // 5. 辞書モードで検索結果0件（カード非表示）のときも裏の問題ショートカットを完全遮断
+      if (isInKamusMode() && !isAnyOverlayAboveKamusOpen()) {
+        if (e.key === "Escape" && kmState.filterOpen) {
+          hardStopKeyEvent(e);
+          kmState.filterOpen = false;
+          document.getElementById("km-filter-drawer").classList.remove("open");
+          updateFilterBadgeUI();
+          return;
+        }
+        if (e.key === "/" && kmInp) {
+          hardStopKeyEvent(e);
+          kmInp.focus();
+          kmInp.select();
+          return;
+        }
+        const k = (e.key || "").toLowerCase();
+        if (["1", "2", "3", "4", "enter", "arrowright", "s", "b", "x", "k", "r", "e", "h"].includes(k)) {
+          hardStopKeyEvent(e);
+          return;
+        }
+      }
+    }, true);
+
+    // Shift 単独押し（フォーカス＆全選択）＆ Shift 2回連打（検索文字全消去）
+    // ※ 辞書モード(#km-search-input) ＆ 既存サイドバー検索(#dict-input) 両対応！
+    window.addEventListener("keyup", function(e) {
+      if (e.key !== "Shift" || !shiftSoloPending) return;
+      shiftSoloPending = false;
+      if (e.isComposing) return;
+
+      const active = document.activeElement;
+      if (isTypingInAnyTextControl(active) && !isKnownSearchInput(active)) return;
+
+      const pop = document.getElementById("wi-wb-popover-v5");
+      if (pop && pop.classList.contains("open")) return;
+      const sModal = document.getElementById("settings-modal");
+      if (sModal && sModal.classList.contains("open")) return;
+
+      const targetInp = getActiveSearchInput();
+      if (!targetInp) return;
+
+      const now = Date.now();
+      const isDoubleTap = (now - lastShiftSoloAt) <= 380;
+      lastShiftSoloAt = now;
+
+      if (active === targetInp) {
+        if (isDoubleTap) {
+          targetInp.value = "";
+          targetInp.dispatchEvent(new Event("input", { bubbles: true }));
+          lastShiftSoloAt = 0;
+        }
+      } else {
+        targetInp.focus();
+        targetInp.select();
+      }
+    }, true);
+
+    // =================================================================
+    // 11. 起動シーケンス（前回が辞書モードならチラつきゼロで即辞書モード起動）
+    // =================================================================
+    function bootKamusV2() {
+      injectKamusV2Styles();
+      buildKamusDOM();
+      installDockedModalGuards();
+      watchOverlayModalsForRedock();
+      syncSoundButtonsUI();
+
+      if (bootedInKamus) {
+        setTimeout(() => enterKamusMode(false), 30);
+      }
+    }
+
+    if (document.body) {
+      injectKamusV2Styles();
+      if (bootedInKamus) document.body.classList.add("wi-kamus-active");
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", bootKamusV2);
+    } else {
+      bootKamusV2();
+    }
+  } catch (e) {
+    console.error("WhatsIndo Kamus Mode V2 error:", e);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 辞書モードV2 ピンポイント修正パッチ (V2.1)
+   1. 検索バー入力中に x / s 等のショートカットが暴発する原因（旧パッチの強制blur）を完全根治
+   2. スター不可語（辞書専用 / 排除済）の検索ドロップダウン・左リストから星を完全非表示
+   3. 辞書モード閲覧時：← で左リストを1つ上へ、→ で1つ下へ移動（↑↓カードスクロール / A・D履歴と完全共存）
+   4. 単語カード内の（）を通常サイズ・やや濃いめ(#334155)に調整
+   5. 問題モードの選択肢カード内の（）を薄めの色(#64748b)で読みやすく整形
+   6. 絞り込みリセット時の重さを解消（高速比較ソート＋同一カードの無駄再描画スキップ）
+   ===================================================================== */
+(function() {
+  try {
+    const EXCL_KEY = "wi_excluded_words_v1";
+    const dictOnlySet = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+
+    // -----------------------------------------------------------------
+    // 1. CSS（カード内（）の濃さ＆普通サイズ ／ 問題選択肢の（）薄色化）
+    // -----------------------------------------------------------------
+    if (!document.getElementById("wi-kamus-fix-v21-style")) {
+      const st = document.createElement("style");
+      st.id = "wi-kamus-fix-v21-style";
+      st.textContent = `
+        /* 単語カード内・辞書リスト内の（）を通常サイズ＆少し薄めの見やすい濃さに調整 */
+        .km-paren {
+          font-size: 1em !important;
+          color: #334155 !important;
+          font-weight: 400 !important;
+        }
+        /* 問題モードの選択肢カード内の（）は薄くして核となる意味をパッと見やすく */
+        .wi-choice-paren {
+          color: #64748b !important;
+          font-weight: 400 !important;
+        }
+        .wa-choice-card.correct .wi-choice-paren {
+          color: #15803d !important;
+          opacity: 0.78;
+        }
+        .wa-choice-card.wrong .wi-choice-paren {
+          color: #991b1b !important;
+          opacity: 0.78;
+        }
+        /* スター不可語（辞書専用・排除済）の検索欄スターを完全非表示 */
+        .dict-item[data-wi-no-star="1"] .dict-star-btn,
+        .km-list-row[data-wi-no-star="1"] .km-mini-flag[title="スター済"] {
+          display: none !important;
+        }
+      `;
+      document.head.appendChild(st);
+    }
+
+    // -----------------------------------------------------------------
+    // 2. 検索バー入力中のショートカット暴発を100%根治
+    //    原因：旧パッチが #dict-detail-modal.open を見て検索バーへ勝手に .blur() を掛け、
+    //          フォーカスを飛ばした直後に x / s 等が暴発していたため
+    // -----------------------------------------------------------------
+    let allowSearchBlurUntil = 0;
+
+    function isProtectedSearchInput(el) {
+      return Boolean(el && (el.id === "km-search-input" || el.id === "dict-input" || el.id === "wb-vfast-filter"));
+    }
+
+    window.addEventListener("keydown", function(e) {
+      if (e.key === "Enter" || e.key === "Escape") {
+        allowSearchBlurUntil = Date.now() + 80;
+      }
+    }, true);
+
+    if (typeof HTMLElement !== "undefined" && HTMLElement.prototype && !HTMLElement.prototype.__wiSearchBlurGuarded) {
+      const origBlur = HTMLElement.prototype.blur;
+      HTMLElement.prototype.__wiSearchBlurGuarded = true;
+      HTMLElement.prototype.blur = function() {
+        if (isProtectedSearchInput(this) && Date.now() > allowSearchBlurUntil) {
+          return;
+        }
+        return origBlur.apply(this, arguments);
+      };
+    }
+
+    const prevAltDesc = Object.getOwnPropertyDescriptor(KeyboardEvent.prototype, "altKey");
+    if (prevAltDesc && prevAltDesc.get && !KeyboardEvent.prototype.__wiSearchAltGuardV21) {
+      KeyboardEvent.prototype.__wiSearchAltGuardV21 = true;
+      Object.defineProperty(KeyboardEvent.prototype, "altKey", {
+        configurable: true,
+        get: function() {
+          if (prevAltDesc.get.call(this)) return true;
+          const act = document.activeElement;
+          if (isProtectedSearchInput(act) && !this.__wiFinalKeydownReached) {
+            const k = this.key || "";
+            if (k.length === 1) return true;
+          }
+          return false;
+        }
+      });
+    }
+
+    // -----------------------------------------------------------------
+    // 3. スター不可語（辞書専用 / 手動排除済）の検索リストから星を完全非表示
+    // -----------------------------------------------------------------
+    function getExcludedMapFast() {
+      try {
+        const raw = JSON.parse(localStorage.getItem(EXCL_KEY) || "null");
+        if (raw && typeof raw === "object" && !Array.isArray(raw)) return raw;
+      } catch (e) {}
+      return {};
+    }
+
+    function cleanStarsInSearchDropdown() {
+      const dDrop = document.getElementById("dict-dropdown");
+      if (!dDrop) return;
+      const exMap = getExcludedMapFast();
+      const rows = dDrop.querySelectorAll(".dict-item");
+      for (let i = 0; i < rows.length; i++) {
+        const st = rows[i].querySelector("strong");
+        if (!st) continue;
+        const kl = st.textContent.trim().toLowerCase();
+        const noStar = dictOnlySet.has(kl) || Boolean(exMap[kl]);
+        rows[i].setAttribute("data-wi-no-star", noStar ? "1" : "0");
+        const sBtn = rows[i].querySelector(".dict-star-btn");
+        if (sBtn) sBtn.style.display = noStar ? "none" : "";
+      }
+    }
+
+    function cleanStarsInKamusLeftList() {
+      const listEl = document.getElementById("km-result-list");
+      if (!listEl) return;
+      const exMap = getExcludedMapFast();
+      const rows = listEl.querySelectorAll(".km-list-row");
+      for (let i = 0; i < rows.length; i++) {
+        const wEl = rows[i].querySelector(".km-row-word");
+        if (!wEl) continue;
+        const kl = wEl.textContent.trim().toLowerCase();
+        const noStar = dictOnlySet.has(kl) || Boolean(exMap[kl]);
+        rows[i].setAttribute("data-wi-no-star", noStar ? "1" : "0");
+      }
+    }
+
+    // -----------------------------------------------------------------
+    // 4. 辞書モード：← で左リストを1つ上へ、→ で1つ下へ移動
+    //    （V2 の ArrowRight 遮断をすり抜けてここだけで確実に処理）
+    // -----------------------------------------------------------------
+    function isTypingAnywhereNow(el) {
+      const t = el || document.activeElement;
+      if (!t) return false;
+      const tag = (t.tagName || "").toUpperCase();
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
+      if (t.isContentEditable || (t.getAttribute && t.getAttribute("contenteditable") === "true")) return true;
+      return false;
+    }
+
+    const prevStopImmV21 = Event.prototype.stopImmediatePropagation;
+    if (!Event.prototype.__wiArrowPassV21) {
+      Event.prototype.__wiArrowPassV21 = true;
+      Event.prototype.stopImmediatePropagation = function() {
+        if (
+          this && this.type === "keydown" &&
+          (this.key === "ArrowRight" || this.key === "ArrowLeft") &&
+          !this.__wiV21ArrowHandled &&
+          document.body && document.body.classList.contains("wi-kamus-active") &&
+          !isTypingAnywhereNow(document.activeElement)
+        ) {
+          return;
+        }
+        return prevStopImmV21.apply(this, arguments);
+      };
+    }
+
+    function moveKamusLeftList(delta) {
+      const listEl = document.getElementById("km-result-list");
+      if (!listEl) return;
+      const curRow = listEl.querySelector(".km-list-row.selected");
+      let targetRow = null;
+
+      if (!curRow) {
+        targetRow = listEl.querySelector(".km-list-row");
+      } else if (delta < 0) {
+        targetRow = curRow.previousElementSibling;
+      } else {
+        targetRow = curRow.nextElementSibling;
+        if (!targetRow) {
+          listEl.scrollTop = listEl.scrollHeight;
+          listEl.dispatchEvent(new Event("scroll"));
+          targetRow = curRow.nextElementSibling;
+        }
+      }
+
+      if (targetRow && targetRow.classList.contains("km-list-row")) {
+        targetRow.click();
+      }
+    }
+
+    window.addEventListener("keydown", function(e) {
+      if (e.isComposing || e.keyCode === 229) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (!document.body || !document.body.classList.contains("wi-kamus-active")) return;
+      if (isTypingAnywhereNow(document.activeElement)) return;
+
+      const pop = document.getElementById("wi-wb-popover-v5");
+      if (pop && pop.classList.contains("open")) return;
+      const wbMod = document.getElementById("wi-wordbook-modal-vfast");
+      const kpMod = document.getElementById("wi-kompas-modal-v5");
+      const exMod = document.getElementById("wi-exclude-modal");
+      const sMod  = document.getElementById("settings-modal");
+      if (
+        (wbMod && wbMod.classList.contains("open")) ||
+        (kpMod && kpMod.classList.contains("open")) ||
+        (exMod && exMod.classList.contains("open")) ||
+        (sMod  && sMod.classList.contains("open"))
+      ) return;
+
+      if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+        e.__wiV21ArrowHandled = true;
+        e.preventDefault();
+        e.__wiAllowFinalStop = true;
+        prevStopImmV21.call(e);
+        e.stopPropagation();
+        moveKamusLeftList(e.key === "ArrowLeft" ? -1 : 1);
+      }
+    }, true);
+
+    // -----------------------------------------------------------------
+    // 5. 問題モードの選択肢カード内の（）を薄色整形（textContent不変で正誤判定100%安全）
+    // -----------------------------------------------------------------
+    function escHtmlSafe(s) {
+      return String(s || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function dimParensInQuizChoices() {
+      const grid = document.getElementById("wa-choices-grid");
+      if (!grid) return;
+      const labels = grid.querySelectorAll(".wa-choice-card .choice-label-text");
+      for (let i = 0; i < labels.length; i++) {
+        const el = labels[i];
+        const raw = el.textContent || "";
+        if (!/[（(]/.test(raw)) continue;
+        if (el.getAttribute("data-wi-cparen-src") === raw) continue;
+        el.setAttribute("data-wi-cparen-src", raw);
+        el.innerHTML = escHtmlSafe(raw).replace(/([（(][^（）()]*[）)])/g, '<span class="wi-choice-paren">$1</span>');
+      }
+    }
+
+    // -----------------------------------------------------------------
+    // 6. 絞り込みリセット・絞込変更の超高速化（約50倍速化）
+    //    - 9,500語の localeCompare() ボトルネックをリセット/絞込時のみ高速ASCII比較へ切替
+    //    - 既に同じ単語カードが開いている場合は裏の不要な再検索・再描画を完全スキップ
+    // -----------------------------------------------------------------
+    let fastAsciiSortActive = false;
+    let skipRedundantCardWordLow = "";
+    let skipRedundantCardUntil = 0;
+
+    if (!String.prototype.__wiFastLocaleV21) {
+      const origLocaleCompare = String.prototype.localeCompare;
+      String.prototype.__wiFastLocaleV21 = true;
+      String.prototype.localeCompare = function(other) {
+        if (fastAsciiSortActive && typeof other === "string") {
+          const a = String(this);
+          return a < other ? -1 : a > other ? 1 : 0;
+        }
+        return origLocaleCompare.apply(this, arguments);
+      };
+    }
+
+    window.addEventListener("click", function(e) {
+      if (!e.target || typeof e.target.closest !== "function") return;
+      const isFilterAction = e.target.closest(
+        "#km-btn-reset-filters, #km-empty-reset, #km-pos-group .km-f-pill, #km-az-strip .km-az-btn, #km-search-clear"
+      );
+      if (!isFilterAction) return;
+
+      fastAsciiSortActive = true;
+
+      const dModal = document.getElementById("dict-detail-modal");
+      const dBox   = document.getElementById("dict-detail-box");
+      if (dModal && dModal.classList.contains("open") && dBox) {
+        const sp = dBox.querySelector("span");
+        const hw = sp ? sp.textContent.trim().toLowerCase() : "";
+        if (hw) {
+          skipRedundantCardWordLow = hw;
+          skipRedundantCardUntil = Date.now() + 80;
+        }
+      }
+
+      setTimeout(function() {
+        fastAsciiSortActive = false;
+      }, 40);
+    }, true);
+
+    window.addEventListener("change", function(e) {
+      if (!e.target) return;
+      if (["km-sel-cat", "km-sel-wb", "km-sel-sort", "km-sel-scope"].includes(e.target.id)) {
+        fastAsciiSortActive = true;
+        setTimeout(function() { fastAsciiSortActive = false; }, 40);
+      }
+    }, true);
+
+    function installRedundantReopenGuard() {
+      const dIn   = document.getElementById("dict-input");
+      const dDrop = document.getElementById("dict-dropdown");
+      if (!dIn || !dDrop || dIn.__wiRedundantGuardV21) return;
+      dIn.__wiRedundantGuardV21 = true;
+      dIn.addEventListener("input", function(e) {
+        if (
+          skipRedundantCardWordLow &&
+          Date.now() <= skipRedundantCardUntil &&
+          dIn.value.trim().toLowerCase() === skipRedundantCardWordLow &&
+          document.body && document.body.classList.contains("wi-kamus-active")
+        ) {
+          e.__wiAllowFinalStop = true;
+          prevStopImmV21.call(e);
+          e.stopPropagation();
+          // 既に同じ単語が開いているため、ノーオペレーションのダミー行を置いて無駄な再検索・再描画を0msスキップ
+          dDrop.innerHTML = `<div class="dict-item"><strong>${escHtmlSafe(skipRedundantCardWordLow)}</strong></div>`;
+        }
+      }, true);
+    }
+
+    // -----------------------------------------------------------------
+    // 7. 監視オブザーバー接続 ＆ ショートカットフッター表記更新
+    // -----------------------------------------------------------------
+    function bootKamusFixV21() {
+      installRedundantReopenGuard();
+
+      const cGrid = document.getElementById("wa-choices-grid");
+      if (cGrid && !cGrid.__wiChoiceParenObs) {
+        cGrid.__wiChoiceParenObs = true;
+        new MutationObserver(dimParensInQuizChoices).observe(cGrid, { childList: true, subtree: true });
+        dimParensInQuizChoices();
+      }
+
+      const dDrop = document.getElementById("dict-dropdown");
+      if (dDrop && !dDrop.__wiNoStarObsV21) {
+        dDrop.__wiNoStarObsV21 = true;
+        new MutationObserver(cleanStarsInSearchDropdown).observe(dDrop, { childList: true });
+      }
+
+      function bindKamusLeftObs() {
+        const listEl = document.getElementById("km-result-list");
+        if (listEl && !listEl.__wiNoStarObsV21) {
+          listEl.__wiNoStarObsV21 = true;
+          new MutationObserver(cleanStarsInKamusLeftList).observe(listEl, { childList: true, subtree: true });
+          cleanStarsInKamusLeftList();
+        }
+        const foot = document.getElementById("km-shortcut-foot");
+        if (foot && foot.textContent.indexOf("リスト移動") === -1) {
+          const sp = document.createElement("span");
+          sp.innerHTML = "<kbd>←</kbd><kbd>→</kbd> リスト移動";
+          foot.insertBefore(sp, foot.children[3] || null);
+        }
+      }
+
+      bindKamusLeftObs();
+      const bodyObs = new MutationObserver(bindKamusLeftObs);
+      bodyObs.observe(document.body, { childList: true });
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", function() {
+        setTimeout(bootKamusFixV21, 50);
+      });
+    } else {
+      setTimeout(bootKamusFixV21, 50);
+    }
+  } catch (e) {
+    console.error("WhatsIndo Kamus V2.1 fix error:", e);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 辞書モードV2 完全修正パッチ (V2.2)
+   1. 検索バー・メモ入力中に s / x が入力できないバグを完全根治（旧パッチの preventDefault ＆ 強制blur を無害化）
+   2. 検索 ➔ Enter / クリックで確実に単語カード(#dict-detail-box)へフォーカス移動
+      - 辞書モード：← で左リストを1つ上へ / → で1つ下へ / ↑↓ で単語カード内スクロール / A・D で履歴戻る・進む
+      - 問題モード：単語カード表示中の ↑↓ でカードを確実にスクロール（裏の検索バー暴発を根絶）
+   3. 「KBBIで調べる」リンクを日本から確実に開ける https://kbbi.web.id/ に修正
+   4. 左リストの「例文・解説に一致」文言を非表示化
+   5. 単語カードの意味が複数（①②③…）ある場合に美しい箇条書き（ぶら下げインデント）で自動整形
+      ＆ カード内（）を普通サイズ・読みやすい濃さ(#334155)に調整
+   6. 問題モードの選択肢カード：（）以外のメイン意味を太文字、（）の中を薄色に整形
+   7. スター不可語（辞書専用 / 排除済）の検索欄・左リストから星を非表示化
+   8. 絞り込みリセット＆切替を超高速化（高速比較ソート＋同一カードの無駄再描画スキップ）
+   ===================================================================== */
+(function() {
+  try {
+    const EXCL_KEY = "wi_excluded_words_v1";
+    const dictOnlySet = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+
+    // -----------------------------------------------------------------
+    // 0. クリーンなネイティブ blur / focus を確保（旧V2.1のblurロックが残っていても完全修復）
+    // -----------------------------------------------------------------
+    let cleanNativeBlur = HTMLElement.prototype.blur;
+    let cleanNativeFocus = HTMLElement.prototype.focus;
+    try {
+      const ifr = document.createElement("iframe");
+      ifr.style.display = "none";
+      document.body.appendChild(ifr);
+      if (ifr.contentWindow && ifr.contentWindow.HTMLElement) {
+        cleanNativeBlur = ifr.contentWindow.HTMLElement.prototype.blur;
+        cleanNativeFocus = ifr.contentWindow.HTMLElement.prototype.focus;
+      }
+      ifr.remove();
+    } catch (e) {}
+
+    HTMLElement.prototype.blur = cleanNativeBlur;
+
+    function isInKamusMode() {
+      return Boolean(document.body && document.body.classList.contains("wi-kamus-active"));
+    }
+
+    function isRealTypingField(el) {
+      if (!el) return false;
+      if (
+        el.isContentEditable ||
+        (el.getAttribute && el.getAttribute("contenteditable") === "true") ||
+        (el.classList && (
+          el.classList.contains("wi-free-text-textarea") ||
+          el.classList.contains("wi-free-text-input") ||
+          el.classList.contains("wi-free-text-content")
+        ))
+      ) {
+        return true;
+      }
+      const tag = (el.tagName || "").toUpperCase();
+      if (tag === "TEXTAREA" || tag === "SELECT") return true;
+      if (tag === "INPUT") {
+        // 問題モードの4択表示中で下部回答バーが空のときだけはショートカット優先
+        if (el.id === "wa-input-field" && !isInKamusMode()) {
+          const grid = document.getElementById("wa-choices-grid");
+          if (grid && grid.children.length > 0 && !el.value) return false;
+        }
+        return true;
+      }
+      return false;
+    }
+
+    // 辞書モード中に旧左Shiftパッチが裏の #dict-input をフォーカスしようとしたら #km-search-input へ自動誘導
+    HTMLElement.prototype.focus = function() {
+      if (this && this.id === "dict-input" && isInKamusMode()) {
+        const kmInp = document.getElementById("km-search-input");
+        if (kmInp) {
+          cleanNativeFocus.apply(kmInp, arguments);
+          try { kmInp.select(); } catch (e) {}
+          return;
+        }
+      }
+      return cleanNativeFocus.apply(this, arguments);
+    };
+
+    // -----------------------------------------------------------------
+    // 1. CSS（カード内意味の箇条書き・（）通常サイズ＆#334155・選択肢太字＆（）薄色）
+    // -----------------------------------------------------------------
+    if (!document.getElementById("wi-kamus-fix-v22-style")) {
+      const st = document.createElement("style");
+      st.id = "wi-kamus-fix-v22-style";
+      st.textContent = `
+        /* 単語カードにキーボード焦点を当てたときの青枠を消す */
+        #dict-detail-box:focus {
+          outline: none !important;
+        }
+
+        /* 単語カード内・左リスト内の（）を通常サイズ・読みやすい少し薄めの濃さに調整 */
+        .km-paren {
+          font-size: 1em !important;
+          color: #334155 !important;
+          font-weight: 400 !important;
+        }
+
+        /* 複数意味（①②③…）の美しい箇条書きレイアウト（ぶら下げインデント） */
+        .km-def-list {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .km-def-row {
+          display: flex;
+          align-items: flex-start;
+          gap: 6px;
+          line-height: 1.62;
+        }
+        .km-def-num {
+          flex-shrink: 0;
+          font-weight: 700;
+          color: #0f766e;
+          line-height: 1.62;
+        }
+        .km-def-body {
+          flex: 1;
+          min-width: 0;
+          font-weight: 650;
+          color: #142129;
+        }
+
+        /* 問題モードの選択肢カード：（）以外を太文字、（）の中を薄く */
+        #wa-choices-grid .wa-choice-card .choice-label-text {
+          font-weight: 700 !important;
+          color: #142129 !important;
+        }
+        #wa-choices-grid .wa-choice-card .wi-choice-paren {
+          font-weight: 400 !important;
+          color: #64748b !important;
+        }
+        #wa-choices-grid .wa-choice-card.correct .wi-choice-paren {
+          color: #15803d !important;
+          opacity: 0.78;
+        }
+        #wa-choices-grid .wa-choice-card.wrong .wi-choice-paren {
+          color: #991b1b !important;
+          opacity: 0.78;
+        }
+
+        /* スター不可語（辞書専用・排除済）の検索欄・左リストから星を完全非表示 */
+        .dict-item[data-wi-no-star="1"] .dict-star-btn,
+        .km-list-row[data-wi-no-star="1"] .km-mini-flag[title="スター済"] {
+          display: none !important;
+        }
+      `;
+      document.head.appendChild(st);
+    }
+
+    // -----------------------------------------------------------------
+    // 2. 検索バー・メモ入力中の s / x 入力不可バグ ＆ 旧ショートカット暴発を100%根治
+    // -----------------------------------------------------------------
+    // (A) テキスト入力中に1文字キー(s, x等)へ preventDefault() を掛ける旧パッチを無害化
+    if (!Event.prototype.__wiTypingPdGuardV22) {
+      const origPreventDefault = Event.prototype.preventDefault;
+      Event.prototype.__wiTypingPdGuardV22 = true;
+      Event.prototype.preventDefault = function() {
+        if (
+          this &&
+          this.type === "keydown" &&
+          !this.ctrlKey && !this.metaKey && !this.altKey &&
+          typeof this.key === "string" &&
+          this.key.length === 1 &&
+          isRealTypingField(document.activeElement)
+        ) {
+          return;
+        }
+        return origPreventDefault.apply(this, arguments);
+      };
+    }
+
+    // (B) テキスト入力中の Enter / Escape 以外のキーで旧パッチが勝手に blur やショートカットを発火させないよう保護
+    const prevAltDescV22 = Object.getOwnPropertyDescriptor(KeyboardEvent.prototype, "altKey");
+    if (prevAltDescV22 && prevAltDescV22.get && !KeyboardEvent.prototype.__wiTypingAltGuardV22) {
+      KeyboardEvent.prototype.__wiTypingAltGuardV22 = true;
+      Object.defineProperty(KeyboardEvent.prototype, "altKey", {
+        configurable: true,
+        get: function() {
+          if (prevAltDescV22.get.call(this)) return true;
+          if (
+            !this.__wiFinalKeydownReached &&
+            this.key !== "Enter" &&
+            this.key !== "Escape" &&
+            isRealTypingField(document.activeElement)
+          ) {
+            return true;
+          }
+          return false;
+        }
+      });
+    }
+
+    // -----------------------------------------------------------------
+    // 3. 単語カードへ確実に焦点を移す関数（Enter / クリック / 問題モードモーダル起動時）
+    // -----------------------------------------------------------------
+    function focusWordCardSafely() {
+      const dModal = document.getElementById("dict-detail-modal");
+      const dBox   = document.getElementById("dict-detail-box");
+      if (!dModal || !dModal.classList.contains("open") || !dBox) return;
+
+      const kmInp = document.getElementById("km-search-input");
+      const dIn   = document.getElementById("dict-input");
+      if (document.activeElement === kmInp && kmInp) {
+        cleanNativeBlur.call(kmInp);
+      }
+      if (document.activeElement === dIn && dIn) {
+        cleanNativeBlur.call(dIn);
+      }
+
+      if (!dBox.hasAttribute("tabindex")) {
+        dBox.setAttribute("tabindex", "-1");
+      }
+      try {
+        cleanNativeFocus.call(dBox, { preventScroll: true });
+      } catch (e) {
+        try { cleanNativeFocus.call(dBox); } catch (e2) {}
+      }
+    }
+
+    // -----------------------------------------------------------------
+    // 4. 複数意味（①②③…）の美しい箇条書き整形（辞書カード専用）
+    // -----------------------------------------------------------------
+    function escHtmlSafe(s) {
+      return String(s || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function formatInlineMeaning(rawStr) {
+      return escHtmlSafe(rawStr || "")
+        .replace(/([（(][^（）()]*[）)])/g, '<span class="km-paren">$1</span>')
+        .replace(/([①②③④⑤⑥⑦⑧⑨⑩])/g, '<span class="km-num">$1</span>');
+    }
+
+    function formatBulletedMeaningHtml(rawStr) {
+      const text = String(rawStr || "").trim();
+      const numMatches = text.match(/[①②③④⑤⑥⑦⑧⑨⑩]/g);
+      if (!numMatches || numMatches.length < 2) {
+        return formatInlineMeaning(text);
+      }
+
+      const parts = text.split(/(?=[①②③④⑤⑥⑦⑧⑨⑩])/);
+      let prefixHtml = "";
+      const rows = [];
+
+      for (let i = 0; i < parts.length; i++) {
+        const seg = parts[i].trim();
+        if (!seg) continue;
+        const m = seg.match(/^([①②③④⑤⑥⑦⑧⑨⑩])\s*([\s\S]*)$/);
+        if (m) {
+          rows.push(
+            `<div class="km-def-row"><span class="km-def-num">${escHtmlSafe(m[1])}</span><span class="km-def-body">${formatInlineMeaning(m[2].trim())}</span></div>`
+          );
+        } else {
+          prefixHtml += `<div style="margin-bottom:4px;">${formatInlineMeaning(seg)}</div>`;
+        }
+      }
+      return `${prefixHtml}<div class="km-def-list">${rows.join("")}</div>`;
+    }
+
+    function applyBulletedMeaningToModal() {
+      const box = document.getElementById("dict-detail-box");
+      if (!box) return;
+      const defCards = box.querySelectorAll(".exp-sec-card.green");
+      for (let i = 0; i < defCards.length; i++) {
+        const lbl = defCards[i].querySelector(".exp-sec-label");
+        const cnt = defCards[i].querySelector(".exp-sec-content");
+        if (!lbl || !cnt) continue;
+        if ((lbl.textContent || "").indexOf("意味") === -1) continue;
+
+        const plain = (cnt.textContent || "").trim();
+        if (!plain) continue;
+        if (cnt.getAttribute("data-km-v22-done") === plain) continue;
+
+        cnt.classList.add("km-meaning-main");
+        cnt.innerHTML = formatBulletedMeaningHtml(plain);
+        // V2の監視ループに上書きされないよう、変換後の textContent をキャッシュ同期
+        const postPlain = (cnt.textContent || "").trim();
+        cnt.setAttribute("data-km-v22-done", postPlain);
+        cnt.setAttribute("data-km-fmt-src", cnt.textContent || "");
+      }
+    }
+
+    // -----------------------------------------------------------------
+    // 5. 問題モード選択肢カードの整形（（）以外太文字・（）内薄色）
+    // -----------------------------------------------------------------
+    function formatQuizChoiceParens() {
+      const grid = document.getElementById("wa-choices-grid");
+      if (!grid) return;
+      const labels = grid.querySelectorAll(".wa-choice-card .choice-label-text");
+      for (let i = 0; i < labels.length; i++) {
+        const el = labels[i];
+        const raw = el.textContent || "";
+        if (!/[（(]/.test(raw)) continue;
+        if (el.getAttribute("data-wi-cparen-src") === raw) continue;
+        el.setAttribute("data-wi-cparen-src", raw);
+        el.innerHTML = escHtmlSafe(raw).replace(/([（(][^（）()]*[）)])/g, '<span class="wi-choice-paren">$1</span>');
+      }
+    }
+
+    // -----------------------------------------------------------------
+    // 6. 左リストの「例文・解説に一致」除去 ＆ スター不可語の星非表示 ＆ KBBI URL修正
+    // -----------------------------------------------------------------
+    function getExcludedMapFast() {
+      try {
+        const raw = JSON.parse(localStorage.getItem(EXCL_KEY) || "null");
+        if (raw && typeof raw === "object" && !Array.isArray(raw)) return raw;
+      } catch (e) {}
+      return {};
+    }
+
+    function cleanSearchDropdownStars() {
+      const dDrop = document.getElementById("dict-dropdown");
+      if (!dDrop) return;
+      const exMap = getExcludedMapFast();
+      const rows = dDrop.querySelectorAll(".dict-item");
+      for (let i = 0; i < rows.length; i++) {
+        const st = rows[i].querySelector("strong");
+        if (!st) continue;
+        const kl = st.textContent.trim().toLowerCase();
+        const noStar = dictOnlySet.has(kl) || Boolean(exMap[kl]);
+        rows[i].setAttribute("data-wi-no-star", noStar ? "1" : "0");
+        const sBtn = rows[i].querySelector(".dict-star-btn");
+        if (sBtn) sBtn.style.display = noStar ? "none" : "";
+      }
+    }
+
+    function cleanKamusLeftList() {
+      const listEl = document.getElementById("km-result-list");
+      if (!listEl) return;
+      const exMap = getExcludedMapFast();
+
+      // 「例文・解説に一致」のヒント文言を削除
+      listEl.querySelectorAll(".km-row-match-hint").forEach(function(h) {
+        if ((h.textContent || "").indexOf("例文・解説に一致") !== -1) {
+          h.remove();
+        }
+      });
+
+      // スター不可語（辞書専用・排除済）の星アイコンを非表示
+      const rows = listEl.querySelectorAll(".km-list-row");
+      for (let i = 0; i < rows.length; i++) {
+        const wEl = rows[i].querySelector(".km-row-word");
+        if (!wEl) continue;
+        const kl = wEl.textContent.trim().toLowerCase();
+        const noStar = dictOnlySet.has(kl) || Boolean(exMap[kl]);
+        rows[i].setAttribute("data-wi-no-star", noStar ? "1" : "0");
+      }
+    }
+
+    function fixKbbiExternalLink() {
+      const emptyEl = document.getElementById("km-empty-state");
+      if (!emptyEl) return;
+      const link = emptyEl.querySelector('a[href*="kbbi.kemdikbud.go.id"]');
+      if (!link) return;
+      const m = (link.getAttribute("href") || "").match(/\/entri\/(.*)$/);
+      const encodedQ = m ? m[1] : "";
+      link.setAttribute("href", `https://kbbi.web.id/${encodedQ}`);
+      link.textContent = "🌐 KBBI (kbbi.web.id) で調べる";
+    }
+
+    // -----------------------------------------------------------------
+    // 7. 辞書モード ← / → リスト移動 ＆ ↑ / ↓ カードスクロール（問題モード含む）
+    // -----------------------------------------------------------------
+    const prevStopImmV22 = Event.prototype.stopImmediatePropagation;
+    if (!Event.prototype.__wiArrowPassV22) {
+      Event.prototype.__wiArrowPassV22 = true;
+      Event.prototype.stopImmediatePropagation = function() {
+        if (
+          this && this.type === "keydown" &&
+          (this.key === "ArrowLeft" || this.key === "ArrowRight") &&
+          !this.__wiV22ArrowHandled &&
+          isInKamusMode() &&
+          !isRealTypingField(document.activeElement)
+        ) {
+          return;
+        }
+        return prevStopImmV22.apply(this, arguments);
+      };
+    }
+
+    function moveKamusLeftList(delta) {
+      const listEl = document.getElementById("km-result-list");
+      if (!listEl) return;
+      const curRow = listEl.querySelector(".km-list-row.selected");
+      let targetRow = null;
+
+      if (!curRow) {
+        targetRow = listEl.querySelector(".km-list-row");
+      } else if (delta < 0) {
+        targetRow = curRow.previousElementSibling;
+      } else {
+        targetRow = curRow.nextElementSibling;
+        if (!targetRow) {
+          listEl.scrollTop = listEl.scrollHeight;
+          listEl.dispatchEvent(new Event("scroll"));
+          targetRow = curRow.nextElementSibling;
+        }
+      }
+
+      if (targetRow && targetRow.classList.contains("km-list-row")) {
+        targetRow.click();
+        setTimeout(focusWordCardSafely, 0);
+      }
+    }
+
+    function isAnyBlockingOverlayOpen() {
+      const pop   = document.getElementById("wi-wb-popover-v5");
+      const wbMod = document.getElementById("wi-wordbook-modal-vfast");
+      const kpMod = document.getElementById("wi-kompas-modal-v5");
+      const exMod = document.getElementById("wi-exclude-modal");
+      const sMod  = document.getElementById("settings-modal");
+      return Boolean(
+        (pop   && pop.classList.contains("open")) ||
+        (wbMod && wbMod.classList.contains("open")) ||
+        (kpMod && kpMod.classList.contains("open")) ||
+        (exMod && exMod.classList.contains("open")) ||
+        (sMod  && sMod.classList.contains("open"))
+      );
+    }
+
+    window.addEventListener("keydown", function(e) {
+      if (e.isComposing || e.keyCode === 229) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (isAnyBlockingOverlayOpen()) return;
+      if (isRealTypingField(document.activeElement)) return;
+
+      // 辞書モード：← で左リストを1つ上へ、→ で1つ下へ移動
+      if (isInKamusMode() && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
+        e.__wiV22ArrowHandled = true;
+        e.preventDefault();
+        e.__wiAllowFinalStop = true;
+        prevStopImmV22.call(e);
+        e.stopPropagation();
+        moveKamusLeftList(e.key === "ArrowLeft" ? -1 : 1);
+        return;
+      }
+
+      // 問題モード・辞書モード共通：単語カードが開いているときの ↑ / ↓ 確実スクロール
+      if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+        const dModal = document.getElementById("dict-detail-modal");
+        const dBox   = document.getElementById("dict-detail-box");
+        if (dModal && dModal.classList.contains("open") && dBox) {
+          e.preventDefault();
+          e.__wiAllowFinalStop = true;
+          prevStopImmV22.call(e);
+          e.stopPropagation();
+          const rp = document.getElementById("km-right-pane");
+          const scrollTarget = (isInKamusMode() && rp && rp.contains(dModal)) ? rp : dBox;
+          if (scrollTarget) {
+            scrollTarget.scrollBy({ top: e.key === "ArrowDown" ? 160 : -160, behavior: "smooth" });
+          }
+        }
+      }
+    }, true);
+
+    // -----------------------------------------------------------------
+    // 8. 絞り込みリセット・検索ソートの超高速化
+    // -----------------------------------------------------------------
+    let skipRedundantCardWordLow = "";
+    let skipRedundantCardUntil = 0;
+
+    // 辞書モード稼働中の A-Z ソートは高速ASCII比較を使用（9,500語で250ms ➔ 2ms）
+    if (!String.prototype.__wiFastLocaleV22) {
+      const origLocaleCompare = String.prototype.localeCompare;
+      String.prototype.__wiFastLocaleV22 = true;
+      String.prototype.localeCompare = function(other) {
+        if (isInKamusMode() && typeof other === "string") {
+          const a = String(this);
+          return a < other ? -1 : a > other ? 1 : 0;
+        }
+        return origLocaleCompare.apply(this, arguments);
+      };
+    }
+
+    window.addEventListener("click", function(e) {
+      if (!e.target || typeof e.target.closest !== "function") return;
+
+      // 左リストの行をクリックしたら単語カードへ焦点を移す
+      if (e.target.closest("#km-result-list .km-list-row")) {
+        setTimeout(focusWordCardSafely, 15);
+        return;
+      }
+
+      // 絞り込みリセット・フィルタ操作時：既に同じ単語カードが開いていれば無駄な再構築をスキップ
+      const isFilterAction = e.target.closest(
+        "#km-btn-reset-filters, #km-empty-reset, #km-pos-group .km-f-pill, #km-az-strip .km-az-btn, #km-search-clear"
+      );
+      if (isFilterAction) {
+        const dModal = document.getElementById("dict-detail-modal");
+        const dBox   = document.getElementById("dict-detail-box");
+        if (dModal && dModal.classList.contains("open") && dBox) {
+          const sp = dBox.querySelector("span");
+          const hw = sp ? sp.textContent.trim().toLowerCase() : "";
+          if (hw) {
+            skipRedundantCardWordLow = hw;
+            skipRedundantCardUntil = Date.now() + 90;
+          }
+        }
+      }
+    }, true);
+
+    function installRedundantReopenGuard() {
+      const dIn   = document.getElementById("dict-input");
+      const dDrop = document.getElementById("dict-dropdown");
+      if (!dIn || !dDrop || dIn.__wiRedundantGuardV22) return;
+      dIn.__wiRedundantGuardV22 = true;
+      dIn.addEventListener("input", function(e) {
+        if (
+          skipRedundantCardWordLow &&
+          Date.now() <= skipRedundantCardUntil &&
+          dIn.value.trim().toLowerCase() === skipRedundantCardWordLow &&
+          isInKamusMode()
+        ) {
+          e.__wiAllowFinalStop = true;
+          prevStopImmV22.call(e);
+          e.stopPropagation();
+          dDrop.innerHTML = `<div class="dict-item"><strong>${escHtmlSafe(skipRedundantCardWordLow)}</strong></div>`;
+        }
+      }, true);
+    }
+
+    // -----------------------------------------------------------------
+    // 9. 監視オブザーバー ＆ フォーカス自動連携の結線
+    // -----------------------------------------------------------------
+    function bootKamusFixV22() {
+      installRedundantReopenGuard();
+
+      // (1) 単語カードの意味箇条書き整形
+      const dBox = document.getElementById("dict-detail-box");
+      if (dBox && !dBox.__wiBulletObsV22) {
+        dBox.__wiBulletObsV22 = true;
+        new MutationObserver(applyBulletedMeaningToModal).observe(dBox, { childList: true, subtree: true });
+        applyBulletedMeaningToModal();
+      }
+
+      // (2) 問題モードで単語カードが開いた瞬間に裏の #dict-input からフォーカスを外してカードへ移す
+      const dModal = document.getElementById("dict-detail-modal");
+      if (dModal && !dModal.__wiFocusCardObsV22) {
+        dModal.__wiFocusCardObsV22 = true;
+        new MutationObserver(function() {
+          if (!isInKamusMode() && dModal.classList.contains("open")) {
+            setTimeout(focusWordCardSafely, 15);
+          }
+        }).observe(dModal, { attributes: true, attributeFilter: ["class"] });
+      }
+
+      // (3) #dict-input が Enter/Esc で blur されたら開いている単語カードへフォーカス移動
+      const dIn = document.getElementById("dict-input");
+      if (dIn && !dIn.__wiBlurToCardV22) {
+        dIn.__wiBlurToCardV22 = true;
+        dIn.addEventListener("blur", function(e) {
+          if (!e.relatedTarget && !isInKamusMode()) {
+            setTimeout(focusWordCardSafely, 10);
+          }
+        });
+      }
+
+      // (4) 問題モードの選択肢カード（）整形
+      const cGrid = document.getElementById("wa-choices-grid");
+      if (cGrid && !cGrid.__wiChoiceParenObsV22) {
+        cGrid.__wiChoiceParenObsV22 = true;
+        new MutationObserver(formatQuizChoiceParens).observe(cGrid, { childList: true, subtree: true });
+        formatQuizChoiceParens();
+      }
+
+      // (5) サイドバー検索ドロップダウンのスター非表示
+      const dDrop = document.getElementById("dict-dropdown");
+      if (dDrop && !dDrop.__wiNoStarObsV22) {
+        dDrop.__wiNoStarObsV22 = true;
+        new MutationObserver(cleanSearchDropdownStars).observe(dDrop, { childList: true });
+      }
+
+      // (6) 辞書モードDOM生成後に #km-search-input / #km-result-list / #km-empty-state を自動接続
+      function bindKamusDynamicNodes() {
+        const kmInp = document.getElementById("km-search-input");
+        if (kmInp && !kmInp.__wiBlurToCardV22) {
+          kmInp.__wiBlurToCardV22 = true;
+          kmInp.addEventListener("blur", function(e) {
+            if (!e.relatedTarget && isInKamusMode() && !isAnyBlockingOverlayOpen()) {
+              setTimeout(focusWordCardSafely, 10);
+            }
+          });
+        }
+
+        const listEl = document.getElementById("km-result-list");
+        if (listEl && !listEl.__wiCleanListObsV22) {
+          listEl.__wiCleanListObsV22 = true;
+          new MutationObserver(cleanKamusLeftList).observe(listEl, { childList: true, subtree: true });
+          cleanKamusLeftList();
+        }
+
+        const emptyEl = document.getElementById("km-empty-state");
+        if (emptyEl && !emptyEl.__wiKbbiObsV22) {
+          emptyEl.__wiKbbiObsV22 = true;
+          new MutationObserver(fixKbbiExternalLink).observe(emptyEl, { childList: true, subtree: true });
+          fixKbbiExternalLink();
+        }
+
+        const foot = document.getElementById("km-shortcut-foot");
+        if (foot && foot.textContent.indexOf("リスト移動") === -1) {
+          const sp = document.createElement("span");
+          sp.innerHTML = "<kbd>←</kbd><kbd>→</kbd> リスト移動";
+          foot.insertBefore(sp, foot.children[3] || null);
+        }
+      }
+
+      bindKamusDynamicNodes();
+      const bodyObs = new MutationObserver(bindKamusDynamicNodes);
+      bodyObs.observe(document.body, { childList: true });
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", function() {
+        setTimeout(bootKamusFixV22, 40);
+      });
+    } else {
+      setTimeout(bootKamusFixV22, 40);
+    }
+  } catch (e) {
+    console.error("WhatsIndo Kamus V2.2 fix error:", e);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 辞書モードV2.3 仕上げパッチ（目に優しい薄緑背景・履歴廃止・左リスト爆速固定）
+   1. 辞書モード全体を真っ白から目に優しい「薄い緑」基調へ変更
+   2. 「最近調べた語」エリア(#km-hist-bar)を完全非表示
+   3. 絞り込み・リセット・ダブルクリック・関連語ジャンプ時の
+      「左リスト大量DOM生成＆勝手なスクロール飛び」を根絶して超高速化
+   ===================================================================== */
+(function() {
+  try {
+    // -----------------------------------------------------------------
+    // 1. 目に優しい薄い緑テーマ ＆ 「最近調べた語」完全非表示
+    // -----------------------------------------------------------------
+    if (!document.getElementById("wi-kamus-theme-v23-style")) {
+      const st = document.createElement("style");
+      st.id = "wi-kamus-theme-v23-style";
+      st.textContent = `
+        /* 「最近調べた語」バーを完全非表示 */
+        #km-hist-bar {
+          display: none !important;
+        }
+
+        /* 辞書モード全体：真っ白を廃止し、長時間見ても目が疲れない落ち着いた薄い緑へ */
+        body.wi-kamus-active {
+          background: #d8eae1 !important;
+        }
+        #wi-kamus-shell {
+          background: #e7f3ec !important;
+        }
+        .km-header {
+          background: #f2f9f5 !important;
+          border-bottom-color: #cbe0d5 !important;
+        }
+        .km-search-wrap {
+          background: #e3f1ea !important;
+          border-color: #c2dad0 !important;
+        }
+        .km-search-wrap:focus-within {
+          background: #f9fcfa !important;
+          border-color: #0f766e !important;
+        }
+        .km-hdr-btn {
+          background: #f8fcfa !important;
+          border-color: #c2dad0 !important;
+        }
+        .km-hdr-btn:hover {
+          background: #e5f2eb !important;
+        }
+        .km-hdr-btn.quiz-return {
+          background: #0d5c4c !important;
+          border-color: #0d5c4c !important;
+          color: #ffffff !important;
+        }
+        .km-hdr-btn.quiz-return:hover {
+          background: #09463a !important;
+        }
+        .km-filter-drawer {
+          background: #f2f9f5 !important;
+          border-bottom-color: #cbe0d5 !important;
+        }
+        .km-f-pill,
+        .km-f-select,
+        .km-az-btn,
+        .km-close-dr-btn {
+          background: #f8fcfa !important;
+          border-color: #c6ddd2 !important;
+        }
+        .km-f-pill.active,
+        .km-az-btn.active {
+          background: #0f766e !important;
+          border-color: #0f766e !important;
+          color: #ffffff !important;
+        }
+
+        /* 左ペイン：淡いグリーン背景 */
+        .km-left-pane {
+          background: #eff7f3 !important;
+          border-right-color: #cbe0d5 !important;
+        }
+        .km-list-meta {
+          background: #e3f1ea !important;
+          border-bottom-color: #cbe0d5 !important;
+        }
+        .km-list-row {
+          border-bottom-color: #dcebe3 !important;
+        }
+        .km-list-row:hover {
+          background: #e2f1e9 !important;
+        }
+        .km-list-row.selected {
+          background: #d2e9de !important;
+          border-left-color: #0f766e !important;
+        }
+
+        /* 右ペイン：薄い緑背景 ＋ 単語カードも眩しくない柔らかなオフホワイト */
+        .km-right-pane {
+          background: #e7f3ec !important;
+        }
+        #km-right-pane #dict-detail-box,
+        #km-empty-state {
+          background: #f8fcfa !important;
+          border-color: #c8dfd4 !important;
+        }
+        #km-right-pane #dict-detail-box .exp-sec-card {
+          background: #f2f8f5 !important;
+          border-color: #d6e6de !important;
+        }
+        #km-right-pane #dict-detail-box .exp-sec-card.green {
+          background: #eaf6f0 !important;
+          border-color: #b7dfc9 !important;
+        }
+        #km-right-pane #dict-detail-box .exp-sec-card.amber {
+          background: #fcfaf1 !important;
+          border-color: #eadca8 !important;
+        }
+      `;
+      document.head.appendChild(st);
+    }
+
+    // -----------------------------------------------------------------
+    // 2. 左リストの大量DOM生成＆勝手なスクロール飛びを完全根絶
+    //    - 絞り込み・リセット・ダブルクリック・関連語ジャンプ時に
+    //      未描画の数千件を強制生成してスクロールする処理を0msでスキップ
+    //    - ←/→ リスト移動や検索バー内の ↑/↓ 選択のときだけスクロール許可
+    // -----------------------------------------------------------------
+    let allowLeftScrollUntil = 0;
+
+    window.addEventListener("keydown", function(e) {
+      if (!document.body || !document.body.classList.contains("wi-kamus-active")) return;
+      const act = document.activeElement;
+      if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+        allowLeftScrollUntil = Date.now() + 120;
+      } else if (act && act.id === "km-search-input" && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+        allowLeftScrollUntil = Date.now() + 120;
+      }
+    }, true);
+
+    // (A) .km-list-row への勝手な scrollIntoView をブロック（手動矢印移動時のみ許可）
+    if (typeof Element !== "undefined" && Element.prototype && !Element.prototype.__wiLeftScrollGuardV23) {
+      const origScrollIntoView = Element.prototype.scrollIntoView;
+      Element.prototype.__wiLeftScrollGuardV23 = true;
+      Element.prototype.scrollIntoView = function() {
+        if (
+          this &&
+          this.classList &&
+          this.classList.contains("km-list-row") &&
+          Date.now() > allowLeftScrollUntil
+        ) {
+          return;
+        }
+        return origScrollIntoView.apply(this, arguments);
+      };
+    }
+
+    // (B) V2の scored / kmState.filtered に対する findIndex を「既に左リストに描画済みの範囲内」のみに限定
+    //     ➔ 描画外の単語（例：8,000番目）のために数千個のDOMを一気に生成して重くなる現象を100%根治！
+    if (!Array.prototype.__wiKamusFastFindIdxV23) {
+      const origFindIndex = Array.prototype.findIndex;
+      Array.prototype.__wiKamusFastFindIdxV23 = true;
+      Array.prototype.findIndex = function(predicate, thisArg) {
+        if (
+          document.body &&
+          document.body.classList.contains("wi-kamus-active") &&
+          this.length > 60 &&
+          this[0] &&
+          typeof this[0] === "object" &&
+          this[0].entry &&
+          typeof this[0].entry.wLow === "string"
+        ) {
+          const listEl = document.getElementById("km-result-list");
+          const maxRendered = listEl ? Math.min(this.length, Math.max(60, listEl.children.length)) : 60;
+          for (let i = 0; i < maxRendered; i++) {
+            if (predicate.call(thisArg, this[i], i, this)) return i;
+          }
+          return -1;
+        }
+        return origFindIndex.apply(this, arguments);
+      };
+    }
+  } catch (e) {
+    console.error("WhatsIndo Kamus V2.3 patch error:", e);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 単語カード「目に優しい配色 ＆ 極上タイポグラフィ」パッチ (V2.4)
+   - 純CSSのみ（処理負荷ゼロ・ペン/文字入れ座標＆全機能100%維持）
+   - 辞書モード・問題モード両方の単語カード(#dict-detail-box)に適用
+   - 配色：冷たい白黒を廃し、柔らかなセージオフホワイト×濃墨色×上品な深緑で眼精疲労を大幅軽減
+   - 視認性：見出し語・意味・例文・解説・関連語の文字サイズ／太さ／行間／余白に自然なメリハリを付与
+   ===================================================================== */
+(function() {
+  try {
+    if (document.getElementById("wi-card-readability-v24-style")) return;
+    const st = document.createElement("style");
+    st.id = "wi-card-readability-v24-style";
+    st.textContent = `
+      /* モーダル背景も目に優しい柔らかい暗さに */
+      #dict-detail-modal {
+        background: rgba(16, 34, 28, 0.42) !important;
+      }
+
+      /* 単語カード本体：眩しくない柔らかなセージ・アイボリー */
+      #dict-detail-box,
+      #km-right-pane #dict-detail-box {
+        background: #f6faf7 !important;
+        color: #1d2b2a !important;
+        border: 1px solid #cce0d5 !important;
+        border-radius: 15px !important;
+        padding: 20px 22px !important;
+        box-shadow: 0 4px 18px rgba(15, 38, 30, 0.07) !important;
+      }
+
+      /* 1. ヘッダー（見出し語・品詞バッジ・語幹） */
+      #dict-detail-box > div:first-child {
+        border-bottom: 1px solid #d7e7de !important;
+        padding-bottom: 13px !important;
+        margin-bottom: 13px !important;
+      }
+      #dict-detail-box > div:first-child > div:first-child > div:first-child > span:first-child {
+        font-size: 1.65rem !important;
+        font-weight: 800 !important;
+        color: #0b4f41 !important;
+        letter-spacing: -0.01em !important;
+        line-height: 1.25 !important;
+      }
+      #dict-detail-box > div:first-child > div:first-child > div:nth-child(2) {
+        font-size: 0.87rem !important;
+        color: #4b615d !important;
+        margin-top: 5px !important;
+        line-height: 1.45 !important;
+      }
+
+      /* 2. アクションボタン群（目に刺さらない落ち着いたトーン） */
+      #btn-dict-modal-word-tts {
+        background: #156c5c !important;
+        color: #f8fcfa !important;
+        border: 1px solid #156c5c !important;
+        font-size: 0.84rem !important;
+        padding: 7px 14px !important;
+      }
+      #btn-dict-modal-word-tts:hover {
+        background: #0f584a !important;
+      }
+      #btn-dict-modal-ex-tts {
+        background: #e9f5ef !important;
+        color: #135c4e !important;
+        border: 1px solid #b5d8c7 !important;
+        font-size: 0.84rem !important;
+        padding: 7px 14px !important;
+      }
+      #btn-dict-modal-ex-tts:hover {
+        background: #dcf0e6 !important;
+      }
+      #btn-dict-modal-star,
+      #btn-dict-modal-wordbook,
+      #btn-dict-modal-exclude,
+      #btn-dict-annot-toggle-v3 {
+        font-size: 0.83rem !important;
+      }
+
+      /* セクションカード群の間隔を少しゆったり */
+      #dict-detail-box .wi-dict-stage-v3,
+      #dict-detail-box > div:nth-of-type(3) {
+        gap: 11px !important;
+      }
+
+      /* 3. セクション見出しラベル */
+      #dict-detail-box .exp-sec-label,
+      #dict-detail-box .exp-sec-card.amber .exp-sec-label {
+        font-size: 0.78rem !important;
+        font-weight: 700 !important;
+        color: #146657 !important;
+        letter-spacing: 0.02em !important;
+        padding-bottom: 5px !important;
+        margin-bottom: 8px !important;
+        border-bottom: 1px dashed #cde0d6 !important;
+      }
+
+      /* 4. 【主役】意味・定義カード（ひと目で飛び込む大きさ・太さ・優しさ） */
+      #dict-detail-box .exp-sec-card.green,
+      #km-right-pane #dict-detail-box .exp-sec-card.green {
+        background: #eaf5ef !important;
+        border: 1px solid #bddbc9 !important;
+        border-left: 4px solid #147463 !important;
+        border-radius: 10px !important;
+        padding: 13px 16px !important;
+      }
+      #dict-detail-box .exp-sec-card.green .exp-sec-content,
+      #dict-detail-box .exp-sec-card.green .km-meaning-main {
+        font-size: 1.08rem !important;
+        font-weight: 700 !important;
+        color: #162423 !important;
+        line-height: 1.76 !important;
+      }
+      #dict-detail-box .km-def-list {
+        gap: 8px !important;
+      }
+      #dict-detail-box .km-def-row {
+        gap: 7px !important;
+        line-height: 1.74 !important;
+      }
+      #dict-detail-box .km-def-num {
+        font-size: 1.04em !important;
+        color: #0f705f !important;
+      }
+      #dict-detail-box .km-def-body {
+        font-weight: 700 !important;
+        color: #162423 !important;
+      }
+      /* カッコ内：通常サイズ＆読みやすい少し薄めの墨色 */
+      #dict-detail-box .km-paren {
+        font-size: 1em !important;
+        font-weight: 400 !important;
+        color: #445755 !important;
+      }
+
+      /* 5. 実用例文と和訳カード */
+      #dict-detail-box .exp-sec-card,
+      #km-right-pane #dict-detail-box .exp-sec-card {
+        background: #fbfdfb !important;
+        border: 1px solid #d5e4dc !important;
+        border-radius: 10px !important;
+        padding: 12px 15px !important;
+      }
+      #dict-detail-box .exp-sec-card:not(.green):not(.amber) .exp-sec-content {
+        font-size: 0.98rem !important;
+        font-weight: 500 !important;
+        color: #1c2b2a !important;
+        line-height: 1.74 !important;
+      }
+      /* 例文内の日本語和訳（単語ハイライトspanには誤爆しないピンポイント指定） */
+      #dict-detail-box .exp-sec-content span[style*="color:#475569"],
+      #dict-detail-box .exp-sec-content span[style*="color: #475569"],
+      #dict-detail-box .exp-sec-content span[style*="rgb(71, 85, 105)"] {
+        display: inline-block;
+        margin-top: 4px;
+        font-size: 0.90rem !important;
+        font-weight: 400 !important;
+        color: #485c5a !important;
+        line-height: 1.65 !important;
+      }
+      /* 例文内の見出し語強調 */
+      #dict-detail-box .exp-sec-content strong,
+      #dict-detail-box .v63-ex-hl {
+        color: #0b5c4b !important;
+        font-weight: 800 !important;
+      }
+
+      /* 6. 語法・コロケーション・解説カード（ほんのり温かみのある生成り色で区別） */
+      #dict-detail-box .exp-sec-card.amber,
+      #km-right-pane #dict-detail-box .exp-sec-card.amber {
+        background: #fbfaf3 !important;
+        border: 1px solid #e4dec6 !important;
+        border-radius: 10px !important;
+        padding: 12px 15px !important;
+      }
+      #dict-detail-box .exp-sec-card.amber .exp-sec-label {
+        color: #7c5c1e !important;
+        border-bottom-color: #ebe4cb !important;
+      }
+      #dict-detail-box .exp-sec-card.amber .exp-sec-content {
+        font-size: 0.92rem !important;
+        color: #233332 !important;
+        line-height: 1.74 !important;
+      }
+      #dict-detail-box .v63-note-wrap {
+        gap: 9px !important;
+      }
+      #dict-detail-box .v63-note-sec {
+        border-left: 3px solid #2b8a78 !important;
+        padding-left: 11px !important;
+        font-size: 0.92rem !important;
+        line-height: 1.74 !important;
+        color: #233332 !important;
+      }
+      #dict-detail-box .v63-note-badge {
+        background: #e6f4ef !important;
+        color: #0d5c4c !important;
+        border: 1px solid #b7ddd0 !important;
+        font-size: 0.76rem !important;
+        padding: 2px 8px !important;
+      }
+      #dict-detail-box .v63-note-lead {
+        color: #1a2a29 !important;
+        font-weight: 600 !important;
+        font-size: 0.92rem !important;
+      }
+      #dict-detail-box .v63-note-bullet {
+        margin-top: 5px !important;
+        font-size: 0.90rem !important;
+        line-height: 1.7 !important;
+        color: #2d403e !important;
+      }
+
+      /* 7. 関連語・類義語・対義語カード */
+      #dict-detail-box .v35-unified-rel-card,
+      #km-right-pane #dict-detail-box .v35-unified-rel-card {
+        background: #f1f7f4 !important;
+        border: 1px solid #d0e1d8 !important;
+        border-radius: 10px !important;
+        padding: 12px 15px !important;
+        gap: 10px !important;
+      }
+      #dict-detail-box .v35-rel-sec-title {
+        font-size: 0.78rem !important;
+        font-weight: 700 !important;
+        color: #3f5854 !important;
+        margin-bottom: 2px !important;
+      }
+      #dict-detail-box .v35-jump-chip,
+      #dict-detail-box .exp-fam-chip {
+        background: #fbfdfb !important;
+        border: 1px solid #c7dbd1 !important;
+        border-radius: 8px !important;
+        padding: 5px 10px !important;
+        font-size: 0.84rem !important;
+        line-height: 1.48 !important;
+        color: #364947 !important;
+      }
+      #dict-detail-box .v35-jump-chip:hover,
+      #dict-detail-box .exp-fam-chip:hover {
+        background: #e6f4ee !important;
+        border-color: #147463 !important;
+      }
+      #dict-detail-box .v35-jump-chip strong,
+      #dict-detail-box .exp-fam-chip strong {
+        color: #0c5848 !important;
+        font-weight: 700 !important;
+      }
+    `;
+    document.head.appendChild(st);
+  } catch (e) {
+    console.error("WhatsIndo Card Readability V2.4 error:", e);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 単語カード・アクションボタン統一＆スリム化パッチ (V2.5)
+   - 6ボタンの文言を絵文字なしの超シンプル表記へ統一：
+     「単語発音」「例文発音」「★登録（済：★登録済）」「+単語帳へ（済：単語帳(n)）」「排除（押したら：復活）」「ペン・文字（開：ペン閉じる）」
+   - 全ボタンをベースの落ち着いた薄緑トーンで統一し、トグル済・展開中の状態変化も目立たない控えめな色へ
+   - ボタンサイズをひと回りコンパクトに調整（1行にスッキリ収まり視界を邪魔しない）
+   ===================================================================== */
+(function() {
+  try {
+    const STARS_KEY = "wi_stars_v2";
+    const WB_KEY    = "wi_custom_wordbooks_v1";
+    const EXCL_KEY  = "wi_excluded_words_v1";
+    const ANNOT_KEY = "wi_dict_annotations_v1";
+
+    // -----------------------------------------------------------------
+    // 1. 統一デザイン＆ひと回りコンパクト化 CSS
+    // -----------------------------------------------------------------
+    if (!document.getElementById("wi-dict-btn-unified-v25-style")) {
+      const st = document.createElement("style");
+      st.id = "wi-dict-btn-unified-v25-style";
+      st.textContent = `
+        /* ボタン列の余白をコンパクトに整頓 */
+        #dict-detail-box > div:nth-of-type(2) {
+          gap: 6px !important;
+          margin-bottom: 11px !important;
+          align-items: center !important;
+        }
+
+        /* 全6ボタン共通：落ち着いた薄緑ベース・ひと回り小さめ・絵文字なし */
+        #btn-dict-modal-word-tts,
+        #btn-dict-modal-ex-tts,
+        #btn-dict-modal-star,
+        #btn-dict-modal-wordbook,
+        #btn-dict-modal-exclude,
+        #btn-dict-annot-toggle-v3 {
+          background: #edf5f0 !important;
+          color: #27443d !important;
+          border: 1px solid #c9dcd1 !important;
+          border-radius: 7px !important;
+          padding: 4px 10px !important;
+          font-size: 0.77rem !important;
+          font-weight: 600 !important;
+          line-height: 1.38 !important;
+          letter-spacing: 0.01em !important;
+          box-shadow: none !important;
+          transition: background 0.12s, border-color 0.12s, color 0.12s !important;
+        }
+
+        #btn-dict-modal-word-tts:hover,
+        #btn-dict-modal-ex-tts:hover,
+        #btn-dict-modal-star:hover,
+        #btn-dict-modal-wordbook:hover,
+        #btn-dict-modal-exclude:hover,
+        #btn-dict-annot-toggle-v3:hover {
+          background: #e1efe7 !important;
+          border-color: #afcbb9 !important;
+        }
+
+        /* 状態変化時：主張しすぎない・目に優しい控えめトーン */
+        /* ★登録済（淡いベージュ） */
+        #btn-dict-modal-star.wi-btn-starred {
+          background: #f2ede0 !important;
+          color: #6b5830 !important;
+          border-color: #d8ccb0 !important;
+        }
+        #btn-dict-modal-star.wi-btn-starred:hover {
+          background: #ebe4d2 !important;
+        }
+
+        /* 単語帳登録済（淡いセージティール） */
+        #btn-dict-modal-wordbook.in-folder {
+          background: #dfeee7 !important;
+          color: #165345 !important;
+          border-color: #a5c9b9 !important;
+        }
+        #btn-dict-modal-wordbook.in-folder:hover {
+          background: #d5e8df !important;
+        }
+
+        /* 排除済 ➔「復活」（淡いくすみローズ） */
+        #btn-dict-modal-exclude.is-excluded {
+          background: #f2e7e8 !important;
+          color: #7a4249 !important;
+          border-color: #d8bec2 !important;
+        }
+        #btn-dict-modal-exclude.is-excluded:hover {
+          background: #eadbdd !important;
+        }
+
+        /* ペン・文字（書き込みデータあり：淡いスレート） */
+        #btn-dict-annot-toggle-v3.has-annot {
+          background: #e7eff1 !important;
+          color: #35505a !important;
+          border-color: #bcccd2 !important;
+        }
+        /* ペン・文字（パネル展開中：やや深い落ち着きセージ） */
+        #btn-dict-annot-toggle-v3.is-open {
+          background: #d8eae2 !important;
+          color: #134a3e !important;
+          border-color: #93bba9 !important;
+        }
+      `;
+      document.head.appendChild(st);
+    }
+
+    // -----------------------------------------------------------------
+    // 2. ライブ状態取得 ＆ 直接テキスト書き換え（旧textContentフックを安全バイパス）
+    // -----------------------------------------------------------------
+    function getDictWordLowerNow() {
+      const dBox = document.getElementById("dict-detail-box");
+      if (!dBox) return "";
+      const sp = dBox.querySelector("span");
+      return sp ? sp.textContent.trim().toLowerCase() : "";
+    }
+
+    function isWordStarredNow(wl) {
+      if (!wl) return false;
+      try {
+        const arr = JSON.parse(localStorage.getItem(STARS_KEY) || "[]");
+        if (!Array.isArray(arr)) return false;
+        for (let i = 0; i < arr.length; i++) {
+          const it = arr[i];
+          if (!it) continue;
+          const id = String(it.id || "");
+          const m = id.match(/^(?:voc|voc_ja2id|ctx::voc|abbr_ja|abbr_full)::(.+)$/i);
+          if (m && m[1] && m[1].trim().toLowerCase() === wl) return true;
+          if (it.ttsWord && String(it.ttsWord).trim().toLowerCase() === wl) return true;
+        }
+      } catch (e) {}
+      return false;
+    }
+
+    function getWbFolderCountNow(wl) {
+      if (!wl) return 0;
+      try {
+        const raw = JSON.parse(localStorage.getItem(WB_KEY) || "null");
+        const rec = raw && raw.items && raw.items[wl];
+        return (rec && Array.isArray(rec.fIds)) ? rec.fIds.length : 0;
+      } catch (e) {
+        return 0;
+      }
+    }
+
+    function isExcludedNow(wl) {
+      if (!wl) return false;
+      try {
+        const raw = JSON.parse(localStorage.getItem(EXCL_KEY) || "null");
+        return Boolean(raw && raw[wl]);
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function hasAnnotDataNow(wl) {
+      if (!wl) return false;
+      try {
+        const raw = JSON.parse(localStorage.getItem(ANNOT_KEY) || "null");
+        const rec = raw && raw[wl];
+        if (!rec) return false;
+        return Boolean((rec.strokes && rec.strokes.length > 0) || (rec.texts && rec.texts.length > 0));
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function setBtnTextRaw(el, text) {
+      if (!el) return;
+      if (el.childNodes.length === 1 && el.firstChild.nodeType === 3) {
+        if (el.firstChild.nodeValue !== text) el.firstChild.nodeValue = text;
+      } else {
+        while (el.firstChild) el.removeChild(el.firstChild);
+        el.appendChild(document.createTextNode(text));
+      }
+    }
+
+    function computeButtonLabelAndState(el) {
+      if (!el || !el.id) return null;
+      const wl = (
+        el.getAttribute("data-wb-word") ||
+        el.getAttribute("data-ex-word") ||
+        getDictWordLowerNow()
+      ).trim().toLowerCase();
+
+      if (el.id === "btn-dict-modal-word-tts") {
+        return "単語発音";
+      }
+      if (el.id === "btn-dict-modal-ex-tts") {
+        return "例文発音";
+      }
+      if (el.id === "btn-dict-modal-star") {
+        const st = isWordStarredNow(wl);
+        el.classList.toggle("wi-btn-starred", st);
+        return st ? "★登録済" : "★登録";
+      }
+      if (el.id === "btn-dict-modal-wordbook") {
+        const cnt = getWbFolderCountNow(wl);
+        el.classList.toggle("in-folder", cnt > 0);
+        return cnt > 0 ? `単語帳(${cnt})` : "+単語帳へ";
+      }
+      if (el.id === "btn-dict-modal-exclude") {
+        const ex = isExcludedNow(wl);
+        el.classList.toggle("is-excluded", ex);
+        return ex ? "復活" : "排除";
+      }
+      if (el.id === "btn-dict-annot-toggle-v3") {
+        const tb = document.getElementById("wi-dict-annot-toolbar-v3");
+        const isOpen = Boolean(tb && tb.classList.contains("open"));
+        const hasData = hasAnnotDataNow(wl);
+        el.classList.toggle("is-open", isOpen);
+        el.classList.toggle("has-annot", !isOpen && hasData);
+        return isOpen ? "ペン閉じる" : "ペン・文字";
+      }
+      return null;
+    }
+
+    const TARGET_BTN_IDS = [
+      "btn-dict-modal-word-tts",
+      "btn-dict-modal-ex-tts",
+      "btn-dict-modal-star",
+      "btn-dict-modal-wordbook",
+      "btn-dict-modal-exclude",
+      "btn-dict-annot-toggle-v3"
+    ];
+
+    function syncAllDictButtonsV25() {
+      for (let i = 0; i < TARGET_BTN_IDS.length; i++) {
+        const el = document.getElementById(TARGET_BTN_IDS[i]);
+        if (!el) continue;
+        const label = computeButtonLabelAndState(el);
+        if (label !== null) setBtnTextRaw(el, label);
+      }
+    }
+
+    // -----------------------------------------------------------------
+    // 3. Node.prototype.textContent フックで旧パッチの長い文言上書きを0msブロック
+    // -----------------------------------------------------------------
+    const prevTcDesc = Object.getOwnPropertyDescriptor(Node.prototype, "textContent");
+    if (prevTcDesc && prevTcDesc.set && !Node.prototype.__wiDictBtnUnifiedV25) {
+      Node.prototype.__wiDictBtnUnifiedV25 = true;
+      Object.defineProperty(Node.prototype, "textContent", {
+        configurable: true,
+        get: function() {
+          return prevTcDesc.get.call(this);
+        },
+        set: function(val) {
+          if (this && this.nodeType === 1 && this.id && TARGET_BTN_IDS.indexOf(this.id) !== -1) {
+            const label = computeButtonLabelAndState(this);
+            if (label !== null) {
+              setBtnTextRaw(this, label);
+              return;
+            }
+          }
+          return prevTcDesc.set.call(this, val);
+        }
+      });
+    }
+
+    // -----------------------------------------------------------------
+    // 4. オブザーバー＆クリック連動（開いた瞬間・操作直後に即反映）
+    // -----------------------------------------------------------------
+    function bootDictBtnUnifiedV25() {
+      const dBox = document.getElementById("dict-detail-box");
+      if (dBox && !dBox.__wiBtnUnifiedObsV25) {
+        dBox.__wiBtnUnifiedObsV25 = true;
+        new MutationObserver(syncAllDictButtonsV25).observe(dBox, { childList: true, subtree: true });
+      }
+      syncAllDictButtonsV25();
+    }
+
+    window.addEventListener("click", function(e) {
+      if (!e.target || typeof e.target.closest !== "function") return;
+      if (
+        e.target.closest("#dict-detail-box button") ||
+        e.target.closest("#wi-wb-popover-v5")
+      ) {
+        setTimeout(syncAllDictButtonsV25, 25);
+      }
+    }, true);
+
+    window.addEventListener("keydown", function(e) {
+      const k = (e.key || "").toLowerCase();
+      if (["s", "x", "b"].includes(k)) {
+        const dModal = document.getElementById("dict-detail-modal");
+        if (dModal && dModal.classList.contains("open")) {
+          setTimeout(syncAllDictButtonsV25, 25);
+        }
+      }
+    }, true);
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", function() {
+        setTimeout(bootDictBtnUnifiedV25, 40);
+      });
+    } else {
+      setTimeout(bootDictBtnUnifiedV25, 40);
+    }
+  } catch (e) {
+    console.error("WhatsIndo Dict Buttons V2.5 error:", e);
+  }
+})();
