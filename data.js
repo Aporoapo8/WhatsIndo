@@ -13686,7 +13686,7 @@ window.WHATSINDO_EXTERNAL_DATA = {
       m: "（言葉・綴り・規格・手順などを）標準化する、公式の基準として定める",
       ex: "Badan Bahasa bertugas menyusun kamus serta membakukan istilah-istilah baru dari bahasa asing.",
       tr: "言語庁は辞書を編纂し、外国語からの新しい専門用語を標準化する任務を負っている。",
-      note: "KBBI（bakuの項の用例：salah satu tujuan politik bahasa nasional ialah pembakuan bahasa Indonesia）にそのまま収録されている重要動詞！"
+      note: ""
     },
     {
       p: "v", w: "mengagihkan", r: "agih",
@@ -168192,5 +168192,929 @@ console.error("WhatsIndo Islam & 10-word pack error:", e);
     }
   } catch (e) {
     console.error("WhatsIndo Dict Buttons V2.5 error:", e);
+  }
+})();
+/* =====================================================================
+   WhatsIndo ご指名40語 ＋ 厳選派生語7語 追加・更新パック（全47語・安全直結版）
+   - 出題対象（6語）：hening, seolah, pikir ＋ 派生語 membangkang, bertarung, bervariasi
+   - 辞書専用（dictOnly: true, 41語）：pengekspor, bertumbukan, cakaran, penyempitan,
+     pelapukan, memfungsikan, audiensi(品詞n修正＆辞書専用化), menyederhanakan,
+     kesederhanaan, penyederhanaan, ketajaman, pembangkang, kesanggupan, mengheningkan,
+     aditif, penyedap, lekang, kekasaran, pengawet, penenggelaman, tersingkir, petarung,
+     berdarah, memfavoritkan, ronde, berpihak, melemparkan, tendangan, variatif, ortodoks,
+     pukulan, sikut, menghunjamkan, bergulat, kanvas, bantingan, meramaikan
+     ＋ 派生語 pembangkangan, lemparan, menghunjam, menyikut
+   - 現代実用意味に厳選（死語・古語なし）・**記号ゼロ・文字バグゼロ・try-catch完全保護
+   ===================================================================== */
+(function() {
+  try {
+    const d = window.WHATSINDO_EXTERNAL_DATA;
+    if (!d || !Array.isArray(d.vocab)) return;
+
+    const dictOnlySet     = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+    const persistentAdded = window.__wiPersistentAddedVocab || (window.__wiPersistentAddedVocab = new Map());
+    const vMap            = window.__wiMasterVocabMap || (window.__wiMasterVocabMap = new Map());
+    const catMap          = window.__WI_V5_VCAT || (window.__WI_V5_VCAT = new Map());
+
+    const NEW_47_PACK = [
+      {
+        "p": "a",
+        "w": "hening",
+        "r": "hening",
+        "tier": 1,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "①（夜や室内・森などが物音一つせず）シーンと静まり返った、静寂な ②（水や心が）澄み切った、清らかな",
+        "ex": "Suasana desa di kaki gunung itu terasa begitu hening dan damai pada dini hari.",
+        "tr": "山の麓にあるその村の雰囲気は、未明にはとても静まり返って穏やかに感じられる。",
+        "note": "■ 【重要表現・コロケーション】：\n・suasana / malam yang hening：静まり返った雰囲気 ／ 静寂の夜\n・mengheningkan cipta：黙祷を捧げる（式典の定番表現）\n・keheningan（名詞）：静寂、しじま（memecah keheningan＝静寂を破る）\n■ 【類義語】：senyap（無音・ひっそりした）、sunyi（静かな・寂しい）、tenang（穏やかな）。"
+      },
+      {
+        "p": "other",
+        "w": "seolah",
+        "r": "olah",
+        "tier": 1,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "まるで〜かのように、あたかも〜であるかのように（事実とは異なる比喩・仮定の様子を表す接続詞＝seolah-olah / seakan-akan）",
+        "ex": "Ia berjalan santai seolah tidak terjadi apa-apa setelah insiden kecil tersebut.",
+        "tr": "彼はその小さな騒動の後、まるで何事も起きなかったかのように気楽に歩いていた。",
+        "note": "■ 【用法】：『seolah-olah』の短縮形で、ニュース・小説・日常の書き言葉で超頻出。\n■ 【類義語セット】：seolah / seolah-olah / seakan / seakan-akan（いずれも「まるで〜かのように」）。"
+      },
+      {
+        "p": "v",
+        "w": "pikir",
+        "r": "pikir",
+        "tier": 1,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "思う、考える（『Saya pikir ~＝私は〜だと思う』や命令『pikir dulu＝まず考えろ』で頻出する語幹。自動詞は berpikir、他動詞は memikirkan）",
+        "ex": "Saya pikir rencana kerja sama ini perlu dikaji lebih teliti sebelum disepakati bersama.",
+        "tr": "この協力計画は共同合意する前に、より綿密に検討する必要があると思う。",
+        "note": "■ 【重要コロケーション】：\n・saya pikir / menurut pikir saya：私は〜だと思う\n・pikir-pikir：よく考えてみる、考え込む（kalau dipikir-pikir＝よく考えてみると）\n・pola pikir：思考様式、マインドセット\n■ 【pikir 関連語ファミリー】：berpikir（考える・思考する）、memikirkan（〜について深く考える・心配する）、pikiran（考え・頭の中）、pemikiran（思想・見解）、kepikiran（〜が頭から離れず気になる）。"
+      },
+      {
+        "p": "v",
+        "w": "membangkang",
+        "r": "bangkang",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "（命令・規則・権力・親などに）反抗する、逆らう、従わない、背く（＝melawan / menentang / tidak mematuhi）",
+        "ex": "Beberapa anggota partai itu memilih membangkang terhadap keputusan resmi pimpinan pusat.",
+        "tr": "その政党の数名の党員は、中央指導部の公式決定に反抗する（従わない）道を選んだ。",
+        "note": "■ 【語構成】：meN- + bangkang（反抗する）。政治・社会・組織ニュースで頻出の自動詞。\n■ 【重要コロケーション】：\n・membangkang perintah / aturan / keputusan：命令／規則／決定に背く\n■ 【bangkang 関連語ファミリー】：pembangkang（反抗者・反体制派・異端児）、pembangkangan（反抗・不服従：pembangkangan sipil＝市民的不服従）。"
+      },
+      {
+        "p": "v",
+        "w": "bertarung",
+        "r": "tarung",
+        "tier": 1,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①（リングや戦場で）戦う、激突する、一騎打ちをする ②（選挙・市場・大会などで）激しく争う、競い合う（＝bersaing ketat / berlaga）",
+        "ex": "Dua petinju papan atas dunia akan bertarung memperebutkan sabuk juara pada akhir pekan ini.",
+        "tr": "世界トップクラスのボクサー2人が、今週末チャンピオンベルトを懸けて激突する（戦う）。",
+        "note": "■ 【語構成】：ber- + tarung（戦う・争う）。スポーツから選挙・ビジネス競争まで幅広く使える重要動詞。\n■ 【重要コロケーション】：\n・bertarung di atas ring / di pemilu / di pasar global：リング上で戦う ／ 選挙で激突する ／ 世界市場で競う\n・bertarung nyawa：命を懸けて戦う\n■ 【tarung 関連語ファミリー】：petarung（格闘家・ファイター）、pertarungan（試合・激闘・接戦）、mempertarungkan（賭けて戦わせる）。"
+      },
+      {
+        "p": "v",
+        "w": "bervariasi",
+        "r": "variasi",
+        "tier": 1,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "様々である、多様である、幅がある、変化に富む（価格・サイズ・種類・意見などが一定ではなく複数あること＝beragam / bermacam-macam）",
+        "ex": "Harga tiket pesawat menuju Bali sangat bervariasi tergantung pada musim liburan dan maskapai.",
+        "tr": "バリ島行きの航空券価格は、休暇シーズンや航空会社によって非常に幅がある（様々だ）。",
+        "note": "■ 【語構成】：ber- + variasi（バリエーション・多様性）。日常会話・ビジネス・検定読解で超頻出！\n■ 【重要コロケーション】：\n・harga / ukuran / pilihan yang bervariasi：幅のある価格 ／ 様々なサイズ ／ 多彩な選択肢\n■ 【variasi 関連語ファミリー】：variasi（バリエーション・変化）、variatif（形容詞：変化に富んだ・多彩な）。"
+      },
+      {
+        "p": "n",
+        "w": "pengekspor",
+        "r": "ekspor",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "輸出業者、輸出企業、輸出国（海外へ商品を輸出する主体＝eksportir ⇔ pengimpor＝輸入業者・輸入国）",
+        "ex": "Indonesia dikenal sebagai salah satu negara pengekspor minyak kelapa sawit dan nikel terbesar di dunia.",
+        "tr": "インドネシアは世界最大級のパーム油およびニッケルの輸出国のひとつとして知られている。",
+        "note": "■ 【語構成と対比】：peN- + ekspor（輸出）。\n・negara pengekspor（輸出国） ⇔ negara pengimpor（輸入国）\n■ 【ekspor 関連語ファミリー】：ekspor（輸出）、mengekspor（輸出する）、pengeksporan（輸出行為）、eksportir（輸出業者）。"
+      },
+      {
+        "p": "v",
+        "w": "bertumbukan",
+        "r": "tumbuk",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①（車・船・物体・プレート同士が）衝突する、ぶつかり合う（＝bertabrakan） ②（日程・意見・利害が）かち合う、真っ向から対立する",
+        "ex": "Dua kapal kargo dilaporkan bertumbukan di selat yang berkabut tebal pada dini hari tadi.",
+        "tr": "今朝未明、濃霧に覆われた海峡で貨物船2隻が衝突したと報じられた。",
+        "note": "■ 【語構成】：ber- + tumbuk（ぶつかる・搗く）+ -an（相互動作「互いにぶつかり合う」）。\n■ 【重要コロケーション】：\n・bertumbukan keras：激しく衝突する\n・lempeng tektonik bertumbukan（地学）：構造プレート同士が衝突する\n・jadwal bertumbukan：スケジュールがかち合う（＝bentrok）\n■ 【類義語】：bertabrakan（衝突する）、berbenturan（ぶつかり合う・衝突する）。"
+      },
+      {
+        "p": "n",
+        "w": "cakaran",
+        "r": "cakar",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "引っかき傷、爪で引っかいた跡、引っかき攻撃（cakaran kucing＝猫の引っかき傷）",
+        "ex": "Luka akibat cakaran kucing liar sebaiknya segera dibersihkan dengan air mengalir dan cairan antiseptik.",
+        "tr": "野良猫の引っかき傷による怪我は、すぐに流水と消毒液で洗い流すのが望ましい。",
+        "note": "■ 【語構成】：cakar（動物の爪・引っかく）+ -an。\n■ 【cakar 関連語ファミリー】：cakar（爪・足：cakar ayam＝鶏足／基礎工法）、mencakar（引っかく）、tercakar（引っかかれる）。"
+      },
+      {
+        "p": "n",
+        "w": "penyempitan",
+        "r": "sempit",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "狭まること、狭窄（きょうさく）、縮小（penyempitan pembuluh darah＝血管の狭窄、penyempitan jalan＝車線減少・道幅の狭小化）",
+        "ex": "Penumpukan kolesterol jahat dalam jangka panjang dapat memicu penyempitan pembuluh darah jantung.",
+        "tr": "悪玉コレステロールの長期間にわたる蓄積は、心臓の血管の狭窄を引き起こす可能性がある。",
+        "note": "■ 【語構成】：peN- + sempit（狭い：頭文字 s が鼻音化して ny）+ -an。\n■ 【2大頻出コロケーション】：\n① 医療：penyempitan pembuluh darah / saluran napas（血管の狭窄 ／ 気道の狭窄）\n② 交通・都市：penyempitan jalan / lajur（道路の幅員減少・ボトルネック）、penyempitan badan sungai（川幅の狭小化）\n■ 【sempit 関連語ファミリー】：sempit（狭い）、menyempit（狭まる）、mempersempit（狭める・絞り込む）。"
+      },
+      {
+        "p": "n",
+        "w": "pelapukan",
+        "r": "lapuk",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "①（岩石・遺跡・木材などの）風化、劣化、朽ちること ②（建物の柱・構造物などの）老朽化、腐食",
+        "ex": "Tim konservasi rutin memeriksa kondisi batu candi untuk mencegah pelapukan akibat hujan asam dan lumut.",
+        "tr": "保存チームは酸性雨や苔による風化（劣化）を防ぐため、寺院の石材の状態を定期的に点検している。",
+        "note": "■ 【語構成】：pe- + lapuk（朽ちた・もろくなった・風化した）+ -an。世界遺産や文化財保護・地学ニュースの定番語！\n■ 【重要コロケーション】：\n・pelapukan batuan / kayu / bangunan cagar budaya：岩石の風化 ／ 木材の腐朽 ／ 文化財建造物の劣化\n■ 【lapuk 関連語ファミリー】：lapuk（朽ちた・時代遅れの）、melapuk（朽ちる・風化する）。"
+      },
+      {
+        "p": "v",
+        "w": "memfungsikan",
+        "r": "fungsi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "（施設・設備・建物・制度などを本来の役割や別用途で）機能させる、稼働させる、〜として活用する（memfungsikan A sebagai B）",
+        "ex": "Pemerintah kota kembali memfungsikan taman tersebut sebagai ruang terbuka hijau dan sarana olahraga warga.",
+        "tr": "市政府はその公園を市民のための緑地空間および運動施設として再び機能させた（活用した）。",
+        "note": "■ 【語構成】：meN- + fungsi（機能・役割）+ -kan。\n■ 【重要コロケーション】：\n・memfungsikan kembali ~：〜を再稼働させる、再び機能させる\n・memfungsikan A sebagai B：AをBとして機能させる・使う\n■ 【fungsi 関連語ファミリー】：fungsi（機能）、berfungsi（機能する）、fungsional（機能的な）、alih fungsi（用途転換）。"
+      },
+      {
+        "p": "n",
+        "w": "audiensi",
+        "r": "audiensi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "公式面会、表敬訪問、陳情・意見交換のための面談（代表団が大統領・大臣・知事・学長など要人と行う公式な面会）",
+        "ex": "Perwakilan asosiasi petani melakukan audiensi dengan menteri pertanian untuk membahas stabilitas harga pupuk.",
+        "tr": "農家協会の代表は肥料価格の安定について話し合うため、農業大臣と公式面会を行った。",
+        "note": "■ 【重要コロケーション】：\n・melakukan / menggelar audiensi dengan ~：〜と公式面会を行う\n・menerima audiensi dari ~：〜からの表敬・陳情面会を受ける\n■ 【注意】：英語の audience（聴衆・観客）はインドネシア語では主に『audiens』または『penonton / hadirin』と言い、『audiensi』は要人への公式面会を指すのが一般的。"
+      },
+      {
+        "p": "v",
+        "w": "menyederhanakan",
+        "r": "sederhana",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "（手続き・規則・仕組み・説明・数式などを）簡素化する、単純化する、シンプルにする（＝mempermudah / meringkas）",
+        "ex": "Sistem perizinan daring ini dirancang untuk menyederhanakan proses administrasi bagi pelaku usaha baru.",
+        "tr": "このオンライン許認可システムは、新規事業者のための行政手続きを簡素化するために設計されている。",
+        "note": "■ 【語構成】：meN- + sederhana（シンプルな・質素な：頭文字 s が鼻音化して ny）+ -kan。\n■ 【sederhana 関連語ファミリーの重要区別】：\n・menyederhanakan（他動詞）：簡素化する、単純化する\n・penyederhanaan（行為名詞）：簡素化すること（例：penyederhanaan birokrasi / pajak＝官僚手続き／税制の簡素化）\n・kesederhanaan（状態名詞）：質素さ、素朴さ、シンプルさ（例：hidup dalam kesederhanaan＝質素に暮らす）"
+      },
+      {
+        "p": "n",
+        "w": "kesederhanaan",
+        "r": "sederhana",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "質素さ、謙虚で飾らない暮らしぶり、素朴さ、シンプルさ（⇔ kemewahan＝贅沢・豪華さ）",
+        "ex": "Tokoh masyarakat tersebut sangat dihormati karena keteladanan dan kesederhanaan gaya hidupnya.",
+        "tr": "その地域の有力者は、模範的な姿勢と質素な（飾らない）ライフスタイルによって非常に尊敬されている。",
+        "note": "■ 【語構成】：ke- + sederhana + -an。手続きを減らす『penyederhanaan（簡素化）』とは意味が全く異なるので対比で覚えるのがコツ！"
+      },
+      {
+        "p": "n",
+        "w": "penyederhanaan",
+        "r": "sederhana",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "簡素化、単純化、スリム化（規制・許認可・組織・税制・手続きなどを分かりやすく簡単にするプロセス）",
+        "ex": "Penyederhanaan aturan investasi diharapkan mampu mendorong masuknya modal asing ke sektor manufaktur.",
+        "tr": "投資規則の簡素化は、製造業セクターへの外資流入を後押しできると期待されている。",
+        "note": "■ 【語構成】：peN- + sederhana（頭文字 s が鼻音化して ny）+ -an。\n■ 【重要コロケーション】：penyederhanaan birokrasi / regulasi / prosedur / struktur（官僚手続き／規制／手順／組織の簡素化）。"
+      },
+      {
+        "p": "n",
+        "w": "ketajaman",
+        "r": "tajam",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "①（刃物などの）切れ味、鋭さ ②（視覚・聴覚・洞察力・分析・攻撃力などの）鋭敏さ、鋭さ、キレ",
+        "ex": "Ketajaman analisis ekonomi dan gaya penulisannya membuat artikel kolomnis itu selalu dinantikan pembaca.",
+        "tr": "経済分析の鋭さと文体によって、そのコラムニストの記事は常に読者から待ち望まれている。",
+        "note": "■ 【語構成】：ke- + tajam（鋭い）+ -an。\n■ 【重要コロケーション】：\n・ketajaman penglihatan / indra：視力 ／ 感覚の鋭さ\n・ketajaman analisis / insting / intuisi：分析の鋭さ ／ 勘・直感の鋭さ\n・ketajaman lini depan（スポーツ）：前線（攻撃陣）の決定力・切れ味"
+      },
+      {
+        "p": "n",
+        "w": "pembangkang",
+        "r": "bangkang",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "反抗者、反体制派、反逆者、命令や方針に背く者（＝penentang / pemberontak）",
+        "ex": "Sejumlah tokoh pembangkang politik di negara itu menyerukan reformasi demokrasi secara damai.",
+        "tr": "その国の複数の政治的反体制派（反抗者）のリーダーたちは、平和的な民主改革を呼びかけた。",
+        "note": "■ 【語構成】：peN- + bangkang（反抗する）。\n■ 【bangkang 関連語ファミリー】：membangkang（反抗する・従わない）、pembangkang（反抗者・反体制派）、pembangkangan（不服従・反抗）。"
+      },
+      {
+        "p": "n",
+        "w": "kesanggupan",
+        "r": "sanggup",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "①（仕事をやり遂げる・支払うなどの）能力、力量、キャパシティ（＝kemampuan） ②引き受ける意思、承諾、覚悟（＝kesediaan）",
+        "ex": "Sebelum menandatangani kontrak, pastikan kesanggupan tim kita untuk memenuhi target produksi bulanan.",
+        "tr": "契約書に署名する前に、毎月の生産目標を達成できるわがチームの力量（対応能力）を確認しなさい。",
+        "note": "■ 【語構成】：ke- + sanggup（〜できる・引き受ける能力と意思がある）+ -an。\n■ 【重要コロケーション】：\n・surat pernyataan kesanggupan：承諾書、履行能力誓約書\n・sesuai kesanggupan：無理のない範囲で、能力に応じて\n■ 【関連語】：sanggup（〜できる・引き受ける）、menyanggupi（引き受ける・承諾する）。"
+      },
+      {
+        "p": "v",
+        "w": "mengheningkan",
+        "r": "hening",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①（心・場・水などを）静める、澄ませる ②（※最重要慣用句『mengheningkan cipta』で）黙祷（もくとう）を捧げる",
+        "ex": "Seluruh peserta upacara menundukkan kepala sejenak untuk mengheningkan cipta demi mengenang jasa para pahlawan.",
+        "tr": "式典の全参加者は、英雄たちの功績を偲ぶためしばし頭を垂れて黙祷を捧げた。",
+        "note": "■ 【インドネシア国民全員が知る必須表現】：\n・mengheningkan cipta：黙祷を捧げる（直訳：心を静め澄ませる。独立記念日や学校の朝礼でも定番の儀式＆同名の追悼歌あり！）\n■ 【関連語】：hening（静まり返った・澄み切った）、keheningan（静寂）。"
+      },
+      {
+        "p": "n",
+        "w": "aditif",
+        "r": "aditif",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "添加物、添加剤（食品の保存・風味・色調を保つ『zat aditif makanan＝食品添加物』や、燃料・オイルに混ぜる性能向上剤『aditif bahan bakar』）",
+        "ex": "Konsumen disarankan membaca label kemasan untuk mengetahui kandungan zat aditif seperti pengawet dan pewarna.",
+        "tr": "消費者は保存料や着色料などの添加物の含有量を知るため、パッケージの表示を読むことが勧められている。",
+        "note": "■ 【重要コロケーション】：\n・zat aditif / bahan aditif pangan：食品添加物（pengawet＝保存料、pewarna＝着色料、pemanis＝甘味料、penyedap＝調味料）\n・tanpa bahan aditif：無添加の"
+      },
+      {
+        "p": "n",
+        "w": "penyedap",
+        "r": "sedap",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "調味料、うま味調味料、風味付け（ほぼ常に『penyedap rasa』の形で、うま味調味料［MSG/micin］やブイヨン・香辛料など料理を美味しくする素材を指す）",
+        "ex": "Ibu lebih memilih menggunakan kaldu jamur dan rempah alami sebagai penyedap rasa daripada penyedap buatan.",
+        "tr": "母は人工のうま味調味料よりも、きのこ出汁や天然スパイスを調味料（風味付け）として使う方を好む。",
+        "note": "■ 【語構成】：peN- + sedap（美味しい・風味が良い：頭文字 s が鼻音化して ny）。\n■ 【重要コロケーション】：\n・penyedap rasa (alami / buatan)：（天然／人工の）うま味調味料\n・tanpa penyedap rasa (tanpa MSG)：化学調味料不使用"
+      },
+      {
+        "p": "a",
+        "w": "lekang",
+        "r": "lekang",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "①（塗装・皮・実などが）剥がれる、ひび割れて離れる ②（※現代で最頻出の否定慣用句『tak lekang oleh waktu / zaman』で）色褪せない、時代を超えて不朽の、廃れない",
+        "ex": "Karya sastra klasik tersebut memiliki pesan kemanusiaan yang tak lekang oleh waktu.",
+        "tr": "その古典文学作品は、時代を超えて色褪せない（不朽の）人間愛のメッセージを持っている。",
+        "note": "■ 【現代インドネシア語の黄金慣用句】：\n・tak lekang oleh waktu / zaman：時を経ても色褪せない、永遠に廃れない（名曲・映画・文化・友情を褒める定番表現！）"
+      },
+      {
+        "p": "n",
+        "w": "kekasaran",
+        "r": "kasar",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "①（態度・言葉遣い・プレーなどの）粗暴さ、無礼さ、荒っぽさ ②（表面・手触りの）ザラザラ感、粗さ",
+        "ex": "Wasit langsung mengeluarkan kartu kuning karena kekasaran tekel pemain bertahan tersebut.",
+        "tr": "主審はそのディフェンダーのタックルの荒っぽさ（危険な粗暴プレー）により、直ちにイエローカードを出した。",
+        "note": "■ 【語構成】：ke- + kasar（粗い・乱暴な・失礼な）+ -an。\n■ 【使い分け注意】：『kekerasan（暴力・厳しさ：語幹 keras）』と綴りがそっくり！\n・kekasaran：粗暴さ、言葉や態度の荒さ、表面の粗さ\n・kekerasan：暴力、虐待（例：kekerasan fisik / KDRT）"
+      },
+      {
+        "p": "n",
+        "w": "pengawet",
+        "r": "awet",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "保存料、防腐剤（食品や化粧品の腐敗を防ぎ日持ちを良くする添加物：bahan pengawet）",
+        "ex": "Roti segar tanpa bahan pengawet umumnya hanya bertahan dua hingga tiga hari pada suhu ruang.",
+        "tr": "保存料無添加の焼きたてパンは、一般的に常温で2〜3日しか日持ちしない。",
+        "note": "■ 【語構成】：peN- + awet（長持ちする・日持ちする）。\n■ 【重要コロケーション】：bahan / zat pengawet（保存料・防腐剤）、tanpa pengawet（保存料不使用）。\n■ 【awet 関連語ファミリー】：awet（長持ちする：awet muda＝若々しい）、mengawetkan（保存処理する）、pengawetan（保存加工）。"
+      },
+      {
+        "p": "n",
+        "w": "penenggelaman",
+        "r": "tenggelam",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "沈没させること、撃沈、爆破沈没処分（特にインドネシア海洋水産省による違法漁船の爆破沈没処分『penenggelaman kapal ilegal』で超有名）",
+        "ex": "Kebijakan penenggelaman kapal pencuri ikan pernah menjadi sorotan internasional sebagai upaya tegas menjaga kedaulatan laut.",
+        "tr": "密漁船の沈没処分政策は、海洋主権を守る断固たる取り組みとしてかつて国際的な注目を浴びた。",
+        "note": "■ 【語構成】：peN- + tenggelam（沈む：頭文字 t が鼻音化して n）+ -an。\n■ 【tenggelam 関連語ファミリー】：tenggelam（沈む・溺れる・日が沈む）、menenggelamkan（沈める・撃沈する）。"
+      },
+      {
+        "p": "v",
+        "w": "tersingkir",
+        "r": "singkir",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①（大会・予選・競争から）敗退する、脱落する、弾き出される ②（社会・職場・市場から）追いやられる、疎外される、隅に押しやられる",
+        "ex": "Tim unggulan itu secara mengejutkan tersingkir pada babak penyisihan grup setelah kalah dua kali berturut-turut.",
+        "tr": "そのシードチームは2連敗を喫した後、予想外にもグループ予選で敗退した。",
+        "note": "■ 【語構成】：ter- + singkir（退く・どかす）。スポーツ・経済・社会ニュースすべてで超頻出！\n■ 【重要コロケーション】：\n・tersingkir di babak penyisihan / perempat final：予選／準々決勝で敗退する\n・tersingkir dari persaingan / pasar：競争／市場から脱落・淘汰される\n■ 【singkir 関連語ファミリー】：menyingkir（脇へ退く・避難する）、menyingkirkan（排除する・打ち負かして勝ち進む）、terpinggirkan（社会的に周縁化・疎外される）。"
+      },
+      {
+        "p": "n",
+        "w": "petarung",
+        "r": "tarung",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①格闘家、ファイター（MMA・ムエタイ・ボクシングなどの選手） ②（比喩で：逆境に負けない）闘士、勝負師、ファイター気質の人",
+        "ex": "Petarung bela diri campuran asal Indonesia itu tampil impresif dengan kombinasi pukulan dan bantingan yang rapi.",
+        "tr": "そのインドネシア出身の総合格闘家（MMAファイター）は、的確なパンチと投げ技のコンビネーションで印象的な試合を見せた。",
+        "note": "■ 【語構成】：pe- + tarung（戦う）。\n■ 【重要コロケーション】：petarung MMA / UFC（MMAファイター）、mental petarung（負けん気の強い勝負師メンタル）。\n■ 【関連語】：bertarung（戦う）、pertarungan（戦い・激闘）、petinju（ボクサー）。"
+      },
+      {
+        "p": "v",
+        "w": "berdarah",
+        "r": "darah",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "①出血する、血が出る、血まみれになる ②（〜の）血を引く、〜系である（berdarah campuran＝ミックス・混血） ③血なまぐさい、流血の（tragedi berdarah）",
+        "ex": "Pelipis petinju itu mulai berdarah pada ronde keempat setelah terkena sikutan yang cukup keras.",
+        "tr": "そのボクサーのこめかみは、かなり強い肘撃ちを受けた後の第4ラウンドに出血し始めた。",
+        "note": "■ 【3大頻出コロケーション】：\n① 出血：hidung / gusi / luka berdarah（鼻血が出る ／ 歯茎・傷から出血する）、demam berdarah [DBD]（デング出血熱！）\n② 血統：berdarah Indonesia-Jepang（インドネシアと日本の血を引く）、berdarah biru（王侯貴族の血筋）\n③ 比喩・事件：tragedi / konflik berdarah（流血の悲劇／紛争）、berdarah dingin（冷血な）"
+      },
+      {
+        "p": "v",
+        "w": "memfavoritkan",
+        "r": "favorit",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①〜を一番好む、お気に入り（推し）にする ②（スポーツ・コンテストで〜を）本命視する、優勝候補に挙げる",
+        "ex": "Banyak pengamat olahraga memfavoritkan pasangan ganda putra Indonesia tersebut untuk menjuarai turnamen tahun ini.",
+        "tr": "多くのスポーツ解説者が、そのインドネシア男子ダブルスペアを今年の大会の優勝本命に挙げている。",
+        "note": "■ 【語構成】：meN- + favorit（お気に入り・本命）+ -kan。受動態『difavoritkan menjadi juara（優勝本命と目される）』も超頻出！"
+      },
+      {
+        "p": "n",
+        "w": "ronde",
+        "r": "ronde",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①（ボクシング・格闘技の）ラウンド、回（ronde pertama＝第1ラウンド） ②（交渉・会議・選挙・大会などの）ラウンド、回戦、巡回 ③（ジャワの伝統的な温かい生姜スープ白玉デザート：wedang ronde）",
+        "ex": "Pertarungan sengit itu akhirnya berakhir melalui kemenangan angka setelah berlangsung penuh selama lima ronde.",
+        "tr": "その激しい試合は5ラウンドフルに戦われた末、最終的に判定勝ちで決着した。",
+        "note": "■ 【重要コロケーション】：\n・ronde pertama / kedua / penentuan：第1ラウンド ／ 第2ラウンド ／ 勝負のラウンド\n・menang di ronde ketiga：第3ラウンドで勝利する\n・wedang ronde（グルメ）：ピーナッツ餡入りの団子を甘い生姜湯に浮かべた中部ジャワ・ジョグジャカルタ名物の夜スイーツ！"
+      },
+      {
+        "p": "v",
+        "w": "berpihak",
+        "r": "pihak",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "（一方の側・特定の人や主張に）味方する、肩を持つ、偏る、寄る（berpihak pada / kepada ~ ⇔ netral＝中立の）",
+        "ex": "Sebagai moderator diskusi, ia harus bersikap netral dan tidak boleh berpihak kepada salah satu kubu.",
+        "tr": "討論の司会者として、彼は中立の立場を保たなければならず、どちらか一方の陣営に肩入れしてはならない。",
+        "note": "■ 【語構成】：ber- + pihak（側・当事者）。\n■ 【重要コロケーション】：\n・berpihak pada kebenaran / rakyat kecil：正義の味方をする ／ 庶民の側に立つ\n・keberuntungan berpihak pada kami：運が私たちに味方した\n・tidak berpihak（中立・不偏不党）\n■ 【関連語】：keberpihakan（肩入れ・偏向・どちらの側に立つかという姿勢）、memihak（味方する・偏る）。"
+      },
+      {
+        "p": "v",
+        "w": "melemparkan",
+        "r": "lempar",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①（ボール・石・物などを）放り投げる、投げつける ②（質問・批判・冗談・視線・パンチなどを）投げかける、浴びせる、放つ",
+        "ex": "Petinju itu melemparkan rangkaian pukulan cepat ke arah wajah lawan sebelum bel akhir berbunyi.",
+        "tr": "そのボクサーは終了のゴングが鳴る前に、相手の顔面へ向けて素早い連続パンチを浴びせた。",
+        "note": "■ 【語構成】：me- + lempar（投げる）+ -kan。\n■ 【2大頻出コロケーション】：\n① 物理：melemparkan bola / benda ke ~（ボール／物を〜へ投げる）\n② 比喩（ニュース・スポーツ頻出）：melemparkan kritik / pertanyaan / sindiran / candaan / pukulan（批判／質問／皮肉／冗談／パンチを投げかける・放つ）\n■ 【関連語】：melempar（投げる）、lemparan（投球・スロー）、terlempar（投げ出される・弾き飛ばされる）。"
+      },
+      {
+        "p": "n",
+        "w": "tendangan",
+        "r": "tendang",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "キック、蹴り、シュート（サッカーや格闘技における足での蹴り・一撃）",
+        "ex": "Gol penentu kemenangan tercipta melalui tendangan bebas melengkung yang mengarah tepat ke sudut gawang.",
+        "tr": "決勝ゴールは、ゴール隅へ正確に向かったカーブのかかったフリーキックによって生まれた。",
+        "note": "■ 【サッカー＆格闘技の必須コロケーション】：\n・tendangan bebas / penalti / sudut (pojok)：フリーキック ／ PK（ペナルティキック） ／ コーナーキック\n・tendangan keras / voli / salto：強烈なシュート ／ ボレーシュート ／ オーバーヘッドキック\n・tendangan tinggi / memutar（格闘技）：ハイキック ／ 後ろ回し蹴り\n■ 【関連語】：menendang（蹴る）。"
+      },
+      {
+        "p": "a",
+        "w": "variatif",
+        "r": "variasi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "多彩な、変化に富んだ、バリエーション豊かな（＝bervariasi / beragam ⇔ monoton＝単調な）",
+        "ex": "Gaya bertarungnya semakin sulit ditebak lawan karena serangan yang ia lancarkan jauh lebih variatif.",
+        "tr": "彼の繰り出す攻撃がはるかに多彩になったため、そのファイトスタイルは相手にとってますます予測しにくくなった。",
+        "note": "■ 【重要コロケーション】：\n・menu / serangan / metode belajar yang variatif：多彩なメニュー ／ バリエーション豊かな攻撃 ／ 変化に富んだ学習法\n■ 【variasi 関連語ファミリー】：variasi（バリエーション・多様性）、bervariasi（様々である・幅がある）、variatif（変化に富んだ）。対義語：monoton（単調な）。"
+      },
+      {
+        "p": "a",
+        "w": "ortodoks",
+        "r": "ortodoks",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①正統派の、伝統的・保守的な、昔ながらのやり方に忠実な ②（ボクシング・格闘技）オーソドックス構え（左足・左手を前に出す右利きの基本スタンス ⇔ southpaw／kidal） ③東方正教会の",
+        "ex": "Meski bertarung dengan gaya ortodoks, ia sesekali mengubah posisi kakinya untuk membingungkan lawan.",
+        "tr": "オーソドックス（右利き基本）スタイルで戦っているものの、彼は相手を惑わせるために時折スタンス（足の位置）を切り替える。",
+        "note": "■ 【2大頻出文脈】：\n① 一般・思想・経済：pandangan / metode ortodoks（正統派の／保守的・従来型の見解・手法）\n② 格闘技：gaya / kuda-kuda ortodoks（オーソドックス構え）"
+      },
+      {
+        "p": "n",
+        "w": "pukulan",
+        "r": "pukul",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①一撃、パンチ、殴打、打撃（ショット・スイング） ②（精神的・経済的・組織的な）大打撃、痛手、ショック（pukulan berat / telak）",
+        "ex": "Kenaikan biaya logistik yang mendadak menjadi pukulan berat bagi para pelaku usaha kecil di daerah itu.",
+        "tr": "急激な物流コストの上昇は、その地域の零細事業者にとって大きな打撃（痛手）となった。",
+        "note": "■ 【2大頻出コロケーション】：\n① 格闘技・スポーツ：pukulan telak / keras / beruntun（クリーンヒット・痛烈な一撃 ／ 強打 ／ 連打）、pukulan smes（バドミントンのスマッシュ）\n② 比喩（経済・社会ニュース頻出！）：pukulan berat / telak bagi ~（〜にとっての大打撃・痛手）\n■ 【関連語】：memukul（叩く・打つ・殴る）、terpukul（打ちのめされる・ショックを受ける）。"
+      },
+      {
+        "p": "n",
+        "w": "sikut",
+        "r": "sikut",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "肘（ひじ）、エルボー（標準語『siku』と並んで日常会話・格闘技で広く使われる語。派生語『menyikut＝肘で突く／ライバルを蹴落とす』『sikut-sikutan＝足の引っ張り合い』も頻出）",
+        "ex": "Dalam pertandingan muay thai, serangan menggunakan sikut dan lutut diperbolehkan sesuai aturan yang berlaku.",
+        "tr": "ムエタイの試合では、現行のルールに従って肘（エルボー）と膝を使った攻撃が認められている。",
+        "note": "■ 【siku と sikut】：\n・siku：肘（KBBI標準の解剖・日常語）、直角（sudut siku-siku）\n・sikut：肘（会話・格闘技で定番）、sikut-sikutan（比喩：職場や政界でライバル同士が蹴落とし合う・出し抜き合うこと！）\n■ 【関連語】：menyikut（肘で突く／蹴落とす）、sikutan（エルボー・肘撃ち）。"
+      },
+      {
+        "p": "v",
+        "w": "menghunjamkan",
+        "r": "hunjam",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "（パンチ・肘・刃物・杭などを）真っ直ぐ深く突き刺す、力強く叩き込む、打ち下ろす",
+        "ex": "Petarung itu menghunjamkan pukulan keras ke arah tubuh lawan hingga membuatnya kehilangan keseimbangan.",
+        "tr": "そのファイターは相手のボディに向けて強烈な一撃を叩き込み、相手のバランスを崩させた。",
+        "note": "■ 【語構成】：meN- + hunjam（真っ直ぐ突き刺さる）+ -kan（他動詞）。\n■ 【自動詞とのペア】：\n・menghunjam（自動詞）：深く突き刺さる、急降下して刺さる（例：tatapan tajam menghunjam＝鋭い視線が突き刺さる）\n・menghunjamkan（他動詞）：〜を深く突き刺す、力強く叩き込む"
+      },
+      {
+        "p": "v",
+        "w": "bergulat",
+        "r": "gulat",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①レスリングをする、組み合って戦う、取っ組み合う ②（困難・問題・病気・締切・仕事などと）格闘する、悪戦苦闘する（bergulat dengan ~）",
+        "ex": "Selama beberapa tahun terakhir, pelaku industri kecil harus bergulat dengan kenaikan harga bahan baku dan persaingan ketat.",
+        "tr": "ここ数年間、零細産業の事業者は原材料費の高騰と激しい競争とに格闘（悪戦苦闘）しなければならなかった。",
+        "note": "■ 【語構成】：ber- + gulat（レスリング・取っ組み合い）。スポーツと比喩のどちらもよく使う！\n■ 【重要コロケーション】：\n・bergulat di matras / kanvas：マット上で組み合う\n・bergulat dengan waktu / masalah / krisis / cedera（比喩）：時間／問題／危機／怪我と格闘する\n■ 【関連語】：gulat（レスリング）、pegulat（レスラー）、pergelutan（格闘・葛藤）。"
+      },
+      {
+        "p": "n",
+        "w": "kanvas",
+        "r": "kanvas",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①（絵画用の）キャンバス、画布 ②（ボクシング・格闘技リングの床面の）キャンバス、マット（terjatuh ke kanvas＝ダウンしてマットに沈む） ③（スニーカーやトートバッグ用の）帆布、キャンバス生地",
+        "ex": "Setelah menerima pukulan telak di dagu, lawannya langsung terjatuh ke kanvas pada menit kedua.",
+        "tr": "顎に痛烈な一撃を受けた後、相手は2分目にそのままリングのキャンバス（マット）へ崩れ落ちた。",
+        "note": "■ 【3大文脈コロケーション】：\n① 美術：melukis di atas kanvas（キャンバスに絵を描く）\n② 格闘技：mencium / terjatuh ke kanvas（マットに沈む・ダウンする）\n③ ファッション：sepatu / tas kanvas（キャンバススニーカー ／ キャンバストート）"
+      },
+      {
+        "p": "n",
+        "w": "bantingan",
+        "r": "banting",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①（格闘技・柔道・レスリングの）投げ技、叩きつけ（テイクダウン・スラム） ②（車・バイクのサスペンションの）乗り心地、路面の揺れ・突き上げ感（bantingan empuk＝乗り心地が柔らかい）",
+        "ex": "Teknik bantingan yang sempurna dari atlet judo itu langsung menghasilkan poin penuh di babak final.",
+        "tr": "その柔道選手の完璧な投げ技は、決勝戦で直ちに一本（満点）をもたらした。",
+        "note": "■ 【語構成】：banting（叩きつける・投げる）+ -an。\n■ 【超実用の2大コロケーション】：\n① 格闘技：teknik bantingan（投げ技）、bantingan keras（強烈なスラム・叩きつけ）\n② 車レビュー（インドネシアで超頻出！）：bantingan suspensi empuk / keras（サスペンションの乗り心地が柔らかい／硬い）\n■ 【関連語】：membanting（叩きつける・投げる：banting tulang＝必死に働く、banting harga＝投げ売り・大幅値下げ）。"
+      },
+      {
+        "p": "v",
+        "w": "meramaikan",
+        "r": "ramai",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "（イベント・祭り・市場・会話・SNSなどを）盛り上げる、賑やかにする、華を添える（＝memeriahkan）",
+        "ex": "Ribuan warga turut meramaikan festival kuliner tradisional yang digelar di alun-alun kota akhir pekan lalu.",
+        "tr": "先週末に市の広場で開催された伝統グルメフェスティバルを、数千人の市民が一緒に盛り上げた（賑わせた）。",
+        "note": "■ 【語構成】：me- + ramai（賑やかな・活気ある）+ -kan。\n■ 【重要コロケーション】：\n・turut / ikut meramaikan acara / festival：イベント／祭りの盛り上げに参加する\n・meramaikan pasar otomotif / persaingan：自動車市場／競争に参入して活気づける\n・meramaikan jagat maya / media sosial：ネット上／SNSを賑わせる\n■ 【関連語】：ramai（賑やかな）、keramaian（人混み・賑わい）、memeriahkan（華やかに盛り上げる）。"
+      },
+      {
+        "p": "n",
+        "w": "pembangkangan",
+        "r": "bangkang",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "不服従、反抗、命令違反、抵抗運動（pembangkangan sipil＝市民的不服従）",
+        "ex": "Aksi pembangkangan sipil secara damai tersebut dilakukan untuk memprotes kebijakan pajak yang dinilai tidak adil.",
+        "tr": "その平和的な市民的不服従行動は、不公平とみなされた税制に抗議するために行われた。",
+        "note": "■ 【語構成】：peN- + bangkang + -an。membangkang（反抗する）・pembangkang（反抗者）の行為名詞形。"
+      },
+      {
+        "p": "n",
+        "w": "lemparan",
+        "r": "lempar",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "投球、スロー、投げつけ、放り投げ（サッカーの『lemparan ke dalam＝スローイン』など）",
+        "ex": "Lemparan ke dalam jarak jauh milik bek tim nasional itu sering merepotkan pertahanan lawan di depan gawang.",
+        "tr": "その代表チームDFのロングスロー（長距離スローイン）は、ゴール前でしばしば相手守備陣を苦しめている。",
+        "note": "■ 【語構成】：lempar（投げる）+ -an。melempar / melemparkan の名詞形。重要コロケーション：lemparan ke dalam（スローイン）、lemparan bebas（フリースロー）。"
+      },
+      {
+        "p": "v",
+        "w": "menghunjam",
+        "r": "hunjam",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "（刃物・矢・視線・言葉・攻撃などが）真っ直ぐ深く突き刺さる、急降下して刺さる（menghunjamkan の自動詞形）",
+        "ex": "Kritik tajamnya terasa menghunjam langsung ke inti permasalahan yang selama ini dihindari.",
+        "tr": "彼の鋭い批判は、これまで避けられてきた問題の核心へ真っ直ぐ突き刺さるように感じられた。",
+        "note": "■ 【語構成】：meN- + hunjam（突き刺さる）。他動詞は menghunjamkan（〜を突き刺す・叩き込む）。"
+      },
+      {
+        "p": "v",
+        "w": "menyikut",
+        "r": "sikut",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①肘で突く、エルボーを食らわせる ②（比喩で：職場や政界でライバルを）押しのける、蹴落とす、出し抜く",
+        "ex": "Persaingan sehat seharusnya mengutamakan kinerja, bukan saling menyikut demi meraih jabatan.",
+        "tr": "健全な競争は成果（パフォーマンス）を優先すべきであり、役職を得るために互いに蹴落とし合うべきではない。",
+        "note": "■ 【語構成】：meN- + sikut（肘：頭文字 s が鼻音化して ny）。『saling menyikut（蹴落とし合う）』は職場・政治ニュースの定番比喩！"
+      }
+    ];
+
+    const idxByWord = new Map();
+    for (let i = 0; i < d.vocab.length; i++) {
+      const it = d.vocab[i];
+      if (it && it.w) idxByWord.set(it.w.trim().toLowerCase(), i);
+    }
+
+    const newlyDictOnlyKeys = new Set();
+
+    for (let i = 0; i < NEW_47_PACK.length; i++) {
+      const item = NEW_47_PACK[i];
+      if (!item || !item.w) continue;
+      const key = item.w.trim().toLowerCase();
+
+      if (item.dictOnly === true || item.tier === 3) {
+        dictOnlySet.add(key);
+        newlyDictOnlyKeys.add(key);
+      } else {
+        dictOnlySet.delete(key);
+      }
+      if (item.topicCat) {
+        catMap.set(key, item.topicCat);
+      }
+
+      if (idxByWord.has(key)) {
+        const pos = idxByWord.get(key);
+        Object.assign(d.vocab[pos], item);
+        vMap.set(key, d.vocab[pos]);
+        persistentAdded.set(key, d.vocab[pos]);
+      } else {
+        d.vocab.push(item);
+        idxByWord.set(key, d.vocab.length - 1);
+        vMap.set(key, item);
+        persistentAdded.set(key, item);
+      }
+    }
+
+    // 既存だった audiensi 等を辞書専用化した際、保存済みの復習・スターから安全除外
+    ["wi_wrongs_v2", "wi_stars_v2", "wi_master_stars_v5"].forEach(function(storageKey) {
+      try {
+        const raw = localStorage.getItem(storageKey);
+        if (!raw) return;
+        const list = JSON.parse(raw);
+        if (!Array.isArray(list)) return;
+        const cleaned = list.filter(function(it) {
+          if (!it || typeof it !== "object") return false;
+          const qid = String(it.id || "");
+          const m = qid.match(/^(?:voc|voc_ja2id|ctx::voc)::(.+)$/i);
+          const w = (m ? m[1] : (it.w || it.ttsWord || "")).trim().toLowerCase();
+          return !newlyDictOnlyKeys.has(w);
+        });
+        if (cleaned.length !== list.length) {
+          localStorage.setItem(storageKey, JSON.stringify(cleaned));
+        }
+      } catch (err) {}
+    });
+  } catch (e) {
+    console.error("WhatsIndo 47-word pack error:", e);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 単語カード「最上部スタート固定 ＆ コロケーション視認性アップ」パッチ (V2.6)
+   1. 単語カードを開く／別の単語へ切り替える際、常にカードの一番上(scrollTop=0)から表示
+      （問題モードのモーダル・辞書モードの右ペイン両対応／同じ単語を閲覧中のスクロールは邪魔しない）
+   2. 「語法・コロケーション・解説」欄の箇条書き・バッジ・本文を、目立ちすぎない落ち着いたトーンのまま
+      読みやすい文字サイズ＆行間へ微調整
+   ===================================================================== */
+(function() {
+  try {
+    // -----------------------------------------------------------------
+    // 1. 「語法・コロケーション・解説」欄の視認性微調整 CSS
+    // -----------------------------------------------------------------
+    if (!document.getElementById("wi-card-colloc-v26-style")) {
+      const st = document.createElement("style");
+      st.id = "wi-card-colloc-v26-style";
+      st.textContent = `
+        #dict-detail-box .exp-sec-card.amber .exp-sec-label {
+          font-size: 0.82rem !important;
+        }
+        #dict-detail-box .exp-sec-card.amber .exp-sec-content,
+        #dict-detail-box .v63-note-sec,
+        #dict-detail-box .v23-note-wrap,
+        #dict-detail-box .v35-note-wrap {
+          font-size: 0.97rem !important;
+          line-height: 1.76 !important;
+          color: #1f302e !important;
+        }
+        #dict-detail-box .v63-note-badge {
+          font-size: 0.81rem !important;
+          padding: 2px 9px !important;
+        }
+        #dict-detail-box .v63-note-lead {
+          font-size: 0.97rem !important;
+          font-weight: 600 !important;
+          color: #1a2a29 !important;
+        }
+        #dict-detail-box .v63-note-bullet {
+          font-size: 0.96rem !important;
+          font-weight: 500 !important;
+          line-height: 1.75 !important;
+          color: #1f302e !important;
+          margin-top: 6px !important;
+          padding-left: 14px !important;
+        }
+        #dict-detail-box .v63-note-bullet::before {
+          left: 3px !important;
+          color: #15806f !important;
+        }
+      `;
+      document.head.appendChild(st);
+    }
+
+    // -----------------------------------------------------------------
+    // 2. 単語カードを開いた時・別単語へ切り替えた時に必ず一番上(scrollTop=0)へ戻す
+    // -----------------------------------------------------------------
+    let lastWordKeyV26 = "";
+    let wasOpenV26     = false;
+
+    function scrollCardTopNow() {
+      const dBox = document.getElementById("dict-detail-box");
+      const rp   = document.getElementById("km-right-pane");
+      if (dBox) dBox.scrollTop = 0;
+      if (rp) rp.scrollTop = 0;
+    }
+
+    function scheduleScrollCardTop() {
+      scrollCardTopNow();
+      requestAnimationFrame(scrollCardTopNow);
+      setTimeout(scrollCardTopNow, 35);
+    }
+
+    function getCurrentCardWordKey() {
+      const dBox = document.getElementById("dict-detail-box");
+      if (!dBox) return "";
+      const sp = dBox.querySelector("span");
+      return sp ? sp.textContent.trim().toLowerCase() : "";
+    }
+
+    function checkAndResetCardScroll() {
+      const dModal = document.getElementById("dict-detail-modal");
+      const isOpen = Boolean(dModal && dModal.classList.contains("open"));
+
+      if (!isOpen) {
+        wasOpenV26 = false;
+        lastWordKeyV26 = "";
+        return;
+      }
+
+      const curKey = getCurrentCardWordKey();
+      const justOpened  = !wasOpenV26;
+      const wordChanged = Boolean(curKey && curKey !== lastWordKeyV26);
+
+      wasOpenV26 = true;
+      if (curKey) lastWordKeyV26 = curKey;
+
+      if (justOpened || wordChanged) {
+        scheduleScrollCardTop();
+      }
+    }
+
+    function bootV26() {
+      const dModal = document.getElementById("dict-detail-modal");
+      const dBox   = document.getElementById("dict-detail-box");
+
+      if (dModal && !dModal.__wiTopScrollObsV26) {
+        dModal.__wiTopScrollObsV26 = true;
+        new MutationObserver(checkAndResetCardScroll).observe(dModal, {
+          attributes: true,
+          attributeFilter: ["class"]
+        });
+      }
+
+      if (dBox && !dBox.__wiTopScrollObsV26) {
+        dBox.__wiTopScrollObsV26 = true;
+        new MutationObserver(checkAndResetCardScroll).observe(dBox, {
+          childList: true
+        });
+      }
+
+      // 検索リストや左ペイン・関連語チップをクリックして開いた時も確実に最上部へ
+      window.addEventListener("click", function(e) {
+        if (!e.target || typeof e.target.closest !== "function") return;
+        if (e.target.closest(".km-list-row, .dict-item, .az-word-card, .v35-jump-chip, .exp-fam-chip")) {
+          scheduleScrollCardTop();
+        }
+      }, true);
+
+      checkAndResetCardScroll();
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", function() {
+        setTimeout(bootV26, 40);
+      });
+    } else {
+      setTimeout(bootV26, 40);
+    }
+  } catch (e) {
+    console.error("WhatsIndo V2.6 patch error:", e);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 単語カード「見出しラベル整理・意味強調・語構成トーンダウン」パッチ (V2.7)
+   1. 「意味・定義」「実用例文と和訳」「語法・コロケーション・解説」の見出し文言を非表示化
+      （※DOMは保持するため既存の意味箇条書き整形・例文復元ロジックと100%互換）
+   2. 意味・定義カードを上部の余白含めてスッキリ再設計し、メイン意味をより大きく見やすく強調
+   3. 解説内の「語構成（語源）」ブロックを少し薄く控えめなトーンにして、コロケーション等を際立たせる
+   ===================================================================== */
+(function() {
+  try {
+    // -----------------------------------------------------------------
+    // 1. CSS（ラベル非表示・意味の視認性アップ・語構成の控えめ配色）
+    // -----------------------------------------------------------------
+    if (!document.getElementById("wi-card-clean-v27-style")) {
+      const st = document.createElement("style");
+      st.id = "wi-card-clean-v27-style";
+      st.textContent = `
+        /* 意味・解説のラベルを0msで非表示、例文ラベルも判定属性で確実に非表示 */
+        #dict-detail-box .exp-sec-card.green > .exp-sec-label,
+        #dict-detail-box .exp-sec-card.amber > .exp-sec-label,
+        #dict-detail-box .exp-sec-label[data-wi-label-hidden="1"] {
+          display: none !important;
+        }
+
+        /* 意味カード：ラベルを消した分スッキリさせ、メイン意味をひと目で飛び込む見やすさに */
+        #dict-detail-box .exp-sec-card.green,
+        #km-right-pane #dict-detail-box .exp-sec-card.green {
+          padding: 15px 17px !important;
+        }
+        #dict-detail-box .exp-sec-card.green .exp-sec-content,
+        #dict-detail-box .exp-sec-card.green .km-meaning-main,
+        #dict-detail-box .km-def-body {
+          font-size: 1.15rem !important;
+          font-weight: 750 !important;
+          color: #122120 !important;
+          line-height: 1.76 !important;
+          letter-spacing: 0.01em !important;
+        }
+        #dict-detail-box .km-def-num {
+          font-size: 1.12rem !important;
+        }
+        #dict-detail-box .exp-sec-card.green .km-paren {
+          font-size: 0.94em !important;
+          font-weight: 400 !important;
+          color: #485c5a !important;
+        }
+
+        /* 実用例文・解説カードの上下余白もラベル無しに合わせてバランス調整 */
+        #dict-detail-box .exp-sec-card:not(.green),
+        #km-right-pane #dict-detail-box .exp-sec-card:not(.green) {
+          padding: 13px 16px !important;
+        }
+
+        /* 見出し語直下の語幹説明行も少し薄めに統一 */
+        #dict-detail-box > div:first-child > div:first-child > div:nth-child(2) {
+          color: #5c716e !important;
+        }
+
+        /* 解説内の「語構成・語源」ブロックを少し薄く控えめに */
+        #dict-detail-box .v63-note-sec.wi-morph-dim {
+          border-left-color: #9ec4b9 !important;
+          color: #556a67 !important;
+          font-size: 0.91rem !important;
+        }
+        #dict-detail-box .v63-note-sec.wi-morph-dim .v63-note-badge {
+          background: #eef6f2 !important;
+          color: #52736c !important;
+          border-color: #cde0d8 !important;
+          font-weight: 600 !important;
+          font-size: 0.77rem !important;
+        }
+        #dict-detail-box .v63-note-sec.wi-morph-dim .v63-note-lead,
+        #dict-detail-box .v63-note-sec.wi-morph-dim .v63-note-bullet {
+          color: #556a67 !important;
+          font-weight: 400 !important;
+          font-size: 0.91rem !important;
+        }
+        #dict-detail-box .v63-note-sec.wi-morph-dim .v63-note-bullet::before {
+          color: #7ca89d !important;
+        }
+      `;
+      document.head.appendChild(st);
+    }
+
+    // -----------------------------------------------------------------
+    // 2. ラベル非表示属性 ＆ 語構成ブロックの薄色クラス付与
+    // -----------------------------------------------------------------
+    function applyCardCleanV27() {
+      const dBox = document.getElementById("dict-detail-box");
+      if (!dBox) return;
+
+      // ① 「意味・定義」「実用例文と和訳」「語法・コロケーション・解説」ラベルを非表示マーク
+      const labels = dBox.querySelectorAll(".exp-sec-label");
+      for (let i = 0; i < labels.length; i++) {
+        const lbl = labels[i];
+        const txt = (lbl.textContent || "").trim();
+        if (
+          txt.indexOf("意味") !== -1 ||
+          txt.indexOf("実用例文") !== -1 ||
+          txt.indexOf("語法") !== -1 ||
+          txt.indexOf("コロケーション") !== -1
+        ) {
+          if (lbl.getAttribute("data-wi-label-hidden") !== "1") {
+            lbl.setAttribute("data-wi-label-hidden", "1");
+          }
+        }
+      }
+
+      // ② 解説内の「語構成」「語源」ブロックを判定して少し薄くするクラスを付与
+      const noteSecs = dBox.querySelectorAll(".v63-note-sec");
+      for (let i = 0; i < noteSecs.length; i++) {
+        const sec = noteSecs[i];
+        const badge = sec.querySelector(".v63-note-badge");
+        const bTxt = badge ? (badge.textContent || "").trim() : "";
+        const isMorph = /語構成|語源/.test(bTxt);
+        sec.classList.toggle("wi-morph-dim", isMorph);
+      }
+    }
+
+    function bootV27() {
+      const dBox = document.getElementById("dict-detail-box");
+      if (dBox && !dBox.__wiCleanObsV27) {
+        dBox.__wiCleanObsV27 = true;
+        new MutationObserver(applyCardCleanV27).observe(dBox, {
+          childList: true,
+          subtree: true
+        });
+      }
+      applyCardCleanV27();
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", function() {
+        setTimeout(bootV27, 40);
+      });
+    } else {
+      setTimeout(bootV27, 40);
+    }
+  } catch (e) {
+    console.error("WhatsIndo V2.7 patch error:", e);
   }
 })();
