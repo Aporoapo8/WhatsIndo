@@ -101957,7 +101957,7 @@ window.WHATSINDO_EXTERNAL_DATA = {
     },
     {
       p: "other", w: "justru", r: "justru", topicCat: "🎓 教育・学術・IT",
-      m: "それどころか、かえって、むしろ、あえて（常識や予想とは逆の行動・結果になることを強調する副詞＝malah / malahan）",
+      m: "それどころか、かえって、むしろ、あえて、実際（常識や予想とは逆の行動・結果になることを強調する副詞＝malah / malahan）",
       ex: "Saat banyak perusahaan mengurangi karyawan, pabrik tersebut justru membuka lowongan kerja baru.",
       tr: "多くの企業が従業員を削減している時、その工場はそれどころか（あえて／逆に）新しい求人枠を開設した。",
       note: "■ 周囲の流れや予想に反して「逆に・あえて〜する」と対比強調する論説・会話の必須副詞。"
@@ -169116,5 +169116,15402 @@ console.error("WhatsIndo Islam & 10-word pack error:", e);
     }
   } catch (e) {
     console.error("WhatsIndo V2.7 patch error:", e);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 単語カード「最新データ永久優先＆旧例文先祖返り根治」パッチ (V2.8)
+   - 原因根治：旧パッチの「文字数が長い古い例文を優先して上書きする仕組み」による
+     hening 等の例文・和訳の巻き戻りを100%解消
+   - 今後の新パックで既存語を更新した際も自動で最新データ(m/ex/tr/note/r/p)が勝つ恒久設計
+   - 既存UI・ペン・文字入れ・関連語・ボタン等の要素は一切削減なし・無限ループ完全防止
+   ===================================================================== */
+(function() {
+  try {
+    const d = window.WHATSINDO_EXTERNAL_DATA;
+    if (!d) return;
+
+    const canonicalMap = new Map();
+    let v28WritingEx = false;
+
+    function escHtmlV28(str) {
+      return String(str || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function highlightHeadwordInExV28(exSentence, headword, rootWord) {
+      if (!exSentence) return "";
+      const safeEx = escHtmlV28(exSentence);
+      if (!headword) return safeEx;
+
+      const candidates = String(headword)
+        .split("/")
+        .map(s => s.trim())
+        .filter(Boolean)
+        .sort((a, b) => b.length - a.length);
+
+      for (let i = 0; i < candidates.length; i++) {
+        const cand = candidates[i];
+        if (cand.endsWith("-")) {
+          const pref = cand.slice(0, -1).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          const rePref = new RegExp(`(?<![a-zA-Z])(${pref}[a-zA-Z]+)(?![a-zA-Z])`, "gi");
+          if (rePref.test(safeEx)) {
+            return safeEx.replace(rePref, '<span class="wi-ex-hw-hl">$1</span>');
+          }
+          continue;
+        }
+        const esc = cand.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const reExact = new RegExp(`(?<![a-zA-Z])(${esc})(?![a-zA-Z])`, "gi");
+        if (reExact.test(safeEx)) {
+          return safeEx.replace(reExact, '<span class="wi-ex-hw-hl">$1</span>');
+        }
+        if (cand.length >= 3) {
+          const reInf = new RegExp(`(?<![a-zA-Z])([a-zA-Z]*${esc}[a-zA-Z]*)(?![a-zA-Z])`, "gi");
+          if (reInf.test(safeEx)) {
+            return safeEx.replace(reInf, '<span class="wi-ex-hw-hl">$1</span>');
+          }
+        }
+      }
+
+      if (rootWord && rootWord.length >= 3 && !String(rootWord).includes(" ")) {
+        const escR = String(rootWord).trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const reRoot = new RegExp(`(?<![a-zA-Z])([a-zA-Z]*${escR}[a-zA-Z]*)(?![a-zA-Z])`, "gi");
+        if (reRoot.test(safeEx)) {
+          return safeEx.replace(reRoot, '<span class="wi-ex-hw-hl">$1</span>');
+        }
+      }
+      return safeEx;
+    }
+
+    // -----------------------------------------------------------------
+    // 1. data.js 全同期パック読み込み完了直後の「真の最新スナップショット」を捕獲
+    //    （本パッチより下に今後新しく貼られるパックも queueMicrotask で自動捕捉！）
+    // -----------------------------------------------------------------
+    function captureCanonicalLatestData() {
+      const vList = Array.isArray(d.vocab) ? d.vocab : [];
+      const sList = Array.isArray(d.singkatan) ? d.singkatan : [];
+
+      function absorb(it) {
+        if (!it || !it.w || it.isDup) return;
+        const key = String(it.w).trim().toLowerCase();
+        if (!key) return;
+        const prev = canonicalMap.get(key);
+        canonicalMap.set(key, {
+          w: String(it.w).trim(),
+          r: (it.r && String(it.r).trim()) || (prev ? prev.r : String(it.w).trim()),
+          p: it.p || (prev ? prev.p : "other"),
+          m: (it.m && String(it.m).trim()) || (prev ? prev.m : ""),
+          ex: (it.ex && String(it.ex).trim()) || (prev ? prev.ex : ""),
+          tr: (it.tr && String(it.tr).trim()) || (prev ? prev.tr : ""),
+          note: (it.note && String(it.note).trim()) || (prev ? prev.note : ""),
+          topicCat: it.topicCat || (prev ? prev.topicCat : ""),
+          dictOnly: (it.dictOnly !== undefined) ? it.dictOnly : (prev ? prev.dictOnly : undefined),
+          tier: (it.tier !== undefined) ? it.tier : (prev ? prev.tier : undefined)
+        });
+      }
+
+      // 配列の後ろにある定義ほど最新として優先吸収
+      for (let i = 0; i < vList.length; i++) absorb(vList[i]);
+      for (let i = 0; i < sList.length; i++) absorb(sList[i]);
+
+      // 後続パックが window.__wiPersistentAddedVocab に登録した最新語彙も最優先で吸収
+      if (window.__wiPersistentAddedVocab instanceof Map) {
+        window.__wiPersistentAddedVocab.forEach(function(it) {
+          absorb(it);
+        });
+      }
+
+      // d.vocab 内に同一見出し語(w)の古い重複エントリがあれば最新1個へ統合（品詞変更時の旧エントリ残存も防止）
+      const lastIndexByKey = new Map();
+      for (let i = 0; i < vList.length; i++) {
+        const it = vList[i];
+        if (!it || !it.w || it.isDup) continue;
+        lastIndexByKey.set(String(it.w).trim().toLowerCase(), i);
+      }
+      for (let i = vList.length - 1; i >= 0; i--) {
+        const it = vList[i];
+        if (!it || !it.w || it.isDup) continue;
+        const key = String(it.w).trim().toLowerCase();
+        if (lastIndexByKey.get(key) !== i) {
+          vList.splice(i, 1);
+        }
+      }
+    }
+
+    // -----------------------------------------------------------------
+    // 2. 旧パッチが DOMContentLoaded / 250ms 後に古い ex/tr で
+    //    d.vocab を巻き戻した場合、即座に最新値へ復元して DB も同期
+    // -----------------------------------------------------------------
+    function restoreLatestToVocabAndDB() {
+      if (canonicalMap.size === 0) return;
+      let changedCount = 0;
+
+      function applyToList(list) {
+        if (!Array.isArray(list)) return;
+        for (let i = 0; i < list.length; i++) {
+          const it = list[i];
+          if (!it || !it.w) continue;
+          const key = String(it.w).trim().toLowerCase();
+          const lat = canonicalMap.get(key);
+          if (!lat) continue;
+
+          if (lat.ex && it.ex !== lat.ex) { it.ex = lat.ex; changedCount++; }
+          if (lat.tr && it.tr !== lat.tr) { it.tr = lat.tr; changedCount++; }
+          if (lat.m && it.m !== lat.m) { it.m = lat.m; changedCount++; }
+          if (lat.note && it.note !== lat.note) { it.note = lat.note; changedCount++; }
+          if (lat.r && it.r !== lat.r) { it.r = lat.r; changedCount++; }
+          if (lat.p && it.p !== lat.p) { it.p = lat.p; changedCount++; }
+        }
+      }
+
+      applyToList(d.vocab);
+      applyToList(d.singkatan);
+
+      if (changedCount > 0 && typeof window.__reloadWhatsIndo === "function") {
+        try { window.__reloadWhatsIndo(true); } catch (e) {}
+      }
+    }
+
+    // -----------------------------------------------------------------
+    // 3. 例文カードへの旧パッチ上書きを無害化するピンポイント innerHTML ガード
+    //    （data-wi-v28-ex-lock が付いた例文要素だけ旧パッチからの巻き戻しを拒否 ➔ 無限ループ0%）
+    // -----------------------------------------------------------------
+    const origInnerHtmlDesc = Object.getOwnPropertyDescriptor(Element.prototype, "innerHTML");
+    if (origInnerHtmlDesc && origInnerHtmlDesc.set && !Element.prototype.__wiV28ExLockWrapped) {
+      Element.prototype.__wiV28ExLockWrapped = true;
+      Object.defineProperty(Element.prototype, "innerHTML", {
+        configurable: true,
+        get: function() {
+          return origInnerHtmlDesc.get.call(this);
+        },
+        set: function(val) {
+          if (
+            !v28WritingEx &&
+            this &&
+            this.nodeType === 1 &&
+            this.hasAttribute &&
+            this.hasAttribute("data-wi-v28-ex-lock")
+          ) {
+            return;
+          }
+          return origInnerHtmlDesc.set.call(this, val);
+        }
+      });
+    }
+
+    // -----------------------------------------------------------------
+    // 4. 単語カード(#dict-detail-box)を開いた瞬間に最新例文・和訳を確実に描画
+    // -----------------------------------------------------------------
+    function enforceLatestExampleOnModal() {
+      const detailBox = document.getElementById("dict-detail-box");
+      if (!detailBox) return;
+      const titleSpan = detailBox.querySelector("span");
+      if (!titleSpan) return;
+      const hwText = titleSpan.textContent.trim();
+      const hwLow  = hwText.toLowerCase();
+      if (!hwLow) return;
+
+      const lat = canonicalMap.get(hwLow);
+      if (!lat || !lat.ex) return;
+
+      const cards = detailBox.querySelectorAll(".exp-sec-card");
+      for (let i = 0; i < cards.length; i++) {
+        const lbl = cards[i].querySelector(".exp-sec-label");
+        const cnt = cards[i].querySelector(".exp-sec-content");
+        if (!lbl || !cnt) continue;
+        if ((lbl.textContent || "").indexOf("実用例文") === -1) continue;
+
+        if (cnt.getAttribute("data-wi-v28-ex-lock") === hwLow) {
+          return;
+        }
+
+        const latestHtml =
+          `${highlightHeadwordInExV28(lat.ex, hwText, lat.r || hwText)}` +
+          (lat.tr
+            ? `\n<span class="wi-ex-tr-line" style="color:#475569;font-size:0.84rem;display:block;margin-top:4px;">${escHtmlV28(lat.tr)}</span>`
+            : `<span class="wi-ex-tr-line" style="display:none;"></span>`);
+
+        v28WritingEx = true;
+        try {
+          cnt.setAttribute("data-wi-true-ex", lat.ex);
+          if (lat.tr) cnt.setAttribute("data-wi-true-tr", lat.tr);
+          cnt.innerHTML = latestHtml;
+          cnt.setAttribute("data-wi-v28-ex-lock", hwLow);
+        } finally {
+          v28WritingEx = false;
+        }
+        break;
+      }
+    }
+
+    // 今後の動的追加 (window.wiAddPack) にも最新スナップショットを自動追従
+    const prevWiAddPackV28 = window.wiAddPack;
+    if (typeof prevWiAddPackV28 === "function") {
+      window.wiAddPack = function() {
+        const res = prevWiAddPackV28.apply(this, arguments);
+        captureCanonicalLatestData();
+        restoreLatestToVocabAndDB();
+        return res;
+      };
+    }
+
+    // -----------------------------------------------------------------
+    // 5. 起動シーケンス
+    // -----------------------------------------------------------------
+    captureCanonicalLatestData();
+
+    const runAfterAllSyncPacks = function() {
+      captureCanonicalLatestData();
+      restoreLatestToVocabAndDB();
+    };
+    if (typeof queueMicrotask === "function") {
+      queueMicrotask(runAfterAllSyncPacks);
+    } else {
+      Promise.resolve().then(runAfterAllSyncPacks);
+    }
+
+    function attachModalLatestWatcher() {
+      restoreLatestToVocabAndDB();
+      const dBox = document.getElementById("dict-detail-box");
+      if (dBox && !dBox.__wiLatestExObsV28) {
+        dBox.__wiLatestExObsV28 = true;
+        new MutationObserver(enforceLatestExampleOnModal).observe(dBox, {
+          childList: true,
+          subtree: true
+        });
+      }
+      enforceLatestExampleOnModal();
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", function() {
+        attachModalLatestWatcher();
+        setTimeout(attachModalLatestWatcher, 310);
+      });
+    } else {
+      attachModalLatestWatcher();
+      setTimeout(attachModalLatestWatcher, 310);
+    }
+  } catch (e) {
+    console.error("WhatsIndo Latest Data Guard V2.8 error:", e);
+  }
+})();
+/* =====================================================================
+   WhatsIndo ご指名35語 ＋ 厳選派生語2語 追加・更新パック（全37語・安全直結版）
+   - 出題対象（4語）：baku（3大用法強化）, tol, kejelekan ＋ 派生語 menjelekkan
+   - 辞書専用（dictOnly: true, 33語）：terurai, pembalut, terhina, pencetak, meneriaki,
+     aktualisasi, menentu, terkenang, bahtera（辞書専用化＆強化）, memagari, menyalak,
+     pemintalan, derik, menjelek-jelekkan, bermaaf-maafan, ketidaktaatan, bernilai,
+     pertanggungan, polis, mempertanggungkan, pabrikan, APM（略語）, elektrifikasi,
+     klausul, premi, luput, besaran, total, kelistrikan, bertegangan, jumbo, iga
+     ＋ 派生語 tegangan
+   - 現代実用意味に厳選・**記号ゼロ・文字バグゼロ・try-catch完全保護
+   ===================================================================== */
+(function() {
+  try {
+    const d = window.WHATSINDO_EXTERNAL_DATA;
+    if (!d || !Array.isArray(d.vocab)) return;
+
+    const dictOnlySet     = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+    const persistentAdded = window.__wiPersistentAddedVocab || (window.__wiPersistentAddedVocab = new Map());
+    const vMap            = window.__wiMasterVocabMap || (window.__wiMasterVocabMap = new Map());
+    const catMap          = window.__WI_V5_VCAT || (window.__WI_V5_VCAT = new Map());
+
+    const NEW_37_PACK = [
+      {
+        "p": "a",
+        "w": "baku",
+        "r": "baku",
+        "tier": 1,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "①標準の、規範となる、正式な（bahasa baku＝標準語、kata baku＝標準語形） ②基礎となる、主原料の（bahan baku＝原材料） ③（※複合語で）相互に〜し合う（baku tembak＝銃撃戦、baku hantam＝殴り合い）",
+        "ex": "Dalam penulisan skripsi dan surat resmi, kita wajib menggunakan kosakata bahasa Indonesia yang baku.",
+        "tr": "卒業論文や公文書の執筆においては、標準的なインドネシア語の語彙を使用しなければならない。",
+        "note": "■ 【3大用法の整理】：\n・① 標準・規範：bahasa baku / kata baku（標準語・標準語形 ⇔ tidak baku）、baku mutu lingkungan（環境基準）\n・② 基礎・原料：bahan baku（原材料）、harga baku（基準価格）\n・③ 相互動作（スラウェシ・東部方言由来の標準定着語）：baku tembak（銃撃戦）、baku hantam（取っ組み合いの喧嘩）、baku bantu（助け合う）\n■ 【baku 関連語ファミリー】：membakukan（標準化する）、pembakuan（標準化・規格化）。"
+      },
+      {
+        "p": "n",
+        "w": "tol",
+        "r": "tol",
+        "tier": 1,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①高速道路、有料道路（jalan tol の略称として日常・ニュースで頻出） ②通行料、高速料金（tarif tol）",
+        "ex": "Arus kendaraan di gerbang tol utama mulai meningkat menjelang libur panjang akhir pekan.",
+        "tr": "週末の大型連休を前に、主要料金所（高速道路入口）の車の流れが増え始めている。",
+        "note": "■ 【日常・交通ニュースの必須コロケーション】：\n・jalan tol / masuk tol / keluar tol：高速道路 ／ 高速に乗る ／ 高速を降りる\n・gerbang tol (GT) / pintu tol：高速道路の料金所\n・tarif tol / kartu tol elektronik (e-toll)：高速料金 ／ 電子決済カード\n・tol laut：海の高速道路（島嶼間を結ぶ定期貨物航路網政策）"
+      },
+      {
+        "p": "n",
+        "w": "kejelekan",
+        "r": "jelek",
+        "tier": 1,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "悪さ、欠点、短所、醜さ、良くない点（⇔ kebaikan＝良さ・長所）",
+        "ex": "Kita sebaiknya fokus memperbaiki diri sendiri daripada terus membicarakan kejelekan orang lain.",
+        "tr": "他人の欠点（悪いところ）ばかり話し続けるよりも、自分自身を改善することに集中すべきだ。",
+        "note": "■ 【語構成】：ke- + jelek（悪い・醜い・質の低い）+ -an。\n■ 【重要コロケーション】：\n・membuka / membicarakan kejelekan orang：人の欠点や醜聞を暴く／噂する\n■ 【jelek 関連語ファミリー】：jelek（悪い・醜い）、menjelekkan（悪く言う・けなす）、menjelek-jelekkan（しきりに悪口を言う・中傷する）。"
+      },
+      {
+        "p": "v",
+        "w": "menjelekkan",
+        "r": "jelek",
+        "tier": 1,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "①（人や製品などの）悪口を言う、けなす、評判を落とす ②見栄えを悪くする、台無しにする",
+        "ex": "Persaingan bisnis yang sehat tidak seharusnya dilakukan dengan cara menjelekkan produk pesaing.",
+        "tr": "健全なビジネス競争は、競合他社の製品をけなす（悪く言う）やり方で行われるべきではない。",
+        "note": "■ 【語構成】：meN- + jelek（悪い・醜い）+ -kan。\n■ 【使い分け】：『menjelekkan』は悪く言う・評判を落とす基本形。繰り返し執拗に中傷するニュアンスを強めると『menjelek-jelekkan』になる。"
+      },
+      {
+        "p": "v",
+        "w": "terurai",
+        "r": "urai",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "①（プラスチック・有機物などが自然界で）分解される ②（髪・結び目・糸などが）ほどける、垂れ下がる ③（渋滞や問題が）解消される、ほぐれる ④詳しく解き明かされている",
+        "ex": "Sampah plastik sekali pakai sangat sulit terurai secara alami di dalam tanah maupun laut.",
+        "tr": "使い捨てプラスチックごみは、土の中でも海の中でも自然には極めて分解されにくい。",
+        "note": "■ 【語構成】：ter- + urai（ほどく・分解する）。環境・交通・日常の3分野でよく出る！\n■ 【重要コロケーション】：\n・mudah / sulit terurai secara alami：自然分解されやすい（生分解性）／ 分解されにくい\n・rambut panjang terurai：長い髪がほどけて垂れ下がっている\n・kemacetan mulai terurai：渋滞が解消し始めた\n■ 【urai 関連語ファミリー】：mengurai（ほどく・渋滞を解消する）、menguraikan（分解する・詳述する）、uraian（解説・内訳）。"
+      },
+      {
+        "p": "n",
+        "w": "pembalut",
+        "r": "balut",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "①生理用ナプキン（日常会話や買い物では単体でこれを指すことが最も多い：pembalut wanita） ②包帯、ガーゼ、傷口を巻くもの（pembalut luka）",
+        "ex": "Perawat membersihkan luka di pergelangan kaki pasien sebelum memasang pembalut yang steril.",
+        "tr": "看護師は滅菌された包帯を巻く前に、患者の足首の傷口をきれいに消毒した。",
+        "note": "■ 【語構成】：peN- + balut（巻く・包む）。\n■ 【重要コロケーション】：\n・pembalut (wanita)：生理用ナプキン\n・pembalut luka：包帯、ガーゼ、ドレッシング材（＝perban）\n■ 【balut 関連語ファミリー】：membalut（包帯を巻く・包み込む）、balutan（包帯・巻き包み）。"
+      },
+      {
+        "p": "a",
+        "w": "terhina",
+        "r": "hina",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "侮辱された（と感じる）、屈辱を味わった、見下された、踏みにじられた（merasa terhina）",
+        "ex": "Ia merasa sangat terhina atas tuduhan tidak berdasar yang dilontarkan di depan rapat umum.",
+        "tr": "彼は公開会議の場で投げかけられた根拠のない非難に対して、ひどく侮辱されたと感じた。",
+        "note": "■ 【語構成】：ter- + hina（卑しい・侮辱する）。感情表現として『merasa terhina（侮辱されたと感じる・屈辱を覚える）』が定番。\n■ 【hina 関連語ファミリー】：hina（卑しい・見下すべき）、menghina（侮辱する・馬鹿にする）、penghinaan（侮辱行為・名誉毀損）。"
+      },
+      {
+        "p": "n",
+        "w": "pencetak",
+        "r": "cetak",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①（ゴール・得点・記録などの）達成者、スコアラー（pencetak gol＝得点者、pencetak rekor＝記録樹立者） ②印刷機、プリンター、印刷業者（mesin pencetak）",
+        "ex": "Penyerang muda itu dinobatkan sebagai pencetak gol terbanyak sepanjang musim kompetisi tahun ini.",
+        "tr": "その若手フォワードは、今シーズンのリーグ戦を通じての得点王（最多得点者）に輝いた。",
+        "note": "■ 【語構成】：peN- + cetak（印刷する・記録や得点を叩き出す）。\n■ 【重要コロケーション】：\n・pencetak gol terbanyak：得点王（トップスコアラー）\n・pencetak rekor / sejarah：記録樹立者 ／ 歴史の作り手\n・mesin pencetak：プリンター、印刷機\n■ 【cetak 関連語ファミリー】：mencetak（印刷する・得点する・記録を作る）、cetakan（版・型・印刷物）。"
+      },
+      {
+        "p": "v",
+        "w": "meneriaki",
+        "r": "teriak",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "（人・対象に向かって）大声で叫びかける、怒鳴りつける、ヤジを飛ばす（berteriak の対象をとる他動詞）",
+        "ex": "Warga yang panik langsung meneriaki pengendara motor itu agar segera berhenti sebelum melintasi rel.",
+        "tr": "パニックになった住民たちは、線路を渡る前にすぐ止まるようそのバイク運転手に向かって大声で叫んだ。",
+        "note": "■ 【語構成】：meN- + teriak（叫ぶ：頭文字 t が鼻音化して n）+ -i（対象に向かって）。\n■ 【使い分け】：\n・berteriak（自動詞）：（ただ）大声で叫ぶ\n・meneriaki + 人（他動詞）：（特定の人に）怒鳴りつける、叫びかける、罵声を浴びせる\n・meneriakkan + 言葉（他動詞）：（スローガンや言葉を）大声で叫ぶ"
+      },
+      {
+        "p": "n",
+        "w": "aktualisasi",
+        "r": "aktualisasi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "現実化、具現化、実践（特に心理学・ビジネス・教育で『aktualisasi diri＝自己実現』として超頻出）",
+        "ex": "Komunitas kreatif di kampus menjadi wadah penting bagi mahasiswa untuk melakukan aktualisasi diri.",
+        "tr": "大学内のクリエイティブコミュニティは、学生たちが自己実現を図るための重要な場となっている。",
+        "note": "■ 【重要コロケーション】：\n・aktualisasi diri：自己実現（マズローの欲求段階説やキャリア記事で定番）\n・mengaktualisasikan（動詞）：現実化する、実践に移す\n■ 【関連語】：aktual（最新の・時事的な・現実の）。"
+      },
+      {
+        "p": "v",
+        "w": "menentu",
+        "r": "tentu",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "（※ほぼ常に否定語 tidak / tak を伴う『tidak menentu』の形で）不安定な、定まらない、不確実な、予測がつかない（天気・経済・気持ちなど）",
+        "ex": "Cuaca yang tidak menentu belakangan ini membuat para petani kesulitan menentukan waktu tanam.",
+        "tr": "ここ最近の定まらない（不安定な）天候により、農家たちは作付け時期を決めるのに苦労している。",
+        "note": "■ 【語構成】：meN- + tentu（確実な・定まった：頭文字 t が鼻音化して n）。単独肯定ではほとんど使わず、否定句で使うのが鉄則！\n■ 【重要コロケーション】：\n・cuaca / kondisi ekonomi / jadwal yang tidak menentu：不安定な天気 ／ 先行き不透明な経済状況 ／ 不規則なスケジュール\n・perasaan tak menentu：落ち着かない、モヤモヤして定まらない気持ち"
+      },
+      {
+        "p": "v",
+        "w": "terkenang",
+        "r": "kenang",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "①（過去の出来事や故人などが）ふと思い出される、懐かしく蘇る（terkenang akan / pada ~） ②いつまでも人々の記憶に残る、忘れられない",
+        "ex": "Mendengar lagu lama itu membuat saya kembali terkenang akan masa-masa kuliah bersama teman-teman.",
+        "tr": "その懐かしい曲を聴くと、友人たちと過ごした大学時代がまたふと思い出される。",
+        "note": "■ 【語構成】：ter- + kenang（偲ぶ・懐かしむ）。意図せず自然に思い出が蘇るニュアンス（⇔ mengenang＝意図的に偲ぶ・追悼する）。\n■ 【kenang 関連語ファミリー】：mengenang（偲ぶ・振り返る）、kenangan（思い出）、kenang-kenangan（記念品・形見）。"
+      },
+      {
+        "p": "n",
+        "w": "bahtera",
+        "r": "bahtera",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "（文学的・雅語表現で）船、大型船、箱舟（現代では結婚式や祝辞の比喩『bahtera rumah tangga＝家庭・結婚生活という名の船』で定番）",
+        "ex": "Doa restu mengalir untuk kedua mempelai yang baru saja mengarungi bahtera rumah tangga bersama.",
+        "tr": "ともに家庭という船の航海（新婚生活）へと漕ぎ出したばかりの新郎新婦へ、祝福の祈りが寄せられた。",
+        "note": "■ 【重要コロケーション】：\n・mengarungi bahtera rumah tangga：結婚生活（家庭という船）をともに歩み進める\n・bahtera kehidupan：人生の航海\n・bahtera Nuh：ノアの箱舟"
+      },
+      {
+        "p": "v",
+        "w": "memagari",
+        "r": "pagar",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①（家・庭・農地・施設に）柵・塀・フェンスを巡らせる、囲う ②（比喩で：規則・警備・価値観などで）守る、ガードする、境界を引く",
+        "ex": "Warga bergotong royong memagari kebun sayur desa agar tidak dimasuki hewan ternak liar.",
+        "tr": "住民たちは放し飼いの家畜が入り込まないよう、協力して村の野菜畑に柵を巡らせた。",
+        "note": "■ 【語構成】：meN- + pagar（柵・塀・フェンス：頭文字 p が鼻音化して m）+ -i。\n■ 【関連語】：pagar（柵・塀：pagar beton＝コンクリート塀、pagar makan tanaman＝ことわざ「信頼していた身内に裏切られる」）。"
+      },
+      {
+        "p": "v",
+        "w": "menyalak",
+        "r": "salak",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "（犬などが）吠える、ワンワン鳴く（＝menggonggong）",
+        "ex": "Anjing penjaga di halaman rumah langsung menyalak keras setiap kali ada orang asing mendekati gerbang.",
+        "tr": "家の庭の番犬は、見知らぬ人が門に近づくたびにすぐ激しく吠える。",
+        "note": "■ 【語構成】：meN- + salak（犬の吠え声：頭文字 s が鼻音化して ny）。\n■ 【同音語メモ】：果物の『salak（スネークフルーツ）』とは別の同音語。犬が吠える動詞は『menyalak』または『menggonggong』。"
+      },
+      {
+        "p": "n",
+        "w": "pemintalan",
+        "r": "pintal",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "紡績（綿や羊毛などの繊維を撚って糸を紡ぐ工程）、紡績工場（pabrik pemintalan benang）",
+        "ex": "Industri tekstil di daerah tersebut masih bergantung pada mesin pemintalan benang berteknologi modern.",
+        "tr": "その地域の繊維産業は、依然として最新技術の糸紡績機に依存している。",
+        "note": "■ 【語構成】：peN- + pintal（糸を紡ぐ・撚る：頭文字 p が鼻音化して m）+ -an。\n■ 【pintal 関連語ファミリー】：memintal（糸を紡ぐ）、pemintal（紡績工・糸車）。繊維産業・歴史の文章で頻出。"
+      },
+      {
+        "p": "n",
+        "w": "derik",
+        "r": "derik",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①（古いドア・床板・椅子などが）ギシギシ、キィッと軋む音 ②（時計の針や虫などの）カチカチ、チリチリという小刻みな音",
+        "ex": "Di tengah kesunyian malam, terdengar derik pintu kayu tua yang terbuka perlahan tertiup angin.",
+        "tr": "静まり返った夜の中、風に吹かれてゆっくり開く古い木製ドアのギシッと軋む音が聞こえた。",
+        "note": "■ 【用法】：小説・描写文でよく使われる擬音名詞。動詞形は『berderik（ギシギシ軋む・カチカチ鳴る）』。\n■ 【類義擬音】：derit（重い金属や扉がキーッと軋む音）、decit（タイヤや靴がキュッと鳴る音）。"
+      },
+      {
+        "p": "v",
+        "w": "menjelek-jelekkan",
+        "r": "jelek",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "（人や組織の）悪口を言いふらす、しきりにけなす、中傷する、評判を落とす（menjelekkan の反復・強調形）",
+        "ex": "Ia tetap bersikap tenang meskipun ada rekan kerja yang berusaha menjelek-jelekkan namanya di belakang.",
+        "tr": "陰で自分の評判を落とそうと悪口を言いふらす同僚がいても、彼は冷静な態度を保ち続けた。",
+        "note": "■ 【語構成】：meN- + jelek-jelek + -kan（重複により「何度も・執拗に悪口を言う」ニュアンス）。\n■ 【関連語】：jelek（悪い）、kejelekan（欠点・悪さ）、menjelekkan（悪く言う・けなす）。"
+      },
+      {
+        "p": "v",
+        "w": "bermaaf-maafan",
+        "r": "maaf",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "互いに許し合う、謝り合う（特に断食明け大祭レバラン／ハラールビハラールで家族・知人と挨拶し合うインドネシア文化の象徴的動詞）",
+        "ex": "Saat momen Lebaran tiba, seluruh anggota keluarga berkumpul untuk bersalaman dan saling bermaaf-maafan.",
+        "tr": "レバランの時が来ると、家族全員が集まって握手を交わし、互いに許し合う。",
+        "note": "■ 【語構成】：ber- + maaf-maaf + -an（相互動作「互いに許し合う」）。\n■ 【文化背景】：レバランの定番挨拶『Mohon maaf lahir dan batin（外面的・内面的な過ちをどうかお許しください）』とセットで必ず使われる。\n■ 【関連語】：maaf（許し・すみません）、memaafkan（許す）、halalbihalal（レバラン後の許し合い懇親会）。"
+      },
+      {
+        "p": "n",
+        "w": "ketidaktaatan",
+        "r": "taat",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "不服従、規則違反、従わないこと、非遵守（⇔ ketaatan＝遵守・従順）",
+        "ex": "Ketidaktaatan sebagian pengendara terhadap rambu lalu lintas menjadi penyebab utama kemacetan dan kecelakaan.",
+        "tr": "一部の運転者による交通標識への不遵守（違反）が、渋滞や事故の主な原因となっている。",
+        "note": "■ 【語構成】：ke- + tidak + taat（従う・遵守する）+ -an（否定抽象名詞）。\n■ 【重要コロケーション】：ketidaktaatan hukum / pajak / aturan（法／納税／規則の不遵守）。\n■ 【taat 関連語ファミリー】：taat（従順な・遵守する）、menaati（守る・従う）、ketaatan（遵守・忠実さ）。"
+      },
+      {
+        "p": "v",
+        "w": "bernilai",
+        "r": "nilai",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "①（〜の）金額・価値がある（bernilai miliaran rupiah＝数十億ルピア相当の） ②価値が高い、有意義な（bernilai tinggi / historis / ekonomis）",
+        "ex": "Proyek pembangunan pembangkit listrik tenaga surya tersebut bernilai lebih dari dua triliun rupiah.",
+        "tr": "その太陽光発電所の建設プロジェクトは、2兆ルピア以上の価値（事業規模）がある。",
+        "note": "■ 【語構成】：ber- + nilai（価値・評価・金額）。経済・契約・文化ニュースで超頻出！\n■ 【重要コロケーション】：\n・bernilai jutaan / miliaran / triliunan rupiah：数百万／数十億／数兆ルピア相当の\n・bernilai ekonomis / historis / seni tinggi：経済的／歴史的／芸術的価値が高い\n■ 【nilai 関連語ファミリー】：nilai（価値・点数）、menilai（評価する）、penilaian（評価・査定）。"
+      },
+      {
+        "p": "n",
+        "w": "pertanggungan",
+        "r": "tanggung",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "（保険の）補償、保障、付保、保険の引き受け内容（nilai pertanggungan＝保険金額・補償上限、masa pertanggungan＝保険期間）",
+        "ex": "Nasabah perlu memeriksa batas nilai pertanggungan dan jenis risiko yang dijamin sebelum menandatangani kontrak asuransi.",
+        "tr": "顧客は保険契約書に署名する前に、補償上限額と保証されるリスクの種類を確認する必要がある。",
+        "note": "■ 【語構成】：per- + tanggung（引き受ける・責任を負う）+ -an。保険約款・金融ニュースの専門必須名詞！\n■ 【保険実務コロケーション】：\n・nilai / uang pertanggungan (UP)：保険金額、補償上限額\n・masa / objek pertanggungan：保険期間 ／ 保険の対象物\n■ 【関連語】：mempertanggungkan（保険にかける）、polis（保険証券）、premi（保険料）、klausul（条項）。"
+      },
+      {
+        "p": "n",
+        "w": "polis",
+        "r": "polis",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "保険証券、保険契約書（polis asuransi＝保険証書、pemegang polis＝保険契約者 ※「警察」は polisi なので混同注意！）",
+        "ex": "Setiap pemegang polis wajib membaca seluruh syarat dan ketentuan yang tercantum di dalam polis asuransi.",
+        "tr": "すべての保険契約者は、保険証券に記載されているすべての規約と条件を読む義務がある。",
+        "note": "■ 【重要コロケーション】：\n・polis asuransi：保険証券、保険契約書\n・pemegang polis：保険契約者\n・polis aktif / batal：有効な保険契約 ／ 失効した保険契約\n■ 【混同注意】：polis（保険証券：オランダ語 polis 由来） vs polisi（警察）。"
+      },
+      {
+        "p": "v",
+        "w": "mempertanggungkan",
+        "r": "tanggung",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "①（車・建物・生命・貨物などを）保険にかける、付保する（＝mengasuransikan） ②（命や財産・名誉などを）懸ける、責任の対象とする",
+        "ex": "Pemilik kendaraan listrik dapat mempertanggungkan mobilnya terhadap risiko kerusakan baterai maupun banjir.",
+        "tr": "電気自動車の所有者は、バッテリーの故障や浸水のリスクに備えて自分の車を保険にかけることができる。",
+        "note": "■ 【語構成】：memper- + tanggung + -kan。保険業界・法律文書では『mengasuransikan』と並んで使われる正式表現。\n■ 【関連語】：pertanggungan（保険補償）、menanggung（負担する・引き受ける）、tanggungan（扶養家族・負担）。"
+      },
+      {
+        "p": "n",
+        "w": "pabrikan",
+        "r": "pabrik",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "①メーカー、製造会社（特に自動車・バイク・電子機器のメーカー：pabrikan otomotif / Jepang） ②メーカー純正の、工場出荷時の（garansi pabrikan＝メーカー保証、standar pabrikan＝純正仕様）",
+        "ex": "Sejumlah pabrikan otomotif asal Jepang dan Tiongkok semakin gencar meluncurkan model mobil listrik di Indonesia.",
+        "tr": "日本や中国出身の複数の自動車メーカーが、インドネシアで電気自動車モデルをますます活発に投入している。",
+        "note": "■ 【語構成】：pabrik（工場）+ -an。製造業・自動車ニュースで毎日登場する定番語！\n■ 【重要コロケーション】：\n・pabrikan otomotif / mobil / motor：自動車メーカー ／ バイクメーカー\n・garansi / standar / suku cadang pabrikan：メーカー保証 ／ 純正仕様 ／ 純正部品"
+      },
+      {
+        "p": "singkatan",
+        "w": "APM",
+        "r": "Agen Pemegang Merek",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "自動車・二輪車などのブランド正規総代理店（メーカーから公式に販売・輸入・アフターサービス権を認定された現地法人。旧称 ATPM）",
+        "ex": "Setiap APM diwajibkan menyediakan layanan purnajual serta ketersediaan suku cadang bagi seluruh konsumennya.",
+        "tr": "各ブランド正規総代理店（APM）は、すべての消費者に対してアフターサービスおよび交換部品の供給体制を提供することが義務付けられている。",
+        "note": "■ 【正式名称】：Agen（代理店）Pemegang（保持者）Merek（ブランド）。インドネシア自動車工業会（GAIKINDO）や経済紙の自動車記事で超頻出の略語！\n■ 【関連語】：ATPM（Agen Tunggal Pemegang Merek＝独占総代理店）、pabrikan（メーカー）、diler（ディーラー）。"
+      },
+      {
+        "p": "n",
+        "w": "elektrifikasi",
+        "r": "elektrifikasi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "①電動化、電化（elektrifikasi kendaraan＝車のEV・HV化、elektrifikasi jalur kereta＝鉄道の電化） ②電力普及、電化率向上（rasio elektrifikasi＝電化率）",
+        "ex": "Pemerintah mendorong percepatan elektrifikasi sektor transportasi guna menekan emisi karbon di kota besar.",
+        "tr": "政府は大都市での炭素排出を抑えるため、運輸部門の電動化（電化）の加速を推進している。",
+        "note": "■ 【2大頻出コロケーション】：\n① 自動車・交通：elektrifikasi kendaraan / otomotif（自動車の電動化＝EV/HEV/PHEV移行）、elektrifikasi rel kereta（線路の電化）\n② インフラ：rasio elektrifikasi nasional（国の電力普及率・電化率）"
+      },
+      {
+        "p": "n",
+        "w": "klausul",
+        "r": "klausul",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "（契約書・保険約款・条約などの）条項、約款、規定、ただし書き（英語 clause 由来）",
+        "ex": "Pihak pembeli meminta penjelasan rinci mengenai klausul pembatalan dan ganti rugi dalam draf perjanjian tersebut.",
+        "tr": "買い手側は、その契約書案における解約および損害賠償の条項について詳しい説明を求めた。",
+        "note": "■ 【契約・保険・スポーツ移籍の定番コロケーション】：\n・klausul kontrak / perjanjian / polis：契約条項 ／ 保険約款の条項\n・klausul pengecualian：免責条項（補償対象外となる条件）\n・klausul pelepasan（サッカー）：契約解除条項（バイアウト条項）"
+      },
+      {
+        "p": "n",
+        "w": "premi",
+        "r": "premi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "①保険料（premi asuransi＝契約者が定期支払いする保険料） ②報奨金、奨励金、割増金",
+        "ex": "Besaran premi asuransi mobil listrik umumnya sedikit lebih tinggi karena biaya penggantian baterai yang mahal.",
+        "tr": "電気自動車の保険料の額は、バッテリーの交換費用が高額であるため一般的にやや高めになる。",
+        "note": "■ 【重要コロケーション】：\n・premi asuransi（bulanan / tahunan）：（月払い／年払いの）保険料\n・membayar / menunggak premi：保険料を支払う ／ 滞納する\n・tarif / besaran premi：保険料率 ／ 保険料額"
+      },
+      {
+        "p": "v",
+        "w": "luput",
+        "r": "luput",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①（注意・監視・記録などから）漏れる、見落とされる、抜け落ちる（luput dari perhatian / pantauan） ②（危険・罰・攻撃を）免れる、外れる（luput dari bahaya / sanksi）",
+        "ex": "Detail kecil di dalam kontrak asuransi tersebut sering kali luput dari perhatian para pemilik kendaraan.",
+        "tr": "その保険契約書の中の細かな記載は、しばしば車両所有者の注意から見落とされる。",
+        "note": "■ 【ニュース・論説の黄金コロケーション】：\n・luput dari perhatian / pengawasan / pantauan：注意／監視／チェックから漏れる（見落とされる）\n・tidak luput dari ~：〜を免れない（例：tidak luput dari sorotan publik＝世間の注目を免れない）\n・luput dari hukuman / maut：処罰を免れる ／ 死を免れる"
+      },
+      {
+        "p": "n",
+        "w": "besaran",
+        "r": "besar",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "①（金額・料金・賃金・罰金・補助などの）額、規模、水準、大きさ（besaran premi / gaji / subsidi） ②（物理学の）物理量（besaran pokok / turunan）",
+        "ex": "Pemerintah daerah akan mengumumkan besaran upah minimum provinsi untuk tahun depan pada akhir bulan ini.",
+        "tr": "地方政府は今月末に、来年度の州最低賃金の額を発表する予定だ。",
+        "note": "■ 【語構成】：besar（大きい）+ -an。経済・行政ニュースで「具体的な金額・数値の大きさ」を指すときの超定番名詞！\n■ 【重要コロケーション】：besaran premi / tarif / denda / diskon / anggaran（保険料／料金／罰金／割引／予算の額）。"
+      },
+      {
+        "p": "a",
+        "w": "total",
+        "r": "total",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "①合計の、総〜（total biaya / kerugian＝総費用／総損害額） ②完全な、全面的な、徹底的な（kerusakan total＝全損、perubahan total＝全面刷新）",
+        "ex": "Perusahaan asuransi akan mengganti kerugian apabila kendaraan mengalami kerusakan total akibat kecelakaan berat.",
+        "tr": "重大事故によって車両が全損（完全な損傷）となった場合、保険会社が損害を補償する。",
+        "note": "■ 【重要コロケーション】：\n・total biaya / nilai / kerugian：総費用 ／ 合計額 ／ 総損害額\n・kerusakan total (total loss)：全損\n・secara total / berhenti total：完全に、全面的に ／ 完全停止する\n■ 【派生語】：menotal（合計する）、totalitas（徹底ぶり・全力投入）。"
+      },
+      {
+        "p": "n",
+        "w": "kelistrikan",
+        "r": "listrik",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "電気系統、電装系、電力システム・電力事情全般（sistem kelistrikan mobil＝車の電装系、infrastruktur kelistrikan＝電力インフラ）",
+        "ex": "Korsleting pada sistem kelistrikan kendaraan bertegangan tinggi memerlukan penanganan teknisi bersertifikat khusus.",
+        "tr": "高電圧車両の電気系統におけるショート（短絡）は、専門資格を持つ技術者による対応を必要とする。",
+        "note": "■ 【語構成】：ke- + listrik（電気）+ -an。\n■ 【重要コロケーション】：\n・sistem / komponen kelistrikan：電気系統（電装系） ／ 電装部品\n・gangguan / masalah kelistrikan：電気系統のトラブル、電力障害\n■ 【関連語】：listrik（電気）、elektrifikasi（電動化・電化）、tegangan（電圧）。"
+      },
+      {
+        "p": "v",
+        "w": "bertegangan",
+        "r": "tegang",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "（〜の）電圧を持つ、〜ボルトの（bertegangan tinggi＝高電圧の、baterai bertegangan tinggi＝高圧バッテリー）",
+        "ex": "Teknisi wajib mengenakan sarung tangan isolasi saat memeriksa komponen mobil listrik yang bertegangan tinggi.",
+        "tr": "技術者は高電圧の電気自動車部品を点検する際、絶縁手袋を着用する義務がある。",
+        "note": "■ 【語構成】：ber- + tegangan（電圧）。EV・送電線・電気安全ニュースの定番表現！\n■ 【重要コロケーション】：\n・bertegangan tinggi / menengah / rendah：高電圧の ／ 中圧の ／ 低電圧の\n・kabel / baterai bertegangan tinggi：高圧ケーブル ／ 高圧バッテリー"
+      },
+      {
+        "p": "a",
+        "w": "jumbo",
+        "r": "jumbo",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "ジャンボの、超大型の、特大サイズの（料理・服のサイズだけでなく、経済ニュースで『investasi jumbo＝巨額投資』『proyek jumbo＝超大型案件』としても超頻出）",
+        "ex": "Restoran itu terkenal dengan menu iga bakar porsi jumbo yang cukup dinikmati oleh tiga hingga empat orang.",
+        "tr": "そのレストランは、3〜4人で十分楽しめる特大サイズ（ジャンボポーション）の焼きスペアリブのメニューで有名だ。",
+        "note": "■ 【日常＆経済の2大コロケーション】：\n① 日常・グルメ：porsi / ukuran jumbo（特大盛り・特大サイズ）\n② 経済・政治ニュース：investasi / anggaran / proyek / utang jumbo（巨額投資 ／ 超大型予算 ／ 巨大案件 ／ 巨額債務）"
+      },
+      {
+        "p": "n",
+        "w": "iga",
+        "r": "iga",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "肋骨（ろっこつ）、あばら骨、スペアリブ（料理では『iga bakar＝焼きスペアリブ』『sop iga＝牛骨リブスープ』がインドネシアの定番人気グルメ）",
+        "ex": "Sop iga sapi hangat dengan taburan bawang goreng dan perasan jeruk nipis menjadi menu favorit saat hujan.",
+        "tr": "フライドオニオンを散らしてライムを絞った温かい牛スペアリブスープ（ソップ・イガ）は、雨の日の人気メニューだ。",
+        "note": "■ 【グルメ＆解剖コロケーション】：\n・iga bakar / iga penyet / sop iga：焼きスペアリブ ／ 辛味サンバル添え揚げリブ ／ 牛リブスープ\n・tulang iga：肋骨（＝tulang rusuk）"
+      },
+      {
+        "p": "n",
+        "w": "tegangan",
+        "r": "tegang",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "①（電気の）電圧、ボルテージ（tegangan listrik、tegangan tinggi＝高電圧） ②（ロープや液体表面などの）張力、張り（tegangan permukaan＝表面張力）",
+        "ex": "Penurunan tegangan listrik secara mendadak di kawasan industri dapat mengganggu kinerja mesin produksi.",
+        "tr": "工業地帯における急激な電圧低下は、生産機械の稼働に支障をきたす恐れがある。",
+        "note": "■ 【語構成】：tegang（ピンと張った・緊張した）+ -an。\n■ 【使い分け注意】：\n・tegangan：電気の「電圧」、物理の「張力」（例：tegangan tinggi＝高圧、SUTET＝超高圧送電線）\n・ketegangan：人間関係・外交・試合の「緊迫・緊張状態」\n■ 【関連語】：bertegangan（電圧を持つ）、kelistrikan（電気系統）。"
+      }
+    ];
+
+    const idxByWord = new Map();
+    for (let i = 0; i < d.vocab.length; i++) {
+      const it = d.vocab[i];
+      if (it && it.w) idxByWord.set(it.w.trim().toLowerCase(), i);
+    }
+
+    const newlyDictOnlyKeys = new Set();
+
+    for (let i = 0; i < NEW_37_PACK.length; i++) {
+      const item = NEW_37_PACK[i];
+      if (!item || !item.w) continue;
+      const key = item.w.trim().toLowerCase();
+
+      if (item.dictOnly === true || item.tier === 3) {
+        dictOnlySet.add(key);
+        newlyDictOnlyKeys.add(key);
+      } else {
+        dictOnlySet.delete(key);
+      }
+      if (item.topicCat) {
+        catMap.set(key, item.topicCat);
+      }
+
+      if (idxByWord.has(key)) {
+        const pos = idxByWord.get(key);
+        Object.assign(d.vocab[pos], item);
+        vMap.set(key, d.vocab[pos]);
+        persistentAdded.set(key, d.vocab[pos]);
+      } else {
+        d.vocab.push(item);
+        idxByWord.set(key, d.vocab.length - 1);
+        vMap.set(key, item);
+        persistentAdded.set(key, item);
+      }
+    }
+
+    // 既存だった bahtera 等を辞書専用化した際、保存済みの復習・スターから安全除外
+    ["wi_wrongs_v2", "wi_stars_v2", "wi_master_stars_v5"].forEach(function(storageKey) {
+      try {
+        const raw = localStorage.getItem(storageKey);
+        if (!raw) return;
+        const list = JSON.parse(raw);
+        if (!Array.isArray(list)) return;
+        const cleaned = list.filter(function(it) {
+          if (!it || typeof it !== "object") return false;
+          const qid = String(it.id || "");
+          const m = qid.match(/^(?:voc|voc_ja2id|ctx::voc|abbr_ja|abbr_full)::(.+)$/i);
+          const w = (m ? m[1] : (it.w || it.ttsWord || "")).trim().toLowerCase();
+          return !newlyDictOnlyKeys.has(w);
+        });
+        if (cleaned.length !== list.length) {
+          localStorage.setItem(storageKey, JSON.stringify(cleaned));
+        }
+      } catch (err) {}
+    });
+  } catch (e) {
+    console.error("WhatsIndo 37-word pack error:", e);
+  }
+})();
+/* =====================================================================
+   WhatsIndo ご指名33語 ＋ 厳選派生・関連語6語 追加・更新パック（全39語・安全直結版）
+   - 出題対象（4語）：meruncing（文字バグ修正＆強化）＋ 派生・基礎重要語 berlindung, basis, kena
+   - 辞書専用（dictOnly: true, 35語）：terselesaikan, tenunan, penenun, pengerukan,
+     mengotaki, ketumpahan, ruah, lindung, pemindai, pemindaian, berseru, bersambung,
+     penuaan, sektoral, penjiplakan, penjiplak, jiplakan, pamong praja, penutup,
+     berlandaskan, penugasan, rentang, pengenaan, berbasis, BBNKB（略語）, pengangkut,
+     karakteristik, takbenda, penjelajah, penjelajahan, jelajah, berlomba-lomba
+     ＋ 関連・派生語 Satpol PP（略語）, melandasi, tumpahan
+   - 現代実用意味に厳選・**記号ゼロ・文字バグゼロ・try-catch完全保護
+   ===================================================================== */
+(function() {
+  try {
+    const d = window.WHATSINDO_EXTERNAL_DATA;
+    if (!d || !Array.isArray(d.vocab)) return;
+
+    const dictOnlySet     = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+    const persistentAdded = window.__wiPersistentAddedVocab || (window.__wiPersistentAddedVocab = new Map());
+    const vMap            = window.__wiMasterVocabMap || (window.__wiMasterVocabMap = new Map());
+    const catMap          = window.__WI_V5_VCAT || (window.__WI_V5_VCAT = new Map());
+
+    const NEW_39_PACK = [
+      {
+        "p": "v",
+        "w": "meruncing",
+        "r": "runcing",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①（対立・紛争・議論・緊張関係などが）先鋭化する、激化する、深刻化する（＝memanas / semakin tajam） ②先が尖る、細く鋭くなる",
+        "ex": "Perselisihan mengenai batas wilayah antara kedua negara tetangga itu dikhawatirkan akan semakin meruncing.",
+        "tr": "その隣り合う両国間の国境をめぐる対立は、ますます先鋭化する（激化する）のではないかと懸念されている。",
+        "note": "■ 【語構成】：me- + runcing（先が尖った：bambu runcing＝竹槍）。ニュース・論説で対立や危機の深刻化を表す洗練表現。\n■ 【重要コロケーション】：\n・konflik / perselisihan / ketegangan semakin meruncing：紛争／対立／緊張がますます先鋭化する\n■ 【対比・関連語】：melandai（事態や感染の波が落ち着く・緩やかになる）、runcing（先が尖った）。"
+      },
+      {
+        "p": "v",
+        "w": "berlindung",
+        "r": "lindung",
+        "tier": 1,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①（雨・日差し・危険・攻撃などから）身を隠す、避難する、雨宿りする ②（法・権力・人などの）保護を求める、庇護のもとに隠れる（berlindung di balik ~）",
+        "ex": "Para pengendara sepeda motor segera menepi untuk berlindung di bawah jembatan layang saat hujan deras turun.",
+        "tr": "豪雨が降り出した際、バイクの運転手たちは雨宿りをするため直ちに高架橋の下へ路肩停車した。",
+        "note": "■ 【語構成】：ber- + lindung（守る・覆う）。日常会話からニュースまで超頻出の自動詞！\n■ 【重要コロケーション】：\n・berlindung dari hujan / panas / bahaya：雨宿りする ／ 日差しを避ける ／ 危険から避難する\n・berlindung di balik hukum / alasan（比喩）：法／言い訳の陰に隠れる\n■ 【lindung 関連語ファミリー】：lindung（保護・保護された）、melindungi（守る・保護する）、perlindungan（保護）、pelindung（保護者・プロテクター）。"
+      },
+      {
+        "p": "n",
+        "w": "basis",
+        "r": "basis",
+        "tier": 1,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "①基盤、基礎、土台（basis data＝データベース、basis ekonomi＝経済基盤） ②拠点、基地、支持基盤（basis massa / pendukung＝支持層・地盤）",
+        "ex": "Perusahaan tersebut sedang memperkuat keamanan basis data pelanggan untuk mencegah kebocoran informasi.",
+        "tr": "その企業は情報漏洩を防ぐため、顧客データベースのセキュリティを強化している。",
+        "note": "■ 【IT・ビジネス・政治の必須コロケーション】：\n・basis data：データベース（英語 database の公式インドネシア語）\n・basis produksi / industri：生産拠点 ／ 産業基盤\n・basis massa / pemilih：支持基盤、票田\n■ 【関連語】：berbasis（〜に基づく、〜を基盤とした）。"
+      },
+      {
+        "p": "v",
+        "w": "kena",
+        "r": "kena",
+        "tier": 1,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①（球・雨・日差しなどが）当たる、浴びる ②（渋滞・罰金・税金・病気・詐欺・怒りなどに）遭う、かかる、科される、受ける（kena macet / denda / pajak / flu） ③（的に）命中する、的を射ている",
+        "ex": "Pengendara yang parkir sembarangan di trotoar bisa langsung kena denda tilang dari petugas.",
+        "tr": "歩道にむやみに駐車する運転手は、係官から直ちに反則金の罰金を科されることがある。",
+        "note": "■ 【日常＆会話で毎日使う超頻出語】：書き言葉の『terkena / dikenai』にあたり、幅広い被害・課税・処罰にそのまま使える！\n■ 【重要コロケーション】：\n・kena macet / hujan / flu：渋滞にハマる ／ 雨に降られる ／ インフルにかかる\n・kena denda / pajak / sanksi / tipu：罰金を科される ／ 課税される ／ 処分を受ける ／ 騙される\n■ 【kena 関連語ファミリー】：mengenakan（着用する・課す）、pengenaan（課税・適用）、mengenai（〜に関して・命中する）。"
+      },
+      {
+        "p": "v",
+        "w": "terselesaikan",
+        "r": "selesai",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "（問題・課題・紛争・業務などが無事に）解決される、片付く、完了する（＝dapat diselesaikan）",
+        "ex": "Melalui mediasi terbuka, perselisihan batas lahan antarwarga tersebut akhirnya dapat terselesaikan secara damai.",
+        "tr": "開かれた調停を通じて、その住民間の土地境界紛争はついに平和裏に解決された。",
+        "note": "■ 【語構成】：ter-（完了・可能の受動）+ selesai + -kan。\n■ 【重要コロケーション】：\n・terselesaikan dengan baik / tuntas / damai：円満に／完全に／平和裏に解決される\n・belum terselesaikan：未解決のままである\n■ 【selesai 関連語ファミリー】：selesai（終わる）、menyelesaikan（解決する・終わらせる）、penyelesaian（解決・完了）。"
+      },
+      {
+        "p": "n",
+        "w": "tenunan",
+        "r": "tenun",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "織物、織り上がった布、織り方（インドネシア各地の伝統織物『kain tenun / tenunan ikat / songket』など）",
+        "ex": "Motif tenunan tradisional dari Pulau Sumba terkenal akan keindahannya hingga ke pasar internasional.",
+        "tr": "スンバ島の伝統的な織物の文様は、その美しさで国際市場にまで知られている。",
+        "note": "■ 【語構成】：tenun（織る）+ -an。\n■ 【tenun 関連語ファミリー】：menenun（機で布を織る）、penenun（織り手・機織り職人）、tenunan（織物・織り地）。"
+      },
+      {
+        "p": "n",
+        "w": "penenun",
+        "r": "tenun",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "機織り職人、織物職人、織り手（布を織る人）",
+        "ex": "Para penenun lokal masih menggunakan pewarna alami dari akar dan daun tumbuhan untuk menjaga keaslian warna.",
+        "tr": "地元の織物職人たちは、色の本来の風合いを守るため、今も植物の根や葉から採れる天然染料を使用している。",
+        "note": "■ 【語構成】：peN- + tenun（織る：頭文字 t が鼻音化して n）。\n■ 【関連語】：menenun（織る）、tenunan（織物）。"
+      },
+      {
+        "p": "n",
+        "w": "pengerukan",
+        "r": "keruk",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "①（川底・運河・貯水池・港の泥や土砂の）浚渫（しゅんせつ）、掘りさらえ工事 ②（天然資源や利益の）採掘、吸い上げ・搾取",
+        "ex": "Dinas sumber daya air mempercepat pengerukan lumpur di sejumlah sungai utama sebelum puncak musim hujan tiba.",
+        "tr": "水資源局は雨季のピークが到来する前に、複数の主要河川での泥の浚渫（しゅんせつ）工事を急いでいる。",
+        "note": "■ 【語構成】：peN- + keruk（掘り返す・さらう：頭文字 k が鼻音化して ng）+ -an。洪水対策ニュースの超定番名詞！\n■ 【重要コロケーション】：pengerukan sungai / waduk / sedimentasi（河川／貯水池／堆積土砂の浚渫）。\n■ 【関連語】：mengeruk（浚渫する・根こそぎ利益をむさぼる）。"
+      },
+      {
+        "p": "v",
+        "w": "mengotaki",
+        "r": "otak",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "（犯罪・陰謀・事件・作戦などの）黒幕となる、首謀する、裏で頭脳として画策する（＝mendalangi）",
+        "ex": "Kepolisian berhasil menangkap pria yang diduga mengotaki sindikat penipuan daring lintas negara tersebut.",
+        "tr": "警察は、その国境を越えたオンライン詐欺シンジケートを首謀した（黒幕となった）とみられる男の逮捕に成功した。",
+        "note": "■ 【語構成】：meng- + otak（脳・黒幕・首謀者）+ -i。事件報道で『otak pelaku（首謀者）』の動詞形として頻出！\n■ 【類義語】：mendalangi（裏で糸を引く・黒幕を務める：語幹 dalang＝影絵人形遣い）。"
+      },
+      {
+        "p": "v",
+        "w": "ketumpahan",
+        "r": "tumpah",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "（コーヒー・水・油・汁物などが誤って）こぼれかかる、浴びてしまう（受動的被害の ke- -an）",
+        "ex": "Dokumen penting di atas meja kerja itu rusak karena tidak sengaja ketumpahan segelas kopi panas.",
+        "tr": "仕事机の上の重要書類は、うっかり熱いコーヒーが一杯こぼれかかってしまったせいでダメになった。",
+        "note": "■ 【語構成】：ke- + tumpah（こぼれる）+ -an（不本意な被害「〜がこぼれかかって濡れる」：kehujanan＝雨に降られる、と同じ型！）。\n■ 【tumpah 関連語ファミリー】：tumpah（こぼれる）、menumpahkan（こぼす・注ぎ込む）、tumpahan（こぼれたもの・流出物）。"
+      },
+      {
+        "p": "a",
+        "w": "ruah",
+        "r": "ruah",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "（※主に『tumpah ruah』『melimpah ruah』の連語で）溢れかえるほどの、ごった返す、有り余るほど豊かな",
+        "ex": "Ribuan penonton tumpah ruah memenuhi alun-alun kota untuk menyaksikan konser malam pergantian tahun.",
+        "tr": "大晦日のカウントダウンコンサートを見るため、数千人の観客が市の広場に溢れかえって埋め尽くした。",
+        "note": "■ 【現代インドネシア語の2大定番連語】：\n・tumpah ruah：（人混みや群衆が広場・通りなどに）溢れかえる、ごった返す\n・melimpah ruah：（収穫・資源・富・恵みなどが）有り余るほど豊かだ、潤沢に溢れる"
+      },
+      {
+        "p": "v",
+        "w": "lindung",
+        "r": "lindung",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "守る、保護する、覆い隠す（主に複合名詞『hutan lindung＝保安林・保護林』『satwa lindung＝保護動物』や、動詞『melindungi＝守る』『berlindung＝避難する』の語幹として頻出）",
+        "ex": "Pemerintah melarang segala aktivitas penambangan ilegal di dalam kawasan hutan lindung tersebut.",
+        "tr": "政府はその保護林（保安林）区域内におけるあらゆる違法採掘活動を禁じている。",
+        "note": "■ 【重要複合語】：\n・hutan lindung / kawasan lindung：保安林（保護林） ／ 保護区域\n・satwa lindung：保護指定動物\n■ 【lindung 関連語ファミリー】：melindungi（保護する）、berlindung（避難する・雨宿りする）、perlindungan（保護）、pelindung（保護者・保護具）。"
+      },
+      {
+        "p": "n",
+        "w": "pemindai",
+        "r": "pindai",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "スキャナー、読み取り機、スキャン装置（pemindai kode QR＝QRスキャナー、pemindai sidik jari＝指紋認証センサー、mesin pemindai＝X線検査機等）",
+        "ex": "Seluruh bagasi penumpang wajib melewati mesin pemindai sinar-X sebelum masuk ke ruang tunggu keberangkatan.",
+        "tr": "乗客のすべての手荷物は、出発待合室に入る前にX線スキャナー（検査機）を通過しなければならない。",
+        "note": "■ 【語構成】：peN- + pindai（スキャンする：頭文字 p が鼻音化して m）。英語 scanner の公式インドネシア語。\n■ 【重要コロケーション】：pemindai sidik jari / wajah / kode batang（指紋／顔／バーコードスキャナー）。\n■ 【関連語】：memindai（スキャンする）、pemindaian（スキャン作業・走査）。"
+      },
+      {
+        "p": "n",
+        "w": "pemindaian",
+        "r": "pindai",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "スキャンすること、走査、読み取り処理（デジタル化のための書類スキャンや医療のCT・MRI検査、空港の保安検査など）",
+        "ex": "Proses pemindaian ribuan arsip sejarah tersebut dilakukan agar dokumen dapat diakses secara digital oleh peneliti.",
+        "tr": "研究者がデジタルで閲覧できるよう、それら数千点の歴史公文書のスキャン作業が行われている。",
+        "note": "■ 【語構成】：peN- + pindai + -an（行為・プロセス名詞）。\n■ 【重要コロケーション】：pemindaian dokumen / kode QR / tubuh / otak（書類／QRコード／ボディ／脳のスキャン）。"
+      },
+      {
+        "p": "v",
+        "w": "berseru",
+        "r": "seru",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "（大声で）叫ぶ、声を上げる、呼びかける、訴える（小説の台詞描写や演説・応援などで頻出）",
+        "ex": "Para pendukung di tribun stadion berseru serempak menyemangati tim kesayangan mereka pada menit terakhir.",
+        "tr": "スタジアムの観客席のサポーターたちは、最後の1分間に応援チームを鼓舞するため一斉に声を上げた（叫んだ）。",
+        "note": "■ 【語構成】：ber- + seru（呼びかけ・叫び）。\n■ 【使い分け】：\n・berseru（自動詞）：声を上げる、叫ぶ、呼びかける\n・menyerukan（他動詞）：（平和・団結・行動などを広く）呼びかける、訴える\n・seruan（名詞）：呼びかけ、叫び声、アピール\n※形容詞の『seru（ワクワクする・盛り上がる・面白い）』とは同音別義！"
+      },
+      {
+        "p": "v",
+        "w": "bersambung",
+        "r": "sambung",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①（物語・ドラマ・連載が）「つづく」、次回へ続く（To be continued） ②つながっている、連結している、途切れず連続している",
+        "ex": "Episode drama malam itu berakhir pada adegan yang menegangkan dengan tulisan bersambung di layar.",
+        "tr": "その夜のドラマのエピソードは、画面に「つづく」の文字が出てハラハラする場面で終わった。",
+        "note": "■ 【語構成】：ber- + sambung（つなぐ・続ける）。\n■ 【重要コロケーション】：\n・Bersambung...：つづく（漫画・ドラマ・連載小説の定番表示！）\n・cerita bersambung (cerbung)：連載小説\n・huruf tegak bersambung：筆記体（つなげ書き文字）\n■ 【関連語】：menyambung（つなぐ・再開する）、sambungan（接続・続き）。"
+      },
+      {
+        "p": "n",
+        "w": "penuaan",
+        "r": "tua",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "①（肌・身体・細胞の）老化、エイジング（penuaan dini＝早期老化、anti-penuaan＝アンチエイジング） ②（社会・人口の）高齢化（penuaan populasi / penduduk）",
+        "ex": "Banyak negara maju di Asia Timur kini menghadapi tantangan serius akibat laju penuaan populasi yang sangat cepat.",
+        "tr": "東アジアの多くの先進国は現在、非常に速い人口高齢化のペースに伴う深刻な課題に直面している。",
+        "note": "■ 【語構成】：peN- + tua（老いた・古い：頭文字 t が鼻音化して n）+ -an。美容・医療と人口問題の両方で頻出！\n■ 【2大頻出コロケーション】：\n① 美容・健康：penuaan dini（早期老化）、tanda-tanda penuaan（老化のサイン）\n② 社会・経済：penuaan populasi / demografi（人口高齢化）\n■ 【関連語】：tua（古い・年老いた）、menua（年をとる・老化する）。"
+      },
+      {
+        "p": "a",
+        "w": "sektoral",
+        "r": "sektor",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "部門別の、セクターごとの、縦割りの（特に『ego sektoral＝省庁・部署間の縦割りエゴ（縄張り意識）』や『lintas sektoral＝部門横断的な』でニュース超頻出！）",
+        "ex": "Koordinasi lintas sektoral antarinstansi sangat dibutuhkan untuk menghapus ego sektoral dalam penanganan banjir.",
+        "tr": "洪水対策における縦割りエゴ（縄張り意識）をなくすため、関係機関間の部門横断的な連携が強く求められている。",
+        "note": "■ 【行政・経済ニュースの2大黄金フレーズ】：\n・ego sektoral：縦割り行政の弊害、省庁・部署間の縄張り意識\n・kerja sama lintas sektoral：部門横断的（分野を超えた）協力\n■ 【関連語】：sektor（セクター・部門・分野）。"
+      },
+      {
+        "p": "n",
+        "w": "penjiplakan",
+        "r": "jiplak",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "盗作、剽窃（ひょうせつ）、パクり行為、無断コピー（＝plagiarisme）",
+        "ex": "Pihak universitas menjatuhkan sanksi tegas terhadap segala bentuk penjiplakan dalam penulisan karya ilmiah.",
+        "tr": "大学側は、学術論文の執筆におけるあらゆる形態の剽窃（盗作）に対して厳しい処分を科している。",
+        "note": "■ 【語構成】：peN- + jiplak（写し取る・盗作する）+ -an。\n■ 【jiplak 関連語ファミリーの3語整理】：\n・penjiplakan（行為）：盗作・剽窃すること\n・penjiplak（人）：盗作者、パクリ屋（＝plagiator）\n・jiplakan（物・結果）：盗作品、コピー品、パクリ作\n・menjiplak（動詞）：盗作する、丸写しする"
+      },
+      {
+        "p": "n",
+        "w": "penjiplak",
+        "r": "jiplak",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "盗作者、剽窃者、パクリ屋、模倣犯（＝plagiator）",
+        "ex": "Pemilik merek lokal itu menggugat penjiplak desain produknya yang menjual barang tiruan secara daring.",
+        "tr": "その地元ブランドのオーナーは、模倣品をオンライン販売していた自社製品デザインの盗作者（パクリ業者）を提訴した。",
+        "note": "■ 【語構成】：peN- + jiplak（盗作する）。行為は『penjiplakan』、作られたパクリ品は『jiplakan』。"
+      },
+      {
+        "p": "n",
+        "w": "jiplakan",
+        "r": "jiplak",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "盗作品、模倣品、パクリ作、写し（karya jiplakan＝盗作作品、barang jiplakan＝コピー商品）",
+        "ex": "Dewan juri membatalkan kemenangan peserta tersebut setelah terbukti bahwa naskahnya merupakan hasil jiplakan.",
+        "tr": "審査員団は、その参加者の原稿が盗作品であることが立証された後、優勝を取り消した。",
+        "note": "■ 【語構成】：jiplak + -an（結果・対象物を表す名詞）。類義語：tiruan（模造品）、bajakan（海賊版）。"
+      },
+      {
+        "p": "n",
+        "w": "pamong praja",
+        "r": "pamong",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "地方行政官、自治体公務員（特に地方条例の取り締まりを行う自治体警察『Satuan Polisi Pamong Praja＝Satpol PP』や内務省系の行政官養成大学『IPDN』で超有名）",
+        "ex": "Petugas polisi pamong praja menertibkan papan reklame tak berizin yang membahayakan pengguna jalan.",
+        "tr": "自治体警察（サトポルPP）の隊員たちは、道路利用者に危険を及ぼす無許可の看板を撤去・整理した。",
+        "note": "■ 【インドネシア行政の必須知識】：\n・Polisi Pamong Praja (Satpol PP)：自治体警察（国家警察 Polri とは別組織で、州・市・県の地方条例 Perda の執行や違法看板・違法露店の整理などを担当！）\n・語源：ジャワ語由来の『pamong（守り育てる人・世話役）』＋サンスクリット由来の『praja（国家・自治体・住民）』。"
+      },
+      {
+        "p": "n",
+        "w": "penutup",
+        "r": "tutup",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①（イベント・スピーチ・記事などの）締めくくり、閉会、結び（acara penutup＝閉会式、kalimat penutup＝結びの言葉） ②蓋（ふた）、カバー、覆い（penutup kepala＝被り物、penutup wajah＝覆面・マスク） ③デザート（makanan penutup）",
+        "ex": "Sebagai acara penutup, seluruh peserta festival menyanyikan lagu daerah bersama di panggung utama.",
+        "tr": "締めくくりの演目として、フェスティバルの全参加者がメインステージで一緒に地域の歌を合唱した。",
+        "note": "■ 【語構成】：peN- + tutup（閉じる：頭文字 t が鼻音化して n）。\n■ 【3大頻出コロケーション】：\n① 締め・結び：acara / pidato / kalimat penutup（閉会行事 ／ 閉会の辞 ／ 結びの言葉）\n② 蓋・カバー：penutup botol / kepala / mata（ボトルの蓋 ／ 頭を覆うもの ／ アイマスク・目隠し）\n③ 食事：makanan / hidangan penutup（デザート ⇔ makanan pembuka＝前菜）"
+      },
+      {
+        "p": "v",
+        "w": "berlandaskan",
+        "r": "landas",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "〜を基盤とする、〜に基づく、〜を拠り所とする（＝berdasarkan / berpijak pada）",
+        "ex": "Kebijakan luar negeri Indonesia dijalankan secara bebas dan aktif dengan berlandaskan Pancasila dan konstitusi.",
+        "tr": "インドネシアの外交政策は、パンチャシラと憲法を基盤として、自主・積極路線で遂行されている。",
+        "note": "■ 【語構成】：ber- + landas + -kan（または berlandaskan pada ~）。憲法・理念・法令・原則に基づく硬い書き言葉の定番動詞！\n■ 【landas 関連語ファミリー】：landasan（基盤・滑走路）、melandasi（〜の基盤となる）、berlandaskan（〜を基盤とする）。"
+      },
+      {
+        "p": "n",
+        "w": "penugasan",
+        "r": "tugas",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "任務の割り当て、配属、出向、特命・業務命令（surat penugasan＝辞令・出張命令書、penugasan khusus＝特命・特別配属）",
+        "ex": "Perusahaan memberikan penugasan selama dua tahun kepada manajer muda itu untuk memimpin kantor cabang di Surabaya.",
+        "tr": "会社はスラバヤ支店を率いるため、その若手マネージャーに2年間の赴任（任務割り当て）を命じた。",
+        "note": "■ 【語構成】：peN- + tugas（任務・課題：頭文字 t が鼻音化して n）+ -an。\n■ 【重要コロケーション】：\n・surat penugasan / penugasan dinas：辞令・業務命令書 ／ 出張・赴任任務\n・penugasan dari pemerintah：政府からの特別委託業務（国営企業 BUMN へのインフラ特命など）\n■ 【tugas 関連語ファミリー】：tugas（任務・宿題）、menugaskan（任命する・課す）、petugas（係員・担当者）。"
+      },
+      {
+        "p": "n",
+        "w": "rentang",
+        "r": "rentang",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "（時間・年齢・価格・数値・距離などの）幅、範囲、スパン、レンジ（rentang waktu＝期間・タイムスパン、rentang usia＝年齢層、rentang harga＝価格帯）",
+        "ex": "Produk ponsel baru tersebut ditawarkan dalam rentang harga tiga hingga lima juta rupiah sesuai kapasitas memorinya.",
+        "tr": "その新型スマホ製品は、メモリ容量に応じて300万〜500万ルピアの価格帯で提供されている。",
+        "note": "■ 【ニュース・ビジネスで超頻出の4大コロケーション】：\n・rentang waktu：期間、タイムスパン（＝jangka waktu）\n・rentang usia：年齢層、対象年齢の幅\n・rentang harga / gaji：価格帯 ／ 給与レンジ\n・rentang kendali：統制範囲（マネジメント用語：span of control）\n■ 【関連語】：merentangkan（広げる・伸ばす）。"
+      },
+      {
+        "p": "n",
+        "w": "pengenaan",
+        "r": "kena",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "（税金・関税・料金・罰則・制裁などの）賦課（ふか）、課税、適用、科すこと（pengenaan pajak / tarif / sanksi / denda）",
+        "ex": "Pemerintah sedang mengkaji ulang aturan pengenaan pajak kendaraan bermotor listrik untuk mendorong minat pembeli.",
+        "tr": "政府は購入者の関心を高めるため、電気自動車に対する課税（税の賦課）規則を再検討している。",
+        "note": "■ 【語構成】：peN- + kena（当たる・課される：頭文字 k が鼻音化して ng）+ -an。税制・法務ニュースの必須名詞！\n■ 【重要コロケーション】：\n・pengenaan pajak / bea masuk / tarif：課税 ／ 関税の賦課 ／ 料金適用\n・pengenaan sanksi / denda：制裁・罰金の適用\n■ 【関連語】：kena（かかる・科される）、mengenakan（課す・着用する）。"
+      },
+      {
+        "p": "v",
+        "w": "berbasis",
+        "r": "basis",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "〜に基づく、〜をベースにした、〜を基盤とする、〜を拠点とする（berbasis digital / AI / data / komunitas＝デジタル／AI／データ／地域社会ベースの）",
+        "ex": "Layanan transportasi berbasis aplikasi daring kini semakin memudahkan mobilitas warga di kota besar.",
+        "tr": "オンラインアプリを基盤とした（アプリベースの）交通サービスは、現在大都市の市民の移動をますます便利にしている。",
+        "note": "■ 【語構成】：ber- + basis（基盤・拠点）。現代インドネシア語のビジネス・IT・政策記事で毎日見る超定番語！\n■ 【重要コロケーション】：\n・berbasis teknologi / digital / AI / data：技術／デジタル／AI／データベースの\n・berbasis di Jakarta / Jepang：ジャカルタ／日本を拠点とする\n■ 【関連語】：basis（基盤・拠点・データベース）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "BBNKB",
+        "r": "Bea Balik Nama Kendaraan Bermotor",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "自動車・バイクの所有権移転税（名義変更税・新車登録取得税。新車購入時や中古車の名義変更時に州政府へ納める地方税）",
+        "ex": "Sejumlah pemerintah provinsi memberikan insentif pembebasan BBNKB bagi pembeli mobil dan motor listrik baru.",
+        "tr": "複数の州政府は、新型の電気自動車および電動バイクの購入者に対して、所有権移転税（BBNKB）の免除インセンティブを提供している。",
+        "note": "■ 【正式名称】：Bea（税・手数料）Balik Nama（名義変更・所有権移転）Kendaraan Bermotor（自動車・バイク等の原動機付車両）。\n■ 【自動車ニュースの定番セット】：\n・BBNKB：名義変更税（新車購入時の取得税や中古車の名義書き換え税）\n・PKB（Pajak Kendaraan Bermotor）：毎年の自動車税\n・STNK（車検証） ／ BPKB（車両所有権証明書）"
+      },
+      {
+        "p": "n",
+        "w": "pengangkut",
+        "r": "angkut",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①（貨物・乗客・ごみ・燃料などの）運搬車両、輸送船、輸送機（truk pengangkut＝運搬トラック、kapal pengangkut＝輸送船、pesawat pengangkut＝輸送機） ②運搬人、運送業者",
+        "ex": "Truk pengangkut hasil pertanian dari daerah pegunungan itu berangkat menuju pasar induk sejak subuh.",
+        "tr": "山間部から農産物を運ぶ運搬トラックは、夜明け前から中央卸売市場へ向けて出発した。",
+        "note": "■ 【語構成】：peN- + angkut（運ぶ・輸送する）。名詞の後ろに付いて「〜運搬用の」と修飾する用法が非常に多い！\n■ 【重要コロケーション】：truk pengangkut sampah / barang（ごみ収集車／貨物トラック）、kapal pengangkut kontainer / LNG（コンテナ船／LNG運搬船）。\n■ 【関連語】：mengangkut（輸送する）、angkutan（交通機関・輸送）、pengangkutan（輸送・運搬）。"
+      },
+      {
+        "p": "n",
+        "w": "karakteristik",
+        "r": "karakter",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "特性、特徴、特質、持ち味（モノ・地域・市場・消費者・技術などが持つ固有の性質＝ciri khas / sifat khusus）",
+        "ex": "Setiap jenis kopi dari berbagai pulau di Indonesia memiliki karakteristik rasa dan aroma yang unik.",
+        "tr": "インドネシア各地の島々で採れるコーヒーは、種類ごとにそれぞれ独特な味と香りの特性を持っている。",
+        "note": "■ 【重要コロケーション】：\n・karakteristik unik / khusus / utama：独自の特性 ／ 特殊な性質 ／ 主な特徴\n・karakteristik konsumen / pasar / tanah：消費者特性 ／ 市場特性 ／ 土壌の性質\n■ 【karakter との使い分け】：『karakter』は人の性格・人格や登場人物、『karakteristik』は学術・ビジネスで物事の客観的な「特性・特徴」を述べる際に好まれる。"
+      },
+      {
+        "p": "a",
+        "w": "takbenda",
+        "r": "benda",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "無形の、形のない（ほぼ常に文化遺産用語『warisan budaya takbenda [WBTb]＝無形文化遺産』として使われる。英語 intangible の公式訳語）",
+        "ex": "Batik, wayang, angklung, dan gamelan telah diakui UNESCO sebagai warisan budaya takbenda dunia.",
+        "tr": "バティック、ワヤン、アンクルン、ガムランは、ユネスコによって世界の無形文化遺産として認定されている。",
+        "note": "■ 【語構成】：tak（非・無）+ benda（物体・有形物）➔ 1語に結合して綴るのがKBBI標準！\n■ 【対比表現】：\n・warisan budaya takbenda (WBTb)：無形文化遺産（バティック・ガムラン・ジャムウ・クバヤ等）\n・warisan budaya benda：有形文化遺産（ボロブドゥール遺跡・建造物等）"
+      },
+      {
+        "p": "n",
+        "w": "penjelajah",
+        "r": "jelajah",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①探検家、冒険家、探査機（penjelajah samudra / antariksa＝海洋探検家／宇宙探査機） ②（IT）ブラウザ、エクスプローラー（peramban / penjelajah web）",
+        "ex": "Pada abad ke-16, para penjelajah dari Eropa berlayar jauh hingga mencapai Kepulauan Maluku untuk mencari rempah-rempah.",
+        "tr": "16世紀、ヨーロッパからの探検家たちは香辛料を求めて遠くマルク諸島まで航海した。",
+        "note": "■ 【語構成】：peN- + jelajah（探検する・隅々まで巡る）。歴史・地理・宇宙ニュースの定番語！\n■ 【jelajah 関連語ファミリー】：jelajah（探検・航続距離）、menjelajah / menjelajahi（探検する・巡る）、penjelajahan（探検・探索）。"
+      },
+      {
+        "p": "n",
+        "w": "penjelajahan",
+        "r": "jelajah",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "探検、踏査、探索、探査（penjelajahan samudra＝大航海・海洋探検、penjelajahan luar angkasa＝宇宙探査）",
+        "ex": "Era penjelajahan samudra membawa perubahan besar dalam jalur perdagangan internasional di Asia Tenggara.",
+        "tr": "大航海（海洋探検）時代は、東南アジアにおける国際貿易ルートに大きな変化をもたらした。",
+        "note": "■ 【語構成】：peN- + jelajah + -an（行為・プロセス名詞）。"
+      },
+      {
+        "p": "v",
+        "w": "jelajah",
+        "r": "jelajah",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①探検する、隅々まで巡る（menjelajah の語幹：jelajah alam＝自然探検、jelajah kuliner＝グルメ巡り） ②（※複合名詞『daya jelajah / jarak jelajah』で）航続距離、行動半径（EV車・航空機・船の走行可能距離！）",
+        "ex": "Mobil listrik generasi terbaru ini memiliki daya jelajah hingga lima ratus kilometer dalam sekali pengisian daya penuh.",
+        "tr": "この最新世代の電気自動車は、1回の満充電で最大500キロメートルの航続距離を誇る。",
+        "note": "■ 【超実用の2大コロケーション】：\n① EV・航空・船舶：daya jelajah / jarak jelajah（航続距離・行動半径）、kecepatan jelajah（巡航速度）\n② 旅行・レジャー：jelajah kuliner / alam / nusantara（グルメ巡り ／ ネイチャートレッキング ／ 諸島巡り）"
+      },
+      {
+        "p": "v",
+        "w": "berlomba-lomba",
+        "r": "lomba",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "競い合う、先を争って〜する、こぞって〜しようとする（複数人が我先にと競争するニュアンス＝bersaing / berebut）",
+        "ex": "Berbagai perusahaan teknologi kini berlomba-lomba mengembangkan fitur kecerdasan buatan yang lebih efisien.",
+        "tr": "様々なテクノロジー企業が現在、より効率的な人工知能（AI）機能の開発を競い合っている（先を争って開発している）。",
+        "note": "■ 【語構成】：ber- + lomba-lomba（重複により「みんなで我先にと競い合う」動きを強調）。\n■ 【重要コロケーション】：\n・berlomba-lomba menawarkan / mengembangkan / berbuat kebaikan：競って提供する ／ 開発を競い合う ／ 競って善行を積む\n■ 【lomba 関連語ファミリー】：lomba（大会・競技）、berlomba（競う）、perlombaan（競技大会・競争）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "Satpol PP",
+        "r": "Satuan Polisi Pamong Praja",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "自治体警察隊（州・市・県の地方条例 Perda の取り締まり、公共秩序維持、違法露店・無許可看板の整理などを担う地方自治体直属の治安組織）",
+        "ex": "Personel Satpol PP dikerahkan untuk menjaga ketertiban umum dan kelancaran trotoar di sekitar pasar tradisional.",
+        "tr": "自治体警察隊（サトポルPP）の隊員たちが、伝統市場周辺の公共秩序と歩道の通行確保のために配備された。",
+        "note": "■ 【正式名称】：Satuan（部隊）Polisi（警察）Pamong Praja（地方行政官）。インドネシアの街中やニュースで毎日見かける必須略語！\n■ 【区別】：刑事事件・交通違反は国家警察『Polri』、地方条例違反・街の秩序整理は『Satpol PP』。"
+      },
+      {
+        "p": "v",
+        "w": "melandasi",
+        "r": "landas",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "〜の基盤・土台となる、〜を裏付ける、〜の根底にある（berlandaskan と主語・目的語が逆になる能動他動詞）",
+        "ex": "Semangat gotong royong dan saling menghormati melandasi keharmonisan hidup bermasyarakat di desa ini.",
+        "tr": "相互扶助と互いに尊重し合う精神が、この村における社会生活の調和の基盤となっている。",
+        "note": "■ 【語構成】：me- + landas + -i。\n■ 【主語と目的語の対比】：\n・A berlandaskan B（AはBを基盤としている）\n・B melandasi A（BがAの基盤となっている・Aを裏付けている）"
+      },
+      {
+        "p": "n",
+        "w": "tumpahan",
+        "r": "tumpah",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "こぼれたもの、流出物（環境ニュースの『tumpahan minyak＝原油流出・オイルスピル』や日常の『tumpahan air / kopi＝こぼれた水・コーヒー』）",
+        "ex": "Tim darurat segera memasang pembatas apung di laut untuk mencegah meluasnya tumpahan minyak dari kapal tanker.",
+        "tr": "緊急対応チームはタンカーからの原油流出の拡大を防ぐため、直ちに海上にオイルフェンスを設置した。",
+        "note": "■ 【語構成】：tumpah（こぼれる）+ -an。動詞は『menumpahkan（こぼす）』、被害受動は『ketumpahan（こぼれかかる）』。"
+      }
+    ];
+
+    const idxByWord = new Map();
+    for (let i = 0; i < d.vocab.length; i++) {
+      const it = d.vocab[i];
+      if (it && it.w) idxByWord.set(it.w.trim().toLowerCase(), i);
+    }
+
+    const newlyDictOnlyKeys = new Set();
+
+    for (let i = 0; i < NEW_39_PACK.length; i++) {
+      const item = NEW_39_PACK[i];
+      if (!item || !item.w) continue;
+      const key = item.w.trim().toLowerCase();
+
+      if (item.dictOnly === true || item.tier === 3) {
+        dictOnlySet.add(key);
+        newlyDictOnlyKeys.add(key);
+      } else {
+        dictOnlySet.delete(key);
+      }
+      if (item.topicCat) {
+        catMap.set(key, item.topicCat);
+      }
+
+      if (idxByWord.has(key)) {
+        const pos = idxByWord.get(key);
+        Object.assign(d.vocab[pos], item);
+        vMap.set(key, d.vocab[pos]);
+        persistentAdded.set(key, d.vocab[pos]);
+      } else {
+        d.vocab.push(item);
+        idxByWord.set(key, d.vocab.length - 1);
+        vMap.set(key, item);
+        persistentAdded.set(key, item);
+      }
+    }
+
+    ["wi_wrongs_v2", "wi_stars_v2", "wi_master_stars_v5"].forEach(function(storageKey) {
+      try {
+        const raw = localStorage.getItem(storageKey);
+        if (!raw) return;
+        const list = JSON.parse(raw);
+        if (!Array.isArray(list)) return;
+        const cleaned = list.filter(function(it) {
+          if (!it || typeof it !== "object") return false;
+          const qid = String(it.id || "");
+          const m = qid.match(/^(?:voc|voc_ja2id|ctx::voc|abbr_ja|abbr_full)::(.+)$/i);
+          const w = (m ? m[1] : (it.w || it.ttsWord || "")).trim().toLowerCase();
+          return !newlyDictOnlyKeys.has(w);
+        });
+        if (cleaned.length !== list.length) {
+          localStorage.setItem(storageKey, JSON.stringify(cleaned));
+        }
+      } catch (err) {}
+    });
+  } catch (e) {
+    console.error("WhatsIndo 39-word pack error:", e);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 辞書充実プロジェクト 第1弾（全76語・すべて辞書専用 dictOnly: true）
+   - ① 超基本の動詞語幹・日常動作（44語）：ambil, bawa, beri, terima, simpan, buang,
+       taruh, letakkan, coba, bantu, ajak, undang, temani, jemput, kirim, hubungi,
+       pinjam, sewa, kembalikan, lakukan, gunakan, nyalakan, matikan, tekan, tarik,
+       dorong, angkat, pegang, lempar, tangkap, gosok, lompat, jongkok, tiduran,
+       belok, putar, tonton, hitung, rebus, pel, lap, jemur, beristirahat, bernapas
+   - ② 基本語・時間・数・感覚・色・形（18語）：pelan, hari ini, tengah malam,
+       tidak pernah, sejuta, lengket, oranye, nila, toska, krem, oval, kubus,
+       silinder, kerucut, lengkung, ceper, pesing, tandan
+   - ③ インドネシア公認6宗教（6語）：Islam, Kristen, Katolik, Hindu, Buddha, Konghucu
+   - ④ 季節・自然災害（8語）：musim hujan, musim kemarau, musim semi, musim panas,
+       musim gugur, musim dingin, tsunami, puting beliung
+   - **記号ゼロ・文字バグゼロ・try-catch完全保護・問題モードへ一切混入しません
+   ===================================================================== */
+(function() {
+  try {
+    const d = window.WHATSINDO_EXTERNAL_DATA;
+    if (!d || !Array.isArray(d.vocab)) return;
+
+    const dictOnlySet     = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+    const persistentAdded = window.__wiPersistentAddedVocab || (window.__wiPersistentAddedVocab = new Map());
+    const vMap            = window.__wiMasterVocabMap || (window.__wiMasterVocabMap = new Map());
+    const catMap          = window.__WI_V5_VCAT || (window.__WI_V5_VCAT = new Map());
+
+    const DICT_PACK_1 = [
+      {
+        "p": "v",
+        "w": "ambil",
+        "r": "ambil",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①取る、手に取る、持っていく ②（休暇・決定・写真などを）取る ③迎えに行く（mengambil の語幹。命令・会話・1人称受動『saya ambil』で超頻出）",
+        "ex": "Tolong ambil payung di dekat pintu sebelum berangkat karena di luar mulai gerimis.",
+        "tr": "外で小雨が降り始めたから、出発する前にドアの近くにある傘を取って（持っていって）ね。",
+        "note": "■ 【会話＆1人称受動での定番】：\n・ambil sendiri：自分で取る（セルフサービス）\n・ambil foto / gambar：写真を撮る\n・sudah saya ambil：私がもう取りました／受け取りました\n■ 【関連語】：mengambil（取る）、mengambilkan（取ってあげる）、pengambilan（受け取り・採取）。"
+      },
+      {
+        "p": "v",
+        "w": "bawa",
+        "r": "bawa",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "持つ、運ぶ、持参する、連れていく（membawa の語幹。命令・会話・1人称受動『saya bawa』で日常最頻出）",
+        "ex": "Jangan lupa bawa paspor dan kartu identitas asli saat pergi ke bandara besok pagi.",
+        "tr": "明日の朝空港へ行くとき、パスポートと原本の身分証明書を持っていくのを忘れないでね。",
+        "note": "■ 【重要コロケーション】：\n・bawa pulang：持ち帰る（テイクアウト）\n・bawa santai aja（口語）：気楽にいこうよ\n■ 【関連語】：membawa（運ぶ・持参する）、bawaan（荷物・生まれつきの性質：barang bawaan＝手荷物）。"
+      },
+      {
+        "p": "v",
+        "w": "beri",
+        "r": "beri",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "与える、あげる、渡す（memberi / memberikan の語幹。命令・1人称受動や『beri tahu＝知らせる』で頻出）",
+        "ex": "Beri saya waktu lima menit lagi untuk memeriksa kembali semua data di laporan ini.",
+        "tr": "この報告書のデータをすべて再確認するために、あと5分時間をください。",
+        "note": "■ 【重要コロケーション】：\n・beri tahu (memberi tahu)：教える、知らせる\n・beri salam：挨拶を伝える\n■ 【関連語】：memberi（与える）、memberikan（〜を差し出す・提供する）、pemberian（贈り物・付与）。"
+      },
+      {
+        "p": "v",
+        "w": "terima",
+        "r": "terima",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "受け取る、受領する、承諾する、受け入れる（menerima の語幹。『terima kasih＝ありがとう』の語源でもある）",
+        "ex": "Paket kiriman dari kampung halaman sudah saya terima dalam kondisi baik tadi sore.",
+        "tr": "故郷からの宅配便の荷物は、今日の夕方きれいな状態で受け取りました。",
+        "note": "■ 【重要コロケーション】：\n・terima kasih：ありがとう（直訳：愛・好意を受け取る）\n・terima beres（口語）：細かいことは任せて完成品だけ受け取る\n・serah terima：引き継ぎ、引き渡し式\n■ 【関連語】：menerima（受け取る）、penerima（受取人）、penerimaan（受領・入学許可）。"
+      },
+      {
+        "p": "v",
+        "w": "simpan",
+        "r": "simpan",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "保存する、しまっておく、保管する、貯蓄する（menyimpan の語幹。PC・スマホの『保存』ボタン表記でも定番）",
+        "ex": "Simpan struk belanja ini baik-baik kalau suatu saat perlu menukar ukuran barang.",
+        "tr": "いつか商品のサイズ交換が必要になったときのために、このレシートを大切に保管しておいて。",
+        "note": "■ 【重要コロケーション】：\n・simpan perubahan（IT）：変更を保存する\n・simpan pinjam（金融）：貯蓄・貸付（koperasi simpan pinjam＝信用組合）\n■ 【関連語】：menyimpan（保管する）、simpanan（貯金・蓄え）、penyimpanan（ストレージ・保管）。"
+      },
+      {
+        "p": "v",
+        "w": "buang",
+        "r": "buang",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "捨てる、廃棄する、追い出す（membuang の語幹。掲示『Dilarang buang sampah』や生理現象『buang air』で超頻出）",
+        "ex": "Tolong buang sampah botol plastik ke tempat sampah khusus daur ulang di sebelah kanan.",
+        "tr": "ペットボトルのごみは右側のリサイクル専用ごみ箱に捨ててください。",
+        "note": "■ 【日常の必須コロケーション】：\n・buang sampah：ごみを捨てる\n・buang air kecil / besar：用を足す（小便／大便をする：丁寧な日常表現）\n・buang-buang waktu / uang：時間／お金を無駄遣いする\n■ 【関連語】：membuang（捨てる）、pembuangan（廃棄・処分場）。"
+      },
+      {
+        "p": "v",
+        "w": "taruh",
+        "r": "taruh",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①置く、しまう（日常会話で一番よく使う『置く』＝meletakkan） ②賭ける（bertaruh）",
+        "ex": "Kamu boleh taruh tas dan jaketmu di atas kursi kosong di sudut ruangan itu.",
+        "tr": "カバンとジャケットは、部屋の隅にある空いている椅子の上に置いていいよ。",
+        "note": "■ 【使い分け】：『meletakkan / letakkan』はやや改まった書き言葉・丁寧語、『taruh / menaruh』は日常会話の定番！\n■ 【関連語】：menaruh（置く・抱く：menaruh harapan＝期待を寄せる）、taruhan（賭け）。"
+      },
+      {
+        "p": "v",
+        "w": "letakkan",
+        "r": "letak",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "（〜を所定の場所へ）置く、据える、配置する（meletakkan の命令・1人称受動形）",
+        "ex": "Letakkan barang-barang berharga di dalam brankas kamar sebelum meninggalkan hotel.",
+        "tr": "ホテルを出る前に、貴重品は客室の金庫の中に置いてください。",
+        "note": "■ 【語構成】：letak（位置・配置）+ -kan。\n■ 【関連語】：meletakkan（置く）、terletak（位置している）、peletakan batu pertama（起工式・定礎式）。"
+      },
+      {
+        "p": "v",
+        "w": "coba",
+        "r": "coba",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①試す、やってみる（mencoba の語幹） ②（※文頭に置いてソフトな依頼）「ちょっと〜してみて」「さあ〜してごらん」",
+        "ex": "Coba cicipi sambal buatan nenek ini dulu, rasanya pedas segar dan bikin ketagihan.",
+        "tr": "まずはおばあちゃん手作りのこのサンバルをちょっと味見してみて、辛くて爽やかでやみつきになるよ。",
+        "note": "■ 【会話で毎日使う表現】：\n・coba lihat / dengar / pikir：ちょっと見て／聞いて／考えてみて\n・uji coba：テスト運用、トライアル\n■ 【関連語】：mencoba（試みる）、percobaan（実験・試行）、cobaan（試練）。"
+      },
+      {
+        "p": "v",
+        "w": "bantu",
+        "r": "bantu",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "助ける、手伝う、協力する（membantu の語幹。会話で『bantu dong』『bisa bantu?』と超頻出）",
+        "ex": "Bisa bantu angkat kotak buku yang berat ini ke lantai dua sebentar?",
+        "tr": "この重い本の箱を2階まで運ぶの、ちょっと手伝ってくれる？",
+        "note": "■ 【重要コロケーション】：\n・bantu doa / tenaga：祈りで応援する ／ 人手を貸す\n・alat bantu：補助器具（alat bantu dengar＝補聴器）\n■ 【関連語】：membantu（助ける）、bantuan（支援・援助）、pembantu（お手伝いさん・補佐）。"
+      },
+      {
+        "p": "v",
+        "w": "ajak",
+        "r": "ajak",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "（一緒に〜しようと）誘う、呼びかける（mengajak の語幹）",
+        "ex": "Ajak juga adikmu ikut makan malam bersama kami di restoran dekat stasiun nanti.",
+        "tr": "あとで駅近くのレストランで一緒に夕飯を食べるのに、弟さんも誘ってね。",
+        "note": "■ 【関連語】：mengajak（誘う）、ajakan（誘い・呼びかけ）。公式な招待（結婚式・式典等）は『undang / mengundang』。"
+      },
+      {
+        "p": "v",
+        "w": "undang",
+        "r": "undang",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "招待する、招く（mengundang の語幹。なお重複形『undang-undang』は「法律」なので別語！）",
+        "ex": "Semua teman sekelas sudah saya undang untuk hadir di acara syukuran kelulusan pekan depan.",
+        "tr": "クラスメイト全員を来週の卒業祝いパーティーに出席するよう招待しました。",
+        "note": "■ 【関連語】：mengundang（招待する・招く）、undangan（招待状・招待客：tamu undangan）。"
+      },
+      {
+        "p": "v",
+        "w": "temani",
+        "r": "teman",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "（人に）付き添う、同行する、相手をする、そばにいる（menemani の命令・1人称受動形）",
+        "ex": "Tolong temani saya ke kantor pos sebentar, saya harus mengirim dokumen penting.",
+        "tr": "重要な書類を送らなきゃいけないから、ちょっと郵便局まで付き合ってくれる？",
+        "note": "■ 【語構成】：teman（友達）+ -i。会話で『temani aku dong（一緒に行ってよ／そばにいてよ）』とよく使う。"
+      },
+      {
+        "p": "v",
+        "w": "jemput",
+        "r": "jemput",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "迎えに行く、ピックアップする（menjemput の語幹。送迎サービス『antar jemput』でも超頻出）",
+        "ex": "Nanti malam aku jemput kamu di pintu keluar stasiun sekitar jam delapan ya.",
+        "tr": "今夜8時ごろに駅の出口まで迎えに行くからね。",
+        "note": "■ 【重要コロケーション】：\n・antar jemput：送迎（layanan antar jemput bandara＝空港送迎サービス）\n・jemput bola（比喩）：待っているだけでなく自ら出向いて対応・営業する\n■ 【関連語】：menjemput（迎えに行く）、penjemputan（ピックアップ・お迎え）。"
+      },
+      {
+        "p": "v",
+        "w": "kirim",
+        "r": "kirim",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "送る、発送する、送信する（mengirim / mengirimkan の語幹。アプリ・メールの『送信』ボタン表記の定番！）",
+        "ex": "Tolong kirim foto catatan kuliah hari ini lewat pesan singkat kalau kamu sudah sampai rumah.",
+        "tr": "家に着いたら、今日の講義ノートの写真をメッセージで送ってね。",
+        "note": "■ 【重要コロケーション】：\n・ongkos kirim (ongkir)：送料\n・kirim salam：よろしくと伝える\n■ 【関連語】：mengirim（送る）、kiriman（届け物・荷物）、pengiriman（配送・発送）。"
+      },
+      {
+        "p": "v",
+        "w": "hubungi",
+        "r": "hubung",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "（人・窓口へ）連絡する、問い合わせる（menghubungi の命令・1人称受動形。『Hubungi Kami＝お問い合わせ』で定番）",
+        "ex": "Silakan hubungi layanan pelanggan kami apabila mengalami kendala saat proses pembayaran.",
+        "tr": "決済手続きの際にトラブルが生じた場合は、当社のカスタマーサポートまでご連絡ください。",
+        "note": "■ 【重要コロケーション】：Hubungi Kami（お問い合わせ：Webサイトやアプリの定番メニュー）。\n■ 【関連語】：menghubungi（連絡する）、hubungan（関係）、penghubung（つなぎ役）。"
+      },
+      {
+        "p": "v",
+        "w": "pinjam",
+        "r": "pinjam",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "借りる（meminjam の語幹。日常会話『Boleh pinjam ~?＝〜借りてもいい？』で超頻出）",
+        "ex": "Boleh pinjam pulpenmu sebentar untuk mengisi formulir pendaftaran ini?",
+        "tr": "この申込用紙に記入するのに、ちょっとボールペン借りてもいい？",
+        "note": "■ 【貸し借りの注意】：\n・pinjam / meminjam：借りる\n・pinjamkan / meminjamkan：貸す\n■ 【関連語】：pinjaman（ローン・借入金）、peminjaman（貸出・借用）。"
+      },
+      {
+        "p": "v",
+        "w": "sewa",
+        "r": "sewa",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "①（有料で）借りる、レンタルする（menyewa の語幹） ②家賃、レンタル料、賃借料（biaya sewa）",
+        "ex": "Kami berencana sewa mobil selama tiga hari untuk berkeliling wisata di daerah pegunungan.",
+        "tr": "私たちは山岳地帯を観光して回るため、3日間レンタカーを借りる予定だ。",
+        "note": "■ 【重要コロケーション】：sewa mobil / rumah / kamar（レンタカー ／ 借家 ／ 部屋を借りる）、uang sewa（家賃・賃料）。\n■ 【関連語】：menyewa（借りる）、menyewakan（賃貸に出す・貸す）、penyewa（借主・テナント）。"
+      },
+      {
+        "p": "v",
+        "w": "kembalikan",
+        "r": "kembali",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "（借りた物・元の状態などを）返す、返却する、元に戻す（mengembalikan の命令・1人称受動形）",
+        "ex": "Buku referensi yang kamu pinjam dari perpustakaan harus segera kamu kembalikan sebelum hari Jumat.",
+        "tr": "図書館から借りた参考書は、金曜日までにすぐ返却しなければならないよ。",
+        "note": "■ 【語構成】：kembali（戻る）+ -kan。\n■ 【関連語】：mengembalikan（返す）、pengembalian（返却・返金：pengembalian dana＝リファンド）。"
+      },
+      {
+        "p": "v",
+        "w": "lakukan",
+        "r": "laku",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "（行動・作業・検査などを）行う、実行する、する（melakukan の命令・1人称受動形）",
+        "ex": "Lakukan pemanasan minimal sepuluh menit sebelum memulai latihan angkat beban agar tidak cedera.",
+        "tr": "怪我をしないように、ウェイトトレーニングを始める前に最低10分はウォーミングアップを行おう。",
+        "note": "■ 【語構成】：laku + -kan。1人称受動『yang harus kita lakukan（私たちがなすべきこと）』で文章・スピーチともに超頻出。"
+      },
+      {
+        "p": "v",
+        "w": "gunakan",
+        "r": "guna",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "（道具・方法・機能・時間などを）使う、使用する、活用する（menggunakan の命令・1人称受動形）",
+        "ex": "Gunakan sabuk pengaman selama perjalanan demi keselamatan bersama di jalan raya.",
+        "tr": "道路でのみんなの安全のため、乗車中はシートベルトを着用（使用）してください。",
+        "note": "■ 【語構成】：guna（用途・効用）+ -kan。日常会話では『pakai』、説明書・案内・丁寧表現では『gunakan』が定番。"
+      },
+      {
+        "p": "v",
+        "w": "nyalakan",
+        "r": "nyala",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "（電気・エアコン・スマホ・エンジン・火などを）つける、オンにする、点灯する（menyalakan の命令・1人称受動形 ⇔ matikan）",
+        "ex": "Tolong nyalakan lampu teras karena hari sudah mulai gelap.",
+        "tr": "もう暗くなり始めたから、テラスの電気をつけてくれる？",
+        "note": "■ 【対義ペア】：nyalakan（オンにする・つける） ⇔ matikan（オフにする・消す）。\n■ 【関連語】：menyala（点いている・燃えている）、menyalakan（つける）。"
+      },
+      {
+        "p": "v",
+        "w": "matikan",
+        "r": "mati",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "（電気・エアコン・スマホ・エンジン・火・音などを）消す、オフにする、切る（mematikan の命令・1人称受動形 ⇔ nyalakan）",
+        "ex": "Pastikan kamu sudah matikan kompor dan mencabut colokan setrika sebelum keluar rumah.",
+        "tr": "家を出る前に、コンロの火を消してアイロンのコンセントを抜いたか必ず確認してね。",
+        "note": "■ 【重要コロケーション】：matikan lampu / AC / mesin / HP / suara（電気／エアコン／エンジン／スマホ／音を消す・切る）。"
+      },
+      {
+        "p": "v",
+        "w": "tekan",
+        "r": "tekan",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "（ボタン・キー・画面などを）押す、抑える（menekan の語幹。エレベーターや機械・アプリの案内『Tekan tombol』で定番）",
+        "ex": "Tekan tombol hijau di bagian kanan layar untuk melanjutkan ke tahap pembayaran.",
+        "tr": "決済ステップへ進むには、画面右側の緑色のボタンを押してください。",
+        "note": "■ 【関連語】：menekan（押す・圧力をかける・インフレ等を抑える）、tekanan（圧力・血圧・ストレス）。口語では『pencet』もよく使う。"
+      },
+      {
+        "p": "v",
+        "w": "tarik",
+        "r": "tarik",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①引く、引っ張る（ドアの『TARIK＝引く』表示 ⇔ DORONG＝押す！） ②（ATMで現金を）引き出す（tarik tunai） ③取り消す、撤回する",
+        "ex": "Pintu kaca toko itu bertuliskan tarik, jadi jangan didorong saat membukanya.",
+        "tr": "その店のガラスドアには「引く（TARIK）」と書かれているので、開けるときに押さないように。",
+        "note": "■ 【現地で毎日見る2大表示】：\n・TARIK（引く） ⇔ DORONG（押す）\n・tarik tunai：現金引き出し（ATM・コンビニ）\n■ 【関連語】：menarik（引く・魅力的な）、tertarik（興味を持つ）、penarikan（引き落とし・撤収）。"
+      },
+      {
+        "p": "v",
+        "w": "dorong",
+        "r": "dorong",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "押す、押し進める、後押しする（ドアの『DORONG＝押す』表示 ⇔ TARIK＝引く）",
+        "ex": "Silakan dorong pintu ini pelan-pelan untuk masuk ke ruang tunggu klinik.",
+        "tr": "クリニックの待合室に入るには、このドアをゆっくり押してください。",
+        "note": "■ 【関連語】：mendorong（押す・促進する・背中を押す）、dorongan（後押し・衝動）、gerobak dorong（手押し屋台・手押し車）。"
+      },
+      {
+        "p": "v",
+        "w": "angkat",
+        "r": "angkat",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①持ち上げる ②（電話に）出る（angkat telepon） ③（洗濯物を）取り込む（mengangkat の語幹）",
+        "ex": "Tolong angkat telepon di meja sebentar, tangan saya sedang basah karena mencuci piring.",
+        "tr": "皿洗いで手が濡れているから、机の上の電話にちょっと出てくれる？",
+        "note": "■ 【重要コロケーション】：angkat telepon（電話に出る）、angkat tangan（手を上げる／降参する）、angkat beban（ウェイトトレーニング・重量挙げ）。"
+      },
+      {
+        "p": "v",
+        "w": "pegang",
+        "r": "pegang",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "握る、持つ、掴む、押さえる（memegang の語幹）",
+        "ex": "Pegang pegangan tangan dengan erat saat bus mulai berjalan agar tidak terjatuh.",
+        "tr": "転ばないように、バスが発車するときは手すりをしっかり握ってください。",
+        "note": "■ 【関連語】：memegang（握る・保持する）、berpegangan（手をつなぐ・掴まる）、pegangan（取っ手・手すり・心の支え）。"
+      },
+      {
+        "p": "v",
+        "w": "lempar",
+        "r": "lempar",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "投げる、放る（melempar / melemparkan の語幹）",
+        "ex": "Ayo lempar bolanya ke arah sini supaya kita bisa latihan menangkap bersama.",
+        "tr": "一緒にキャッチの練習ができるように、こっちの方向へボールを投げてみて。",
+        "note": "■ 【関連語】：melempar（投げる）、melemparkan（放り投げる・批判等を浴びせる）、lemparan（スロー・投球）、lempar lembing（やり投げ）。"
+      },
+      {
+        "p": "v",
+        "w": "tangkap",
+        "r": "tangkap",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①捕まえる、キャッチする ②逮捕する ③（意味や意図を）理解する、捉える（menangkap の語幹）",
+        "ex": "Tangkap bola ini baik-baik, jangan sampai jatuh ke selokan di belakangmu.",
+        "tr": "後ろの側溝に落ちないように、このボールをしっかりキャッチしてね。",
+        "note": "■ 【重要コロケーション】：tangkap layar（スクリーンショットを撮る）、tangkap tangan（現行犯逮捕：OTT＝Operasi Tangkap Tangan）。\n■ 【関連語】：menangkap（捕らえる）、tertangkap（捕まる）、tangkapan（漁獲・捕獲物）。"
+      },
+      {
+        "p": "v",
+        "w": "gosok",
+        "r": "gosok",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①こする、磨く（gosok gigi＝歯を磨く） ②（口語で）アイロンをかける（＝menyetrika）",
+        "ex": "Jangan lupa gosok gigi sebelum tidur malam agar gigi tetap sehat dan tidak berlubang.",
+        "tr": "歯が健康で虫歯にならないように、夜寝る前に歯を磨くのを忘れないでね。",
+        "note": "■ 【日常定番表現】：gosok gigi（歯を磨く＝menyikat gigi）、menggosok（こする・磨く）、kertas gosok（紙やすり）。"
+      },
+      {
+        "p": "v",
+        "w": "lompat",
+        "r": "lompat",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "跳ぶ、ジャンプする、飛び越える（melompat の語幹）",
+        "ex": "Kucing cokelat itu bisa lompat cukup tinggi hingga naik ke atas lemari buku.",
+        "tr": "その茶色い猫は、本棚の上まで登れるほどかなり高くジャンプすることができる。",
+        "note": "■ 【重要コロケーション】：lompat tali（縄跳び）、lompat jauh / tinggi（走り幅跳び ／ 走り高跳び）。\n■ 【関連語】：melompat（跳ぶ）、lompatan（跳躍・飛躍）。"
+      },
+      {
+        "p": "v",
+        "w": "jongkok",
+        "r": "jongkok",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "しゃがむ、うずくまる（berjongkok の語幹。インドネシアの和式型トイレ『toilet jongkok』でも超定番！）",
+        "ex": "Sebagian rumah makan tradisional di daerah tersebut masih menyediakan toilet jongkok yang bersih.",
+        "tr": "その地域の一部の伝統的な食堂では、今も清潔なしゃがみ式（和式型）トイレを備えている。",
+        "note": "■ 【トイレの2大用語】：toilet jongkok（しゃがみ式トイレ） ⇔ toilet duduk（洋式・腰掛け式トイレ）。"
+      },
+      {
+        "p": "v",
+        "w": "tiduran",
+        "r": "tidur",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "横になる、ゴロゴロ寝そべる（本気で熟睡するのではなく、ソファやベッドでリラックスして横になる日常語＝berbaring / rebahan）",
+        "ex": "Setelah pulang kerja dan mandi, rasanya paling enak langsung tiduran sebentar di atas kasur.",
+        "tr": "仕事から帰ってシャワーを浴びた後は、そのままベッドの上でちょっと横になるのが一番気持ちいい。",
+        "note": "■ 【関連語】：tidur（眠る）、ketiduran（うっかり寝落ちする）、tiduran（ゴロゴロ横になる）、rebahan（若者口語：ゴロゴロする）。"
+      },
+      {
+        "p": "v",
+        "w": "belok",
+        "r": "belok",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "（道や車が右・左へ）曲がる（berbelok の語幹。道案内『belok kanan / belok kiri』で絶対必須！）",
+        "ex": "Dari perempatan lampu merah di depan, silakan belok kiri lalu jalan lurus sekitar seratus meter.",
+        "tr": "前方の信号のある交差点から左に曲がり、そのまま100メートルほど真っ直ぐ進んでください。",
+        "note": "■ 【道案内3点セット】：lurus terus（真っ直ぐ進む）、belok kanan（右に曲がる）、belok kiri（左に曲がる）、putar balik（Uターンする）。\n■ 【関連語】：berbelok（曲がる）、belokan（カーブ・曲がり角）。"
+      },
+      {
+        "p": "v",
+        "w": "putar",
+        "r": "putar",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①回す、回転させる ②（音楽・動画を）再生する（memutar の語幹） ③Uターンする（putar balik）",
+        "ex": "Kalau terlewat pintu masuknya, kita bisa putar balik di persimpangan berikutnya.",
+        "tr": "もし入口を通り過ぎてしまったら、次の交差点でUターンできるよ。",
+        "note": "■ 【重要コロケーション】：putar balik（Uターンする）、putar musik / video（音楽・動画を再生する）、putar otak（知恵を絞る）。\n■ 【関連語】：berputar（回転する）、memutar（回す・再生する）、putaran（回転・ラウンド）。"
+      },
+      {
+        "p": "v",
+        "w": "tonton",
+        "r": "tonton",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "（映画・動画・試合などを）見る、観る、視聴する（menonton の語幹。会話・受動『film yang saya tonton』で頻出）",
+        "ex": "Film dokumenter yang baru saja saya tonton malam ini benar-benar membuka wawasan baru.",
+        "tr": "今夜ちょうど観たばかりのドキュメンタリー映画は、本当に新しい視野を開いてくれた。",
+        "note": "■ 【関連語】：menonton（観る・鑑賞する）、penonton（観客・視聴者）、tontonan（見世物・視聴コンテンツ）。"
+      },
+      {
+        "p": "v",
+        "w": "hitung",
+        "r": "hitung",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "数える、計算する（menghitung の語幹）",
+        "ex": "Coba hitung kembali total belanjaan kita sebelum membayar di meja kasir.",
+        "tr": "レジで支払う前に、買い物の合計金額をもう一度計算してみて。",
+        "note": "■ 【重要コロケーション】：hitung mundur（カウントダウン）、hitung-hitungan（損得勘定する・細かく計算する）。\n■ 【関連語】：menghitung（数える・計算する）、hitungan（計算・カウント）、perhitungan（計算・見込み）。"
+      },
+      {
+        "p": "v",
+        "w": "rebus",
+        "r": "rebus",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "茹でる、煮る（merebus の語幹。料理名『telur rebus＝ゆで卵』『mi rebus＝汁麺』『kacang rebus＝ゆで落花生』で超頻出！）",
+        "ex": "Untuk sarapan praktis tinggi protein, saya biasa makan dua butir telur rebus dan buah segar.",
+        "tr": "手軽な高タンパク朝食として、私は普段ゆで卵2個と新鮮な果物を食べている。",
+        "note": "■ 【調理法5大語幹セット】：rebus（茹でる）、goreng（揚げる・炒める）、kukus（蒸す）、panggang（オーブン等で焼く）、bakar（直火・炭火で焼く）。"
+      },
+      {
+        "p": "v",
+        "w": "pel",
+        "r": "pel",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①（床を）モップ掛けする、水拭きする（mengepel の語幹） ②モップ、床拭き雑巾（kain pel）",
+        "ex": "Lantai dapur baru saja saya pel, jadi hati-hati berjalan karena masih agak licin.",
+        "tr": "キッチンの床をさっきモップで拭いたばかりだから、まだ少し滑りやすいので歩くとき気をつけてね。",
+        "note": "■ 【掃除の定番セット】：sapu（掃く・ほうき）、pel（床を水拭きする・モップ）、lap（拭く・ふきん）。"
+      },
+      {
+        "p": "v",
+        "w": "lap",
+        "r": "lap",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①（机・汗・ガラス・食器などを布で）拭く（mengelap の語幹） ②ふきん、雑巾、クロス（kain lap）",
+        "ex": "Tolong lap meja makan yang basah itu dengan kain bersih sebelum kita menaruh makanan.",
+        "tr": "料理を並べる前に、濡れているダイニングテーブルをきれいな布巾で拭いてくれる？",
+        "note": "■ 【関連語】：mengelap（拭く）、kain lap（ふきん・雑巾）、lap tangan（ハンドタオル）。"
+      },
+      {
+        "p": "v",
+        "w": "jemur",
+        "r": "jemur",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "（洗濯物や食材を日光に）干す、天日干しする（menjemur の語幹。日光浴する＝berjemur）",
+        "ex": "Mumpung matahari pagi sedang cerah, ayo cepat jemur pakaian yang baru dicuci di balkon.",
+        "tr": "朝の太陽がちょうど晴れているうちに、洗いたての服を早くバルコニーに干そう。",
+        "note": "■ 【関連語】：menjemur（干す）、berjemur（日光浴する・日向ぼっこする）、jemuran（物干し竿・洗濯物）。"
+      },
+      {
+        "p": "v",
+        "w": "beristirahat",
+        "r": "istirahat",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "休憩する、休養をとる、体を休める（istirahat の正式な自動詞形）",
+        "ex": "Setelah berjalan kaki lebih dari sepuluh kilometer, kami memutuskan beristirahat sejenak di kafe.",
+        "tr": "10キロ以上歩いた後、私たちはカフェで少し休憩することにした。",
+        "note": "■ 【語構成】：ber- + istirahat（休憩・休息）。\n■ 【重要コロケーション】：beristirahat cukup（十分に休養をとる）、jam istirahat（昼休み・休憩時間）。"
+      },
+      {
+        "p": "v",
+        "w": "bernapas",
+        "r": "napas",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "呼吸する、息をする（標準綴りは p の『bernapas』。口語では bernafas とも書かれる）",
+        "ex": "Saat merasa gugup sebelum presentasi, cobalah bernapas dalam-dalam secara perlahan.",
+        "tr": "プレゼンの前に緊張したときは、ゆっくり深く呼吸してみて。",
+        "note": "■ 【語構成】：ber- + napas（息・呼吸）。KBBI標準語形は f ではなく p（napas / bernapas / pernapasan）。\n■ 【重要コロケーション】：bernapas lega（ホッと胸をなで下ろす）、sulit bernapas（息苦しい）、saluran pernapasan（気道・呼吸器）。"
+      },
+      {
+        "p": "a",
+        "w": "pelan",
+        "r": "pelan",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①ゆっくりした、遅い（⇔ cepat） ②（声や音が）小さい、静かな（suara pelan ⇔ keras）",
+        "ex": "Tolong bicara sedikit lebih pelan agar saya bisa memahami setiap kalimat dengan jelas.",
+        "tr": "一文一文はっきり理解できるように、もう少しゆっくり話していただけますか。",
+        "note": "■ 【会話で超頻出の重複形】：『pelan-pelan（ゆっくりね／焦らず少しずつ／気をつけて）』！\n■ 【関連語】：perlahan / perlahan-lahan（書き言葉：ゆっくりと、徐々に）、mempelankan（速度や音量を落とす）。"
+      },
+      {
+        "p": "other",
+        "w": "hari ini",
+        "r": "hari",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "今日（きょう）、本日（時間表現の基本中の基本）",
+        "ex": "Cuaca hari ini sangat cerah dan anginnya sejuk, cocok sekali untuk jalan-jalan di taman.",
+        "tr": "今日の天気はとても晴れていて風も涼しく、公園を散歩するのにぴったりだ。",
+        "note": "■ 【日付5点セット】：kemarin（昨日）、hari ini（今日）、besok（明日）、lusa（明後日）、kemarin lusa（一昨日）。"
+      },
+      {
+        "p": "n",
+        "w": "tengah malam",
+        "r": "malam",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "真夜中、深夜、午前0時ごろ（＝larut malam）",
+        "ex": "Pesawat kami baru mendarat di bandara tepat pada tengah malam karena penundaan jadwal.",
+        "tr": "スケジュールの遅延のため、私たちの飛行機はちょうど真夜中にようやく空港へ着陸した。",
+        "note": "■ 【1日の時間帯セット】：dini hari（未明・深夜2〜4時）、subuh（夜明け）、pagi（朝）、siang（昼）、sore（夕方）、petang（夕暮れ）、malam（夜）、tengah malam（真夜中）。"
+      },
+      {
+        "p": "other",
+        "w": "tidak pernah",
+        "r": "pernah",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "一度も〜したことがない、決して〜しない（英語 never に相当する超基本表現。口語では『nggak pernah』）",
+        "ex": "Seumur hidup saya tidak pernah mencoba buah durian, tetapi kali ini saya ingin mencicipinya.",
+        "tr": "生まれてこのかた一度もドリアンを試したことがないけれど、今回は味見してみたい。",
+        "note": "■ 【対比】：pernah（〜したことがある） ⇔ belum pernah（まだ〜したことがない） ⇔ tidak pernah（一度も〜しない／したことがない）。"
+      },
+      {
+        "p": "n",
+        "w": "sejuta",
+        "r": "juta",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "100万（satu juta の短縮形。値段『sejuta rupiah』や比喩『sejuta kenangan＝数え切れないほどの思い出』で超頻出）",
+        "ex": "Harga tiket pesawat pulang-pergi saat promo kemarin hanya sekitar sejuta rupiah.",
+        "tr": "昨日のセール時の往復航空券の価格は、たった約100万ルピアだった。",
+        "note": "■ 【大きな数の単位セット】：seribu（1,000）、sepuluh ribu（1万）、seratus ribu（10万）、sejuta（100万）、semiliar（10億）、setriliun（1兆）。"
+      },
+      {
+        "p": "a",
+        "w": "lengket",
+        "r": "lengket",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "①（のり・蜂蜜・汗・餅などが）ベタベタする、ネバネバした、くっつきやすい ②（比喩で：カップルや友達が）いつもべったり仲良し",
+        "ex": "Beras ketan memiliki tekstur yang jauh lebih lengket dibandingkan beras biasa setelah dimasak.",
+        "tr": "もち米は炊いた後、普通の米と比べてはるかに粘り気がある（くっつきやすい）食感を持つ。",
+        "note": "■ 【重要コロケーション】：wajan antilengket（焦げ付かないフライパン＝テフロン加工）、lengket karena keringat（汗でベタベタする）。"
+      },
+      {
+        "p": "n",
+        "w": "oranye",
+        "r": "oranye",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "オレンジ色、橙色（日常会話で最頻出。やや文語・標準色の『jingga』と同義）",
+        "ex": "Langit di tepi pantai berubah menjadi warna oranye keemasan menjelang matahari terbenam.",
+        "tr": "日没が近づくにつれ、海辺の空は黄金がかったオレンジ色へと変わった。",
+        "note": "■ 【色の表現メモ】：日常では『oranye（または口語 oren）』、詩や虹の7色（mejikuhibiniu）では『jingga』がよく使われる。"
+      },
+      {
+        "p": "n",
+        "w": "nila",
+        "r": "nila",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "①藍色（あいいろ）、インディゴ色（虹の7色『mejikuhibiniu』の ni） ②ティラピア（淡水食用魚：ikan nila＝インドネシアの定番焼き魚・揚げ魚！）",
+        "ex": "Kami memesan ikan nila bakar dengan sambal kecap dan lalapan segar di rumah makan Sunda itu.",
+        "tr": "私たちはそのスンダ料理店で、甘い醤油サンバルと生野菜添えのティラピアの炭火焼きを注文した。",
+        "note": "■ 【超実用の2義】：① 藍色（インディゴ染料・虹の色）、② ikan nila（ティラピア：レストランで超定番の白身淡水魚！）。"
+      },
+      {
+        "p": "n",
+        "w": "toska",
+        "r": "toska",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "ターコイズブルー、青緑色（hijau toska / biru toska としてファッションやインテリアで超頻出）",
+        "ex": "Air laut di sekitar pulau kecil itu sangat jernih dengan gradasi warna biru toska yang indah.",
+        "tr": "その小さな島周辺の海水は、美しいターコイズブルーのグラデーションでとても透き通っている。",
+        "note": "■ 【語源】：英語 turquoise に由来し、インドネシア語では『toska』と定着。"
+      },
+      {
+        "p": "n",
+        "w": "krem",
+        "r": "krem",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "クリーム色、ベージュ系の淡い黄白色（服や壁・靴の色選びで毎日使う語）",
+        "ex": "Ia memilih kemeja warna krem dan celana cokelat muda agar terlihat rapi dan santai.",
+        "tr": "彼はきちんとしつつもリラックスした印象に見えるよう、クリーム色のシャツと薄茶色のパンツを選んだ。",
+        "note": "■ 【区別】：色の「クリーム色」は『krem』、生クリームやスキンケアクリームは『krim』と綴り分けるのがKBBI標準！"
+      },
+      {
+        "p": "a",
+        "w": "oval",
+        "r": "oval",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "楕円形の、卵型の（＝lonjong。顔の形『wajah oval』やテーブル・競技場の形など）",
+        "ex": "Meja makan berbentuk oval dipilih karena aman bagi anak kecil dan tidak memiliki sudut tajam.",
+        "tr": "鋭い角がなく小さな子どもにとって安全なので、楕円形のダイニングテーブルが選ばれた。",
+        "note": "■ 【形の基本セット】：bulat / lingkaran（丸・円）、persegi（正方形）、persegi panjang（長方形）、segitiga（三角形）、oval / lonjong（楕円）。"
+      },
+      {
+        "p": "n",
+        "w": "kubus",
+        "r": "kubus",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "立方体、キューブ、サイコロ状（es batu kubus＝キューブ氷、potong dadu / kubus＝角切り）",
+        "ex": "Dalam pelajaran matematika hari ini, siswa belajar menghitung volume bangun ruang kubus dan balok.",
+        "tr": "今日の数学の授業で、生徒たちは立方体と直方体の立体図形の体積計算を学んだ。",
+        "note": "■ 【立体の基本セット】：kubus（立方体）、balok（直方体）、bola（球体）、silinder / tabung（円柱）、kerucut（円錐）。"
+      },
+      {
+        "p": "n",
+        "w": "silinder",
+        "r": "silinder",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "①円柱、円筒形（＝tabung） ②（エンジン等の）シリンダー ③（眼科・メガネの）乱視（mata silinder！）",
+        "ex": "Setelah memeriksa mata di optik, ternyata saya bukan hanya minus tetapi juga memiliki mata silinder.",
+        "tr": "眼鏡店で視力検査をしたら、近視（マイナス）だけでなく乱視（シリンダー）もあることが分かった。",
+        "note": "■ 【インドネシア生活の豆知識】：眼鏡屋では『minus（近視）』『plus（遠視・老眼）』『silinder（乱視）』の3語で通じる！"
+      },
+      {
+        "p": "n",
+        "w": "kerucut",
+        "r": "kerucut",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "円錐（えんすい）、コーン状（ジャワの祝祭料理『nasi tumpeng』の形や、道路のカラーコーン『kerucut lalu lintas』）",
+        "ex": "Nasi tumpeng kuning dibentuk menyerupai kerucut tinggi sebagai simbol rasa syukur dan harapan.",
+        "tr": "黄色いナシ・トゥンペンは、感謝と希望の象徴として高い円錐形に形作られる。",
+        "note": "■ 【派生動詞】：mengerucut（先細りになる ➔ 比喩で「議論や候補が1つ・少数に絞り込まれる」としてニュース頻出！）。"
+      },
+      {
+        "p": "a",
+        "w": "lengkung",
+        "r": "lengkung",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "曲がった、カーブした、アーチ状の（garis lengkung＝曲線、jembatan lengkung＝アーチ橋）",
+        "ex": "Jembatan bergaya lengkung di atas sungai itu menjadi ikon wisata baru bagi warga setempat.",
+        "tr": "川に架かるアーチ型の橋は、地元住民にとって新しい観光シンボルになっている。",
+        "note": "■ 【関連語】：melengkung（曲がる・湾曲する・カーブを描く）、lengkungan（カーブ・アーチ・湾曲部）。"
+      },
+      {
+        "p": "a",
+        "w": "ceper",
+        "r": "ceper",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①（皿などが）浅く平べったい ②（車・バイクの車高が）低い、ローダウンの（mobil ceper） ③（靴が）ぺたんこの、フラットな（sepatu ceper）",
+        "ex": "Mobil yang terlalu ceper sering kesulitan melewati polisi tidur yang tinggi di jalan perumahan.",
+        "tr": "車高が低すぎる車は、住宅街の道路にある高い減速帯（ポリシ・ティドゥール）を乗り越えるのにしばしば苦労する。",
+        "note": "■ 【日常コロケーション】：piring ceper（平皿）、mobil ceper（ローダウン車）、sandal / sepatu ceper（フラットシューズ）。"
+      },
+      {
+        "p": "a",
+        "w": "pesing",
+        "r": "pesing",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "アンモニア臭い、おしっこ臭い（トイレやペット周りの臭いをピンポイントで表す感覚形容詞）",
+        "ex": "Kandang kelinci harus dibersihkan setiap hari agar tidak menimbulkan bau pesing di dalam kamar.",
+        "tr": "部屋の中でおしっこ臭いにおいが出ないように、うさぎのケージは毎日掃除しなければならない。",
+        "note": "■ 【臭いの形容詞セット】：wangi / harum（良い香り）、bau（臭い）、amis（生臭い）、apek（カビ臭い・蒸れ臭い）、tengik（油が古びた臭い）、gosong（焦げ臭い）、pesing（尿臭い）。"
+      },
+      {
+        "p": "n",
+        "w": "tandan",
+        "r": "tandan",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "（バナナ・ヤシ・アブラヤシなどの果実の）大きな房全体、1株の房（『satu sisir pisang＝バナナ1房（10〜15本）』がいくつも集まった幹ごと全体が『satu tandan』）",
+        "ex": "Petani memanen puluhan tandan buah kelapa sawit segar untuk segera dikirim ke pabrik pengolahan.",
+        "tr": "農家は加工工場へすぐ出荷するため、何十房もの新鮮なアブラヤシの実（FFB）を収穫した。",
+        "note": "■ 【バナナの助数詞の区別】：\n・buah（1本） ＜ sisir（スーパーで買う1房） ＜ tandan（木から切り落とした特大の房全体）\n・経済用語：TBS（Tandan Buah Segar＝アブラヤシの新鮮果房）。"
+      },
+      {
+        "p": "n",
+        "w": "Islam",
+        "r": "Islam",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "イスラム教（インドネシア人口の約87%を占める最大宗教。信徒は『muslim / umat Islam』、礼拝所は『masjid』）",
+        "ex": "Indonesia dikenal sebagai negara dengan populasi pemeluk agama Islam terbesar di dunia.",
+        "tr": "インドネシアは世界で最もイスラム教徒の人口が多い国として知られている。",
+        "note": "■ 【関連語】：muslim / muslimah（イスラム教徒［男／女］）、masjid（モスク）、Al-Qur'an（クルアーン）、Idulfitri（断食明け大祭）、Iduladha（犠牲祭）、Islami（イスラム的な）。"
+      },
+      {
+        "p": "n",
+        "w": "Kristen",
+        "r": "Kristen",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "キリスト教（※インドネシアの公認宗教区分では主にプロテスタント『Kristen Protestan』を指し、カトリック『Katolik』と区別して表記する）",
+        "ex": "Umat Kristen di berbagai daerah merayakan Hari Natal bersama keluarga dengan penuh sukacita.",
+        "tr": "各地のキリスト教徒（プロテスタント）は、家族とともに喜びいっぱいにクリスマスを祝う。",
+        "note": "■ 【インドネシアの公認6宗教】：Islam（イスラム教）、Kristen（プロテスタント）、Katolik（カトリック）、Hindu（ヒンドゥー教）、Buddha（仏教）、Konghucu（儒教）。礼拝所は『gereja（教会）』。"
+      },
+      {
+        "p": "n",
+        "w": "Katolik",
+        "r": "Katolik",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "カトリック（インドネシア公認6宗教のひとつ。東ヌサ・トゥンガラ州［フローレス島等］やジャワ各地に信徒が多い）",
+        "ex": "Gereja Katedral di pusat kota Jakarta merupakan salah satu gereja Katolik bersejarah yang terkenal.",
+        "tr": "ジャカルタ中心部にあるカテドラル教会は、有名な歴史的カトリック教会のひとつだ。",
+        "note": "■ 【関連語】：gereja Katolik（カトリック教会）、misa（ミサ）、pastor / romo（神父）、Paus（ローマ教皇）。"
+      },
+      {
+        "p": "n",
+        "w": "Hindu",
+        "r": "Hindu",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "ヒンドゥー教（インドネシア公認6宗教のひとつ。特にバリ島住民の大多数が信仰するバリ・ヒンドゥーで有名）",
+        "ex": "Sebagian besar masyarakat Pulau Bali menganut agama Hindu dengan tradisi upacara keagamaan yang sangat kaya.",
+        "tr": "バリ島住民の大部分はヒンドゥー教を信仰しており、非常に豊かな宗教儀礼の伝統を持っている。",
+        "note": "■ 【関連語】：pura（ヒンドゥー寺院）、Nyepi（ニュピ＝バリの新年・静寂の日）、Galungan（ガルンガン）、canang sari（チャナン＝お供え物）。"
+      },
+      {
+        "p": "n",
+        "w": "Buddha",
+        "r": "Buddha",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "仏教、ブッダ（インドネシア公認6宗教のひとつ。世界遺産ボロブドゥール遺跡で祝われる『Waisak＝ウェーサーカ祭』が有名）",
+        "ex": "Ribuan umat Buddha berkumpul di pelataran Candi Borobudur setiap tahun untuk memperingati Hari Raya Waisak.",
+        "tr": "毎年ウェーサーカ祭を祝うため、数千人の仏教徒がボロブドゥール寺院の境内に集まる。",
+        "note": "■ 【関連語】：vihara / wihara（仏教寺院）、biksu（僧侶）、Waisak（ウェーサーカ祭＝釈迦の誕生・成道・入滅を祝う祝日）。"
+      },
+      {
+        "p": "n",
+        "w": "Konghucu",
+        "r": "Konghucu",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "儒教（じゅきょう）、孔子教（インドネシア公認6宗教のひとつ。主に中華系インドネシア人に信仰され、礼拝所は『klenteng』、祝日は春節『Imlek』）",
+        "ex": "Perayaan Tahun Baru Imlek disambut meriah oleh umat Konghucu serta masyarakat luas di berbagai kota.",
+        "tr": "春節（イムレック）の祝賀は、儒教徒をはじめ各地の幅広い市民によって賑やかに祝われる。",
+        "note": "■ 【関連語】：klenteng（中国寺院・廟）、Imlek（春節・旧正月）、Cap Go Meh（元宵節・旧正月15日目）。"
+      },
+      {
+        "p": "n",
+        "w": "musim hujan",
+        "r": "musim",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "雨季（インドネシアでは例年およそ10月〜3月ごろ。やや改まった表現は『musim penghujan』）",
+        "ex": "Memasuki musim hujan, warga diimbau rutin membersihkan saluran air agar tidak terjadi genangan.",
+        "tr": "雨季に入り、冠水が発生しないよう住民には排水路を定期的に掃除することが呼びかけられている。",
+        "note": "■ 【インドネシアの2季】：musim hujan（雨季） ⇔ musim kemarau（乾季）。季節の変わり目は『pancaroba（パンチャロバ）』。"
+      },
+      {
+        "p": "n",
+        "w": "musim kemarau",
+        "r": "musim",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "乾季（インドネシアでは例年およそ4月〜9月ごろ。晴天が続き観光ベストシーズンだが、干ばつや山火事の時期でもある）",
+        "ex": "Pada puncak musim kemarau, beberapa daerah dataran tinggi mengalami kekurangan air bersih.",
+        "tr": "乾季のピークには、いくつかの高地地域で清潔な飲料水の不足が発生する。",
+        "note": "■ 【重要コロケーション】：kemarau panjang（長い乾季・干ばつ）、musim kemarau basah（乾季でも雨が多い異常気象）。"
+      },
+      {
+        "p": "n",
+        "w": "musim semi",
+        "r": "musim",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "春（日本の四季を説明する必須語。『semi』は「芽吹く・新芽が出る」の意味！）",
+        "ex": "Banyak wisatawan dari Indonesia berkunjung ke Jepang pada musim semi untuk menikmati bunga sakura.",
+        "tr": "インドネシアから多くの観光客が桜を楽しむために春に日本を訪れる。",
+        "note": "■ 【日本の四季4点セット】：musim semi（春）、musim panas（夏）、musim gugur（秋）、musim dingin（冬）。"
+      },
+      {
+        "p": "n",
+        "w": "musim panas",
+        "r": "musim",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "夏（温帯の4季の夏。liburan musim panas＝夏休み）",
+        "ex": "Suhu udara saat musim panas di kota-kota besar Jepang bisa terasa sangat panas dan lembap.",
+        "tr": "日本の大都市の夏の気温は、非常に暑く蒸し暑く感じられることがある。",
+        "note": "■ 【重要コロケーション】：liburan musim panas（夏休み）、festival musim panas（夏祭り）、Olimpiade Musim Panas（夏季五輪）。"
+      },
+      {
+        "p": "n",
+        "w": "musim gugur",
+        "r": "musim",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "秋（『gugur』は「葉や花が散る・落ちる」の意味！紅葉の季節を説明するときの定番）",
+        "ex": "Pada musim gugur, daun-daun di taman kota berubah warna menjadi merah dan kuning keemasan.",
+        "tr": "秋になると、市の公園の葉は赤や黄金色の黄色へと色を変える。",
+        "note": "■ 【豆知識】：gugur は「葉が落ちる」のほか、兵士や英雄が「戦死する・殉職する」という意味もある重要語。"
+      },
+      {
+        "p": "n",
+        "w": "musim dingin",
+        "r": "musim",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "冬（salju＝雪、jaket musim dingin＝冬用コート）",
+        "ex": "Mahasiswa yang baru pertama kali tinggal di Jepang perlu menyiapkan pakaian tebal menjelang musim dingin.",
+        "tr": "初めて日本に住む学生は、冬に向けて厚手の衣類を準備しておく必要がある。",
+        "note": "■ 【重要コロケーション】：liburan musim dingin（冬休み）、olahraga musim dingin（ウィンタースポーツ）、pakaian musim dingin（冬服）。"
+      },
+      {
+        "p": "n",
+        "w": "tsunami",
+        "r": "tsunami",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "津波（日本語由来でインドネシア語でもそのまま標準語として定着。2004年のアチェ沖大地震以降、防災の超必須語）",
+        "ex": "BMKG segera mencabut peringatan dini tsunami setelah memastikan tidak terjadi kenaikan permukaan air laut.",
+        "tr": "気象庁（BMKG）は海面の上昇が起きていないことを確認した後、直ちに津波早期警報を解除した。",
+        "note": "■ 【防災コロケーション】：peringatan dini tsunami（津波早期警報）、jalur evakuasi tsunami（津波避難経路）、potensi tsunami（津波の可能性）。"
+      },
+      {
+        "p": "n",
+        "w": "puting beliung",
+        "r": "beliung",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "竜巻、激しい旋風（『angin puting beliung』の形でインドネシアの季節の変わり目の気象ニュースに超頻出！）",
+        "ex": "Angin puting beliung yang melanda desa itu kemarin sore merusak puluhan atap rumah warga.",
+        "tr": "昨日の夕方その村を襲った竜巻は、住民の家屋数十軒の屋根を損壊させた。",
+        "note": "■ 【気象災害セット】：angin kencang（強風）、angin puting beliung（竜巻）、badai / siklon tropis（嵐・熱帯低気圧）。"
+      }
+    ];
+
+    const idxByWord = new Map();
+    for (let i = 0; i < d.vocab.length; i++) {
+      const it = d.vocab[i];
+      if (it && it.w) idxByWord.set(it.w.trim().toLowerCase(), i);
+    }
+
+    for (let i = 0; i < DICT_PACK_1.length; i++) {
+      const item = DICT_PACK_1[i];
+      if (!item || !item.w) continue;
+      const key = item.w.trim().toLowerCase();
+
+      item.dictOnly = true;
+      item.tier = 3;
+      dictOnlySet.add(key);
+
+      if (item.topicCat) {
+        catMap.set(key, item.topicCat);
+      }
+
+      if (idxByWord.has(key)) {
+        const pos = idxByWord.get(key);
+        Object.assign(d.vocab[pos], item);
+        vMap.set(key, d.vocab[pos]);
+        persistentAdded.set(key, d.vocab[pos]);
+      } else {
+        d.vocab.push(item);
+        idxByWord.set(key, d.vocab.length - 1);
+        vMap.set(key, item);
+        persistentAdded.set(key, item);
+      }
+    }
+  } catch (e) {
+    console.error("WhatsIndo Dict Pack 1 error:", e);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 辞書充実プロジェクト 第2弾（全75語・すべて辞書専用 dictOnly: true）
+   - ① スマホ・PC・ハードウェア機器（19語）：HP, smartphone, monitor, keyboard,
+       papan ketik, mouse, tetikus, printer, charger, powerbank, earphone, headphone,
+       mikrofon, webcam, flashdisk, hardisk, SSD, RAM, prosesor
+   - ② ネット・OS・基本操作・アカウント（30語）：Wi-Fi, paket data, situs web, website,
+       link, perangkat lunak, software, perangkat keras, sistem operasi, peramban,
+       browser, mesin pencari, email, password, akun, profil, login, logout, unduh,
+       download, unggah, upload, instal, hapus, perbarui, update, cadangkan, bagikan,
+       notifikasi, blokir
+   - ③ SNS・AI・開発・セキュリティ・デジタル決済（26語）：chat, siaran langsung,
+       postingan, kreator, influencer, tren, AI, cloud, komputasi awan, server, peladen,
+       bug, galat, error, retas, hacker, phishing, penipuan daring, enkripsi,
+       keamanan siber, pemrograman, basis data, dompet digital, e-wallet, transfer,
+       kode OTP
+   - **記号ゼロ・文字バグゼロ・try-catch完全保護・問題モードへ一切混入しません
+   ===================================================================== */
+(function() {
+  try {
+    const d = window.WHATSINDO_EXTERNAL_DATA;
+    if (!d || !Array.isArray(d.vocab)) return;
+
+    const dictOnlySet     = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+    const persistentAdded = window.__wiPersistentAddedVocab || (window.__wiPersistentAddedVocab = new Map());
+    const vMap            = window.__wiMasterVocabMap || (window.__wiMasterVocabMap = new Map());
+    const catMap          = window.__WI_V5_VCAT || (window.__WI_V5_VCAT = new Map());
+
+    const DICT_PACK_2 = [
+      {
+        "p": "singkatan",
+        "w": "HP",
+        "r": "handphone",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "携帯電話、スマホ（インドネシアの日常会話でスマホを指す圧倒的No.1表現。発音は『ハペ』。書き言葉は『ponsel / telepon genggam』）",
+        "ex": "Baterai HP saya sudah tinggal lima persen, jadi saya harus segera mencari colokan listrik.",
+        "tr": "私のスマホのバッテリーがもう残り5パーセントなので、急いでコンセントを探さなければならない。",
+        "note": "■ 【日常の必須コロケーション】：\n・nomor HP：携帯電話番号（nomor ponsel）\n・main HP：スマホをいじる\n・HP lowbat / ngecas HP（口語）：スマホの充電切れ ／ スマホを充電する\n■ 【関連語】：ponsel（公式語：携帯電話）、smartphone（スマホ）、gawai（公式語：ガジェット・端末）。"
+      },
+      {
+        "p": "n",
+        "w": "smartphone",
+        "r": "smartphone",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "スマートフォン（公式インドネシア語は『ponsel pintar』だが、広告・ニュース・会話では『smartphone』も広く使われる）",
+        "ex": "Hampir seluruh transaksi perbankan harian kini dapat dilakukan langsung melalui aplikasi di smartphone.",
+        "tr": "日常の銀行取引のほぼすべてが、現在ではスマホのアプリから直接行える。",
+        "note": "■ 【言い換えセット】：HP（日常会話で最頻出）、ponsel / ponsel pintar（報道・公式語）、smartphone（IT・家電記事）。"
+      },
+      {
+        "p": "n",
+        "w": "monitor",
+        "r": "monitor",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "①（PC・医療機器などの）モニター、ディスプレイ画面（layar monitor） ②監視・モニタリング（動詞形：memonitor＝監視する）",
+        "ex": "Desainer grafis itu menggunakan monitor eksternal berukuran besar agar detail warna terlihat lebih akurat.",
+        "tr": "そのグラフィックデザイナーは、色の細部がより正確に見えるように大型の外部モニターを使っている。",
+        "note": "■ 【重要コロケーション】：layar monitor（モニター画面）、monitor eksternal（外部モニター）、memonitor（監視・経過観察する＝memantau）。"
+      },
+      {
+        "p": "n",
+        "w": "keyboard",
+        "r": "keyboard",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "①（PC・スマホ画面の）キーボード（公式語は『papan ketik』） ②（電子楽器の）キーボード",
+        "ex": "Beberapa tombol pada keyboard laptop lama saya mulai macet sehingga perlu diganti.",
+        "tr": "私の古いノートPCのキーボードのいくつかのキーが反応しにくくなってきたので交換が必要だ。",
+        "note": "■ 【関連語】：papan ketik（キーボードの公式インドネシア語）、mengetik（タイピングする・入力する）、tombol（キー・ボタン）。"
+      },
+      {
+        "p": "n",
+        "w": "papan ketik",
+        "r": "ketik",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "キーボード（英語 keyboard の公式インドネシア語。OSの日本語・インドネシア語UI設定や公的IT資料で使われる）",
+        "ex": "Pengguna dapat mengubah bahasa papan ketik pada pengaturan ponsel untuk mengetik huruf Jepang.",
+        "tr": "ユーザーは日本語文字を入力するために、スマホの設定でキーボードの言語を変更できる。",
+        "note": "■ 【語構成】：papan（板）+ ketik（タイプする・打つ）。日常会話では『keyboard』が一般的。"
+      },
+      {
+        "p": "n",
+        "w": "mouse",
+        "r": "mouse",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "（パソコン操作用の）マウス（公式語は『tetikus』だが、日常・家電量販店では圧倒的に『mouse』が使われる）",
+        "ex": "Ia lebih nyaman bekerja menggunakan mouse nirkabel daripada papan sentuh bawaan laptop.",
+        "tr": "彼はノートPC内蔵のタッチパッドよりも、ワイヤレスマウスを使って作業する方が快適だ。",
+        "note": "■ 【関連語】：tetikus（マウスの公式インドネシア語）、klik kiri / kanan（左クリック／右クリック）、mouse nirkabel（ワイヤレスマウス）。"
+      },
+      {
+        "p": "n",
+        "w": "tetikus",
+        "r": "tikus",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "（パソコンの）マウス（英語 mouse の公式インドネシア語訳。語幹『tikus＝ネズミ』に音節重複 te- を付けたKBBI標準語！）",
+        "ex": "Arahkan kursor dengan tetikus lalu klik dua kali pada ikon berkas yang ingin dibuka.",
+        "tr": "マウスでカーソルを合わせ、開きたいファイルのアイコンをダブルクリックしてください。",
+        "note": "■ 【IT公式訳語セット】：tetikus（マウス）、papan ketik（キーボード）、peramban（ブラウザ）、peladen（サーバー）、gawai（ガジェット）。"
+      },
+      {
+        "p": "n",
+        "w": "printer",
+        "r": "printer",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "プリンター、印刷機（公式語は『pencetak / mesin pencetak』だが、オフィスや大学のコピー屋では『printer』が定番）",
+        "ex": "Tinta printer di ruang kerja habis tepat saat saya hendak mencetak draf laporan akhir.",
+        "tr": "最終報告書の草稿を印刷しようとしたちょうどその時、仕事部屋のプリンターのインクが切れた。",
+        "note": "■ 【重要コロケーション】：tinta printer（プリンターインク）、printer warna / laser（カラー／レーザープリンター）、mencetak / nge-print（印刷する）。"
+      },
+      {
+        "p": "n",
+        "w": "charger",
+        "r": "charger",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "充電器（スマホやノートPCの充電アダプター。公式語は『pengisi daya』、日常会話では『charger / casan』）",
+        "ex": "Maaf, boleh pinjam charger tipe-C sebentar? Baterai ponsel saya hampir habis.",
+        "tr": "すみません、Type-Cの充電器をちょっと借りてもいいですか？スマホの電池がもう切れそうで。",
+        "note": "■ 【日常の充電表現】：charger（充電器）、pengisi daya（公式語：充電器）、mengisi daya / ngecas（充電する）。"
+      },
+      {
+        "p": "n",
+        "w": "powerbank",
+        "r": "powerbank",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "モバイルバッテリー（公式語は『bank daya』だが、空港の保安検査や日常では『powerbank』が100%通じる）",
+        "ex": "Penumpang pesawat wajib menyimpan powerbank di dalam tas kabin dan tidak boleh dimasukkan ke bagasi tercatat.",
+        "tr": "飛行機の乗客はモバイルバッテリーを機内持ち込み手荷物に入れる義務があり、預け入れ荷物に入れてはならない。",
+        "note": "■ 【旅行サバイバル必須語】：インドネシアの空港チェックイン時、必ず『Ada powerbank?（モバイルバッテリーはありますか？）』と確認される！"
+      },
+      {
+        "p": "n",
+        "w": "earphone",
+        "r": "earphone",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "イヤホン（耳の中に装着する小型イヤホン。公式語は『penyumbat telinga / pelantang telinga』だが日常は『earphone / headset』）",
+        "ex": "Saat berada di dalam kereta komuter, sebaiknya gunakan earphone ketika menonton video atau mendengarkan musik.",
+        "tr": "通勤電車の中では、動画を見たり音楽を聴いたりするときにイヤホンを使うのがマナーだ。",
+        "note": "■ 【オーディオ機器セット】：earphone（イヤホン）、headphone（ヘッドホン）、headset（マイク付きイヤホン／ヘッドセット）、speaker（スピーカー）。"
+      },
+      {
+        "p": "n",
+        "w": "headphone",
+        "r": "headphone",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "ヘッドホン（頭にかぶせて耳全体を覆うタイプ。公式表記は『pelantang kepala』だが日常は『headphone』）",
+        "ex": "Ia memakai headphone peredam bising agar bisa fokus belajar di kafe yang cukup ramai.",
+        "tr": "彼はかなり賑やかなカフェでも勉強に集中できるよう、ノイズキャンセリングヘッドホンを着けている。",
+        "note": "■ 【重要コロケーション】：headphone peredam bising（ノイズキャンセリングヘッドホン）、headphone nirkabel（ワイヤレスヘッドホン）。"
+      },
+      {
+        "p": "n",
+        "w": "mikrofon",
+        "r": "mikrofon",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "マイク、マイクロホン（会話やカラオケでは短縮して『mik』とも言う）",
+        "ex": "Tolong nyalakan mikrofon Anda terlebih dahulu karena suara Anda belum terdengar di ruang rapat daring.",
+        "tr": "オンライン会議室であなたの声がまだ聞こえないので、まずマイクをオンにしてください。",
+        "note": "■ 【Zoom・オンライン会議定番】：nyalakan / matikan mikrofon（マイクをオン／オフにする＝unmute / mute）。"
+      },
+      {
+        "p": "n",
+        "w": "webcam",
+        "r": "webcam",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "ウェブカメラ（PCに接続・内蔵されているオンライン会議・配信用カメラ。公式語は『kamera web』）",
+        "ex": "Pastikan posisi webcam sejajar dengan mata saat mengikuti wawancara kerja secara daring.",
+        "tr": "オンライン就職面接を受ける際は、ウェブカメラの位置が目線と水平になるよう確認しよう。",
+        "note": "■ 【関連語】：kamera web（公式語）、panggilan video（ビデオ通話）、rapat daring（オンライン会議）。"
+      },
+      {
+        "p": "n",
+        "w": "flashdisk",
+        "r": "flashdisk",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "USBメモリ、フラッシュドライブ（インドネシアでは『USB』単体ではなく『flashdisk』と呼ぶのが超定番！公式語は『kandar kilas』）",
+        "ex": "Salinan materi presentasi sudah saya simpan di dalam flashdisk sebagai cadangan jika internet bermasalah.",
+        "tr": "ネットに不具合が出たときのバックアップとして、プレゼン資料のコピーはUSBメモリに保存してあります。",
+        "note": "■ 【現地あるある】：インドネシアのコピー屋や大学で「USBメモリ」と言いたい時は『flashdisk』と言えば100%一発で通じる！"
+      },
+      {
+        "p": "n",
+        "w": "hardisk",
+        "r": "hardisk",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "ハードディスク、HDD（正式英語表記 hard disk / 公式訳『cakram keras』。外付けHDDは『hardisk eksternal』）",
+        "ex": "Semua foto dan video perjalanan beresolusi tinggi saya cadangkan ke hardisk eksternal berkapasitas dua terabita.",
+        "tr": "高解像度の旅行写真や動画はすべて、2テラバイト容量の外付けハードディスクにバックアップしている。",
+        "note": "■ 【ストレージ3点セット】：flashdisk（USBメモリ）、hardisk / HDD（ハードディスク）、SSD（ソリッドステートドライブ）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "SSD",
+        "r": "Solid State Drive",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "SSD（半導体メモリを使った高速記憶装置。PCの起動や読み書きがHDDより圧倒的に速い）",
+        "ex": "Laptop yang dilengkapi penyimpanan SSD mampu menyala dan membuka aplikasi jauh lebih cepat.",
+        "tr": "SSDストレージを搭載したノートPCは、起動やアプリの立ち上げがはるかに速い。",
+        "note": "■ 【関連語】：penyimpanan（ストレージ・保存容量）、hardisk（HDD）、RAM（メモリ）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "RAM",
+        "r": "Random Access Memory",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "RAM、メインメモリ（PCやスマホが同時にアプリを動かす作業領域。家電店でのスペック確認の必須語）",
+        "ex": "Untuk kebutuhan pemrograman dan penyuntingan video, laptop dengan kapasitas RAM minimal enam belas gigabita sangat disarankan.",
+        "tr": "プログラミングや動画編集の用途には、RAM容量が最低16ギガバイトのノートPCが強く推奨される。",
+        "note": "■ 【PC・スマホ購入時の定番用語】：RAM（メモリ）、penyimpanan internal / ROM（内蔵ストレージ）、prosesor（CPU・プロセッサ）。"
+      },
+      {
+        "p": "n",
+        "w": "prosesor",
+        "r": "prosesor",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "プロセッサ、CPU（PCやスマホの頭脳にあたる中央処理装置）",
+        "ex": "Performa laptop generasi terbaru ini meningkat pesat berkat penggunaan prosesor yang hemat daya.",
+        "tr": "この最新世代ノートPCの性能は、省電力プロセッサの採用により飛躍的に向上した。",
+        "note": "■ 【関連語】：perangkat keras（ハードウェア）、cip / semikonduktor（チップ・半導体）、memproses（処理する）。"
+      },
+      {
+        "p": "n",
+        "w": "Wi-Fi",
+        "r": "Wi-Fi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "ワイファイ、無線LAN（インドネシアのカフェやホテルで『Ada Wi-Fi? / Password Wi-Fi-nya apa?』と毎日使う必須語）",
+        "ex": "Permisi, boleh tahu nama jaringan dan kata sandi Wi-Fi di kafe ini?",
+        "tr": "すみません、このカフェのWi-Fiのネットワーク名とパスワードを教えていただけますか？",
+        "note": "■ 【現地カフェで即使えるフレーズ】：\n・Ada Wi-Fi gratis?（無料Wi-Fiはありますか？）\n・Password Wi-Fi-nya apa?（Wi-Fiのパスワードは何ですか？）\n・koneksi Wi-Fi stabil / lemot（Wi-Fiの接続が安定している／遅い）"
+      },
+      {
+        "p": "n",
+        "w": "paket data",
+        "r": "paket",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "データ通信プラン、スマホのギガ・通信パック（インドネシアのプリペイドSIM文化では『beli paket data＝ギガを買う』が日常必須！）",
+        "ex": "Saya harus membeli paket data baru karena kuota internet bulanan di kartu SIM saya sudah habis.",
+        "tr": "SIMカードの月間ネット通信量がもうなくなったので、新しいデータ通信パックを買わなければならない。",
+        "note": "■ 【インドネシアのスマホ通信セット】：paket data（データ通信パック）、kuota internet（通信量・ギガ）、pulsa（プリペイド残高・通話料）、kartu SIM（SIMカード）。"
+      },
+      {
+        "p": "n",
+        "w": "situs web",
+        "r": "situs",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "ウェブサイト（英語 website の公式インドネシア語。公的機関やニュースでは『situs web resmi / laman resmi』が超頻出！）",
+        "ex": "Informasi lengkap mengenai jadwal pendaftaran beasiswa dapat diakses melalui situs web resmi universitas.",
+        "tr": "奨学金応募日程に関する完全な情報は、大学の公式ウェブサイトから閲覧できる。",
+        "note": "■ 【言い換えセット】：situs web / laman（公式語）、website（日常・IT用語）。"
+      },
+      {
+        "p": "n",
+        "w": "website",
+        "r": "website",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "ウェブサイト、ホームページ（日常会話やビジネスで最も通じる語。公式表記は『situs web / laman』）",
+        "ex": "Toko daring tersebut memperbarui tampilan website agar pembeli lebih mudah mencari produk.",
+        "tr": "そのオンラインショップは、購入者が商品を探しやすいようにウェブサイトのデザインを刷新した。",
+        "note": "■ 【関連語】：situs web（公式語）、halaman utama（トップページ）、tautan / link（リンク・URL）。"
+      },
+      {
+        "p": "n",
+        "w": "link",
+        "r": "link",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "リンク、URL（公式語は『tautan』だが、WhatsAppやSNSの会話では『kirim link / klik link』が圧倒的に頻出）",
+        "ex": "Tolong kirim link rapat Zoom lima belas menit sebelum diskusi kelompok kita dimulai.",
+        "tr": "グループ討論が始まる15分前に、Zoom会議のリンクを送ってね。",
+        "note": "■ 【セキュリティ注意】：jangan klik link mencurigakan（怪しいリンクをクリックしないで！）。公式語：tautan。"
+      },
+      {
+        "p": "n",
+        "w": "perangkat lunak",
+        "r": "perangkat",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "ソフトウェア（英語 software の公式インドネシア語。直訳：柔らかい装置 ⇔ perangkat keras＝ハードウェア）",
+        "ex": "Perusahaan teknologi itu mengembangkan perangkat lunak akuntansi khusus untuk membantu pelaku UMKM.",
+        "tr": "そのテクノロジー企業は、中小零細事業者を支援するための専用会計ソフトウェアを開発している。",
+        "note": "■ 【IT対義ペア】：perangkat lunak（ソフトウェア） ⇔ perangkat keras（ハードウェア）。"
+      },
+      {
+        "p": "n",
+        "w": "software",
+        "r": "software",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "ソフトウェア（公式語は『perangkat lunak』だが、開発現場や日常会話では『software』がそのまま使われる）",
+        "ex": "Pastikan Anda selalu menggunakan software berlisensi resmi agar terhindar dari serangan virus komputer.",
+        "tr": "コンピュータウイルス攻撃を避けるため、必ず正規ライセンスのソフトウェアを使うようにしよう。",
+        "note": "■ 【関連語】：perangkat lunak（公式語）、aplikasi（アプリ）、sistem operasi（OS）、bajakan（海賊版）。"
+      },
+      {
+        "p": "n",
+        "w": "perangkat keras",
+        "r": "perangkat",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "ハードウェア（英語 hardware の公式インドネシア語。PC本体・CPU・メモリ・モニターなど物理的な電子部品全般）",
+        "ex": "Kerusakan pada perangkat keras seperti papan induk dan memori memerlukan pemeriksaan teknisi khusus.",
+        "tr": "マザーボードやメモリといったハードウェアの故障には、専門技術者による点検が必要だ。",
+        "note": "■ 【対義語】：perangkat lunak（ソフトウェア）。日常では英語そのまま『hardware』も広く使われる。"
+      },
+      {
+        "p": "n",
+        "w": "sistem operasi",
+        "r": "sistem",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "オペレーティングシステム、OS（Windows・macOS・Android・iOS など、端末全体を動かす基本ソフト）",
+        "ex": "Pembaruan sistem operasi secara rutin sangat penting untuk menutup celah keamanan pada ponsel.",
+        "tr": "OS（オペレーティングシステム）の定期的なアップデートは、スマホのセキュリティホールを塞ぐために非常に重要だ。",
+        "note": "■ 【重要コロケーション】：pembaruan sistem operasi（OSアップデート）、celah keamanan（セキュリティの脆弱性）。"
+      },
+      {
+        "p": "n",
+        "w": "peramban",
+        "r": "ramban",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "ウェブブラウザ（Chrome・Safari・Edge 等。英語 browser の公式インドネシア語）",
+        "ex": "Bersihkan tembolok pada peramban Anda apabila halaman situs web tidak dapat dimuat dengan sempurna.",
+        "tr": "ウェブページが正常に読み込まれない場合は、ブラウザのキャッシュをクリアしてください。",
+        "note": "■ 【語構成】：pe- + ramban（巡り歩く・ブラウズする）。日常会話では『browser』も一般的。"
+      },
+      {
+        "p": "n",
+        "w": "browser",
+        "r": "browser",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "ブラウザ、ウェブブラウザ（公式語は『peramban』だが、普段の会話やIT記事では『browser』が最もよく使われる）",
+        "ex": "Coba buka tautan formulir pendaftaran tersebut melalui browser lain jika tombol kirim tidak merespons.",
+        "tr": "送信ボタンが反応しない場合は、別のブラウザからその申込フォームのリンクを開いてみて。",
+        "note": "■ 【関連語】：peramban（公式語）、tab（タブ）、riwayat penelusuran（閲覧履歴）。"
+      },
+      {
+        "p": "n",
+        "w": "mesin pencari",
+        "r": "cari",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "検索エンジン（Google・Bing 等。英語 search engine の公式インドネシア語）",
+        "ex": "Pelajar masa kini sangat mudah mencari referensi ilmiah dari seluruh dunia melalui mesin pencari.",
+        "tr": "現代の学生は検索エンジンを通じて、世界中の学術参考文献を非常に簡単に探せる。",
+        "note": "■ 【関連語】：kata kunci（検索キーワード）、hasil pencarian（検索結果）。"
+      },
+      {
+        "p": "n",
+        "w": "email",
+        "r": "email",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "メール、Eメール（公式インドネシア語は『surel [surat elektronik]』または『pos-el』だが、仕事・日常では『email』が最も一般的）",
+        "ex": "Lamaran kerja beserta daftar riwayat hidup dapat dikirimkan ke alamat email bagian sumber daya manusia.",
+        "tr": "応募書類および履歴書は、人事部のメールアドレスへ送付することができます。",
+        "note": "■ 【ビジネス必須コロケーション】：alamat email（メールアドレス）、lampiran email（メール添付ファイル）、kotak masuk（受信トレイ）。公式語：surel。"
+      },
+      {
+        "p": "n",
+        "w": "password",
+        "r": "password",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "パスワード、暗証言葉（公式語は『kata sandi』だが、日常会話では『password』が圧倒的に多い）",
+        "ex": "Gunakan kombinasi huruf besar, angka, dan simbol agar password akun Anda sulit ditebak orang lain.",
+        "tr": "アカウントのパスワードを他人に推測されにくくするため、大文字・数字・記号の組み合わせを使おう。",
+        "note": "■ 【関連語】：kata sandi（公式語：パスワード）、lupa password（パスワードを忘れた）、PIN（暗証番号）。"
+      },
+      {
+        "p": "n",
+        "w": "akun",
+        "r": "akun",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "①（SNS・アプリ・メール・ECサイトなどの）アカウント ②（会計・簿記の）勘定科目、口座",
+        "ex": "Aktifkan verifikasi dua langkah agar akun media sosial dan dompet digital Anda lebih terlindungi.",
+        "tr": "SNSや電子マネーのアカウントをより確実に守るため、二段階認証を有効にしよう。",
+        "note": "■ 【重要コロケーション】：akun resmi（公式アカウント）、akun palsu（偽アカウント）、membuat / menghapus akun（アカウントを作成／削除する）。"
+      },
+      {
+        "p": "n",
+        "w": "profil",
+        "r": "profil",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "①（SNS・アプリ等の）プロフィール、自己紹介欄（foto profil＝アイコン画像） ②（人物・企業の）横顔、会社概要（profil perusahaan）",
+        "ex": "Ia mengganti foto profil akun media sosialnya dengan foto pemandangan matahari terbit di pantai.",
+        "tr": "彼は自分のSNSアカウントのプロフィール写真を、海辺の日の出の景色の写真に変えた。",
+        "note": "■ 【重要コロケーション】：foto profil（プロフィール写真・アイコン）、profil perusahaan（会社概要）、profil singkat（略歴）。"
+      },
+      {
+        "p": "v",
+        "w": "login",
+        "r": "login",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "ログインする、サインインする（公式語は『masuk / log masuk』だが、アプリや日常では『login』がそのまま使われる ⇔ logout）",
+        "ex": "Mahasiswa dapat melihat jadwal kuliah dan nilai ujian setelah login ke portal akademik kampus.",
+        "tr": "学生は大学のポータルサイトにログインした後、講義時間割や試験の成績を確認できる。",
+        "note": "■ 【対義ペア】：login / masuk（ログイン） ⇔ logout / keluar（ログアウト）。"
+      },
+      {
+        "p": "v",
+        "w": "logout",
+        "r": "logout",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "ログアウトする、サインアウトする（公式語は『keluar / log keluar』 ⇔ login）",
+        "ex": "Jangan lupa logout dari akun surel Anda setelah selesai menggunakan komputer umum di perpustakaan.",
+        "tr": "図書館の共用パソコンを使い終わった後は、メールアカウントからログアウトするのを忘れないでください。",
+        "note": "■ 【関連語】：login（ログイン）、keluar（ログアウト・退出する）。"
+      },
+      {
+        "p": "v",
+        "w": "unduh",
+        "r": "unduh",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "ダウンロードする（英語 download の公式インドネシア語。アプリやサイトの『Unduh』ボタンで超頻出 ⇔ unggah＝アップロード）",
+        "ex": "Formulir pendaftaran peserta ujian dapat Anda unduh secara gratis melalui tautan di bawah ini.",
+        "tr": "試験の申込用紙は、下のリンクから無料でダウンロードできます。",
+        "note": "■ 【IT対義ペアの超定番】：\n・unduh / mengunduh / unduhan：ダウンロードする／ダウンロード物\n・unggah / mengunggah / unggahan：アップロードする／投稿"
+      },
+      {
+        "p": "v",
+        "w": "download",
+        "r": "download",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "ダウンロードする（日常会話で広く使われる外来語。公式語は『unduh / mengunduh』）",
+        "ex": "Saya sudah download peta luring kota itu di ponsel supaya tetap bisa navigasi tanpa sinyal internet.",
+        "tr": "ネットの電波がなくてもナビが使えるように、その街のオフライン地図をスマホにダウンロードしておいた。",
+        "note": "■ 【口語活用】：口語では『nge-download / di-download』の形もよく聞く。書き言葉・検定は『mengunduh / diunduh』。"
+      },
+      {
+        "p": "v",
+        "w": "unggah",
+        "r": "unggah",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "アップロードする、SNSへ投稿する（英語 upload の公式インドネシア語 ⇔ unduh＝ダウンロード）",
+        "ex": "Silakan unggah hasil pindaian paspor dalam format PDF sebelum batas waktu pendaftaran berakhir.",
+        "tr": "応募締切が終わる前に、パスポートのスキャンデータをPDF形式でアップロードしてください。",
+        "note": "■ 【関連語】：mengunggah（アップロード・投稿する）、unggahan（投稿・ポスト＝postingan）。"
+      },
+      {
+        "p": "v",
+        "w": "upload",
+        "r": "upload",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "アップロードする、SNSに投稿する（日常会話での定番外来語。公式語は『unggah / mengunggah』）",
+        "ex": "Tugas kelompok kita sudah selesai dirapikan dan siap saya upload ke ruang kelas daring malam ini.",
+        "tr": "私たちのグループ課題はきれいにまとまったので、今夜オンラインクラスへアップロードする準備ができている。",
+        "note": "■ 【関連語】：unggah / mengunggah（公式語）、download（ダウンロード）。"
+      },
+      {
+        "p": "v",
+        "w": "instal",
+        "r": "instal",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "（アプリやソフトを）インストールする、導入する（公式動詞形は『menginstal』または『memasang』。削除は『copot pemasangan / uninstall』）",
+        "ex": "Sebelum berangkat ke Jakarta, sebaiknya instal aplikasi transportasi daring dan pembayaran digital di ponselmu.",
+        "tr": "ジャカルタへ出発する前に、スマホに配車アプリとデジタル決済アプリをインストールしておくといいよ。",
+        "note": "■ 【関連語】：menginstal（インストールする）、instalasi（インストール作業・設備・アートのインスタレーション）。"
+      },
+      {
+        "p": "v",
+        "w": "hapus",
+        "r": "hapus",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "消す、削除する、消去する（menghapus の語幹。PC・スマホの『削除』ボタン表記の定番！）",
+        "ex": "Hapus berkas video lama yang sudah tidak terpakai agar ruang penyimpanan ponsel kembali lega.",
+        "tr": "スマホの保存容量に再び余裕が出るように、もう使わない古い動画ファイルを削除しよう。",
+        "note": "■ 【関連語】：menghapus（消去する・廃止する）、penghapus（消しゴム）、penghapusan（削除・撤廃）。"
+      },
+      {
+        "p": "v",
+        "w": "perbarui",
+        "r": "baru",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "更新する、アップデートする、刷新する（memperbarui の命令・1人称受動形。アプリの『更新』ボタンの公式表記！）",
+        "ex": "Segera perbarui aplikasi ke versi terbaru untuk mendapatkan perbaikan keamanan dan fitur tambahan.",
+        "tr": "セキュリティ修正と追加機能を得るため、直ちにアプリを最新バージョンへ更新してください。",
+        "note": "■ 【関連語】：memperbarui（更新する）、pembaruan（アップデート・更新・刷新）。日常口語では『update』。"
+      },
+      {
+        "p": "v",
+        "w": "update",
+        "r": "update",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "①（ソフト・OS・データを）アップデートする、更新する ②最新情報、進捗報告（update terbaru）",
+        "ex": "Aplikasi peta itu sedang melakukan update otomatis sehingga perlu menunggu beberapa menit.",
+        "tr": "その地図アプリは自動アップデートを行っている最中なので、数分待つ必要がある。",
+        "note": "■ 【日常＆スラング】：kudet（kurang update＝情報に疎い・時代遅れ）。公式語：perbarui / pembaruan / pemutakhiran。"
+      },
+      {
+        "p": "v",
+        "w": "cadangkan",
+        "r": "cadang",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "バックアップする、予備として確保・保存する（mencadangkan の命令・1人称受動形。Googleドライブやスマホ設定の公式表記！）",
+        "ex": "Biasakan cadangkan data skripsi secara berkala di penyimpanan awan agar aman jika laptop rusak.",
+        "tr": "ノートPCが故障しても安全なように、卒論のデータはクラウドストレージへ定期的にバックアップする習慣をつけよう。",
+        "note": "■ 【関連語】：cadangan（予備・バックアップ・準備高：cadangan devisa＝外貨準備高）、mencadangkan（バックアップする）。"
+      },
+      {
+        "p": "v",
+        "w": "bagikan",
+        "r": "bagi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "①（SNSの投稿・記事・リンク・画面を）シェアする、共有する（英語 share の公式ボタン表記！） ②配る、分配する（membagikan の命令・受動形）",
+        "ex": "Jika artikel kamus ini bermanfaat, silakan bagikan tautannya kepada teman-teman yang sedang belajar bahasa Indonesia.",
+        "tr": "この辞書記事が役に立ったら、インドネシア語を勉強している友達にリンクをシェアしてね。",
+        "note": "■ 【重要コロケーション】：bagikan layar（画面共有する＝share screen）、bagikan tautan（リンクを共有する）。"
+      },
+      {
+        "p": "n",
+        "w": "notifikasi",
+        "r": "notifikasi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "通知、お知らせアラート（スマホのプッシュ通知など。公式語は『pemberitahuan』だがアプリ・会話では『notifikasi / notif』が超定番）",
+        "ex": "Saya mematikan notifikasi media sosial saat sedang belajar agar konsentrasi tidak terganggu.",
+        "tr": "集中力が妨げられないように、勉強している間はSNSの通知をオフにしている。",
+        "note": "■ 【重要コロケーション】：notifikasi pesan（メッセージ通知）、matikan notifikasi（通知を切る）。"
+      },
+      {
+        "p": "v",
+        "w": "blokir",
+        "r": "blokir",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "ブロックする、遮断する、凍結する（SNSのアカウントブロック、銀行口座・カードの凍結、違法サイトのアクセス遮断まで全部これで通じる！）",
+        "ex": "Pihak bank langsung membantu saya blokir kartu debit yang hilang dalam waktu kurang dari lima menit.",
+        "tr": "銀行側は紛失したデビットカードの停止（ブロック）を5分足らずで直ちに手伝ってくれた。",
+        "note": "■ 【重要コロケーション】：blokir akun / nomor（アカウント／番号をブロックする）、blokir kartu / rekening（カード／口座を凍結する）、pemblokiran（ブロック・アクセス遮断）。"
+      },
+      {
+        "p": "n",
+        "w": "chat",
+        "r": "chat",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "チャット、メッセージのやり取り（公式語は『obrolan / pesan singkat』だが、WhatsApp大国のインドネシアでは『chat / nge-chat』が超日常語）",
+        "ex": "Kalau sudah sampai di depan gedung fakultas, langsung kirim chat ke saya ya.",
+        "tr": "学部の建物の前に着いたら、すぐ私にチャット（メッセージ）送ってね。",
+        "note": "■ 【会話定番】：balas chat（チャットに返信する）、riwayat chat（トーク履歴）、grup chat（グループチャット）。"
+      },
+      {
+        "p": "n",
+        "w": "siaran langsung",
+        "r": "siar",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "生放送、ライブ配信（テレビの生中継からSNSのライブ配信『live streaming』まで広く使う公式表現）",
+        "ex": "Pertandingan final bulu tangkis tersebut disaksikan jutaan penonton melalui siaran langsung di televisi dan internet.",
+        "tr": "そのバドミントン決勝戦は、テレビとネットの生中継（ライブ配信）を通じて何百万人もの視聴者に見られた。",
+        "note": "■ 【関連語】：menyiarkan（放送・配信する）、penyiaran（放送）、live（口語：ライブ配信）。"
+      },
+      {
+        "p": "n",
+        "w": "postingan",
+        "r": "posting",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💬 スラング・口語",
+        "m": "（SNS・ブログなどの）投稿、ポスト（英語 posting + -an の定着口語。公式インドネシア語は『unggahan』）",
+        "ex": "Postingan tentang rekomendasi kuliner lokal di kota itu langsung mendapat ribuan tanda suka dalam sehari.",
+        "tr": "その街のおすすめ地元グルメに関する投稿は、1日でたちまち何千もの「いいね」を集めた。",
+        "note": "■ 【言い換え】：postingan（日常・SNSで最頻出） ／ unggahan（ニュース・書き言葉の公式表現）。"
+      },
+      {
+        "p": "n",
+        "w": "kreator",
+        "r": "kreator",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "クリエイター、制作者（特にYouTube・TikTok・Instagramの発信者『kreator konten＝コンテンツクリエイター』として超頻出）",
+        "ex": "Banyak kreator konten edukasi yang membagikan tips belajar bahasa asing secara menarik di media sosial.",
+        "tr": "多くの教育系コンテンツクリエイターが、SNSで外国語学習のコツを面白くシェアしている。",
+        "note": "■ 【重要コロケーション】：kreator konten（コンテンツクリエイター）、ekonomi kreatif（クリエイティブ経済）。"
+      },
+      {
+        "p": "n",
+        "w": "influencer",
+        "r": "influencer",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "インフルエンサー（SNSで大きな影響力を持つ発信者。公式インドネシア語は『pemengaruh』）",
+        "ex": "Merek minuman lokal itu menggandeng sejumlah influencer kuliner untuk memperkenalkan varian rasa terbaru.",
+        "tr": "その地元飲料ブランドは、最新フレーバーを紹介するために複数のグルメ系インフルエンサーと組んだ。",
+        "note": "■ 【関連語】：pemengaruh（インフルエンサーの公式訳語）、endorse（PR案件・タイアップ宣伝）、viral（バズる）。"
+      },
+      {
+        "p": "n",
+        "w": "tren",
+        "r": "tren",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "トレンド、流行、傾向、動向（英語 trend 由来。ファッション・SNSの流行から経済・市場の推移『tren kenaikan』まで超頻出！）",
+        "ex": "Tren gaya hidup sehat dan olahraga lari semakin populer di kalangan anak muda perkotaan.",
+        "tr": "健康的なライフスタイルやランニングのトレンドは、都市部の若者の間でますます人気が高まっている。",
+        "note": "■ 【重要コロケーション】：mengikuti tren（流行に乗る）、tren positif / negatif（上昇／下降トレンド）、sedang tren（今流行っている）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "AI",
+        "r": "Artificial Intelligence",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "AI、人工知能（公式インドネシア語は『kecerdasan buatan』または『akal imitasi』だが、ニュース・現場では『AI』が圧倒的に使われる）",
+        "ex": "Pemanfaatan teknologi AI kini membantu mempercepat analisis data dan penerjemahan dokumen lintas bahasa.",
+        "tr": "AI技術の活用は現在、データ分析や多言語間の文書翻訳をスピードアップするのに役立っている。",
+        "note": "■ 【言い換え】：AI ／ kecerdasan buatan（公式訳：人工知能）／ akal imitasi（言語庁によるAI頭文字合わせ訳）。"
+      },
+      {
+        "p": "n",
+        "w": "cloud",
+        "r": "cloud",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "クラウド（インターネット経由でデータを保存・処理する仕組み。公式語は『komputasi awan / penyimpanan awan』）",
+        "ex": "Dengan menyimpan dokumen di layanan cloud, kita dapat membukanya dari laptop maupun ponsel kapan saja.",
+        "tr": "クラウドサービスに書類を保存しておけば、いつでもノートPCからでもスマホからでも開くことができる。",
+        "note": "■ 【関連語】：komputasi awan（クラウドコンピューティング）、penyimpanan awan（クラウドストレージ）。"
+      },
+      {
+        "p": "n",
+        "w": "komputasi awan",
+        "r": "komputasi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "クラウドコンピューティング（英語 cloud computing の公式インドネシア語。ITニュースや企業DX記事で頻出）",
+        "ex": "Banyak perusahaan rintisan mengandalkan layanan komputasi awan untuk menekan biaya pembelian perangkat server fisik.",
+        "tr": "多くのスタートアップ企業は、物理サーバー機器の購入コストを抑えるためにクラウドコンピューティングサービスに頼っている。",
+        "note": "■ 【語構成】：komputasi（計算処理・コンピューティング）+ awan（雲＝クラウド）。"
+      },
+      {
+        "p": "n",
+        "w": "server",
+        "r": "server",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "サーバー（Webサイト・ゲーム・アプリのデータを提供するコンピュータ。公式語は『peladen』）",
+        "ex": "Situs pendaftaran ujian sempat sulit diakses selama sepuluh menit karena server mengalami lonjakan pengunjung.",
+        "tr": "アクセス急増に見舞われたサーバーの影響で、試験申込サイトは10分間ほどアクセスしづらくなった。",
+        "note": "■ 【IT頻出表現】：server down（サーバーが落ちる）、pusat data（データセンター）、peladen（サーバーの公式語）。"
+      },
+      {
+        "p": "n",
+        "w": "peladen",
+        "r": "laden",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "サーバー（英語 server の公式インドネシア語。語幹『laden＝応対する・サービスを提供する』＋ pe-）",
+        "ex": "Tim teknis sedang melakukan pemeliharaan rutin pada peladen utama demi menjaga kestabilan layanan daring.",
+        "tr": "技術チームはオンラインサービスの安定性を保つため、メインサーバーの定期メンテナンスを行っている。",
+        "note": "■ 【語源豆知識】：『meladeni（相手をする・応対する）』と同じ語根から作られたKBBI公認IT用語。"
+      },
+      {
+        "p": "n",
+        "w": "bug",
+        "r": "bug",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "（プログラムやアプリ・ゲームの）バグ、不具合（公式語は『kutu』だが、開発現場・日常ではほぼ100%『bug』と言う）",
+        "ex": "Pengembang aplikasi segera merilis pembaruan kecil untuk memperbaiki bug yang menyebabkan layar membeku.",
+        "tr": "アプリ開発者は、画面がフリーズする原因となっていたバグを修正するため直ちに小規模アップデートを公開した。",
+        "note": "■ 【開発・ITセット】：bug（バグ）、galat / error（エラー）、pemrograman（プログラミング）、pengembang（開発者・デベロッパー）。"
+      },
+      {
+        "p": "n",
+        "w": "galat",
+        "r": "galat",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "エラー、誤り、誤差（英語 error の公式インドネシア語。OSのエラー画面『Terjadi galat』や統計学の『margin galat＝誤差範囲』で頻出！）",
+        "ex": "Pesan galat muncul di layar ketika saya mencoba mengunggah berkas berukuran terlalu besar.",
+        "tr": "サイズが大きすぎるファイルをアップロードしようとしたとき、画面にエラーメッセージが表示された。",
+        "note": "■ 【2大頻出文脈】：① IT『pesan galat / terjadi galat（エラーメッセージ／エラー発生）』、② 統計『tingkat galat / margin galat（誤差率・誤差範囲）』。"
+      },
+      {
+        "p": "n",
+        "w": "error",
+        "r": "error",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "エラー、故障、不具合（公式語は『galat』だが、インドネシアでは『HP-nya lagi error＝スマホの調子が変』のように口語でも超多用！）",
+        "ex": "Mesin cetak tiket di stasiun sedang error sehingga penumpang diarahkan membeli tiket di loket.",
+        "tr": "駅の発券機がエラーで不調なため、乗客は窓口で切符を買うよう案内された。",
+        "note": "■ 【関連語】：galat（公式語：エラー）、rusak（壊れた）、gangguan sistem（システム障害）。"
+      },
+      {
+        "p": "v",
+        "w": "retas",
+        "r": "retas",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "①（システム・アカウントを不正に）ハッキングする（meretas の語幹） ②（縫い目・道を）ほどく、切り開く",
+        "ex": "Banyak akun media sosial yang rentan kena retas apabila pengguna memakai kata sandi yang terlalu sederhana.",
+        "tr": "ユーザーがあまりに単純なパスワードを使っていると、多くのSNSアカウントがハッキング（乗っ取り）に遭いやすくなる。",
+        "note": "■ 【retas 関連語ファミリー】：meretas（ハッキングする）、peretas（ハッカー）、peretasan（ハッキング・不正アクセス）、diretas（ハッキングされる・乗っ取られる）。"
+      },
+      {
+        "p": "n",
+        "w": "hacker",
+        "r": "hacker",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "ハッカー（公式インドネシア語は『peretas』だが、ニュース見出しや日常会話でも『hacker』がよく使われる）",
+        "ex": "Serangan hacker terhadap pusat data mendorong pemerintah memperkuat sistem keamanan siber nasional.",
+        "tr": "データセンターに対するハッカー攻撃を受け、政府は国家サイバーセキュリティ体制の強化を急いでいる。",
+        "note": "■ 【関連語】：peretas（公式語：ハッカー）、peretasan（ハッキング）、keamanan siber（サイバーセキュリティ）。"
+      },
+      {
+        "p": "n",
+        "w": "phishing",
+        "r": "phishing",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "フィッシング詐欺（偽の銀行サイトや偽の宅配・結婚招待状ファイル等でパスワードやOTPを盗むネット詐欺。公式表記は『pengelabuan』）",
+        "ex": "Waspadai tautan palsu berkedok undian berhadiah karena itu sering kali merupakan modus phishing untuk mencuri data rekening.",
+        "tr": "懸賞当選を装った偽リンクは口座情報を盗むフィッシング詐欺の手口であることが多いので警戒しよう。",
+        "note": "■ 【インドネシアで多発する手口】：WhatsAppで届く偽の『undangan nikah .apk（結婚招待状APK）』や偽宅配リンクは代表的なフィッシング詐欺！"
+      },
+      {
+        "p": "n",
+        "w": "penipuan daring",
+        "r": "tipu",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "オンライン詐欺、ネット詐欺（偽ショッピング・投資詐欺・フィッシング・なりすまし等、インターネット経由の詐欺全般）",
+        "ex": "Kepolisian mengimbau masyarakat segera melapor apabila menjadi korban penipuan daring saat berbelanja online.",
+        "tr": "警察は、ネットショッピング中にオンライン詐欺の被害に遭った場合は直ちに通報するよう市民に呼びかけている。",
+        "note": "■ 【関連語】：menipu（騙す）、penipu（詐欺師）、penipuan（詐欺）、daring（オンライン）。"
+      },
+      {
+        "p": "n",
+        "w": "enkripsi",
+        "r": "enkripsi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "暗号化（メッセージや決済データを第三者に読めないよう暗号に変換する技術：enkripsi ujung-ke-ujung＝エンドツーエンド暗号化）",
+        "ex": "Aplikasi pesan instan ini menggunakan enkripsi ujung-ke-ujung sehingga hanya pengirim dan penerima yang dapat membaca isi obrolan.",
+        "tr": "このメッセンジャーアプリはエンドツーエンド暗号化を使用しているため、送信者と受信者だけがチャット内容を読める。",
+        "note": "■ 【関連語】：terenkripsi（暗号化された）、mengenkripsi（暗号化する）、dekripsi（復号）。"
+      },
+      {
+        "p": "n",
+        "w": "keamanan siber",
+        "r": "aman",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "サイバーセキュリティ（コンピュータ・ネットワーク・個人データをサイバー攻撃や情報漏洩から守る対策全般）",
+        "ex": "Perusahaan perbankan terus meningkatkan investasi di bidang keamanan siber untuk melindungi dana nasabah.",
+        "tr": "銀行各社は顧客の資金を守るため、サイバーセキュリティ分野への投資を増やし続けている。",
+        "note": "■ 【関連語】：serangan siber（サイバー攻撃）、kejahatan siber（サイバー犯罪）、BSSN（国家サイバー暗号庁）。"
+      },
+      {
+        "p": "n",
+        "w": "pemrograman",
+        "r": "program",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "プログラミング（bahasa pemrograman＝プログラミング言語。ソフトウェアやWebアプリを開発するコーディング作業）",
+        "ex": "Ia belajar bahasa pemrograman Python dan JavaScript secara mandiri untuk membangun aplikasi kamus web.",
+        "tr": "彼はWeb辞書アプリを作るために、PythonとJavaScriptのプログラミング言語を独学で学んだ。",
+        "note": "■ 【語構成】：peN- + program + -an（綴りは pemrograman）。\n■ 【関連語】：pemrogram / programmer（プログラマー）、kode sumber（ソースコード）。"
+      },
+      {
+        "p": "n",
+        "w": "basis data",
+        "r": "basis",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "データベース（英語 database の公式インドネシア語。大量のデータを構造化して蓄積・検索するシステム）",
+        "ex": "Seluruh data kependudukan kini terintegrasi di dalam satu basis data nasional yang dikelola kementerian.",
+        "tr": "すべての住民データは現在、省が管理する単一の国家データベースに統合されている。",
+        "note": "■ 【言い換え】：basis data（公式語・ニュース・論文） ／ database（開発現場）。"
+      },
+      {
+        "p": "n",
+        "w": "dompet digital",
+        "r": "dompet",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "電子マネー、デジタルウォレット（GoPay・OVO・DANA・ShopeePay 等、インドネシアのキャッシュレス社会の中核！）",
+        "ex": "Banyak pedagang kaki lima di Jakarta kini sudah menerima pembayaran menggunakan dompet digital melalui kode QRIS.",
+        "tr": "ジャカルタの多くの露店商も、現在ではQRISコードを通じた電子マネー（デジタルウォレット）決済に対応している。",
+        "note": "■ 【キャッシュレス必須セット】：dompet digital / e-wallet（電子マネー）、QRIS（インドネシア統一QR決済）、saldo（残高）、isi ulang / top up（チャージする）。"
+      },
+      {
+        "p": "n",
+        "w": "e-wallet",
+        "r": "e-wallet",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "電子ウォレット、スマホ決済アプリ（公式語は『dompet digital』だが、店舗のレジや日常会話では『e-wallet』も超頻出）",
+        "ex": "Pembayaran dengan e-wallet sering menawarkan promo potongan harga di berbagai kedai kopi dan restoran.",
+        "tr": "電子ウォレットでの支払いは、さまざまなカフェやレストランでしばしば割引プロモーションを提供している。",
+        "note": "■ 【関連語】：dompet digital（公式語）、pembayaran nontunai（キャッシュレス決済）、top up saldo（残高チャージ）。"
+      },
+      {
+        "p": "v",
+        "w": "transfer",
+        "r": "transfer",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "①（銀行口座・電子マネーへお金を）振り込む、送金する（transfer bank / transfer dana） ②（データ・知識・スポーツ選手の）転送、移転、移籍",
+        "ex": "Pembayaran sewa kamar kos bulan ini sudah saya transfer ke rekening pemilik kos tadi pagi.",
+        "tr": "今月分の下宿の家賃は、今朝大家さんの口座へすでに振り込みました。",
+        "note": "■ 【重要コロケーション】：transfer bank / antarbank（銀行振込／他行振込）、bukti transfer（振込明細・スクショ）、transfer teknologi（技術移転）、bursa transfer（サッカー移籍市場）。"
+      },
+      {
+        "p": "n",
+        "w": "kode OTP",
+        "r": "kode",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "ワンタイムパスワード（One-Time Password：銀行決済やログイン本人確認のためSMS等に届く1回限りの認証コード）",
+        "ex": "Jangan pernah membagikan kode OTP kepada siapa pun, termasuk pihak yang mengaku sebagai petugas bank.",
+        "tr": "銀行員を名乗る者を含め、誰に対しても決してワンタイムパスワード（OTPコード）を教えてはならない。",
+        "note": "■ 【セキュリティ鉄則】：インドネシアの銀行・電子マネーアプリで毎回警告される最重要ワード！"
+      }
+    ];
+
+    const idxByWord = new Map();
+    for (let i = 0; i < d.vocab.length; i++) {
+      const it = d.vocab[i];
+      if (it && it.w) idxByWord.set(it.w.trim().toLowerCase(), i);
+    }
+
+    for (let i = 0; i < DICT_PACK_2.length; i++) {
+      const item = DICT_PACK_2[i];
+      if (!item || !item.w) continue;
+      const key = item.w.trim().toLowerCase();
+
+      item.dictOnly = true;
+      item.tier = 3;
+      dictOnlySet.add(key);
+
+      if (item.topicCat) {
+        catMap.set(key, item.topicCat);
+      }
+
+      if (idxByWord.has(key)) {
+        const pos = idxByWord.get(key);
+        Object.assign(d.vocab[pos], item);
+        vMap.set(key, d.vocab[pos]);
+        persistentAdded.set(key, d.vocab[pos]);
+      } else {
+        d.vocab.push(item);
+        idxByWord.set(key, d.vocab.length - 1);
+        vMap.set(key, item);
+        persistentAdded.set(key, item);
+      }
+    }
+  } catch (e) {
+    console.error("WhatsIndo Dict Pack 2 error:", e);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 辞書充実プロジェクト 第3弾（全62語・すべて辞書専用 dictOnly: true）
+   - ① 症状・ケガ・体調（18語）：sakit kepala, migrain, sakit perut, mencret,
+       asam lambung, sakit gigi, radang tenggorokan, sesak napas, ruam, biduran,
+       bisul, patah tulang, luka bakar, mimisan, stres, sakit pinggang,
+       panas dalam, gula darah
+   - ② 代表的な病気・病原・公衆衛生（17語）：kencing manis, darah tinggi, kolesterol,
+       stroke, serangan jantung, DBD, TBC, tuberkulosis, malaria, tifus, cacar air,
+       campak, hepatitis, kuman, anemia, stunting, gizi buruk
+   - ③ 病院・薬・処置・医師・身体パーツ（27語）：UGD, ICU, sirup, obat tetes,
+       plester, kasa, antiseptik, koyo, obat kumur, suplemen, suntik, infus, USG,
+       tes darah, stetoskop, kursi roda, cek kesehatan, kuping, pergelangan kaki,
+       jari tengah, ingus, urin, dokter umum, dokter spesialis, dokter gigi,
+       dokter hewan, psikiater
+   - **記号ゼロ・文字バグゼロ・try-catch完全保護・問題モードへ一切混入しません
+   ===================================================================== */
+(function() {
+  try {
+    const d = window.WHATSINDO_EXTERNAL_DATA;
+    if (!d || !Array.isArray(d.vocab)) return;
+
+    const dictOnlySet     = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+    const persistentAdded = window.__wiPersistentAddedVocab || (window.__wiPersistentAddedVocab = new Map());
+    const vMap            = window.__wiMasterVocabMap || (window.__wiMasterVocabMap = new Map());
+    const catMap          = window.__WI_V5_VCAT || (window.__WI_V5_VCAT = new Map());
+
+    const DICT_PACK_3 = [
+      {
+        "p": "n",
+        "w": "sakit kepala",
+        "r": "sakit",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "頭痛（病院や薬局で症状を伝えるときの超基本表現。めまい・ふらつき寄りの『pusing』と合わせて頻出）",
+        "ex": "Saya mengalami sakit kepala sejak pagi karena kurang tidur dan terlalu lama menatap layar komputer.",
+        "tr": "睡眠不足とパソコン画面の見すぎで、朝から頭痛がしている。",
+        "note": "■ 【使い分け】：『sakit kepala』は頭がズキズキ・ガンガン痛む頭痛、『pusing』はめまい・ふらつき（または比喩で「頭が痛い＝困った」）。\n■ 【関連語】：obat sakit kepala（頭痛薬）、migrain（片頭痛）。"
+      },
+      {
+        "p": "n",
+        "w": "migrain",
+        "r": "migrain",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "片頭痛（頭の片側がズキズキ脈打つように痛む症状＝sakit kepala sebelah）",
+        "ex": "Saat migrain kambuh, ia harus segera beristirahat di ruangan yang gelap dan tenang.",
+        "tr": "片頭痛が再発したとき、彼はすぐに暗くて静かな部屋で休まなければならない。",
+        "note": "■ 【日常の言い換え】：migrain ＝ sakit kepala sebelah（片側の頭痛）。"
+      },
+      {
+        "p": "n",
+        "w": "sakit perut",
+        "r": "sakit",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "腹痛、お腹が痛い（インドネシア旅行・滞在中のサバイバル最必須ワード！）",
+        "ex": "Ia mengeluh sakit perut setelah makan sambal yang terlalu pedas saat perut masih kosong.",
+        "tr": "彼は空腹のまま辛すぎるサンバルを食べた後、腹痛を訴えた。",
+        "note": "■ 【お腹トラブル4点セット】：sakit perut（腹痛）、mulas（お腹がギュルギュル痛む）、diare / mencret（下痢）、asam lambung / maag（胃酸過多・胃痛）。"
+      },
+      {
+        "p": "v",
+        "w": "mencret",
+        "r": "mencret",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "下痢をする、お腹をくだす（水様便が出る日常口語。医療・丁寧な表現は『diare』）",
+        "ex": "Jika sudah mencret lebih dari tiga kali sehari, segera minum cairan oralit agar tidak kekurangan cairan.",
+        "tr": "1日に3回以上下痢をしている場合は、脱水にならないようすぐに経口補水液（オラリット）を飲もう。",
+        "note": "■ 【使い分け】：会話では『mencret』、診察室やニュースでは『diare（下痢）』。現地薬局の定番常備薬は『oralit（経口補水液）』。"
+      },
+      {
+        "p": "n",
+        "w": "asam lambung",
+        "r": "asam",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "胃酸、胃酸過多・逆流性食道炎（『asam lambung naik＝胃酸が上がってくる・胃もたれ・胸焼け』としてインドネシアで超頻出！）",
+        "ex": "Kebiasaan menunda waktu makan dan minum kopi berlebihan sering memicu naiknya asam lambung.",
+        "tr": "食事の時間を遅らせる習慣やコーヒーの飲みすぎは、しばしば胃酸過多（逆流性食道炎）を引き起こす。",
+        "note": "■ 【重要コロケーション】：asam lambung naik（胃酸が逆流する・胃が荒れる）、penyakit maag（胃炎・胃痛）。"
+      },
+      {
+        "p": "n",
+        "w": "sakit gigi",
+        "r": "sakit",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "歯痛、歯が痛い（gigi berlubang＝虫歯）",
+        "ex": "Karena sakit gigi yang tak tertahankan sejak semalam, ia langsung mendaftar periksa ke dokter gigi pagi ini.",
+        "tr": "昨夜から我慢できない歯痛が続いているため、彼は今朝すぐ歯医者の診察を予約した。",
+        "note": "■ 【関連語】：dokter gigi（歯医者）、gigi berlubang（虫歯）、tambal gigi（歯の詰め物治療）、cabut gigi（抜歯）。"
+      },
+      {
+        "p": "n",
+        "w": "radang tenggorokan",
+        "r": "radang",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "喉の炎症、咽頭炎（『sakit tenggorokan＝喉が痛い』の医療・薬局での定番表現）",
+        "ex": "Ia mengalami radang tenggorokan sehingga suaranya serak dan terasa sakit saat menelan makanan.",
+        "tr": "彼は咽頭炎にかかり、声がかすれて食べ物を飲み込むときに痛みを感じる。",
+        "note": "■ 【関連語】：radang（炎症）、tenggorokan（喉）、batuk（咳）、suara serak（かすれ声）。"
+      },
+      {
+        "p": "n",
+        "w": "sesak napas",
+        "r": "sesak",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "息苦しさ、呼吸困難、息切れ（喘息・アレルギー・心臓病・熱中症などの緊急症状を表す超重要語！）",
+        "ex": "Pasien yang tiba-tiba mengalami sesak napas berat harus segera dibawa ke unit gawat darurat.",
+        "tr": "突然激しい呼吸困難（息苦しさ）を起こした患者は、直ちに救急処置室へ運ばれなければならない。",
+        "note": "■ 【重要コロケーション】：merasa sesak napas（息苦しく感じる）、asma（喘息）、inhaler（吸入器）。"
+      },
+      {
+        "p": "n",
+        "w": "ruam",
+        "r": "ruam",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "発疹（ほっしん）、かぶれ、赤いブツブツ（ruam kulit＝皮膚の発疹、ruam merah＝赤い発疹）",
+        "ex": "Munculnya ruam merah disertai rasa gatal di lengan bisa menjadi tanda reaksi alergi obat atau makanan.",
+        "tr": "腕にかゆみを伴う赤い発疹が出るのは、薬や食べ物へのアレルギー反応のサインかもしれない。",
+        "note": "■ 【皮膚トラブルセット】：ruam（発疹）、gatal（かゆい）、biduran（じんましん）、alergi（アレルギー）、salep（塗り薬）。"
+      },
+      {
+        "p": "n",
+        "w": "biduran",
+        "r": "bidur",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "じんましん（蕁麻疹：アレルギーや寒暖差・ストレスで皮膚が赤く腫れて強くかゆくなる症状）",
+        "ex": "Setiap kali udara terlalu dingin atau makan udang, kulitnya mudah terkena biduran yang sangat gatal.",
+        "tr": "空気が冷えすぎたりエビを食べたりするたび、彼の肌はすごくかゆいじんましんが出やすい。",
+        "note": "■ 【関連語】：alergi（アレルギー）、ruam（発疹）、antihistamin（抗ヒスタミン薬）。"
+      },
+      {
+        "p": "n",
+        "w": "bisul",
+        "r": "bisul",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "おでき、腫れ物、せつ（毛穴の細菌感染で膿がたまって赤く腫れ痛む皮膚の腫れ物）",
+        "ex": "Dokter menyarankan agar bisul tidak dipencet sendiri supaya infeksi bakteri tidak semakin menyebar.",
+        "tr": "医師は、細菌感染がさらに広がらないようにおできを自分で潰さないことを勧めている。",
+        "note": "■ 【関連語】：nanah（膿）、bengkak（腫れる）、jerawat（ニキビ）。"
+      },
+      {
+        "p": "n",
+        "w": "patah tulang",
+        "r": "patah",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "骨折（patah＝折れる＋tulang＝骨。スポーツや交通事故のニュース・医療現場で超頻出）",
+        "ex": "Pemain sepak bola itu harus menepi selama tiga bulan karena mengalami patah tulang pergelangan kaki.",
+        "tr": "そのサッカー選手は足首の骨折を負ったため、3ヶ月間戦線を離脱しなければならない。",
+        "note": "■ 【ケガの3段階】：memar / lebam（打撲・青あざ） ＜ keseleo / terkilir（捻挫） ＜ patah tulang（骨折）。"
+      },
+      {
+        "p": "n",
+        "w": "luka bakar",
+        "r": "luka",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "やけど、熱傷（火・熱湯・油・日焼け・電気などによる皮膚の損傷）",
+        "ex": "Pertolongan pertama untuk luka bakar ringan adalah mengaliri bagian kulit dengan air bersih bersuhu normal.",
+        "tr": "軽度のやけどに対する応急処置は、常温のきれいな流水で患部の皮膚を冷やすことだ。",
+        "note": "■ 【重要コロケーション】：luka bakar ringan / berat（軽度／重度のやけど）、luka gores（すり傷・引っかき傷）、luka sayat（切り傷）。"
+      },
+      {
+        "p": "v",
+        "w": "mimisan",
+        "r": "mimis",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "鼻血が出る、鼻出血（日常会話から医療までこれ1語で通じる超便利ワード！）",
+        "ex": "Saat hidung mimisan, duduklah dengan posisi badan agak condong ke depan dan pencet cuping hidung perlahan.",
+        "tr": "鼻血が出たときは、体を少し前に傾けて座り、小鼻をゆっくり押さえよう。",
+        "note": "■ 【言い換え】：mimisan（日常・標準） ＝ hidung berdarah（鼻から出血する）。"
+      },
+      {
+        "p": "n",
+        "w": "stres",
+        "r": "stres",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "ストレス、精神的な圧迫・疲れ（KBBI標準綴りは s が1つの『stres』！）",
+        "ex": "Olahraga rutin dan tidur yang cukup terbukti sangat efektif untuk mengurangi tingkat stres harian.",
+        "tr": "定期的な運動と十分な睡眠は、日々のストレスレベルを減らすのに非常に効果的だと証明されている。",
+        "note": "■ 【重要コロケーション】：stres berat（強いストレス）、mengelola stres（ストレスを管理・発散する）、kesehatan mental（メンタルヘルス）。"
+      },
+      {
+        "p": "n",
+        "w": "sakit pinggang",
+        "r": "sakit",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "腰痛、腰が痛い（デスクワークや重い荷物・筋トレ後の腰の痛みを伝える定番表現）",
+        "ex": "Duduk membungkuk terlalu lama di depan laptop sering menyebabkan keluhan sakit pinggang dan leher kaku.",
+        "tr": "ノートPCの前で猫背のまま長時間座っていると、しばしば腰痛や首のこりを引き起こす。",
+        "note": "■ 【関連語】：pinggang（腰）、punggung（背中）、pegal linu（体のだるさ・筋肉痛・節々の痛み）、koyo（湿布）。"
+      },
+      {
+        "p": "n",
+        "w": "panas dalam",
+        "r": "panas",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "体の内側の熱こもり・のぼせ（口内炎・喉のイガイガ・唇の乾燥・だるさ等をまとめて指すインドネシア特有の超日常的な体調概念！）",
+        "ex": "Karena terlalu banyak makan gorengan dan kurang minum air putih, ia merasa terkena gejala panas dalam.",
+        "tr": "揚げ物を食べすぎて水分が足りなかったせいで、彼は体内に熱がこもる症状（パナス・ダラム）が出たと感じている。",
+        "note": "■ 【インドネシア生活の必須文化語】：コンビニや薬局で『larutan penyegar / obat panas dalam（熱冷ましドリンク・清涼飲料）』が定番商品として山積みになっている！"
+      },
+      {
+        "p": "n",
+        "w": "gula darah",
+        "r": "gula",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "血糖値（kadar gula darah＝血糖値、gula darah tinggi / rendah＝高血糖／低血糖）",
+        "ex": "Mengurangi konsumsi minuman manis kemasan membantu menjaga kadar gula darah tetap stabil.",
+        "tr": "甘い市販飲料の摂取を減らすことは、血糖値を安定して保つ助けになる。",
+        "note": "■ 【生活習慣病3点セット】：tekanan darah（血圧）、gula darah（血糖値）、kolesterol（コレステロール）。"
+      },
+      {
+        "p": "n",
+        "w": "kencing manis",
+        "r": "kencing",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "糖尿病（『diabetes』の日常的な呼び名。直訳：甘い尿）",
+        "ex": "Penderita kencing manis dianjurkan mengatur pola makan dan rutin memeriksa kadar gula darah.",
+        "tr": "糖尿病の患者は、食生活を整えて定期的に血糖値を検査することが勧められている。",
+        "note": "■ 【言い換え】：kencing manis（日常語） ＝ diabetes / diabetes melitus（医療・正式語）。"
+      },
+      {
+        "p": "n",
+        "w": "darah tinggi",
+        "r": "darah",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "①高血圧（『hipertensi』の日常的な呼び名） ②（比喩・口語で）カッとなる、頭に血が上る、イライラして怒りっぽい",
+        "ex": "Dokter mengingatkan pasien darah tinggi untuk membatasi asupan garam dan rutin berolahraga ringan.",
+        "tr": "医師は高血圧の患者に対し、塩分摂取を制限して定期的に軽い運動をするよう注意喚起した。",
+        "note": "■ 【対義語＆比喩】：darah tinggi（高血圧＝hipertensi） ⇔ darah rendah（低血圧＝hipotensi）。口語で『bikin darah tinggi』は「イライラさせてキレそうにする」の意味！"
+      },
+      {
+        "p": "n",
+        "w": "kolesterol",
+        "r": "kolesterol",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "コレステロール（kolesterol tinggi＝高コレステロール、kolesterol jahat [LDL]＝悪玉コレステロール、kolesterol baik [HDL]＝善玉コレステロール）",
+        "ex": "Konsumsi santan dan gorengan secara berlebihan dapat meningkatkan kadar kolesterol jahat di dalam darah.",
+        "tr": "ココナッツミルクや揚げ物の過剰摂取は、血中の悪玉コレステロール値を上昇させる可能性がある。",
+        "note": "■ 【重要コロケーション】：cek kolesterol（コレステロール検査）、kadar kolesterol（コレステロール値）。"
+      },
+      {
+        "p": "n",
+        "w": "stroke",
+        "r": "stroke",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "脳卒中、脳梗塞・脳出血（KBBI標準表記は『strok』だが、病院・ニュース・日常では『stroke』が圧倒的に広く使われる）",
+        "ex": "Penanganan medis yang cepat dalam beberapa jam pertama sangat menentukan pemulihan pasien serangan stroke.",
+        "tr": "発症後最初の数時間以内の迅速な医療処置が、脳卒中患者の回復を大きく左右する。",
+        "note": "■ 【関連語】：serangan stroke（脳卒中発作）、stroke ringan（軽度の脳卒中）、hipertensi（高血圧）。"
+      },
+      {
+        "p": "n",
+        "w": "serangan jantung",
+        "r": "serang",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "心臓発作、心筋梗塞（突然の激しい胸痛や呼吸困難を伴う命に関わる緊急疾患）",
+        "ex": "Nyeri dada hebat yang menjalar ke lengan kiri merupakan salah satu tanda bahaya serangan jantung.",
+        "tr": "左腕へ広がる激しい胸の痛みは、心臓発作の危険サインのひとつだ。",
+        "note": "■ 【関連語】：jantung（心臓）、penyakit jantung koroner（冠動脈心疾患）、detak jantung（心拍）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "DBD",
+        "r": "Demam Berdarah Dengue",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "デング出血熱、デング熱（ネッタイシマカが媒介するインドネシアの雨季の超代表感染症！ニュースや生活で毎年必ず出る略語）",
+        "ex": "Memasuki musim hujan, warga diajak rutin menguras bak mandi untuk mencegah penyebaran nyamuk penyebab DBD.",
+        "tr": "雨季に入り、デング出血熱（DBD）の原因となる蚊の繁殖を防ぐため、住民には貯水槽を定期的に洗うよう呼びかけられている。",
+        "note": "■ 【インドネシアのDBD対策『3M』】：Menguras（貯水槽を洗う）、Menutup（水容器に蓋をする）、Mendaur ulang（水が溜まる不用品を処分・リサイクルする）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "TBC",
+        "r": "Tuberkulosis",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "結核（けっかく）、肺結核（インドネシアの公衆衛生で最重要課題のひとつ。略語『TB』または『TBC』で日常・報道とも超頻出）",
+        "ex": "Pengobatan penyakit TBC harus dijalani secara teratur hingga tuntas selama minimal enam bulan sesuai anjuran dokter.",
+        "tr": "結核（TBC）の治療は、医師の指示に従って最低6ヶ月間、完治するまで規則正しく続けなければならない。",
+        "note": "■ 【関連語】：tuberkulosis（結核の正式名称）、batuk berdahak（痰の絡む咳）、paru-paru（肺）。"
+      },
+      {
+        "p": "n",
+        "w": "tuberkulosis",
+        "r": "tuberkulosis",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "結核（TBC / TB の正式医学名称。結核菌によって主に肺に起こる感染症）",
+        "ex": "Pemerintah menyediakan layanan pemeriksaan dan obat tuberkulosis secara gratis di seluruh puskesmas.",
+        "tr": "政府は全国の地域保健センター（プスケスマス）で結核の検査と治療薬を無料で提供している。",
+        "note": "■ 【略語】：TBC / TB。"
+      },
+      {
+        "p": "n",
+        "w": "malaria",
+        "r": "malaria",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "マラリア（ハマダラカが媒介する熱帯感染症。インドネシアでは特にパプアや東部諸島への渡航時に注意が必要な病気）",
+        "ex": "Wisatawan yang hendak berkunjung ke daerah endemis malaria disarankan berkonsultasi dengan dokter sebelum berangkat.",
+        "tr": "マラリアの流行地域を訪れようとする旅行者は、出発前に医師に相談することが勧められている。",
+        "note": "■ 【熱帯の蚊媒介感染症ペア】：DBD（デング熱：都市部にも多い） ／ malaria（マラリア：主に東部・森林地帯）。"
+      },
+      {
+        "p": "n",
+        "w": "tifus",
+        "r": "tifus",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "腸チフス（KBBI標準は『tifus / demam tifoid』、口語では『tipes』。不衛生な水や食事・過労で発症しインドネシアで非常に身近な感染症！）",
+        "ex": "Ia harus dirawat di rumah sakit selama lima hari karena terkena tifus akibat kelelahan dan makan sembarangan.",
+        "tr": "彼は過労と不衛生な食事のせいで腸チフスにかかり、5日間入院しなければならなかった。",
+        "note": "■ 【現地あるある】：インドネシアの大学生や社会人が過労＋高熱で入院するとき、本当によく聞く病名が『tipes / tifus』！"
+      },
+      {
+        "p": "n",
+        "w": "cacar air",
+        "r": "cacar",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "水ぼうそう、水痘（全身にかゆい水ぶくれの発疹ができるウイルス感染症）",
+        "ex": "Anak yang sedang terkena cacar air sebaiknya beristirahat di rumah agar tidak menularkannya kepada teman sekolah.",
+        "tr": "水ぼうそうにかかっている子どもは、学校の友達にうつさないように自宅で休養するのが望ましい。",
+        "note": "■ 【関連語】：cacar monyet / mpox（エムポックス）、vaksin cacar air（水痘ワクチン）。"
+      },
+      {
+        "p": "n",
+        "w": "campak",
+        "r": "campak",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "はしか、麻疹（高熱と全身の赤い発疹を引き起こす感染力の強いウイルス疾患）",
+        "ex": "Program imunisasi rutin bagi balita sangat penting untuk melindungi anak-anak dari bahaya penyakit campak.",
+        "tr": "乳幼児への定期予防接種プログラムは、子どもたちをはしかの危険から守るために極めて重要だ。",
+        "note": "■ 【関連語】：imunisasi（予防接種）、menular（感染する・うつる）。"
+      },
+      {
+        "p": "n",
+        "w": "hepatitis",
+        "r": "hepatitis",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "肝炎（A型・B型・C型など肝臓の炎症疾患。A型は食べ物や水から感染するため海外渡航者の予防接種でも定番）",
+        "ex": "Menjaga kebersihan makanan serta mencuci tangan dengan sabun efektif mencegah penularan hepatitis A.",
+        "tr": "食事の衛生を保ち石けんで手を洗うことは、A型肝炎の感染予防に効果的だ。",
+        "note": "■ 【関連語】：hati / liver（肝臓）、penyakit kuning（黄疸）。"
+      },
+      {
+        "p": "n",
+        "w": "kuman",
+        "r": "kuman",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "ばい菌、病原菌、雑菌（石けんや消毒液のCMで『membunuh kuman＝除菌・殺菌する』として毎日聞く超基本語！）",
+        "ex": "Mencuci tangan dengan sabun dan air mengalir membantu membersihkan kuman yang menempel setelah beraktivitas di luar.",
+        "tr": "石けんと流水で手を洗うことは、屋外での活動後に付着したばい菌を洗い落とすのに役立つ。",
+        "note": "■ 【重要コロケーション】：membasmi / membunuh kuman（殺菌・除菌する）、sabun antikuman（薬用・殺菌石けん）。"
+      },
+      {
+        "p": "n",
+        "w": "anemia",
+        "r": "anemia",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "貧血（赤血球・ヘモグロビン不足による立ちくらみ・倦怠感。日常語では『kurang darah』とも言う）",
+        "ex": "Remaja yang mengalami anemia sering merasa cepat lelah, pusing, dan sulit berkonsentrasi saat belajar.",
+        "tr": "貧血を抱える若者は、しばしば疲れやすさ・めまい・勉強中の集中困難を感じる。",
+        "note": "■ 【関連語】：zat besi（鉄分）、tablet tambah darah（鉄剤・造血サプリ）。"
+      },
+      {
+        "p": "n",
+        "w": "stunting",
+        "r": "stunting",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "発育阻害、スタンティング（乳幼児期の慢性的な栄養不足による低身長・発達遅滞。現代インドネシア政府の最重要社会課題ニュースワード！）",
+        "ex": "Pemerintah menggencarkan program pemenuhan gizi ibu hamil dan balita demi menekan angka stunting nasional.",
+        "tr": "政府は全国の発育阻害（スタンティング）率を抑えるため、妊婦と乳幼児への栄養充足プログラムを強化している。",
+        "note": "■ 【現代インドネシア報道で超頻出】：公式訳は『tengkes』だが、ニュース・政策・大統領演説のほぼすべてで『stunting』がそのまま使われる！"
+      },
+      {
+        "p": "n",
+        "w": "gizi buruk",
+        "r": "gizi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "重度の栄養失調、栄養不良（乳幼児や貧困層の健康問題・福祉ニュースで『stunting』とセットで頻出）",
+        "ex": "Posyandu di setiap kelurahan rutin memantau berat dan tinggi badan balita untuk mencegah kasus gizi buruk.",
+        "tr": "各町の保健ポスト（ポシャンドゥ）は栄養失調を防ぐため、乳幼児の体重と身長を定期的にチェックしている。",
+        "note": "■ 【関連語】：gizi（栄養）、bergizi（栄養価の高い）、gizi seimbang（栄養バランス）、malnutrisi（栄養不良）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "UGD",
+        "r": "Unit Gawat Darurat",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "救急処置室、ER（急病や事故の患者を24時間受け入れる部門。病院では『IGD＝Instalasi Gawat Darurat』と並んで使われる）",
+        "ex": "Korban kecelakaan lalu lintas tersebut langsung dilarikan oleh ambulans menuju ruang UGD rumah sakit terdekat.",
+        "tr": "その交通事故の被害者は、救急車で最寄り病院の救急処置室（UGD）へ直ちに搬送された。",
+        "note": "■ 【病院の緊急部門ペア】：UGD（Unit Gawat Darurat） ／ IGD（Instalasi Gawat Darurat）はいずれも「救急外来・ER」。"
+      },
+      {
+        "p": "singkatan",
+        "w": "ICU",
+        "r": "Intensive Care Unit",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "集中治療室（重篤・危篤な患者を24時間体制で管理・治療する病室。インドネシアの病院でも『ruang ICU』が標準表記）",
+        "ex": "Setelah menjalani operasi besar, pasien dipindahkan sementara ke ruang ICU untuk pemantauan intensif.",
+        "tr": "大手術を受けた後、患者は集中的な経過観察のために一時的に集中治療室（ICU）へ移された。",
+        "note": "■ 【病院の病室セット】：UGD / IGD（救急）、ICU（集中治療室）、ruang rawat inap（入院病棟）、ruang operasi（手術室）。"
+      },
+      {
+        "p": "n",
+        "w": "sirup",
+        "r": "sirup",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "①シロップ薬、水薬（obat sirup＝子ども用の甘い液体風邪薬・咳止め等） ②（飲み物用の）甘いシロップ（es sirup）",
+        "ex": "Apoteker menjelaskan takaran sendok obat sirup batuk yang harus diminum tiga kali sehari setelah makan.",
+        "tr": "薬剤師は、食後に1日3回飲む咳止めシロップ薬のスプーン1杯の用量を説明した。",
+        "note": "■ 【薬の剤形セット】：tablet（錠剤）、kapsul（カプセル）、sirup（シロップ薬）、puyer（子ども用粉薬）、salep（軟膏・塗り薬）、obat tetes（点眼・点耳薬）。"
+      },
+      {
+        "p": "n",
+        "w": "obat tetes",
+        "r": "obat",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "点眼薬・目薬、点耳薬、点鼻薬（1滴ずつ垂らす液体薬：obat tetes mata＝目薬、obat tetes telinga＝点耳薬）",
+        "ex": "Mata saya terasa kering dan perih karena debu, jadi saya membeli obat tetes mata di apotek.",
+        "tr": "ほこりで目が乾燥してしみるので、薬局で目薬を買った。",
+        "note": "■ 【薬局サバイバル表現】：obat tetes mata（目薬）、tetes（しずく・滴：meneteskan＝垂らす）。"
+      },
+      {
+        "p": "n",
+        "w": "plester",
+        "r": "plester",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "①絆創膏（ばんそうこう）、医療用テープ（plester luka） ②（建築の）漆喰・モルタル塗り",
+        "ex": "Setelah membersihkan goresan kecil di jari dengan antiseptik, ia menutupnya memakai plester luka.",
+        "tr": "指の小さな切り傷を消毒液できれいにした後、彼は絆創膏を貼って覆った。",
+        "note": "■ 【現地あるある】：インドネシアの薬局では一般名の『plester luka』のほか、有名ブランド名『Hansaplast（ハンザプラスト）』も絆創膏の代名詞として通じる！"
+      },
+      {
+        "p": "n",
+        "w": "kasa",
+        "r": "kasa",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "ガーゼ（kasa steril＝滅菌ガーゼ）、網戸などの細かい網（kawat kasa＝網戸のメッシュ）",
+        "ex": "Perawat mengganti kain kasa steril pada luka bekas operasi setiap dua hari sekali agar tetap bersih.",
+        "tr": "看護師は清潔に保つため、手術痕の滅菌ガーゼを2日に1回交換している。",
+        "note": "■ 【救急箱セット】：kasa steril（滅菌ガーゼ）、perban（包帯）、plester（絆創膏）、kapas（脱脂綿）、antiseptik（消毒液）。"
+      },
+      {
+        "p": "n",
+        "w": "antiseptik",
+        "r": "antiseptik",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "消毒液、殺菌剤、消毒作用のある（cairan antiseptik＝傷口用消毒液、sabun antiseptik＝薬用消毒石けん）",
+        "ex": "Selalu siapkan cairan antiseptik dan plester di dalam kotak P3K untuk penanganan luka ringan di rumah.",
+        "tr": "家での軽い怪我の手当てのために、救急箱（P3K）にはいつも消毒液と絆創膏を常備しておこう。",
+        "note": "■ 【関連略語】：P3K（Pertolongan Pertama Pada Kecelakaan＝応急処置・救急箱）。"
+      },
+      {
+        "p": "n",
+        "w": "koyo",
+        "r": "koyo",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "湿布（しっぷ）、貼り薬（肩こり・腰痛・筋肉痛に貼る温感／冷感パッチ。『Salonpas』等の商品名と並びインドネシアで超定着！）",
+        "ex": "Setelah seharian berjalan kaki saat berwisata, saya menempelkan koyo hangat di betis sebelum tidur.",
+        "tr": "観光で一日中歩き回った後、寝る前にふくらはぎに温感湿布を貼った。",
+        "note": "■ 【語源豆知識】：実は中国語・福建語の「膏薬（こうやく）」が語源で、インドネシアのコンビニや薬局でそのまま『koyo』で通じる！"
+      },
+      {
+        "p": "n",
+        "w": "obat kumur",
+        "r": "obat",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "うがい薬、マウスウォッシュ（口臭予防や喉の消毒・口内炎ケアに使う洗口液）",
+        "ex": "Menggunakan obat kumur antiseptik setelah menyikat gigi membantu menjaga kesehatan gusi dan kesegaran napas.",
+        "tr": "歯磨きの後に殺菌うがい薬（マウスウォッシュ）を使うと、歯茎の健康と息の爽やかさを保つのに役立つ。",
+        "note": "■ 【関連語】：berkumur（うがいをする・口をゆすぐ）、sikat gigi（歯ブラシ）、pasta gigi（歯磨き粉）。"
+      },
+      {
+        "p": "n",
+        "w": "suplemen",
+        "r": "suplemen",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "サプリメント、栄養補助食品（suplemen vitamin / protein / kreatin 等、健康管理・筋トレの定番語）",
+        "ex": "Selain menjaga pola makan tinggi protein, ia juga mengonsumsi suplemen vitamin dan kreatin secara rutin.",
+        "tr": "高タンパクな食生活を保つことに加え、彼はビタミンとクレアチンのサプリメントも定期的に摂取している。",
+        "note": "■ 【重要コロケーション】：suplemen makanan / kesehatan（栄養補助食品・健康サプリ）、dosis harian（1日の摂取量）。"
+      },
+      {
+        "p": "v",
+        "w": "suntik",
+        "r": "suntik",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "注射する、注入する（menyuntik の語幹。予防接種『suntik vaksin』や医療の『jarum suntik＝注射針』で超頻出）",
+        "ex": "Anak kecil itu sempat takut saat melihat jarum suntik, namun akhirnya berani menjalani vaksinasi.",
+        "tr": "その小さな子どもは注射針を見たとき一瞬怖がったが、最後には勇気を出して予防接種を受けた。",
+        "note": "■ 【関連語】：menyuntik（注射する）、suntikan（注射・比喩で「資金注入：suntikan dana / modal」）、jarum suntik（注射針・シリンジ）。"
+      },
+      {
+        "p": "n",
+        "w": "infus",
+        "r": "infus",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "点滴（てんてき：cairan infus＝点滴液、diinfus＝点滴を受ける）",
+        "ex": "Karena mengalami dehidrasi berat akibat demam tinggi, pasien segera dipasang infus di ruang perawatan.",
+        "tr": "高熱による重度の脱水状態に陥っていたため、患者は処置室ですぐに点滴をつながれた。",
+        "note": "■ 【重要コロケーション】：pasang infus / diinfus（点滴を受ける）、cairan infus（点滴液）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "USG",
+        "r": "Ultrasonografi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "超音波検査、エコー検査（妊婦健診や腹部の臓器検査で病院で毎日使われる略語）",
+        "ex": "Dokter melakukan pemeriksaan USG perut untuk memastikan kondisi organ dalam pasien secara akurat.",
+        "tr": "医師は患者の内臓の状態を正確に確認するため、腹部超音波検査（エコー検査）を行った。",
+        "note": "■ 【病院の検査略語セット】：USG（超音波・エコー）、rontgen（レントゲン）、CT scan（CT検査）、MRI（MRI検査）、tes darah（血液検査）。"
+      },
+      {
+        "p": "n",
+        "w": "tes darah",
+        "r": "tes",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "血液検査（健康診断やデング熱・コレステロール・血糖値チェックで必須の表現＝cek darah / pemeriksaan darah）",
+        "ex": "Untuk memastikan apakah demam tinggi ini disebabkan oleh DBD atau tifus, dokter menyarankan tes darah di laboratorium.",
+        "tr": "この高熱がデング熱か腸チフスによるものか確認するため、医師は検査室での血液検査を勧めた。",
+        "note": "■ 【関連語】：cek darah（血液検査）、golongan darah（血液型：A / B / AB / O）、donor darah（献血）。"
+      },
+      {
+        "p": "n",
+        "w": "stetoskop",
+        "r": "stetoskop",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "聴診器（医師が胸や背中の心音・呼吸音を聴くための医療器具）",
+        "ex": "Dokter mendengarkan detak jantung dan suara paru-paru pasien menggunakan stetoskop dengan saksama.",
+        "tr": "医師は聴診器を使って患者の心拍と肺の音を注意深く聴き取った。",
+        "note": "■ 【医療器具セット】：stetoskop（聴診器）、termometer（体温計）、tensimeter（血圧計）、kursi roda（車椅子）。"
+      },
+      {
+        "p": "n",
+        "w": "kursi roda",
+        "r": "kursi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "車椅子（病院・空港・商業施設のバリアフリー案内でも頻出する必須語）",
+        "ex": "Stasiun kereta cepat tersebut menyediakan jalur landai dan layanan kursi roda bagi penumpang disabilitas serta lansia.",
+        "tr": "その高速鉄道駅では、障害のある乗客や高齢者のためにスロープと車椅子サービスを提供している。",
+        "note": "■ 【バリアフリー関連語】：kursi roda（車椅子）、jalur landai（スロープ）、ramah disabilitas（バリアフリー・障害者に配慮した）。"
+      },
+      {
+        "p": "n",
+        "w": "cek kesehatan",
+        "r": "cek",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "健康診断、メディカルチェック（病院の『medical check-up / pemeriksaan kesehatan』の日常的な言い方）",
+        "ex": "Karyawan perusahaan itu mendapatkan fasilitas cek kesehatan tahunan secara gratis setiap bulan Oktober.",
+        "tr": "その会社の従業員は、毎年10月に無料の年次健康診断を受けられる福利厚生がある。",
+        "note": "■ 【言い換え】：cek kesehatan（日常） ＝ pemeriksaan kesehatan（公式） ＝ medical check-up / MCU（病院・企業）。"
+      },
+      {
+        "p": "n",
+        "w": "kuping",
+        "r": "kuping",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "耳（日常会話でのカジュアルな言い方。標準語・病院での正式語は『telinga』）",
+        "ex": "Karena tekanan udara berubah saat pesawat turun, kuping saya terasa sedikit berdengung.",
+        "tr": "飛行機が降下するときに気圧が変わったせいで、耳が少しキーン（耳鳴り）とした。",
+        "note": "■ 【使い分け】：telinga（標準語・医療・ニュース） ／ kuping（日常会話・ジャワ語由来）。『kuping panas』は「悪口を聞いてカッとなる」慣用表現。"
+      },
+      {
+        "p": "n",
+        "w": "pergelangan kaki",
+        "r": "gelang",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "足首（スポーツの捻挫『keseleo pergelangan kaki』で超頻出！なお手首は『pergelangan tangan』）",
+        "ex": "Saat mendarat kurang sempurna setelah melompat, pergelangan kaki kanannya sempat terkilir ringan.",
+        "tr": "ジャンプ後の着地が少し不完全だったとき、彼の右足首が軽く捻挫した。",
+        "note": "■ 【手首・足首ペア】：pergelangan tangan（手首） ／ pergelangan kaki（足首）。語幹は『gelang（ブレスレット・輪）』！"
+      },
+      {
+        "p": "n",
+        "w": "jari tengah",
+        "r": "jari",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "中指（手の5本指の真ん中）",
+        "ex": "Jari tengah merupakan jari terpanjang di antara kelima jari pada tangan manusia.",
+        "tr": "中指は人間の手の5本の指の中で最も長い指だ。",
+        "note": "■ 【手の5本指完全セット】：ibu jari / jempol（親指）、jari telunjuk（人差し指）、jari tengah（中指）、jari manis（薬指）、jari kelingking（小指）。"
+      },
+      {
+        "p": "n",
+        "w": "ingus",
+        "r": "ingus",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "鼻水（風邪・花粉症・アレルギーの症状『hidung meler / keluar ingus＝鼻水が出る』）",
+        "ex": "Ketika cuaca berubah dingin secara mendadak, hidungnya langsung mengeluarkan ingus encer.",
+        "tr": "天気が急に冷え込むと、彼の鼻からすぐに水っぽい鼻水が出てくる。",
+        "note": "■ 【風邪の分泌物セット】：ingus（鼻水）、dahak（痰）、keringat（汗）、air mata（涙）。"
+      },
+      {
+        "p": "n",
+        "w": "urin",
+        "r": "urin",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "尿（医療・健康診断の専門語『tes urin＝尿検査』。日常語は『air seni / air kencing』、KBBI標準綴りは『urine』）",
+        "ex": "Pemeriksaan sampel urin diperlukan untuk mendeteksi infeksi saluran kemih maupun gangguan fungsi ginjal.",
+        "tr": "尿路感染症や腎機能障害を検出するためには、尿サンプルの検査が必要だ。",
+        "note": "■ 【言い換え】：urin / urine（医療・検査） ／ air seni（丁寧） ／ air kencing（日常）。"
+      },
+      {
+        "p": "n",
+        "w": "dokter umum",
+        "r": "dokter",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "一般医、総合診療医（風邪・発熱・腹痛などで最初に受診する町のクリニックや病院の一般外来医師 ⇔ dokter spesialis）",
+        "ex": "Untuk gejala flu dan demam ringan, pasien dapat berkonsultasi terlebih dahulu dengan dokter umum di klinik.",
+        "tr": "軽い風邪や発熱の症状であれば、患者はまずクリニックの一般医に相談することができる。",
+        "note": "■ 【受診の流れ】：インドネシアの公的保険（BPJS）ではまず『dokter umum』を受診し、必要なら紹介状（surat rujukan）をもらって『dokter spesialis』へ行く仕組み！"
+      },
+      {
+        "p": "n",
+        "w": "dokter spesialis",
+        "r": "dokter",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "専門医（内科・小児科・皮膚科・眼科・整形外科などの専門科医師）",
+        "ex": "Rumah sakit rujukan itu memiliki berbagai dokter spesialis, mulai dari penyakit dalam hingga bedah saraf.",
+        "tr": "その基幹病院には、内科から脳神経外科に至るまでさまざまな専門医が揃っている。",
+        "note": "■ 【代表的な専門科】：spesialis anak（小児科）、penyakit dalam（内科）、kulit（皮膚科）、mata（眼科）、THT（耳鼻咽喉科＝Telinga Hidung Tenggorokan）。"
+      },
+      {
+        "p": "n",
+        "w": "dokter gigi",
+        "r": "dokter",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "歯科医師、歯医者（略記：drg.）",
+        "ex": "Pemeriksaan ke dokter gigi sebaiknya dilakukan setiap enam bulan sekali untuk membersihkan karang gigi.",
+        "tr": "歯石を除去するため、6ヶ月に1回は歯医者の検診を受けるのが望ましい。",
+        "note": "■ 【重要コロケーション】：klinik dokter gigi（歯科クリニック）、karang gigi（歯石）、behel gigi（歯列矯正器具）。"
+      },
+      {
+        "p": "n",
+        "w": "dokter hewan",
+        "r": "dokter",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "獣医師、動物病院の先生（略記：drh.。ペットのうさぎ・猫・犬の診察に必須！）",
+        "ex": "Pemilik kelinci itu rutin membawa hewan peliharaannya ke dokter hewan untuk pemeriksaan kaki dan gigi.",
+        "tr": "そのうさぎの飼い主は、足と歯の検診のためにペットを定期的に獣医師のもとへ連れて行っている。",
+        "note": "■ 【ペット医療セット】：dokter hewan（獣医師）、klinik hewan（動物病院）、vaksin hewan（ペット用ワクチン）。"
+      },
+      {
+        "p": "n",
+        "w": "psikiater",
+        "r": "psikiater",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "精神科医（医師免許を持ち診断・薬の処方ができる心の専門医。カウンセリング中心の『psikolog＝心理士』と対比で頻出）",
+        "ex": "Jika gangguan kecemasan atau insomnia berlangsung lama, jangan ragu berkonsultasi dengan psikolog atau psikiater.",
+        "tr": "不安障害や不眠が長く続く場合は、ためらわずに心理士や精神科医に相談しよう。",
+        "note": "■ 【使い分け】：psikiater（精神科医：医学博士・処方可能） ／ psikolog（臨床心理士・心理学者：カウンセリング専門）。"
+      }
+    ];
+
+    const idxByWord = new Map();
+    for (let i = 0; i < d.vocab.length; i++) {
+      const it = d.vocab[i];
+      if (it && it.w) idxByWord.set(it.w.trim().toLowerCase(), i);
+    }
+
+    for (let i = 0; i < DICT_PACK_3.length; i++) {
+      const item = DICT_PACK_3[i];
+      if (!item || !item.w) continue;
+      const key = item.w.trim().toLowerCase();
+
+      item.dictOnly = true;
+      item.tier = 3;
+      dictOnlySet.add(key);
+
+      if (item.topicCat) {
+        catMap.set(key, item.topicCat);
+      }
+
+      if (idxByWord.has(key)) {
+        const pos = idxByWord.get(key);
+        Object.assign(d.vocab[pos], item);
+        vMap.set(key, d.vocab[pos]);
+        persistentAdded.set(key, d.vocab[pos]);
+      } else {
+        d.vocab.push(item);
+        idxByWord.set(key, d.vocab.length - 1);
+        vMap.set(key, item);
+        persistentAdded.set(key, item);
+      }
+    }
+  } catch (e) {
+    console.error("WhatsIndo Dict Pack 3 error:", e);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 辞書充実プロジェクト 第4弾（全83語・すべて辞書専用 dictOnly: true）
+   - ① 主食・麺・肉・魚介・加工品（16語）：mie, bihun, kwetiau, bakmi, terigu, ubi,
+       talas, biskuit, daging sapi, daging ayam, daging kambing, daging babi, salmon,
+       tuna, gurame, sosis
+   - ② 野菜・豆・ナッツ（18語）：tomat, timun, brokoli, kembang kol, sawi, selada,
+       terong, buncis, kacang panjang, rebung, pare, seledri, bawang bombai,
+       kacang hijau, kacang merah, almond, mete, wijen
+   - ③ 果物（15語）：apel, jeruk nipis, lemon, melon, stroberi, duku, kelengkeng,
+       sawo, jambu biji, jambu air, belimbing, kurma, pir, persik, ceri
+   - ④ スパイス・ハーブ・調味料・乳製品（22語）：cabai rawit, cabe, lengkuas,
+       daun salam, daun jeruk, kemangi, jintan, kayu manis, kapulaga, kemiri, terasi,
+       petis, asam jawa, gula pasir, gula merah, gula aren, kecap asin, saus tomat,
+       mayones, margarin, yogurt, selai
+   - ⑤ 定番ローカル料理・スナック・飲み物（12語）：mie goreng, nasi uduk, nasi kuning,
+       nasi padang, emping, lalapan, air mineral, es, teh manis, kopi susu, jus, soda
+   - **記号ゼロ・文字バグゼロ・try-catch完全保護・問題モードへ一切混入しません
+   ===================================================================== */
+(function() {
+  try {
+    const d = window.WHATSINDO_EXTERNAL_DATA;
+    if (!d || !Array.isArray(d.vocab)) return;
+
+    const dictOnlySet     = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+    const persistentAdded = window.__wiPersistentAddedVocab || (window.__wiPersistentAddedVocab = new Map());
+    const vMap            = window.__wiMasterVocabMap || (window.__wiMasterVocabMap = new Map());
+    const catMap          = window.__WI_V5_VCAT || (window.__WI_V5_VCAT = new Map());
+
+    const DICT_PACK_4 = [
+      {
+        "p": "n",
+        "w": "mie",
+        "r": "mi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "麺、ラーメン・焼きそば類（KBBI標準綴りは『mi』だが、看板・パッケージ・日常では『mie』が圧倒的に一般的！mie ayam＝鶏そば、mie bakso＝肉団子麺）",
+        "ex": "Saat hujan turun di malam hari, semangkuk mie rebus hangat dengan telur dan sawi terasa sangat nikmat.",
+        "tr": "夜に雨が降っているとき、卵と青菜が入った温かい汁麺1杯は格別に美味しく感じられる。",
+        "note": "■ 【定番麺メニュー】：mie goreng（焼きそば）、mie rebus / kuah（汁麺）、mie ayam（鶏肉混ぜそば）、mie bakso（バクソ麺）、mie instan（インスタント麺）。"
+      },
+      {
+        "p": "n",
+        "w": "bihun",
+        "r": "bihun",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "ビーフン（米粉で作られた極細の白い麺。バクソの具材や『bihun goreng＝焼きビーフン』で超定番！）",
+        "ex": "Di warung bakso, pembeli biasanya boleh memilih campuran mie kuning, bihun, atau keduanya.",
+        "tr": "バクソ屋では、客はたいてい黄色い中華麺・ビーフン・または両方のミックスを選ぶことができる。",
+        "note": "■ 【麺の種類セット】：mie（中華麺）、bihun（細ビーフン）、kwetiau（平打ち米麺）、soun（春雨）。"
+      },
+      {
+        "p": "n",
+        "w": "kwetiau",
+        "r": "kwetiau",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "クイティオ（米粉で作るモチモチした平打ち麺。中華系インドネシア料理の『kwetiau goreng / siram』が大人気！）",
+        "ex": "Kwetiau goreng sapi dengan aroma wajan yang harum menjadi menu andalan di kedai makan itu.",
+        "tr": "中華鍋の香ばしい香りが立つ牛肉焼きクイティオは、その食堂の看板メニューだ。",
+        "note": "■ 【重要コロケーション】：kwetiau goreng（焼きクイティオ）、kwetiau kuah（汁クイティオ）、kwetiau siram（あんかけクイティオ）。"
+      },
+      {
+        "p": "n",
+        "w": "bakmi",
+        "r": "bakmi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "バクミ（中華系由来の汁なし混ぜ麺・焼きそば全般。ジョグジャカルタ名物の炭火焼き麺『bakmi Jawa』やジャカルタの鶏肉混ぜ麺が超有名！）",
+        "ex": "Saat berkunjung ke Yogyakarta, jangan lewatkan kesempatan mencicipi bakmi Jawa yang dimasak di atas tungku arang.",
+        "tr": "ジョグジャカルタを訪れたら、炭火コンロで調理されるジャワ風バクミを味わう機会を逃さないように。",
+        "note": "■ 【豆知識】：元々は福建語の「肉麺（バーミー）」由来だが、インドネシアの街中ではハラールの鶏肉版（bakmi ayam）が一般的。非ハラール店は豚肉使用の表記あり。"
+      },
+      {
+        "p": "n",
+        "w": "terigu",
+        "r": "terigu",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "小麦粉（『tepung terigu』の略称・定番表現。揚げ物の衣・パン・麺・菓子の基本原料）",
+        "ex": "Untuk membuat kulit martabak yang kenyal, kita membutuhkan tepung terigu berprotein sedang.",
+        "tr": "モチモチしたマルタバの生地を作るには、中力小麦粉が必要だ。",
+        "note": "■ 【粉類セット】：tepung terigu（小麦粉）、tepung beras（米粉）、tepung tapioka / kanji（タピオカ粉・片栗粉）、tepung maizena（コーンスターチ）。"
+      },
+      {
+        "p": "n",
+        "w": "ubi",
+        "r": "ubi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "イモ類全般、特にサツマイモ（『ubi jalar』＝サツマイモ、西ジャワ名物の蜜芋『ubi Cilembu』、キャッサバは『ubi kayu / singkong』）",
+        "ex": "Ubi Cilembu panggang yang mengeluarkan cairan manis seperti madu sangat digemari sebagai camilan sore.",
+        "tr": "蜂蜜のように甘い蜜が染み出すチレンブ焼き芋は、夕方のおやつとして大人気だ。",
+        "note": "■ 【イモ類4点セット】：ubi / ubi jalar（サツマイモ）、kentang（じゃがいも）、singkong（キャッサバ）、talas（タロイモ・里芋系）。"
+      },
+      {
+        "p": "n",
+        "w": "talas",
+        "r": "talas",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "タロイモ（ボゴール名物の『lapis talas＝タロイモ・レイヤーケーキ』やチップス『keripik talas』で超定番！）",
+        "ex": "Kue lapis talas berwarna ungu dan kuning merupakan oleh-oleh paling terkenal dari Kota Bogor.",
+        "tr": "紫と黄色のタロイモ・レイヤーケーキは、ボゴール市で最も有名な手土産だ。",
+        "note": "■ 【重要コロケーション】：keripik talas（タロイモチップス）、rasa talas / taro（タロ味：ドリンクやアイスの定番フレーバー）。"
+      },
+      {
+        "p": "n",
+        "w": "biskuit",
+        "r": "biskuit",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "ビスケット、クラッカー、クッキー類（お茶請けやレバランの定番缶菓子『kaleng biskuit』）",
+        "ex": "Ibu menyajikan teh hangat dan beberapa potong biskuit gandum untuk menemani obrolan sore.",
+        "tr": "母は午後の語らいのお供に、温かい紅茶と全粒粉ビスケットを数枚出した。",
+        "note": "■ 【関連語】：kue kering（焼き菓子・クッキー）、keripik（チップス）、camilan（おやつ・スナック）。"
+      },
+      {
+        "p": "n",
+        "w": "daging sapi",
+        "r": "daging",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "牛肉（ルンダン・バクソ・ソト・サテなどインドネシア料理の主役肉。なお『has dalam＝ヒレ肉』『sandung lamur＝ブリスケット』）",
+        "ex": "Daging sapi dimasak perlahan bersama santan dan aneka rempah hingga empuk untuk membuat rendang.",
+        "tr": "ルンダンを作るため、牛肉をココナッツミルクと様々なスパイスと一緒に柔らかくなるまでじっくり煮込む。",
+        "note": "■ 【お肉4点セット】：daging sapi（牛肉）、daging ayam（鶏肉）、daging kambing（ヤギ肉）、daging babi（豚肉）。"
+      },
+      {
+        "p": "n",
+        "w": "daging ayam",
+        "r": "daging",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "鶏肉（インドネシアで最も日常的に食べられる肉。胸肉は『dada ayam』、もも肉は『paha ayam』、手羽は『sayap ayam』）",
+        "ex": "Dada daging ayam tanpa kulit sering dipilih sebagai sumber protein rendah lemak untuk menu diet.",
+        "tr": "皮なしの鶏むね肉は、ダイエットメニュー向けの低脂質タンパク源としてよく選ばれる。",
+        "note": "■ 【部位別コロケーション】：dada ayam（鶏むね）、paha ayam（鶏もも）、sayap ayam（手羽）、ayam kampung（地鶏）。"
+      },
+      {
+        "p": "n",
+        "w": "daging kambing",
+        "r": "daging",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "ヤギ肉（インドネシアでは『sate kambing＝ヤギの串焼き』や『gulai kambing＝ヤギのスパイス煮込み』が定番ごちそう！）",
+        "ex": "Aroma sate daging kambing yang dibakar dengan bumbu kecap manis selalu menggugah selera di malam hari.",
+        "tr": "甘いケチャップマニスダレで焼かれたヤギ肉サテの香ばしい香りは、夜になるといつも食欲をそそる。",
+        "note": "■ 【豆知識】：インドネシアの『kambing』はヤギ肉、羊（ラム・マトン）は『daging domba』と区別される。"
+      },
+      {
+        "p": "n",
+        "w": "daging babi",
+        "r": "daging",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "豚肉（イスラム教ではハラーム［禁忌］のため、食事の配慮やバリ名物『babi guling』、中華料理店の確認で超重要！）",
+        "ex": "Restoran Jepang di Jakarta umumnya mencantumkan keterangan jelas apakah menu mereka mengandung daging babi atau tidak.",
+        "tr": "ジャカルタの日本食レストランは一般的に、メニューに豚肉が含まれているかどうかを明確に表示している。",
+        "note": "■ 【確認フレーズ】：Tidak mengandung daging babi / bebas babi（豚肉不使用＝No Pork）、halal（ハラール）。"
+      },
+      {
+        "p": "n",
+        "w": "salmon",
+        "r": "salmon",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "サーモン、鮭（ikan salmon。寿司屋やスーパー・ヘルシー食で定番の人気魚）",
+        "ex": "Ikan salmon panggang dengan perasan lemon kaya akan asam lemak omega-3 yang baik bagi kesehatan jantung.",
+        "tr": "レモンを絞った焼きサーモンは、心臓の健康に良いオメガ3脂肪酸が豊富だ。",
+        "note": "■ 【関連語】：ikan（魚）、tuna（マグロ）、gurame（グラメ）、lele（ナマズ）、nila（ティラピア）。"
+      },
+      {
+        "p": "n",
+        "w": "tuna",
+        "r": "tuna",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "マグロ、ツナ（ikan tuna。インドネシアは世界有数のマグロ漁獲・輸出国！なおカツオは『cakalang』）",
+        "ex": "Perairan Indonesia bagian timur merupakan salah satu penghasil ikan tuna kualitas ekspor terbesar di dunia.",
+        "tr": "インドネシア東部の海域は、輸出品質のマグロの世界最大級の産地のひとつだ。",
+        "note": "■ 【関連語】：tuna kaleng（ツナ缶）、sashimi tuna（マグロ刺身）、ikan cakalang（カツオ：マナド料理で超有名）。"
+      },
+      {
+        "p": "n",
+        "w": "gurame",
+        "r": "gurame",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "グラメ（ジャイアント・グラミー：インドネシアのレストランで最高級定番の白身淡水魚！姿揚げ『gurame goreng terbang』や炭火焼きが絶品。標準綴り『gurami』）",
+        "ex": "Menu ikan gurame bakar madu dan gurame asam manis selalu menjadi favorit keluarga di restoran Sunda.",
+        "tr": "蜂蜜焼きグラメと甘酢あんかけグラメのメニューは、スンダ料理店でいつも家族連れの定番人気だ。",
+        "note": "■ 【レストラン定番淡水魚3強】：gurame（グラメ：高級・肉厚）、nila（ティラピア）、lele（ナマズ：庶民の定番『pecel lele』）。"
+      },
+      {
+        "p": "n",
+        "w": "sosis",
+        "r": "sosis",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "ソーセージ、ウインナー（インドネシアでは牛肉製『sosis sapi』・鶏肉製『sosis ayam』のハラールソーセージが主流！）",
+        "ex": "Ia menambahkan potongan sosis ayam dan sayuran ke dalam nasi goreng agar gizinya lebih lengkap.",
+        "tr": "彼は栄養バランスを良くするため、ナシゴレンに鶏ソーセージと野菜のカットを加えた。",
+        "note": "■ 【屋台定番】：sosis bakar（焼きソーセージ：屋台やナイトマーケットの大人気串グルメ）。"
+      },
+      {
+        "p": "n",
+        "w": "tomat",
+        "r": "tomat",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "トマト（サンバルの甘み出し『sambal tomat』やソト・サラダ・ジュースまで毎日使う超基本野菜！）",
+        "ex": "Tambahkan irisan tomat segar dan daun bawang sebelum mengangkat soto ayam dari kompor.",
+        "tr": "ソトアヤムをコンロから下ろす前に、新鮮なトマトのスライスと青ねぎを加えよう。",
+        "note": "■ 【関連語】：saus tomat（トマトケチャップ）、jus tomat（トマトジュース）、sambal tomat（トマト入りサンバル）。"
+      },
+      {
+        "p": "n",
+        "w": "timun",
+        "r": "timun",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "きゅうり（『mentimun』の日常的な呼び名。ナシゴレンやアヤムゴレンの付け合わせに100%付いてくる定番野菜！）",
+        "ex": "Nasi goreng dan ayam bakar biasanya selalu disajikan bersama irisan timun segar dan acar.",
+        "tr": "ナシゴレンや焼き鳥にはたいてい、新鮮なきゅうりのスライスとピクルス（アチャール）が必ず添えられる。",
+        "note": "■ 【関連語】：mentimun（標準語）、acar timun（きゅうりの甘酢漬け）、lalapan（生野菜の付け合わせ）。"
+      },
+      {
+        "p": "n",
+        "w": "brokoli",
+        "r": "brokoli",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "ブロッコリー（中華炒め『capcay』や筋トレ・ダイエット食の王道野菜！）",
+        "ex": "Brokoli kukus dan dada ayam panggang menjadi menu makan siang andalan saat sedang menjaga pola makan.",
+        "tr": "蒸しブロッコリーと焼き鶏むね肉は、食事管理をしているときの定番ランチメニューだ。",
+        "note": "■ 【対比】：brokoli（ブロッコリー） ／ kembang kol（カリフラワー）。"
+      },
+      {
+        "p": "n",
+        "w": "kembang kol",
+        "r": "kol",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "カリフラワー（『bunga kol』とも言う。インドネシア中華の野菜炒め『capcay』に欠かせない定番具材！）",
+        "ex": "Sayuran seperti wortel, kembang kol, sawi, dan jamur biasanya dimasak bersama dalam hidangan capcay.",
+        "tr": "にんじん・カリフラワー・青菜・きのこといった野菜は、たいていチャプチャイ（八宝菜風野菜炒め）で一緒に調理される。",
+        "note": "■ 【キャベツ系セット】：kol / kubis（キャベツ）、kembang kol（カリフラワー）、brokoli（ブロッコリー）。"
+      },
+      {
+        "p": "n",
+        "w": "sawi",
+        "r": "sawi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "青菜類・カラシナ／チンゲンサイ／白菜（『sawi hijau＝小松菜・菜心系の青菜』『sawi putih＝白菜』『sawi sendok / pakcoy＝チンゲンサイ』）",
+        "ex": "Penjual mie ayam selalu merebus potongan sawi hijau segar sebagai pelengkap di atas mie.",
+        "tr": "ミーアヤム屋さんはいつも、麺の上の付け合わせとして新鮮な青菜（サウィ）をさっと茹でて添える。",
+        "note": "■ 【3種見分け】：sawi hijau（緑の青菜：ミーアヤム定番）、sawi putih（白菜）、pakcoy（チンゲンサイ）。"
+      },
+      {
+        "p": "n",
+        "w": "selada",
+        "r": "selada",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "レタス（daun selada＝レタスの葉。サラダ・ハンバーガー・生野菜『lalapan』の定番）",
+        "ex": "Ia menambahkan daun selada renyah, tomat, dan telur rebus ke dalam roti lapis untuk sarapan.",
+        "tr": "彼は朝食のサンドイッチに、シャキシャキしたレタスの葉とトマト、ゆで卵を挟んだ。",
+        "note": "■ 【注意】：『selada（レタス）』と『salad（サラダ）』はスペルがそっくりなので混同注意！"
+      },
+      {
+        "p": "n",
+        "w": "terong",
+        "r": "terong",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "なす、茄子（KBBI標準綴りは『terung』だが、市場・メニュー・日常では99%『terong』！『terong balado＝なすの辛味炒め』が絶品）",
+        "ex": "Terong balado pedas manis adalah salah satu lauk favorit di warung makan Padang.",
+        "tr": "甘辛いナスのバラド炒めは、パダン料理の食堂で人気のおかずのひとつだ。",
+        "note": "■ 【定番料理】：terong balado（ナスのチリ炒め）、terong goreng（揚げナス：ペチェル・レレの付け合わせ定番）。"
+      },
+      {
+        "p": "n",
+        "w": "buncis",
+        "r": "buncis",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "さやいんげん（オランダ語 boontjes 由来。ひき肉ニンニク炒め『tumis buncis』やスープの定番野菜！）",
+        "ex": "Tumis buncis dengan bawang putih dan sedikit daging sapi cincang sangat cocok dimakan bersama nasi hangat.",
+        "tr": "ニンニクと少量の牛ひき肉で炒めたさやいんげんは、温かいご飯と食べるのにぴったりだ。",
+        "note": "■ 【似た細長豆の区別】：buncis（短めのさやいんげん） ／ kacang panjang（とても長い十六ささげ）。"
+      },
+      {
+        "p": "n",
+        "w": "kacang panjang",
+        "r": "kacang",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "ささげ（十六ささげ：長さが30〜50cmある細長い緑の豆野菜。ガドガドやサユール・アッサムに必須！）",
+        "ex": "Kacang panjang yang dipotong pendek dan direbus sebentar merupakan bahan wajib dalam gado-gado.",
+        "tr": "短く切ってさっと茹でたささげは、ガドガド（ピーナッツソースサラダ）に欠かせない食材だ。",
+        "note": "■ 【語構成】：kacang（豆）+ panjang（長い）。インドネシアのスーパー・市場に1年中並んでいる定番野菜。"
+      },
+      {
+        "p": "n",
+        "w": "rebung",
+        "r": "rebung",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "たけのこ、筍（竹の新芽。スマラン名物の揚げ春巻き『lumpia Semarang』の中身として超有名！）",
+        "ex": "Lumpia khas Semarang terkenal dengan isian rebung muda yang dimasak gurih bersama udang dan telur.",
+        "tr": "スマラン名物のルンピア（春巻き）は、エビや卵と一緒に風味豊かに煮込んだ若いたけのこの餡で有名だ。",
+        "note": "■ 【関連語】：bambu（竹）、sayur lodeh rebung（たけのこのココナッツミルク煮込み）。"
+      },
+      {
+        "p": "n",
+        "w": "pare",
+        "r": "pare",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "ゴーヤ、ニガウリ（KBBI標準綴り『paria』、日常は『pare』。バンドン名物『siomay＝シュウマイ』の定番具材でもある！）",
+        "ex": "Meskipun rasanya agak pahit, tumis pare dengan teri dan cabai sangat disukai banyak orang.",
+        "tr": "味は少し苦いものの、ちりめんじゃこと唐辛子で炒めたゴーヤは多くの人にとても好まれている。",
+        "note": "■ 【現地グルメ】：インドネシアの『siomay（ピーナッツソースかけ蒸しシュウマイ）』では、ゴーヤにすり身を詰めた『pare isi』が大定番！"
+      },
+      {
+        "p": "n",
+        "w": "seledri",
+        "r": "seledri",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "セロリ、スープセロリ（daun seledri＝細かく刻んでソト・バクソ・スープの上に必ず散らす香草！）",
+        "ex": "Taburan daun seledri cincang dan bawang goreng membuat aroma sop iga menjadi jauh lebih segar.",
+        "tr": "刻んだセロリの葉とフライドオニオンを散らすと、牛リブスープの香りがぐっと爽やかになる。",
+        "note": "■ 【スープの黄金トッピングペア】：daun seledri（刻みセロリ）＋ bawang goreng（フライドエシャロット）。"
+      },
+      {
+        "p": "n",
+        "w": "bawang bombai",
+        "r": "bawang",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "たまねぎ、玉ねぎ（インドネシアでは『bawang merah＝赤エシャロット』『bawang putih＝ニンニク』と明確に区別して玉ねぎを『bawang bombai』と呼ぶ！）",
+        "ex": "Tumis irisan bawang bombai hingga harum dan layu sebelum memasukkan daging serta saus lada hitam.",
+        "tr": "牛肉と黒胡椒ソースを入れる前に、スライスした玉ねぎを香りが出てしんなりするまで炒めよう。",
+        "note": "■ 【bawang 4兄弟の完全区別】：bawang merah（赤小玉ねぎ・エシャロット）、bawang putih（ニンニク）、bawang bombai（普通の玉ねぎ）、daun bawang（長ねぎ・青ねぎ）。"
+      },
+      {
+        "p": "n",
+        "w": "kacang hijau",
+        "r": "kacang",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "緑豆（りょくとう：インドネシアの定番甘味お粥『bubur kacang hijau＝ブブル・カチャン・ヒジャウ』やもやしの原料！）",
+        "ex": "Bubur kacang hijau hangat dengan kuah santan dan gula merah sangat cocok dinikmati saat sarapan.",
+        "tr": "ココナッツミルクと黒糖をかけた温かい緑豆のお粥は、朝食に味わうのにぴったりだ。",
+        "note": "■ 【豆知識】：緑豆を発芽させたものが『tauge（もやし）』！『burjo（bubur kacang ijo）』は学生街の定番24時間食堂の愛称。"
+      },
+      {
+        "p": "n",
+        "w": "kacang merah",
+        "r": "kacang",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "赤いんげん豆、キドニービーンズ・小豆（スープ『sup kacang merah』やかき氷『es kacang merah』の具材として超人気）",
+        "ex": "Es kacang merah manis dengan siraman susu kental manis adalah hidangan penutup legendaris dari Palembang.",
+        "tr": "練乳をかけた甘い赤豆かき氷は、パレンバン発祥の伝説的デザートだ。",
+        "note": "■ 【豆類セット】：kacang tanah（ピーナッツ）、kacang kedelai（大豆）、kacang hijau（緑豆）、kacang merah（赤豆・小豆）。"
+      },
+      {
+        "p": "n",
+        "w": "almond",
+        "r": "almond",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "アーモンド（kacang almond。KBBI標準訳は『badam』だが、スーパー・カフェでは『almond / susu almond』が一般的）",
+        "ex": "Segenggam kacang almond panggang tanpa garam merupakan camilan sehat yang kaya lemak baik dan vitamin E.",
+        "tr": "無塩のローストアーモンドひと握りは、良質な脂質とビタミンEが豊富なヘルシーおやつだ。",
+        "note": "■ 【関連語】：susu almond（アーモンドミルク）、kacang mete（カシューナッツ）。"
+      },
+      {
+        "p": "n",
+        "w": "mete",
+        "r": "mete",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "カシューナッツ（『kacang mete / mede』：ウォノギリなどインドネシア国産の名産ナッツ！レバランのおもてなし菓子の王様）",
+        "ex": "Kacang mete goreng renyah dari Wonogiri sering disajikan di meja tamu saat perayaan hari raya.",
+        "tr": "ウォノギリ産のサクサクした揚げカシューナッツは、祝祭日の来客用テーブルによく出される。",
+        "note": "■ 【綴りバリエーション】：kacang mete（標準・日常） ／ kacang mede（ジャワ周辺でよく使う表記）。"
+      },
+      {
+        "p": "n",
+        "w": "wijen",
+        "r": "wijen",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "ごま、胡麻（『biji wijen＝ごま粒』『minyak wijen＝ごま油』。ごま団子『onde-onde』の表面にびっしり付いている定番食材！）",
+        "ex": "Tambahkan beberapa tetes minyak wijen dan taburan biji wijen sangrai agar rasa masakan makin gurih.",
+        "tr": "料理の味がより香ばしくなるように、ごま油を数滴と炒りごまを少し振りかけよう。",
+        "note": "■ 【重要コロケーション】：minyak wijen（ごま油）、wijen putih / hitam（白ごま／黒ごま）、onde-onde（揚げごま団子）。"
+      },
+      {
+        "p": "n",
+        "w": "apel",
+        "r": "apel",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "①りんご、林檎（東ジャワのマラン名物『apel Malang』は小ぶりでシャキッとした青りんご！） ②（※同音別義）朝礼・点呼（apel pagi）",
+        "ex": "Kota Batu dan Malang di Jawa Timur sangat terkenal dengan wisata petik buah apel segar di kebun.",
+        "tr": "東ジャワのバトゥ市とマラン市は、農園での新鮮なりんご狩り観光でとても有名だ。",
+        "note": "■ 【発音・同音注意】：果物のりんごは『apel［アペル］』、役所や軍の点呼・朝礼は『apel［アペール］（例：apel pagi）』。"
+      },
+      {
+        "p": "n",
+        "w": "jeruk nipis",
+        "r": "jeruk",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "ライム（ソト・サテ・焼き魚・肉料理にキュッと絞る、インドネシアの食卓に100%欠かせない緑色の柑橘！）",
+        "ex": "Perasan jeruk nipis segar membuat kuah soto ayam terasa lebih ringan dan menghilangkan bau amis ikan.",
+        "tr": "新鮮なライムの搾り汁は、ソトアヤムのスープをさっぱりさせ、魚の生臭さを消してくれる。",
+        "note": "■ 【柑橘系3点セット】：jeruk（みかん・オレンジ）、jeruk nipis（ライム）、lemon（レモン）、jeruk purut（こぶみかん＝葉を料理に使う）。"
+      },
+      {
+        "p": "n",
+        "w": "lemon",
+        "r": "lemon",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "レモン（air lemon / perasan lemon＝レモン汁。焼肉や焼き魚・ドリンクに定番）",
+        "ex": "Ia lebih suka menikmati daging panggang hanya dengan perasan lemon segar dan sedikit garam tanpa saus manis.",
+        "tr": "彼は甘いタレを使わず、新鮮なレモン汁と少量の塩だけで焼肉を楽しむのが好きだ。",
+        "note": "■ 【関連語】：air lemon（レモン水）、teh lemon（レモンティー）、jeruk nipis（ライム）。"
+      },
+      {
+        "p": "n",
+        "w": "melon",
+        "r": "melon",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "メロン（インドネシアでは1年中安く買えて、フルーツ盛り合わせ『es buah』やジュースの超定番！）",
+        "ex": "Potongan buah melon dingin dan semangka sangat menyegarkan untuk dinikmati pada siang hari yang terik.",
+        "tr": "冷えたメロンとスイカのカットフルーツは、日差しが強い昼間に食べるととても爽やかだ。",
+        "note": "■ 【関連語】：jus melon（メロンジュース）、semangka（スイカ）。"
+      },
+      {
+        "p": "n",
+        "w": "stroberi",
+        "r": "stroberi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "いちご、ストロベリー（バンドン郊外のレンバンやチウィデイなど涼しい高原地帯のいちご狩りが人気！）",
+        "ex": "Banyak wisatawan berkunjung ke kebun stroberi di dataran tinggi Bandung untuk memetik buah sendiri.",
+        "tr": "多くの観光客が自分でいちご狩りをするために、バンドン高原のいちご農園を訪れる。",
+        "note": "■ 【関連語】：selai stroberi（いちごジャム）、jus stroberi（いちごジュース）。"
+      },
+      {
+        "p": "n",
+        "w": "duku",
+        "r": "duku",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "ドゥク（薄茶色の皮をむくと半透明の房が出てくる東南アジア名産の甘いトロピカルフルーツ。特に『duku Palembang』が絶品！）",
+        "ex": "Pada musim panen, buah duku Palembang yang manis dan berbiji kecil dijual melimpah di pinggir jalan.",
+        "tr": "収穫期になると、甘くて種が小さいパレンバン産ドゥクが道端でたくさん売られる。",
+        "note": "■ 【関連語】：langsat（ランサット：ドゥクの近縁種でやや酸味がある）。"
+      },
+      {
+        "p": "n",
+        "w": "kelengkeng",
+        "r": "kelengkeng",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "竜眼（りゅうがん）、ロンガン（ライチに似た小さく丸い薄茶色の果実。プルンとした白い果肉で甘く香り高い！標準綴り『lengkeng』）",
+        "ex": "Buah kelengkeng memiliki daging buah putih bening yang sangat manis dengan satu biji hitam mengilap di tengahnya.",
+        "tr": "竜眼（ロンガン）は、真ん中にツヤのある黒い種が1つ入った、とても甘い半透明の白い果肉を持っている。",
+        "note": "■ 【似ているトロピカル果物セット】：leci（ライチ）、rambutan（ランブータン）、kelengkeng（竜眼・ロンガン）。"
+      },
+      {
+        "p": "n",
+        "w": "sawo",
+        "r": "sawo",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "サポジラ（見た目はじゃがいもに似た茶色い果物で、熟すと黒糖や干し柿のような濃厚な甘さになるインドネシアの身近な果実！肌色の『sawo matang＝小麦色』の語源！）",
+        "ex": "Buah sawo yang sudah matang sempurna terasa sangat manis lembut menyerupai perpaduan karamel dan pir.",
+        "tr": "完全に熟したサポジラの実は、キャラメルと洋梨を合わせたようなとても甘く柔らかな味がする。",
+        "note": "■ 【超有名イディオム】：kulit sawo matang（インドネシア人の健康的な「小麦色の肌」を表す定番表現！）。"
+      },
+      {
+        "p": "n",
+        "w": "jambu biji",
+        "r": "jambu",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "グァバ（特に果肉がピンクの『jambu biji merah』のジュースは、デング熱の回復食・ビタミンC補給としてインドネシアで国民的定番！）",
+        "ex": "Jus jambu biji merah dikenal sangat kaya vitamin C dan sering dikonsumsi untuk membantu pemulihan saat sakit.",
+        "tr": "赤グァバジュースはビタミンCが非常に豊富なことで知られ、病気の回復を助けるためによく飲まれる。",
+        "note": "■ 【jambu 3種の区別】：jambu biji（グァバ）、jambu air（ローズアップル・レンブ）、jambu mete（カシューアップル）。"
+      },
+      {
+        "p": "n",
+        "w": "jambu air",
+        "r": "jambu",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "レンブ、ローズアップル（赤や薄緑色の釣鐘型をした、シャキシャキ瑞々しい熱帯果物。フルーツサラダ『rujak』の定番！）",
+        "ex": "Buah jambu air yang renyah dan banyak mengandung air sangat nikmat disantap bersama bumbu rujak pedas.",
+        "tr": "シャキシャキして水分たっぷりのレンブは、辛いルジャックのタレと一緒に食べるととても美味しい。",
+        "note": "■ 【関連語】：rujak buah（甘辛ピーナッツ唐辛子ダレで食べるフルーツ盛り合わせ）。"
+      },
+      {
+        "p": "n",
+        "w": "belimbing",
+        "r": "belimbing",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "スターフルーツ（輪切りにすると星型になる甘酸っぱい熱帯果実。なお料理の酸味出しに使う小粒品種は『belimbing wuluh』）",
+        "ex": "Saat dipotong melintang, buah belimbing membentuk potongan menyerupai bintang yang cantik untuk hiasan minuman.",
+        "tr": "横に輪切りにすると、スターフルーツは飲み物の飾りにもなる美しい星型になる。",
+        "note": "■ 【2種区別】：belimbing manis（そのまま食べるスターフルーツ） ／ belimbing wuluh（すごく酸っぱい料理用スターフルーツ）。"
+      },
+      {
+        "p": "n",
+        "w": "kurma",
+        "r": "kurma",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "デーツ、ナツメヤシの実（ラマダン月の断食明け『buka puasa』に最初に食べる、イスラム文化で欠かせない甘い果実！）",
+        "ex": "Selama bulan Ramadan, banyak umat muslim mengawali buka puasa dengan menyantap tiga butir kurma dan air putih.",
+        "tr": "ラマダン月になると、多くのイスラム教徒は3粒のデーツと水で断食明けの食事を始める。",
+        "note": "■ 【文化メモ】：預言者ムハンマドの習慣（スンナ）に倣い、ラマダン前にはインドネシア中のスーパーに山積みのデーツが並ぶ！"
+      },
+      {
+        "p": "n",
+        "w": "pir",
+        "r": "pir",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "梨、洋梨（buah pir。インドネシアのスーパーでも通年売られている定番の瑞々しい果物）",
+        "ex": "Buah pir yang dingin dan banyak airnya sangat cocok dimakan saat tenggorokan terasa kering.",
+        "tr": "冷たくて瑞々しい梨は、喉が渇いているときに食べるのにぴったりだ。",
+        "note": "■ 【関連語】：apel（りんご）、persik（桃）、ceri（さくらんぼ）。"
+      },
+      {
+        "p": "n",
+        "w": "persik",
+        "r": "persik",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "桃、ピーチ（buah persik。ピーチティー『teh persik』などのフレーバー表記でもよく見かける）",
+        "ex": "Es teh persik dengan potongan buah segar menjadi minuman pelepas dahaga favorit di kafe tersebut.",
+        "tr": "新鮮な果肉入りのアイスピーチティーは、そのカフェで喉を潤す定番人気ドリンクだ。",
+        "note": "■ 【関連語】：es teh persik（アイスピーチティー）、warna persik（ピーチ色・桃色）。"
+      },
+      {
+        "p": "n",
+        "w": "ceri",
+        "r": "ceri",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "さくらんぼ、チェリー（buah ceri。ケーキの飾りや、ミニトマトの『tomat ceri』としてもよく使う！）",
+        "ex": "Kue ulang tahun cokelat itu dihias dengan krim segar dan beberapa buah ceri merah di atasnya.",
+        "tr": "そのチョコレート誕生日ケーキの上には、生クリームと数粒の赤いチェリーが飾られている。",
+        "note": "■ 【重要コロケーション】：tomat ceri（ミニトマト・チェリートマト）。"
+      },
+      {
+        "p": "n",
+        "w": "cabai rawit",
+        "r": "cabai",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "激辛の小粒唐辛子（インドネシア料理の辛さの正体！揚げ物『gorengan』と一緒にそのまま生でかじるのも定番）",
+        "ex": "Harga cabai rawit merah di pasar tradisional sering melonjak tajam saat pasokan terganggu cuaca hujan.",
+        "tr": "伝統市場での赤い小粒激辛唐辛子の価格は、雨天で供給が滞るとしばしば急騰する。",
+        "note": "■ 【唐辛子3大種】：cabai rawit（激辛の小粒唐辛子）、cabai merah keriting（細長い赤唐辛子）、cabai hijau besar（辛さ控えめの大ぶり青唐辛子）。"
+      },
+      {
+        "p": "n",
+        "w": "cabe",
+        "r": "cabai",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "唐辛子（KBBI標準綴りは『cabai』だが、屋台・メニュー表・チャットでは『cabe』が超一般的！『jangan pakai cabe＝唐辛子抜きで』）",
+        "ex": "Mas, tolong nasi gorengnya tidak usah pakai cabe ya, soalnya saya kurang kuat makan pedas.",
+        "tr": "お兄さん、辛いのがあまり得意じゃないので、ナシゴレンは唐辛子抜きにしてください。",
+        "note": "■ 【旅行サバイバル必須】：tanpa cabe / tidak pakai cabe（唐辛子抜きで）、sambal dipisah（サンバルは別皿で）。"
+      },
+      {
+        "p": "n",
+        "w": "lengkuas",
+        "r": "lengkuas",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "ガランガル、ナンキョウ（生姜に似た香草根茎。ジャワ語由来の『laos』とも呼ばれ、ルンダン・ソト・アヤムゴレンに必須のスパイス！）",
+        "ex": "Memarkan serai dan lengkuas terlebih dahulu agar aroma khasnya keluar sempurna saat ditumis.",
+        "tr": "炒めるときに独特の香りがしっかり引き立つよう、レモングラスとガランガルはあらかじめ叩き潰しておこう。",
+        "note": "■ 【生姜系根茎スパイス4兄弟】：jahe（生姜）、lengkuas / laos（ガランガル）、kunyit（ウコン・ターメリック）、kencur（バンウコン：ジャムウやセブラックの香り！）。"
+      },
+      {
+        "p": "n",
+        "w": "daun salam",
+        "r": "daun",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "サラムの葉、インドネシア・ベイリーフ（ナシウドゥック・オポール・煮込み料理の香り付けに100%欠かせない定番ハーブ！）",
+        "ex": "Masukkan santan, serai, dan dua lembar daun salam ke dalam beras agar nasi uduk terasa harum dan gurih.",
+        "tr": "ナシウドゥックが香り高く旨味豊かになるよう、お米にココナッツミルク・レモングラス・サラムの葉2枚を入れよう。",
+        "note": "■ 【香り付けの葉っぱ3強】：daun salam（サラムの葉）、daun jeruk（こぶみかんの葉）、daun pandan（パンダンリーフ＝甘い香り付け）。"
+      },
+      {
+        "p": "n",
+        "w": "daun jeruk",
+        "r": "daun",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "こぶみかんの葉（カフィアライムリーフ：『daun jeruk purut』。ソト・ルンダン・揚げ鶏に爽やかな柑橘香をプラスする必須ハーブ！）",
+        "ex": "Irisan halus daun jeruk purut memberikan aroma segar yang khas pada sambal matah khas Bali.",
+        "tr": "細かく刻んだこぶみかんの葉は、バリ名物のサンバル・マタに独特の爽やかな香りを与えてくれる。",
+        "note": "■ 【関連語】：sambal matah（刻み生サンバル）、soto（ソトスープ）、rendang（ルンダン）。"
+      },
+      {
+        "p": "n",
+        "w": "kemangi",
+        "r": "kemangi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "レモンバジル、クマンギ（『daun kemangi』。ペチェル・レレやアヤムゴレンの生野菜付け合わせ『lalapan』やペペス［バナナの葉蒸し］に必ず付いてくる香り豊かなハーブ！）",
+        "ex": "Daun kemangi segar selalu disajikan bersama timun dan kol sebagai lalapan pendamping ayam goreng.",
+        "tr": "新鮮なクマンギ（レモンバジル）の葉は、きゅうりやキャベツと一緒に揚げ鶏の付け合わせ生野菜として必ず出される。",
+        "note": "■ 【定番料理】：pepes ikan kemangi（クマンギと魚のバナナの葉蒸し）、lalapan（生野菜）。"
+      },
+      {
+        "p": "n",
+        "w": "jintan",
+        "r": "jintan",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "クミン（カレー・グライ・オポールなどの煮込み料理に深いコクを出す必須スパイス。なお『jintan hitam＝ブラッククミン／ハバトゥサウダ』）",
+        "ex": "Bumbu gulai daging biasanya menggunakan campuran ketumbar, jintan, kunyit, dan bawang merah.",
+        "tr": "肉のグライ（カレー煮込み）の合わせ調味料には、たいていコリアンダー・クミン・ウコン・エシャロットのミックスが使われる。",
+        "note": "■ 【インドネシアのドライスパイス定番】：ketumbar（コリアンダー）、jintan（クミン）、lada / merica（胡椒）、kapulaga（カルダモン）、cengkih（クローブ）、kayu manis（シナモン）。"
+      },
+      {
+        "p": "n",
+        "w": "kayu manis",
+        "r": "kayu",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "シナモン、ニッキ（直訳：甘い木。インドネシアは世界最大級のシナモン産地！煮込み・スイーツ・温かい飲み物『wedang』に定番）",
+        "ex": "Tambahkan sebatang kayu manis dan jahe geprek ke dalam teh hangat agar tubuh terasa lebih nyaman saat hujan.",
+        "tr": "雨の日に体がほっとするように、温かい紅茶にシナモンスティック1本と叩いた生姜を加えよう。",
+        "note": "■ 【豆知識】：インドネシアのスマトラ島クリンチ地方（Kerinci）は世界屈指のシナモン名産地！"
+      },
+      {
+        "p": "n",
+        "w": "kapulaga",
+        "r": "kapulaga",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "カルダモン（『スパイスの女王』と呼ばれ、グライ・ソト・ビリヤニ・温かいスパイス飲料『bandrek』に華やかな香りを添える！）",
+        "ex": "Aroma hangat kapulaga, cengkih, dan kayu manis membuat kuah gulai kambing menjadi sangat sedap.",
+        "tr": "カルダモン・クローブ・シナモンの温かみのある香りが、ヤギ肉グライのスープを格別に美味しくしてくれる。",
+        "note": "■ 【関連語】：rempah-rempah（香辛料・スパイス類）、bandrek（西ジャワの温かい生姜スパイスドリンク）。"
+      },
+      {
+        "p": "n",
+        "w": "kemiri",
+        "r": "kemiri",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "キャンドルナッツ、クミリ（マカダミアナッツに似た油分豊かな木の実。すり潰してソト・オポール・サンバルに濃厚なコクととろみを出すインドネシア料理の秘密兵器！）",
+        "ex": "Sangrai beberapa butir kemiri sebelum dihaluskan bersama bawang putih untuk bumbu dasar soto.",
+        "tr": "ソトの基本ペーストとしてニンニクと一緒にすり潰す前に、クミリ（キャンドルナッツ）を数粒乾煎りしておこう。",
+        "note": "■ 【豆知識】：『minyak kemiri（クミリ油）』はインドネシアで古くから「黒髪を太く美しく育てるヘアオイル」としても超有名！"
+      },
+      {
+        "p": "n",
+        "w": "terasi",
+        "r": "terasi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "トラシ（小エビを発酵させて固めた強烈な旨味ペースト。日本のくさや・魚醤に近い発酵のコクで『sambal terasi＝トラシ入りサンバル』は国民的定番！）",
+        "ex": "Sambal terasi bakar yang pedas gurih selalu menjadi pelengkap wajib saat makan ikan goreng dan lalapan.",
+        "tr": "香ばしく炙った旨辛のサンバル・トラシは、揚げ魚と生野菜を食べるときにいつも欠かせないお供だ。",
+        "note": "■ 【関連語】：sambal terasi（エビ発酵ペースト入りサンバル）、udang rebon（トラシの原料となるアミエビ）。"
+      },
+      {
+        "p": "n",
+        "w": "petis",
+        "r": "petis",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "プティス（エビや魚の煮汁を黒く濃厚に煮詰めた東ジャワ名物の甘じょっぱい発酵ペースト。スラバヤ名物『rujak cingur』『tahu tek』の決め手！）",
+        "ex": "Hidangan rujak cingur dan tahu tek khas Surabaya memiliki cita rasa unik berkat bumbu petis udang hitam.",
+        "tr": "スラバヤ名物のルジャック・チングルやタフ・テックは、黒いエビのプティス調味料のおかげで独特の味わいを持つ。",
+        "note": "■ 【terasi との違い】：terasi は塩気が強く乾いたブロック状、petis は黒くてツヤがあり甘みのあるとろりとしたペースト状！"
+      },
+      {
+        "p": "n",
+        "w": "asam jawa",
+        "r": "asam",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "タマリンド（甘酸っぱい豆果の果肉。定番スープ『sayur asem』・健康漢方ドリンク『jamu kunyit asem』・ピーナッツダレの酸味出しに超必須！）",
+        "ex": "Air perasan asam jawa digunakan untuk memberi rasa segar pada kuah sayur asem serta minuman kunyit asem.",
+        "tr": "タマリンドの搾り汁は、サユール・アッサムのスープやウコン・タマリンド飲料に爽やかな酸味を与えるために使われる。",
+        "note": "■ 【関連語】：sayur asem（タマリンド酸味野菜スープ）、kunyit asem（ウコン＆タマリンドの定番ジャムウ）。"
+      },
+      {
+        "p": "n",
+        "w": "gula pasir",
+        "r": "gula",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "上白糖、グラニュー糖（白いサラサラの砂糖。直訳：砂の砂糖 ⇔ gula merah / gula aren＝黒糖・ヤシ糖）",
+        "ex": "Ia meminta teh hangat tawar tanpa tambahan gula pasir agar rasa asli daun tehnya lebih terasa.",
+        "tr": "彼は茶葉本来の味がより感じられるように、砂糖なしの温かい無糖紅茶を頼んだ。",
+        "note": "■ 【砂糖3種の完全区別】：gula pasir（白砂糖）、gula merah / gula jawa（ココナッツヤシ黒糖）、gula aren（砂糖ヤシの香り高い黒糖）。"
+      },
+      {
+        "p": "n",
+        "w": "gula merah",
+        "r": "gula",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "ヤシ砂糖、赤砂糖・黒糖（固形の茶色いヤシ糖全般。ガドガド・ルジャックのタレや和菓子風の伝統菓子『kue tradisional』に欠かせない！）",
+        "ex": "Bumbu rujak buah dibuat dari campuran kacang tanah goreng, cabai rawit, asam jawa, dan gula merah.",
+        "tr": "フルーツルジャックのタレは、揚げピーナッツ・小粒唐辛子・タマリンド・ヤシ黒糖を混ぜて作られる。",
+        "note": "■ 【言い換え】：gula merah ＝ gula jawa（ジャワ黒糖）。"
+      },
+      {
+        "p": "n",
+        "w": "gula aren",
+        "r": "gula",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "アレンヤシ黒糖（パームシュガーの一種でキャラメルのような芳醇な香り！現代インドネシアのカフェを席巻する『es kopi susu gula aren』の主役！）",
+        "ex": "Es kopi susu gula aren menjadi minuman kekinian paling laris di hampir setiap kedai kopi Indonesia.",
+        "tr": "アレンヤシ黒糖入りのアイスカフェラテは、インドネシアのほぼすべてのカフェで一番売れているトレンドドリンクだ。",
+        "note": "■ 【現代カフェ最頻出ワード】：es kopi susu gula aren（黒糖アイスカフェラテ）。普通の gula jawa より香りが濃厚で溶けやすい！"
+      },
+      {
+        "p": "n",
+        "w": "kecap asin",
+        "r": "kecap",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "しょっぱい醤油、日本の醤油に近い薄口・濃口醤油（インドネシアで『kecap』単体は甘い『kecap manis』を指すため、普通の醤油は必ず『kecap asin』と言う！）",
+        "ex": "Untuk membuat bubur ayam dan tumisan bergaya Tionghoa, tambahkan sedikit kecap asin dan minyak wijen.",
+        "tr": "鶏のお粥や中華風炒め物を作るときは、しょっぱい醤油とごま油を少し加えよう。",
+        "note": "■ 【超重要な区別】：kecap manis（とろりと甘い黒醤油：インドネシアの標準） ⇔ kecap asin（しょっぱい醤油）、kecap ikan（ナンプラー・魚醤）。"
+      },
+      {
+        "p": "n",
+        "w": "saus tomat",
+        "r": "saus",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "トマトケチャップ、トマトソース（インドネシアでは『kecap』は醤油なので、ケチャップは必ず『saus tomat』と言う！※超引っかけ注意）",
+        "ex": "Di meja restoran biasanya selalu tersedia dua botol saus, yaitu saus tomat dan saus sambal pedas.",
+        "tr": "レストランのテーブルにはたいてい、トマトケチャップと辛いチリソースの2本のボトルが常備されている。",
+        "note": "■ 【テーブル常備ソースセット】：saus tomat（ケチャップ）、saus sambal（チリソース）、kecap manis（甘い醤油）、saus tiram（オイスターソース）。"
+      },
+      {
+        "p": "n",
+        "w": "mayones",
+        "r": "mayones",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "マヨネーズ（サラダ・サンドイッチ・揚げスナック『risoles mayo』で大人気の調味料）",
+        "ex": "Risoles isi daging asap, telur rebus, dan saus mayones sangat laris dibeli sebagai takjil sore hari.",
+        "tr": "スモークビーフ・ゆで卵・マヨネーズソース入りのリソレス（揚げクレープ）は、夕方の軽食（タクジル）として飛ぶように売れる。",
+        "note": "■ 【関連語】：saus tomat（ケチャップ）、moster（マスタード）、risoles mayo（マヨ入りリソレス）。"
+      },
+      {
+        "p": "n",
+        "w": "margarin",
+        "r": "margarin",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "マーガリン（植物油脂製。インドネシアの焼きトースト『roti bakar』やマルタバ・マニスにたっぷり塗る超定番！）",
+        "ex": "Penjual martabak manis mengoleskan margarin secara melimpah saat kue masih panas agar aromanya harum.",
+        "tr": "マルタバ・マニス屋さんは、香ばしい香りが立つように生地がまだ熱いうちにマーガリンをたっぷり塗る。",
+        "note": "■ 【使い分け】：mentega（動物性ミルク由来のバター） ／ margarin（植物油由来のマーガリン）。"
+      },
+      {
+        "p": "n",
+        "w": "yogurt",
+        "r": "yogurt",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "ヨーグルト（飲むヨーグルトからギリシャヨーグルト『yogurt Yunani』までスーパー・コンビニで定番の乳製品）",
+        "ex": "Semangkuk yogurt tawar dengan potongan buah beri beku menjadi sarapan cepat dan sehat setiap pagi.",
+        "tr": "冷凍ベリーを乗せた無糖ヨーグルト1杯は、毎朝の手軽でヘルシーな朝食になっている。",
+        "note": "■ 【関連語】：yogurt tawar（無糖・プレーンヨーグルト）、susu（牛乳）、keju（チーズ）。"
+      },
+      {
+        "p": "n",
+        "w": "selai",
+        "r": "selai",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "ジャム、スプレッド（パンに塗る甘いペースト全般：selai stroberi＝いちごジャム、selai kacang＝ピーナッツバター、selai srikaya＝カヤジャム！）",
+        "ex": "Untuk sarapan sederhana, ia biasa mengoleskan selai kacang atau selai srikaya di atas roti panggang.",
+        "tr": "シンプルな朝食には、彼は普段トーストにピーナッツバターかカヤジャムを塗って食べる。",
+        "note": "■ 【東南アジア名物】：selai srikaya（ココナッツミルクと卵・パンダンの濃厚なカヤジャム＝絶品！）。"
+      },
+      {
+        "p": "n",
+        "w": "mie goreng",
+        "r": "mi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "ミーゴレン（インドネシア風焼きそば。甘いケチャップマニスとニンニク・唐辛子で炒めた国民食。世界的人気のインスタント麺『Indomie Goreng』も有名！）",
+        "ex": "Mie goreng telur mata sapi dengan taburan bawang goreng merupakan menu andalan yang disukai semua kalangan.",
+        "tr": "フライドオニオンを散らした目玉焼き乗せミーゴレンは、あらゆる世代に愛される定番メニューだ。",
+        "note": "■ 【国民食ペア】：nasi goreng（ナシゴレン＝焼き飯） ／ mie goreng（ミーゴレン＝焼きそば）。"
+      },
+      {
+        "p": "n",
+        "w": "nasi uduk",
+        "r": "nasi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "ナシ・ウドゥック（ココナッツミルク・サラムの葉・レモングラスで炊き上げたジャカルタ［ブタウィ］名物の香り豊かなご飯！朝ごはんの超定番）",
+        "ex": "Nasi uduk yang gurih biasanya disantap pada pagi hari bersama telur dadar iris, orek tempe, dan sambal kacang.",
+        "tr": "コクのあるナシ・ウドゥックは、たいてい朝に錦糸卵・テンペの甘辛炒め・ピーナッツサンバルと一緒に食べられる。",
+        "note": "■ 【3大味付きご飯】：nasi uduk（白いココナッツご飯）、nasi kuning（ウコンの黄色いお祝いご飯）、nasi liwet（出汁・小魚と炊くソロ／スンダ風炊き込みご飯）。"
+      },
+      {
+        "p": "n",
+        "w": "nasi kuning",
+        "r": "nasi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "ナシ・クニン（ウコンとココナッツミルクで鮮やかな黄金色に炊き上げたインドネシアのお祝いご飯！円錐形に盛った『tumpeng』が象徴的）",
+        "ex": "Nasi kuning berbentuk tumpeng sering disajikan pada acara ulang tahun, syukuran, dan peresmian kantor baru.",
+        "tr": "円錐形（トゥンペン）に形作られたナシ・クニンは、誕生日・感謝祭・新オフィスの開所式などでよく振る舞われる。",
+        "note": "■ 【文化メモ】：黄金色は「繁栄と感謝」の象徴。普段の朝ごはん屋台でも気軽に食べられる！"
+      },
+      {
+        "p": "n",
+        "w": "nasi padang",
+        "r": "nasi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "ナシ・パダン（西スマトラ・ミナンカバウ発祥の国民的定食！ショーケースに並ぶルンダン・グライ・アヤムポックなど好きなおかずを選んでご飯と食べる）",
+        "ex": "Di rumah makan Padang, porsi nasi padang yang dibungkus pulang terkenal lebih banyak daripada makan di tempat.",
+        "tr": "パダン料理店では、持ち帰り（ブンクス）にしたナシ・パダンのご飯の量は、店内飲食より多いことで有名だ。",
+        "note": "■ 【パダン豆知識】：『hidang（テーブル一面に小皿料理をズラッと並べ、食べた皿だけ精算する伝統スタイル）』もぜひ体験したい文化！"
+      },
+      {
+        "p": "n",
+        "w": "emping",
+        "r": "emping",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "ウンピン（ムリンジョの木の実を潰して乾燥させ揚げた、ほろ苦くて香ばしいせんべい！ガドガドやソト・ブタウィに必ず添えられる大人の味）",
+        "ex": "Rasa emping melinjo yang gurih dan sedikit pahit sangat pas untuk melengkapi semangkuk soto Betawi.",
+        "tr": "香ばしくて少しほろ苦いムリンジョのウンピンは、ソト・ブタウィ1杯に添えるのにぴったりだ。",
+        "note": "■ 【揚げせんべいペア】：kerupuk（エビやタピオカの軽い揚げせんべい） ／ emping（ムリンジョの実の少しほろ苦い薄焼きチップス）。"
+      },
+      {
+        "p": "n",
+        "w": "lalapan",
+        "r": "lalap",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "ララパン（スンダ料理発祥の付け合わせ生野菜セット！きゅうり・キャベツ・クマンギ・なす等をサンバルにつけて手で食べるインドネシアの定番）",
+        "ex": "Restoran Sunda hampir selalu menyajikan sepiring lalapan segar gratis lengkap dengan sambal terasi.",
+        "tr": "スンダ料理店では、ほぼ必ずサンバル・トラシ付きの新鮮な生野菜（ララパン）一皿が無料で出される。",
+        "note": "■ 【関連語】：timun（きゅうり）、kemangi（レモンバジル）、kol（キャベツ）、sambal（サンバル）。"
+      },
+      {
+        "p": "n",
+        "w": "air mineral",
+        "r": "air",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "ミネラルウォーター（レストランやコンビニでボトル入りの水を頼むときの超定番表現！水道水は飲めないので旅行中毎日使う）",
+        "ex": "Permisi, saya pesan satu botol air mineral dingin dan satu gelas es teh tawar.",
+        "tr": "すみません、冷たいミネラルウォーターを1本と、無糖のアイスティーを1杯お願いします。",
+        "note": "■ 【注文フレーズ】：air mineral dingin（冷たい水） ／ air mineral biasa（常温の水：冷えていない水）。日常では『air putih』もよく使う。"
+      },
+      {
+        "p": "n",
+        "w": "es",
+        "r": "es",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "①氷（es batu＝角氷） ②冷たい・アイスの〜（飲み物やデザートの頭に付けて『es teh＝アイスティー』『es kopi＝アイスコーヒー』『es krim＝アイスクリーム』『es campur＝ミックスかき氷』）",
+        "ex": "Di bawah terik matahari siang, segelas es kelapa muda langsung mengembalikan kesegaran tubuh.",
+        "tr": "真昼の強い日差しの下、冷たいヤングココナッツジュース1杯がすぐに体の爽快感を取り戻してくれる。",
+        "note": "■ 【注文カスタマイズ】：pakai es（氷あり）、sedikit es（氷少なめ）、tanpa es（氷なし）。"
+      },
+      {
+        "p": "n",
+        "w": "teh manis",
+        "r": "teh",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "甘い紅茶（インドネシアの食堂で『es teh＝アイスティー』と頼むと基本は激甘の『es teh manis』が出てくる！無糖が欲しければ『es teh tawar』と指定必須！）",
+        "ex": "Es teh manis adalah minuman pendamping paling populer di warung makan, tetapi saya lebih sering memesan teh tawar.",
+        "tr": "甘いアイスティーは食堂で一番人気の定番ドリンクだが、私は無糖のお茶を頼むことが多い。",
+        "note": "■ 【超重要な注文対比】：es teh manis（甘いアイスティー） ⇔ es teh tawar（無糖アイスティー）。甘さ控えめは『kurang manis / sedikit gula』！"
+      },
+      {
+        "p": "n",
+        "w": "kopi susu",
+        "r": "kopi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "ミルクコーヒー、カフェラテ（伝統的な練乳入りから、現代カフェの『es kopi susu gula aren＝黒糖ラテ』までインドネシア人が愛してやまない定番！）",
+        "ex": "Setiap pagi sebelum masuk kelas, banyak mahasiswa mampir membeli segelas es kopi susu di kafe dekat kampus.",
+        "tr": "毎朝授業に入る前、多くの学生が大学近くのカフェに寄ってアイスカフェラテを1杯買っていく。",
+        "note": "■ 【コーヒー注文セット】：kopi hitam（ブラックコーヒー）、kopi tubruk（挽いた粉にお湯を直接注ぐ伝統式コーヒー）、kopi susu（ミルクコーヒー）。"
+      },
+      {
+        "p": "n",
+        "w": "jus",
+        "r": "jus",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "フレッシュジュース（インドネシアの食堂や屋台ではアボカド『jus alpukat』・マンゴー『jus mangga』・グァバ『jus jambu』の生搾り濃厚ジュースが安くて絶品！）",
+        "ex": "Jus alpukat segar tanpa tambahan gula maupun susu kental manis memiliki tekstur yang sangat lembut dan mengenyangkan.",
+        "tr": "砂糖も練乳も加えない新鮮なアボカドジュースは、とても滑らかな口当たりで腹持ちが良い。",
+        "note": "■ 【現地注文のコツ】：そのまま頼むと砂糖＋練乳たっぷりなことが多いので、素材の味を楽しみたい時は『tanpa gula, tanpa susu（砂糖なし・練乳なし）』！"
+      },
+      {
+        "p": "n",
+        "w": "soda",
+        "r": "soda",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "①炭酸飲料、ソーダ水（minuman bersoda＝炭酸ドリンク、soda gembira＝練乳と赤いシロップをソーダで割ったインドネシアの定番甘味ドリンク！） ②重曹（soda kue＝ベーキングソーダ）",
+        "ex": "Ia sudah berhenti minum minuman bersoda setiap hari agar kualitas tidurnya di malam hari tetap nyenyak.",
+        "tr": "彼は夜の睡眠の質をぐっすり良好に保つため、毎日炭酸飲料を飲むのをやめた。",
+        "note": "■ 【重要コロケーション】：minuman bersoda（炭酸飲料）、air soda（炭酸水）、soda kue（重曹）。"
+      }
+    ];
+
+    const idxByWord = new Map();
+    for (let i = 0; i < d.vocab.length; i++) {
+      const it = d.vocab[i];
+      if (it && it.w) idxByWord.set(it.w.trim().toLowerCase(), i);
+    }
+
+    for (let i = 0; i < DICT_PACK_4.length; i++) {
+      const item = DICT_PACK_4[i];
+      if (!item || !item.w) continue;
+      const key = item.w.trim().toLowerCase();
+
+      item.dictOnly = true;
+      item.tier = 3;
+      dictOnlySet.add(key);
+
+      if (item.topicCat) {
+        catMap.set(key, item.topicCat);
+      }
+
+      if (idxByWord.has(key)) {
+        const pos = idxByWord.get(key);
+        Object.assign(d.vocab[pos], item);
+        vMap.set(key, d.vocab[pos]);
+        persistentAdded.set(key, d.vocab[pos]);
+      } else {
+        d.vocab.push(item);
+        idxByWord.set(key, d.vocab.length - 1);
+        vMap.set(key, item);
+        persistentAdded.set(key, item);
+      }
+    }
+  } catch (e) {
+    console.error("WhatsIndo Dict Pack 4 error:", e);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 辞書充実プロジェクト 第5弾（全65語・すべて辞書専用 dictOnly: true）
+   - ① 住まい・部屋・家具・家電（24語）：apartemen, balkon, kamar tidur,
+       ruang keluarga, ruang makan, toilet, WC, sofa, AC, TV, freezer,
+       microwave, blender, penanak nasi, penyedot debu, pemanggang roti,
+       dispenser, speaker, pemanas air, meja belajar, lemari pakaian,
+       rak sepatu, lampu tidur, jam weker
+   - ② 日用品・ケア・掃除・キッチン用品（23語）：tabir surya, sunscreen,
+       deodoran, losion, kosmetik, kondisioner, pisau cukur, pewangi, spons,
+       kantong plastik, hanger, jepit jemuran, spatula, pembuka botol, nampan,
+       tusuk gigi, pembersih wajah, sabun cuci piring, kanebo, rak piring,
+       kotak tisu, botol minum, tumbler
+   - ③ 衣類・靴・ファッション・アクセサリー（18語）：celana pendek, blus,
+       terusan, piyama, baju renang, pakaian dalam, celana dalam, bra,
+       sepatu bot, anting, kaus oblong, hoodie, celana jins, cardigan,
+       sepatu olahraga, sneakers, tas selempang, tas jinjing
+   - **記号ゼロ・文字バグゼロ・try-catch完全保護・問題モードへ一切混入しません
+   ===================================================================== */
+(function() {
+  try {
+    const d = window.WHATSINDO_EXTERNAL_DATA;
+    if (!d || !Array.isArray(d.vocab)) return;
+
+    const dictOnlySet     = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+    const persistentAdded = window.__wiPersistentAddedVocab || (window.__wiPersistentAddedVocab = new Map());
+    const vMap            = window.__wiMasterVocabMap || (window.__wiMasterVocabMap = new Map());
+    const catMap          = window.__WI_V5_VCAT || (window.__WI_V5_VCAT = new Map());
+
+    const DICT_PACK_5 = [
+      {
+        "p": "n",
+        "w": "apartemen",
+        "r": "apartemen",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "マンション、アパート（インドネシアではプール・ジム・警備員付きの近代的な高層分譲／賃貸マンションを指すことが多い。学生向け下宿は『kos』）",
+        "ex": "Banyak pekerja muda memilih menyewa apartemen di dekat stasiun MRT agar menghemat waktu perjalanan ke kantor.",
+        "tr": "多くの若手会社員は、オフィスへの通勤時間を節約するためMRT駅の近くのマンションを借りることを選んでいる。",
+        "note": "■ 【インドネシアの住居4区分】：rumah（一戸建て）、apartemen（近代的マンション）、kos / indekos（家具付き下宿・ワンルーム）、kontrakan（地元向け賃貸アパート・借家）。"
+      },
+      {
+        "p": "n",
+        "w": "balkon",
+        "r": "balkon",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "バルコニー、ベランダ（マンションや2階以上の部屋の外に張り出したスペース）",
+        "ex": "Ia menaruh beberapa pot tanaman hias dan kursi santai kecil di balkon apartemennya.",
+        "tr": "彼はマンションのバルコニーに観葉植物の鉢植えをいくつか置き、小さなくつろぎ用の椅子を置いている。",
+        "note": "■ 【1階と2階以上の区別】：1階の玄関先・縁側は『teras（テラス）』、2階以上の張り出しは『balkon（バルコニー）』。"
+      },
+      {
+        "p": "n",
+        "w": "kamar tidur",
+        "r": "kamar",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "寝室、ベッドルーム（物件探しで『dua kamar tidur＝2LDK/2ベッドルーム』のように必ず使う基本語）",
+        "ex": "Rumah minimalis itu memiliki tiga kamar tidur, dua kamar mandi, dan ruang keluarga yang cukup luas.",
+        "tr": "そのミニマリスト様式の家には、寝室3部屋、バスルーム2つ、そしてかなり広いリビングがある。",
+        "note": "■ 【家の部屋セット】：ruang tamu（応接室）、ruang keluarga（リビング）、kamar tidur（寝室）、dapur（キッチン）、ruang makan（ダイニング）、kamar mandi（浴室・トイレ）。"
+      },
+      {
+        "p": "n",
+        "w": "ruang keluarga",
+        "r": "ruang",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "リビング、居間、ファミリールーム（家族がくつろぐ部屋。来客を通す玄関すぐの応接室『ruang tamu』と区別して使うのがインドネシア流！）",
+        "ex": "Setiap akhir pekan, seluruh anggota keluarga berkumpul menonton film bersama di ruang keluarga.",
+        "tr": "毎週末、家族全員がリビング（居間）に集まって一緒に映画を観る。",
+        "note": "■ 【使い分け】：ruang tamu（玄関すぐの来客用応接間） ／ ruang keluarga（奥にある家族団らんのリビング）。"
+      },
+      {
+        "p": "n",
+        "w": "ruang makan",
+        "r": "ruang",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "ダイニングルーム、食堂（家の中の食事用スペース：meja makan＝ダイニングテーブル）",
+        "ex": "Aroma sop hangat dari dapur sudah tercium hingga ke ruang makan menjelang waktu makan malam.",
+        "tr": "夕食の時間が近づくと、キッチンからの温かいスープの香りがダイニングルームまで漂ってくる。",
+        "note": "■ 【関連語】：meja makan（ダイニングテーブル）、dapur（台所・キッチン）。"
+      },
+      {
+        "p": "n",
+        "w": "toilet",
+        "r": "toilet",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "トイレ、化粧室（空港・モール・レストラン・カフェで『Toilet di sebelah mana?＝トイレはどちらですか？』と毎日使う必須語！）",
+        "ex": "Permisi, apakah di lantai dua ini tersedia toilet umum dan ruang menyusui?",
+        "tr": "すみません、この2階に公衆トイレと授乳室はありますか？",
+        "note": "■ 【トイレの言い換えセット】：toilet（モール・公共施設で最頻出）、WC（看板表記）、kamar kecil（丁寧な婉曲表現）、kamar mandi（自宅の風呂兼トイレ）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "WC",
+        "r": "Water Closet",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "トイレ、便所（発音はオランダ語由来の『ウェ・セ』。街中の看板や食堂・駅で『WC Umum＝公衆トイレ』として超よく見かける！）",
+        "ex": "Pengunjung dapat menemukan papan petunjuk arah menuju WC umum di dekat pintu keluar terminal.",
+        "tr": "利用者はターミナル出口付近で公衆トイレ（WC）への案内表示板を見つけることができる。",
+        "note": "■ 【現地メモ】：有料公衆トイレ（トイレ番がいる場所）では小額の現金（2,000〜3,000ルピア程度）を払うことも多い。発音は「ウェ・セ」！"
+      },
+      {
+        "p": "n",
+        "w": "sofa",
+        "r": "sofa",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "ソファ、長椅子（リビングやカフェのくつろぎ用椅子）",
+        "ex": "Setelah seharian bekerja di luar, ia langsung duduk bersandar di sofa empuk sambil minum teh hangat.",
+        "tr": "一日中外で働いた後、彼はふかふかのソファにもたれかかって温かいお茶を飲んだ。",
+        "note": "■ 【関連語】：sofa bed（ソファベッド）、bantal sofa（クッション）、kursi（椅子）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "AC",
+        "r": "Air Conditioner",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "エアコン、冷房（インドネシア語発音は『ア・セ』。常夏のインドネシア生活で絶対に毎日使う超必須語！公式訳は『pendingin ruangan』）",
+        "ex": "Tolong naikkan suhu AC menjadi dua puluh lima derajat karena udara di dalam kamar terasa terlalu dingin.",
+        "tr": "部屋の中が寒すぎるので、エアコンの温度を25度に上げてください。",
+        "note": "■ 【現地生活コロケーション】：\n・kamar AC（エアコン付き部屋：kos探しやホテルで超重要！）\n・nyalakan / matikan AC（エアコンをつける／消す）\n・cuci AC / servis AC（エアコンのクリーニング／修理）"
+      },
+      {
+        "p": "singkatan",
+        "w": "TV",
+        "r": "Televisi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "テレビ（発音は『ティ・フィ』。televisi の日常略称：nonton TV＝テレビを見る、acara TV＝テレビ番組）",
+        "ex": "Keluarga kami biasanya menonton siaran berita pagi di TV sambil sarapan sebelum berangkat beraktivitas.",
+        "tr": "私たちの家族は普段、出かける前に朝食を食べながらテレビで朝のニュース番組を観る。",
+        "note": "■ 【関連語】：televisi（テレビの正式語）、saluran TV（チャンネル）、remot TV（テレビのリモコン）。"
+      },
+      {
+        "p": "n",
+        "w": "freezer",
+        "r": "freezer",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "冷凍庫、冷蔵庫の冷凍室（公式表記『pembeku』だが、家電店や日常ではほぼ100%『freezer』と言う！）",
+        "ex": "Saya selalu menyimpan stok buah beri beku dan dada ayam di dalam freezer agar tahan lebih lama.",
+        "tr": "日持ちさせるために、私はいつも冷凍ベリーと鶏むね肉のストックを冷凍庫に保存している。",
+        "note": "■ 【関連語】：kulkas / lemari es（冷蔵庫）、beku（凍った・冷凍の）、es batu（角氷）。"
+      },
+      {
+        "p": "n",
+        "w": "microwave",
+        "r": "microwave",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "電子レンジ（公式表記『oven gelombang mikro』だが、日常・コンビニ・家電店では100%『microwave』！）",
+        "ex": "Makanan siap saji ini cukup dipanaskan di dalam microwave selama dua menit sebelum disantap.",
+        "tr": "このレトルト・チルド食品は、食べる前に電子レンジで2分温めるだけでよい。",
+        "note": "■ 【キッチン家電ペア】：microwave（電子レンジ） ／ oven（オーブン） ／ kompor（コンロ）。"
+      },
+      {
+        "p": "n",
+        "w": "blender",
+        "r": "blender",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "ミキサー、ブレンダー（フルーツジュースやインドネシア料理のスパイスペースト『bumbu halus』作りに毎日活躍する定番家電！）",
+        "ex": "Untuk menghemat waktu memasak, banyak orang kini menghaluskan bumbu dapur menggunakan blender daripada ulekan.",
+        "tr": "料理の時間を節約するため、今では多くの人が石臼（ウレカン）ではなくブレンダーを使って調味料をすり潰している。",
+        "note": "■ 【豆知識】：インドネシアの家庭ではジュース作りだけでなく、ニンニク・唐辛子・エシャロットをペーストにする調理器具としても大活躍！"
+      },
+      {
+        "p": "n",
+        "w": "penanak nasi",
+        "r": "tanak",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "炊飯器（英語 rice cooker の公式インドネシア語。日常会話では『rice cooker』や定番ブランド名由来の『magic com』とも呼ばれる！）",
+        "ex": "Penanak nasi listrik modern kini tidak hanya bisa memasak nasi, tetapi juga mengukus sayur dan membuat bubur.",
+        "tr": "現代の電気炊飯器はご飯を炊くだけでなく、野菜を蒸したりお粥を作ったりもできる。",
+        "note": "■ 【現地あるある】：インドネシアの家電店や下宿では『penanak nasi』のほか、『rice cooker』や『magic com（保温機能付き炊飯器の俗称）』が超通じる！"
+      },
+      {
+        "p": "n",
+        "w": "penyedot debu",
+        "r": "sedot",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "掃除機（英語 vacuum cleaner の公式インドネシア語。直訳：ホコリを吸い取る機械。日常では『vakum / vacuum cleaner』とも言う）",
+        "ex": "Menggunakan penyedot debu nirkabel sangat membantu membersihkan bulu hewan peliharaan yang menempel di karpet.",
+        "tr": "コードレス掃除機を使うと、カーペットについたペットの毛を掃除するのにとても役立つ。",
+        "note": "■ 【語構成】：peN- + sedot（吸う：頭文字 s が鼻音化して ny）+ debu（ホコリ）。"
+      },
+      {
+        "p": "n",
+        "w": "pemanggang roti",
+        "r": "panggang",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "トースター（英語 toaster の公式インドネシア語。食パンを焼く家電）",
+        "ex": "Setiap pagi ia memanggang dua lembar roti gandum menggunakan pemanggang roti sebelum berangkat kuliah.",
+        "tr": "毎朝、彼は大学へ出かける前にトースターで全粒粉食パンを2枚焼く。",
+        "note": "■ 【語構成】：peN- + panggang（焼く）+ roti（パン）。"
+      },
+      {
+        "p": "n",
+        "w": "dispenser",
+        "r": "dispenser",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "ウォーターサーバー（19Lの大型飲料水ボトル『galon』をセットして冷水・お湯を出す、インドネシアの全家庭＆下宿の必須家電！）",
+        "ex": "Di sudut lorong kamar kos tersedia dispenser air minum gratis dengan pilihan air panas dan dingin.",
+        "tr": "下宿の廊下の隅には、お湯と冷水が選べる無料のウォーターサーバーが設置されている。",
+        "note": "■ 【インドネシア生活の必需品】：dispenser（ウォーターサーバー）＋ air galon（大型19Lボトル水）。水道水を飲めないインドネシアの生活インフラ！"
+      },
+      {
+        "p": "n",
+        "w": "speaker",
+        "r": "speaker",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "スピーカー（公式語は『pengeras suara / pelantang』だが、Bluetoothスピーカー等の日常会話では『speaker』が一般的）",
+        "ex": "Suara musik akustik dari speaker Bluetooth kecil itu terdengar cukup jernih di dalam kamar.",
+        "tr": "その小型Bluetoothスピーカーから流れるアコースティック音楽の音は、部屋の中でかなりクリアに聞こえる。",
+        "note": "■ 【関連語】：pengeras suara（公式語：スピーカー・拡声器）、volume suara（音量）。"
+      },
+      {
+        "p": "n",
+        "w": "pemanas air",
+        "r": "panas",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "給湯器（シャワーのお湯沸かし機＝water heater）または電気ケトル（teko pemanas air）",
+        "ex": "Penginapan di daerah pegunungan yang dingin seperti Bandung dan Dieng umumnya sudah dilengkapi pemanas air di kamar mandi.",
+        "tr": "バンドンやディエンのような涼しい山間部の宿は、一般的にバスルームに給湯器が備え付けられている。",
+        "note": "■ 【現地宿探しメモ】：インドネシアの安宿や下宿は水シャワーのみの物件も多いため、お湯が欲しい時は『Ada pemanas air / water heater?』と確認必須！"
+      },
+      {
+        "p": "n",
+        "w": "meja belajar",
+        "r": "meja",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "学習机、勉強机（デスクワーク用の作業机は『meja kerja』）",
+        "ex": "Ia merapikan buku kamus dan menyalakan lampu di atas meja belajar sebelum mulai menghafal kosakata.",
+        "tr": "彼は語彙を暗記し始める前に、辞書を片付けて学習机の上のライトをつけた。",
+        "note": "■ 【机の種類セット】：meja belajar（勉強机）、meja kerja（仕事用デスク）、meja makan（食卓）、meja rias（ドレッサー・化粧台）。"
+      },
+      {
+        "p": "n",
+        "w": "lemari pakaian",
+        "r": "lemari",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "タンス、クローゼット、洋服ダンス（＝lemari baju）",
+        "ex": "Semua kemeja dan jaket digantung rapi di dalam lemari pakaian agar tidak kusut.",
+        "tr": "シワにならないように、シャツやジャケットはすべてクローゼット（洋服ダンス）の中にきれいに掛けてある。",
+        "note": "■ 【lemari セット】：lemari pakaian / baju（クローゼット）、lemari es（冷蔵庫）、lemari buku（本棚）。"
+      },
+      {
+        "p": "n",
+        "w": "rak sepatu",
+        "r": "rak",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "靴箱、シューズラック（玄関に置く靴棚）",
+        "ex": "Tolong susun sepatu dan sandalmu dengan rapi di rak sepatu dekat pintu masuk.",
+        "tr": "靴とサンダルは玄関近くのシューズラックにきちんと並べて置いてね。",
+        "note": "■ 【rak セット】：rak buku（本棚）、rak sepatu（靴箱）、rak piring（水切りかご・食器棚）。"
+      },
+      {
+        "p": "n",
+        "w": "lampu tidur",
+        "r": "lampu",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "ナイトライト、間接照明・ベッドサイドランプ（寝るときにつける柔らかな常夜灯）",
+        "ex": "Menyalakan lampu tidur berwarna kuning hangat di malam hari membantu mata lebih rileks sebelum tidur.",
+        "tr": "夜に温かみのある黄色いナイトライトをつけると、寝る前に目がリラックスしやすくなる。",
+        "note": "■ 【関連語】：lampu belajar（デスクライト）、sakelar（スイッチ）、bola lampu / bohlam（電球）。"
+      },
+      {
+        "p": "n",
+        "w": "jam weker",
+        "r": "jam",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "目覚まし時計（オランダ語 wekker 由来。スマホのアラームは『alarm』、置き時計タイプは『jam weker』）",
+        "ex": "Ia menyetel jam weker dan alarm ponsel sekaligus agar tidak terlambat bangun untuk ujian pagi.",
+        "tr": "朝の試験に寝坊しないよう、彼は目覚まし時計とスマホのアラームを同時にセットした。",
+        "note": "■ 【時計3点セット】：jam tangan（腕時計）、jam dinding（掛け時計）、jam weker（目覚まし時計）。"
+      },
+      {
+        "p": "n",
+        "w": "tabir surya",
+        "r": "tabir",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "日焼け止め（英語 sunscreen の公式インドネシア語。直訳：太陽を遮る幕。赤道直下のインドネシアでは必須アイテム！）",
+        "ex": "Oleskan tabir surya ber-SPF tinggi sebelum beraktivitas di luar ruangan agar kulit terlindungi dari sinar ultraviolet.",
+        "tr": "紫外線から肌を守るため、屋外で活動する前に高SPFの日焼け止めを塗ろう。",
+        "note": "■ 【言い換え】：tabir surya（公式・パッケージ記載） ／ sunscreen / sunblock（日常会話・コスメ売り場）。"
+      },
+      {
+        "p": "n",
+        "w": "sunscreen",
+        "r": "sunscreen",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "日焼け止めクリーム・ジェル（公式語は『tabir surya』だが、ドラッグストアや日常会話では『sunscreen』が圧倒的に頻出！）",
+        "ex": "Jangan lupa memakai ulang sunscreen setiap tiga jam saat jalan-jalan di pantai atau di bawah terik matahari.",
+        "tr": "ビーチや強い日差しの下を歩き回るときは、3時間おきに日焼け止めを塗り直すのを忘れないでね。",
+        "note": "■ 【関連語】：tabir surya（公式語）、pelembap（保湿クリーム・乳液）、skincare（スキンケア）。"
+      },
+      {
+        "p": "n",
+        "w": "deodoran",
+        "r": "deodoran",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "デオドラント、制汗剤（蒸し暑いインドネシアのコンビニ・スーパーの定番必需品）",
+        "ex": "Ia selalu membawa deodoran ukuran kecil di dalam tas olahraga untuk dipakai setelah mandi di gym.",
+        "tr": "彼はジムでシャワーを浴びた後に使うため、スポーツバッグにいつも小型のデオドラントを入れている。",
+        "note": "■ 【関連語】：keringat（汗）、bau badan（体臭）、parfum（香水）。"
+      },
+      {
+        "p": "n",
+        "w": "losion",
+        "r": "losion",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "ローション、ボディクリーム（hand body lotion＝インドネシアではボディクリームのことをよく『handbody』と呼ぶ！また蚊除けクリームは『losion antinyamuk』）",
+        "ex": "Sebelum tidur di daerah yang banyak nyamuk, oleskan losion antinyamuk pada lengan dan kaki.",
+        "tr": "蚊が多い地域で寝る前には、腕と足に虫除けローションを塗っておこう。",
+        "note": "■ 【現地必須】：losion antinyamuk（虫除けローション：定番商品は Autan / Soffell！）、losion pelembap（保湿ローション）。"
+      },
+      {
+        "p": "n",
+        "w": "kosmetik",
+        "r": "kosmetik",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "化粧品、コスメ（produk kosmetik＝化粧品、toko kosmetik＝コスメショップ）",
+        "ex": "Konsumen disarankan memeriksa nomor izin edar BPOM sebelum membeli produk kosmetik secara daring.",
+        "tr": "消費者はオンラインで化粧品を購入する前に、医薬品食品監督庁（BPOM）の流通許可番号を確認することが勧められている。",
+        "note": "■ 【関連語】：riasan / makeup（メイク）、lipstik（口紅）、bedak（おしろい・ファンデーション）、BPOM（安全認可機関）。"
+      },
+      {
+        "p": "n",
+        "w": "kondisioner",
+        "r": "kondisioner",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "ヘアコンディショナー、リンス（洗髪後のトリートメント・リンス剤）",
+        "ex": "Setelah keramas menggunakan sampo, oleskan kondisioner hanya pada batang hingga ujung rambut lalu bilas bersih.",
+        "tr": "シャンプーで洗髪した後、コンディショナーを髪の中間から毛先だけに馴染ませてきれいに洗い流そう。",
+        "note": "■ 【バスルーム3点セット】：sabun mandi（ボディソープ・石けん）、sampo（シャンプー）、kondisioner（コンディショナー）。"
+      },
+      {
+        "p": "n",
+        "w": "pisau cukur",
+        "r": "cukur",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "カミソリ、ひげ剃り（電動シェーバーは『alat cukur listrik』）",
+        "ex": "Ia membeli pisau cukur baru dan krim cukur di minimarket dekat hotel sebelum wawancara kerja.",
+        "tr": "彼は就職面接の前に、ホテル近くのコンビニで新しいカミソリとシェービングクリームを買った。",
+        "note": "■ 【関連語】：mencukur（剃る・散髪する）、tukang cukur（理容師・床屋）、kumis（口ひげ）、jenggot（あごひげ）。"
+      },
+      {
+        "p": "n",
+        "w": "pewangi",
+        "r": "wangi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "芳香剤、香り付け柔軟剤（pewangi ruangan＝部屋の芳香剤、pewangi pakaian＝衣類用香り付け・柔軟剤）",
+        "ex": "Layanan binatu kiloan di sekitar kampus biasanya menggunakan pewangi pakaian yang aromanya sangat tahan lama.",
+        "tr": "大学周辺の量り売りランドリー店は、たいてい香りがとても長持ちする衣類用柔軟芳香剤を使っている。",
+        "note": "■ 【語構成】：pe- + wangi（良い香りの）。インドネシアのランドリー仕上げの強い香りの正体がこの『pewangi pakaian』！"
+      },
+      {
+        "p": "n",
+        "w": "spons",
+        "r": "spons",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "スポンジ（spons cuci piring＝食器洗いスポンジ、spons mandi＝ボディスポンジ、spons makeup＝メイクスポンジ）",
+        "ex": "Ganti spons cuci piring secara rutin setiap beberapa minggu agar tidak menjadi sarang bakteri di dapur.",
+        "tr": "キッチンで雑菌の温床にならないように、食器洗いスポンジは数週間おきに定期的に交換しよう。",
+        "note": "■ 【洗い物セット】：spons（スポンジ）、sabun cuci piring（食器用洗剤）、rak piring（水切りラック）。"
+      },
+      {
+        "p": "n",
+        "w": "kantong plastik",
+        "r": "kantong",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "レジ袋、ビニール袋（日常口語では『kresek / kantong kresek』！ジャカルタ等のスーパーでは有料・廃止が進みエコバッグ持参が定番）",
+        "ex": "Banyak minimarket di kota besar tidak lagi menyediakan kantong plastik sekali pakai sehingga pembeli membawa tas belanja sendiri.",
+        "tr": "大都市の多くのコンビニは使い捨てレジ袋の提供をやめたため、買い物客は自分でエコバッグを持参している。",
+        "note": "■ 【買い物レジ表現】：kantong plastik / kresek（レジ袋）、tas belanja（エコバッグ）。レジで『Pakai kantong?（袋いりますか？）』と聞かれる！"
+      },
+      {
+        "p": "n",
+        "w": "hanger",
+        "r": "hanger",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "ハンガー（衣類を掛けるハンガー。公式語は『gantungan baju』だが、日常・ホテルでは『hanger』が超通じる！）",
+        "ex": "Permisi, boleh minta tambahan tiga hanger baju untuk kamar nomor tiga ratus lima?",
+        "tr": "すみません、305号室用に洋服ハンガーを3本追加でいただけますか？",
+        "note": "■ 【言い換え】：hanger（日常・ホテル） ＝ gantungan baju（公式語）。"
+      },
+      {
+        "p": "n",
+        "w": "jepit jemuran",
+        "r": "jepit",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "洗濯ばさみ（風で洗濯物が飛ばされないよう挟むクリップ＝penjepit jemuran）",
+        "ex": "Pasang jepit jemuran pada kaus kaki dan handuk kecil supaya tidak terbang tertiup angin kencang.",
+        "tr": "強風に吹かれて飛んでいかないように、靴下やハンドタオルに洗濯ばさみをつけよう。",
+        "note": "■ 【関連語】：menjepit（挟む）、jemuran（物干し・洗濯物）、jemur（干す）。"
+      },
+      {
+        "p": "n",
+        "w": "spatula",
+        "r": "spatula",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "フライ返し、ヘラ（調理用のヘラ・ターナー。伝統的な中華鍋用のものは『sodet / sutil』とも呼ばれる）",
+        "ex": "Gunakan spatula silikon saat memasak di wajan antilengket agar lapisan permukaannya tidak tergores.",
+        "tr": "フッ素加工フライパンで調理するときは、表面のコーティングが傷つかないようシリコン製のフライ返しを使おう。",
+        "note": "■ 【調理器具セット】：wajan（フライパン・中華鍋）、panci（鍋）、spatula / sodet（フライ返し）、talenan（まな板）。"
+      },
+      {
+        "p": "n",
+        "w": "pembuka botol",
+        "r": "buka",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "栓抜き、ボトルオープナー（瓶飲料の王冠を開ける道具。なお缶切りは『pembuka kaleng』）",
+        "ex": "Mas, boleh pinjam pembuka botol sebentar untuk membuka botol minuman soda kaca ini?",
+        "tr": "お兄さん、この瓶入り炭酸飲料を開けるのに、ちょっと栓抜き借りてもいいですか？",
+        "note": "■ 【語構成】：peN- + buka（開ける）+ botol（瓶）。"
+      },
+      {
+        "p": "n",
+        "w": "nampan",
+        "r": "nampan",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "お盆、トレー（カフェや学食・ホテルのルームサービスで食器を運ぶトレー＝baki）",
+        "ex": "Pelayan membawa dua gelas kopi dan sepiring kue di atas nampan kayu menuju meja tamu.",
+        "tr": "店員は木製のトレーの上にコーヒー2杯とケーキ1皿を乗せて客席へ運んだ。",
+        "note": "■ 【言い換え】：nampan（日常で最頻出） ＝ baki（やや改まった表現・式典のトレー等）。"
+      },
+      {
+        "p": "n",
+        "w": "tusuk gigi",
+        "r": "tusuk",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "つまようじ、爪楊枝（レストランのテーブルやレジ横に常備されている必須アイテム！なお焼き鳥の串は『tusuk sate』）",
+        "ex": "Di meja kasir rumah makan itu tersedia permen mint dan tusuk gigi gratis bagi pengunjung.",
+        "tr": "その食堂のレジカウンターには、客用に無料のミントキャンディと爪楊枝が置いてある。",
+        "note": "■ 【tusuk ペア】：tusuk gigi（爪楊枝） ／ tusuk sate（サテの竹串）。動詞 menusuk（刺す）。"
+      },
+      {
+        "p": "n",
+        "w": "pembersih wajah",
+        "r": "bersih",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "洗顔料、洗顔フォーム（＝sabun cuci muka / facial wash。公式・パッケージ表記の定番）",
+        "ex": "Pilihlah pembersih wajah yang lembut dan tidak membuat kulit terasa kering tertarik setelah dibilas.",
+        "tr": "洗い流した後に肌がつっぱって乾燥しない、マイルドな洗顔料を選ぼう。",
+        "note": "■ 【言い換え】：pembersih wajah（公式） ＝ sabun cuci muka（日常会話）。"
+      },
+      {
+        "p": "n",
+        "w": "sabun cuci piring",
+        "r": "sabun",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "食器用洗剤（インドネシアのスーパーではライム香りの『Sunlight』などが超定番の液体台所洗剤）",
+        "ex": "Tambahkan sedikit sabun cuci piring ke air hangat untuk menghilangkan minyak membandel pada wajan.",
+        "tr": "フライパンの頑固な油汚れを落とすため、ぬるま湯に食器用洗剤を少し加えよう。",
+        "note": "■ 【洗剤3点セット】：sabun mandi（ボディソープ）、sabun cuci piring（食器用洗剤）、deterjen（洗濯用洗剤）。"
+      },
+      {
+        "p": "n",
+        "w": "kanebo",
+        "r": "kanebo",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "吸水セームタオル、洗車・掃除用クロス（日本のブランド名「カネボウ」が語源！インドネシアではバイク・車拭きやこぼした水拭きの吸水クロス全般を『kanebo』と呼ぶ超定着語！）",
+        "ex": "Setelah mencuci motor di halaman, ia mengeringkan seluruh bodinya dengan lap kanebo agar tidak berbekas air.",
+        "tr": "庭でバイクを洗った後、水垢が残らないように彼は吸水クロス（カネボウ）で車体全体を拭き上げた。",
+        "note": "■ 【日本人びっくり豆知識】：『lap kanebo』はインドネシア中のコンビニ・ホームセンターで通じる完全定着語（公式語は lap plas chamois）！"
+      },
+      {
+        "p": "n",
+        "w": "rak piring",
+        "r": "rak",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "水切りかご、食器棚（洗った皿やコップを乾かして並べるキッチンラック）",
+        "ex": "Piring dan gelas yang sudah dibilas bersih langsung ditiriskan di rak piring sebelah bak cuci.",
+        "tr": "きれいにすすいだお皿やコップは、シンク横の水切りラックでそのまま水を切る。",
+        "note": "■ 【関連語】：bak cuci piring / wastafel（シンク・洗面台）、meniriskan（水切り・油切りをする）。"
+      },
+      {
+        "p": "n",
+        "w": "kotak tisu",
+        "r": "kotak",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "ティッシュ箱、ティッシュケース（食堂や車内・部屋に必ずある日用品）",
+        "ex": "Di atas meja makan warung itu selalu tersedia kotak tisu, sambal botol, dan kecap manis.",
+        "tr": "その食堂のテーブルの上にはいつもティッシュ箱・ボトルチリソース・ケチャップマニスが置いてある。",
+        "note": "■ 【ティッシュの種類】：tisu kering（普通のティッシュ）、tisu basah（ウェットティッシュ）、tisu toilet（トイレットペーパー）。"
+      },
+      {
+        "p": "n",
+        "w": "botol minum",
+        "r": "botol",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "水筒、マイボトル（大学・ジム・職場に持ち歩く飲料用ボトル全般）",
+        "ex": "Membawa botol minum sendiri ke kampus membantu menghemat uang sekaligus mengurangi sampah plastik.",
+        "tr": "マイボトル（水筒）を大学へ持参すると、節約になると同時にプラスチックごみを減らす助けになる。",
+        "note": "■ 【関連語】：tumbler（タンブラー・保温保冷ボトル）、termos（魔法瓶・保温水筒）。"
+      },
+      {
+        "p": "n",
+        "w": "tumbler",
+        "r": "tumbler",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "タンブラー、保温・保冷マイボトル（インドネシアの若者・オフィスワーカーの間で超定番のエコおしゃれアイテム！）",
+        "ex": "Beberapa kedai kopi memberikan potongan harga khusus bagi pelanggan yang membawa tumbler sendiri.",
+        "tr": "いくつかのカフェでは、自分のタンブラーを持参する客に対して特別割引を提供している。",
+        "note": "■ 【言い換え】：tumbler（カフェ・若者定番） ＝ botol minum（一般的な水筒）。"
+      },
+      {
+        "p": "n",
+        "w": "celana pendek",
+        "r": "celana",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "短パン、ハーフパンツ、ショートパンツ（⇔ celana panjang＝長ズボン）",
+        "ex": "Saat berolahraga lari atau santai di pantai, ia selalu memakai kaus tipis dan celana pendek.",
+        "tr": "ランニングをするときやビーチでくつろぐとき、彼はいつも薄手のTシャツと短パンを履いている。",
+        "note": "■ 【マナー注意】：モスクや寺院・官公庁・大学試験などでは『celana pendek（短パン）』での入場がNGな場合が多いので長ズボン必須！"
+      },
+      {
+        "p": "n",
+        "w": "blus",
+        "r": "blus",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "ブラウス（女性用のシャツ・トップス。オフィスやフォーマルな場面の定番）",
+        "ex": "Ia mengenakan blus batik modern berwarna lembut saat menghadiri seminar di hotel.",
+        "tr": "彼女はホテルでのセミナーに出席する際、柔らかな色合いのモダンなバティックブラウスを着ていた。",
+        "note": "■ 【トップスセット】：kemeja（襟付きシャツ）、blus（女性用ブラウス）、kaus / kaus oblong（Tシャツ）、sweter（セーター）。"
+      },
+      {
+        "p": "n",
+        "w": "terusan",
+        "r": "terus",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①ワンピース（上下がつながった女性用衣服：baju terusan / gaun terusan） ②運河（水路：Terusan Suez＝スエズ運河！）",
+        "ex": "Baju terusan berbahan katun yang ringan sangat nyaman dipakai berjalan-jalan di cuaca panas.",
+        "tr": "軽やかな綿素材のワンピースは、暑い天気の中で散歩するときに着心地がとても良い。",
+        "note": "■ 【2大用法】：① ファッション『baju terusan（ワンピース＝dress）』、② 地理『Terusan Suez / Panama（スエズ運河／パナマ運河）』。"
+      },
+      {
+        "p": "n",
+        "w": "piyama",
+        "r": "piyama",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "パジャマ、寝間着（＝baju tidur）",
+        "ex": "Setelah mandi air hangat di malam hari, ia berganti memakai piyama katun yang sejuk.",
+        "tr": "夜に温かいシャワーを浴びた後、彼は涼しい綿のパジャマに着替えた。",
+        "note": "■ 【言い換え】：piyama ＝ baju tidur（寝間着）。"
+      },
+      {
+        "p": "n",
+        "w": "baju renang",
+        "r": "baju",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "水着（プールや海水浴で着用するスイムウェア。ムスリム女性向けの全身覆う水着は『baju renang muslimah』）",
+        "ex": "Jangan lupa membawa baju renang dan kacamata renang karena hotel kita memiliki kolam renang luas.",
+        "tr": "私たちのホテルには広いプールがあるから、水着とゴーグルを持っていくのを忘れないでね。",
+        "note": "■ 【関連語】：kolam renang（プール）、berenang（泳ぐ）、kacamata renang（水泳ゴーグル）。"
+      },
+      {
+        "p": "n",
+        "w": "pakaian dalam",
+        "r": "pakai",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "下着、インナーウェア全般（パンツ・ブラジャー・肌着をまとめた丁寧な総称）",
+        "ex": "Untuk perjalanan selama seminggu, pastikan membawa pakaian dalam cadangan yang cukup di dalam koper.",
+        "tr": "1週間の旅行のために、スーツケースに予備の下着を十分入れておいたか確認しよう。",
+        "note": "■ 【下着関連語】：pakaian dalam（下着全般）、celana dalam（パンツ）、kaus dalam（肌着・インナーシャツ）、bra（ブラジャー）。"
+      },
+      {
+        "p": "n",
+        "w": "celana dalam",
+        "r": "celana",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "下着のパンツ、ショーツ・ブリーフ・ボクサーパンツ（口語では『daleman』とも言う）",
+        "ex": "Pilihlah celana dalam berbahan katun yang mudah menyerap keringat agar nyaman dipakai seharian.",
+        "tr": "一日中快適に過ごせるように、汗を吸いやすい綿素材の下着のパンツを選ぼう。",
+        "note": "■ 【関連語】：pakaian dalam（下着全般）、celana pendek（短パン）。"
+      },
+      {
+        "p": "n",
+        "w": "bra",
+        "r": "bra",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "ブラジャー（インドネシアでは『bra』のほか、オランダ語由来の『BH［ベ・ハ］』も日常・店舗で広く使われる！）",
+        "ex": "Saat berolahraga lari atau latihan di gym, mengenakan sport bra memberikan kenyamanan dan topangan lebih baik.",
+        "tr": "ランニングやジムでのトレーニング時は、スポーツブラを着けるとより快適でしっかりサポートされる。",
+        "note": "■ 【豆知識】：インドネシア語では『bra』とオランダ語 bustehouder 由来の『BH』がどちらも一般的。"
+      },
+      {
+        "p": "n",
+        "w": "sepatu bot",
+        "r": "sepatu",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "ブーツ、長靴（ファッション用ブーツから雨・作業用のゴム長靴『sepatu bot karet』まで指す）",
+        "ex": "Para pekerja kebun dan relawan banjir mengenakan sepatu bot karet tinggi agar kaki tetap aman dan kering.",
+        "tr": "農園の作業員や洪水ボランティアは、足を安全かつ濡れずに保つため丈の高いゴム長靴を履いている。",
+        "note": "■ 【靴の種類セット】：sepatu olahraga / sneakers（スニーカー）、sepatu pantofel（革靴・フォーマルシューズ）、sepatu bot（ブーツ・長靴）、sepatu hak tinggi（ハイヒール）。"
+      },
+      {
+        "p": "n",
+        "w": "anting",
+        "r": "anting",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "ピアス、イヤリング（耳飾り全般。しばしば重複形で『anting-anting』とも言う）",
+        "ex": "Ia mengenakan sepasang anting perak mungil yang serasi dengan kalung dan gelangnya.",
+        "tr": "彼女はネックレスやブレスレットと調和する小ぶりな銀のピアスを一対着けていた。",
+        "note": "■ 【アクセサリー5点セット】：cincin（指輪）、kalung（ネックレス）、gelang（ブレスレット）、anting（ピアス・イヤリング）、jam tangan（腕時計）。"
+      },
+      {
+        "p": "n",
+        "w": "kaus oblong",
+        "r": "kaus",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "丸首Tシャツ（ボタンも襟もない定番の半袖Tシャツ。日常では単に『kaus / kaos』または『T-shirt』とも言う）",
+        "ex": "Kaus oblong berbahan katun polos sangat sejuk dan praktis dipakai sehari-hari di daerah tropis.",
+        "tr": "無地の綿Tシャツは涼しくて実用的なので、熱帯地域での普段着にぴったりだ。",
+        "note": "■ 【Tシャツの区別】：kaus oblong（普通の丸首Tシャツ） ／ kaus berkerah / polo（ポロシャツ）。"
+      },
+      {
+        "p": "n",
+        "w": "hoodie",
+        "r": "hoodie",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "パーカー、フード付きスウェット（公式表記は『sweter bertudung』だが、ファッション・若者・ECサイトでは100%『hoodie』！）",
+        "ex": "Mahasiswa sering memakai hoodie tebal saat duduk di ruang kelas ber-AC dingin atau naik motor di malam hari.",
+        "tr": "学生たちはエアコンが効いて寒い教室に座るときや夜にバイクに乗るとき、厚手のパーカーをよく着る。",
+        "note": "■ 【アウターセット】：jaket（ジャケット・ジャンパー）、hoodie（パーカー）、sweter（セーター）、cardigan（カーディガン）、mantel（コート）。"
+      },
+      {
+        "p": "n",
+        "w": "celana jins",
+        "r": "celana",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "ジーンズ、ジーパン、デニムパンツ（KBBI標準綴りは『jins』、店舗や日常では『celana jeans』とも表記される）",
+        "ex": "Perpaduan kemeja putih rapi dan celana jins biru tua cocok untuk acara santai maupun kuliah.",
+        "tr": "きれいな白シャツと濃紺ジーンズの組み合わせは、カジュアルな集まりにも通学にもぴったりだ。",
+        "note": "■ 【ズボンの種類】：celana jins（ジーンズ）、celana bahan（スラックス・スーツズボン）、celana pendek（短パン）、celana olahraga / training（ジャージ・トレパン）。"
+      },
+      {
+        "p": "n",
+        "w": "cardigan",
+        "r": "cardigan",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "カーディガン（前開きのニット羽織り。KBBI標準綴りは『kardigan』だが、店舗・通販では『cardigan』が一般的）",
+        "ex": "Ia membawa cardigan rajut tipis di dalam tas untuk berjaga-jaga jika udara di bioskop terlalu dingin.",
+        "tr": "映画館の中が寒すぎたときに備えて、彼女はバッグの中に薄手のニットカーディガンを入れている。",
+        "note": "■ 【関連語】：rajut（ニット・編み物）、luaran / outer（羽織り物）。"
+      },
+      {
+        "p": "n",
+        "w": "sepatu olahraga",
+        "r": "sepatu",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "運動靴、スポーツシューズ（ランニング・ジム・体育で履く靴の標準表現）",
+        "ex": "Pastikan memakai sepatu olahraga dengan bantalan empuk saat berlari agar lutut dan tumit tidak mudah nyeri.",
+        "tr": "膝やかかとが痛くなりにくいように、走るときはクッション性の高い運動靴を履くようにしよう。",
+        "note": "■ 【言い換え】：sepatu olahraga（運動靴全般）、sepatu lari（ランニングシューズ）、sneakers（普段履きスニーカー）。"
+      },
+      {
+        "p": "n",
+        "w": "sneakers",
+        "r": "sneakers",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "スニーカー（ファッション用の普段履きスニーカー。公式語『sepatu kets』と並び若者・ショップで圧倒的に使われる！）",
+        "ex": "Sepatu sneakers putih yang bersih mudah dipadukan dengan hampir semua gaya pakaian kasual.",
+        "tr": "きれいな白いスニーカーは、ほぼすべてのカジュアルファッションに合わせやすい。",
+        "note": "■ 【関連語】：sepatu kets（オランダ語由来のスニーカーの古め・定番呼称）、tali sepatu（靴紐）、sol sepatu（靴底）。"
+      },
+      {
+        "p": "n",
+        "w": "tas selempang",
+        "r": "tas",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "ショルダーバッグ、斜め掛けバッグ（旅行のスリ対策や街歩きで超定番のバッグ！英語 sling bag / crossbody bag）",
+        "ex": "Saat naik kereta yang padat, kenakan tas selempang di bagian depan dada agar barang berharga tetap aman.",
+        "tr": "混雑した電車に乗るときは、貴重品を安全に保つためショルダーバッグを胸の前に掛けよう。",
+        "note": "■ 【バッグ4大定番】：tas ransel（リュック）、tas selempang（ショルダーバッグ）、tas jinjing（トート・ハンドバッグ）、koper（スーツケース）。"
+      },
+      {
+        "p": "n",
+        "w": "tas jinjing",
+        "r": "tas",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "トートバッグ、手提げバッグ、ハンドバッグ（語幹『jinjing＝手に提げて持つ』＋ tas。エコバッグや通学トートにも使う！）",
+        "ex": "Mahasiswa sering membawa buku catatan dan laptop tipis di dalam tas jinjing berbahan kanvas tebal.",
+        "tr": "学生たちは厚手のキャンバス生地のトートバッグにノートと薄型ノートPCを入れて持ち歩くことが多い。",
+        "note": "■ 【関連語】：menjinjing（手に提げて運ぶ）、tote bag（英語由来でショップでも頻出）。"
+      }
+    ];
+
+    const idxByWord = new Map();
+    for (let i = 0; i < d.vocab.length; i++) {
+      const it = d.vocab[i];
+      if (it && it.w) idxByWord.set(it.w.trim().toLowerCase(), i);
+    }
+
+    for (let i = 0; i < DICT_PACK_5.length; i++) {
+      const item = DICT_PACK_5[i];
+      if (!item || !item.w) continue;
+      const key = item.w.trim().toLowerCase();
+
+      item.dictOnly = true;
+      item.tier = 3;
+      dictOnlySet.add(key);
+
+      if (item.topicCat) {
+        catMap.set(key, item.topicCat);
+      }
+
+      if (idxByWord.has(key)) {
+        const pos = idxByWord.get(key);
+        Object.assign(d.vocab[pos], item);
+        vMap.set(key, d.vocab[pos]);
+        persistentAdded.set(key, d.vocab[pos]);
+      } else {
+        d.vocab.push(item);
+        idxByWord.set(key, d.vocab.length - 1);
+        vMap.set(key, item);
+        persistentAdded.set(key, item);
+      }
+    }
+  } catch (e) {
+    console.error("WhatsIndo Dict Pack 5 error:", e);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 辞書充実プロジェクト 第6弾（全72語・すべて辞書専用 dictOnly: true）
+   - ① 交通・車・旅行・手続き（21語）：terminal, pom bensin, solar, ban bocor,
+       spion, zebra cross, helikopter, kapal feri, mobil pemadam, trem,
+       perahu motor, boarding pass, delay, penukaran uang, navigasi, GPS,
+       suvenir, turis, reservasi, check-in, check-out
+   - ② 街・お店・施設・宗教建築（14語）：supermarket, mal, pusat perbelanjaan,
+       rumah makan, kedai kopi, toko roti, toko buku, laundry, kantor polisi,
+       kolam renang, gym, vihara, klenteng, kuburan
+   - ③ 自然・地形・気象・植物・地理（14語）：planet, hujan deras, hujan es, guruh,
+       temperatur, lava, ngarai, padang rumput, hutan hujan, kulit kayu, tunas,
+       semak, kelapa sawit, Brunei
+   - ④ 動物・生き物（11語）：binatang, babi, orangutan, gorila, panda, koala,
+       kanguru, hamster, keledai, tokek, ngengat
+   - ⑤ 身近な人・家族・職業（12語）：bibi, besan, buyut, bos, wiraswasta,
+       barista, musisi, bankir, wakil presiden, kepala desa, tukang kayu,
+       tukang cukur
+   - **記号ゼロ・文字バグゼロ・try-catch完全保護・問題モードへ一切混入しません
+   ===================================================================== */
+(function() {
+  try {
+    const d = window.WHATSINDO_EXTERNAL_DATA;
+    if (!d || !Array.isArray(d.vocab)) return;
+
+    const dictOnlySet     = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+    const persistentAdded = window.__wiPersistentAddedVocab || (window.__wiPersistentAddedVocab = new Map());
+    const vMap            = window.__wiMasterVocabMap || (window.__wiMasterVocabMap = new Map());
+    const catMap          = window.__WI_V5_VCAT || (window.__WI_V5_VCAT = new Map());
+
+    const DICT_PACK_6 = [
+      {
+        "p": "n",
+        "w": "terminal",
+        "r": "terminal",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①（バス・空港の）ターミナル（terminal bus＝バスターミナル、terminal kedatangan / keberangkatan＝到着／出発ターミナル） ②（IT・電気の）端末、端子",
+        "ex": "Penerbangan internasional menuju Jepang berangkat dari Terminal 3 Bandara Internasional Soekarno-Hatta.",
+        "tr": "日本行きの国際線フライトは、スカルノ・ハッタ国際空港の第3ターミナルから出発する。",
+        "note": "■ 【空港・バスの定番表現】：terminal keberangkatan（出発ターミナル）、terminal kedatangan（到着ターミナル）、terminal bus antar kota（都市間バスターミナル）。"
+      },
+      {
+        "p": "n",
+        "w": "pom bensin",
+        "r": "pom",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "ガソリンスタンド（日常会話で圧倒的に使われる呼び方。公式略称は『SPBU＝Stasiun Pengisian Bahan Bakar Umum』）",
+        "ex": "Sebelum masuk jalan tol, mari kita mampir sebentar ke pom bensin untuk mengisi penuh tangki bahan bakar.",
+        "tr": "高速道路に入る前に、燃料タンクを満タンにするためちょっとガソリンスタンドに寄ろう。",
+        "note": "■ 【現地給油フレーズ】：isi penuh / full tank（満タンで）、isi seratus ribu（10万ルピア分入れて）。公式語：SPBU。"
+      },
+      {
+        "p": "n",
+        "w": "solar",
+        "r": "solar",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "軽油、ディーゼル燃料（トラック・バス・ディーゼル乗用車用の燃料。ガソリンは『bensin』！※英語の太陽エネルギーは『tenaga surya』なので混同注意）",
+        "ex": "Antrean truk logistik terlihat memanjang di depan jalur pengisian solar subsidi pagi tadi.",
+        "tr": "今朝、補助金付き軽油の給油レーンの前に物流トラックの列が長く伸びているのが見られた。",
+        "note": "■ 【燃料の区別】：bensin（ガソリン：Pertalite / Pertamax等） ／ solar（軽油：Biosolar / Dex等） ／ tenaga surya（太陽光・ソーラー）。"
+      },
+      {
+        "p": "n",
+        "w": "ban bocor",
+        "r": "ban",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "タイヤのパンク（バイクや車のタイヤに穴が空いて空気が抜けること。街角の『tambal ban＝パンク修理屋』とセットで超実用！）",
+        "ex": "Perjalanan kami sempat tertunda setengah jam karena sepeda motor mengalami ban bocor di tengah jalan.",
+        "tr": "道中でバイクのタイヤがパンクしたため、私たちの移動は30分ほど遅れた。",
+        "note": "■ 【トラブル時の救世主ワード】：ban bocor（パンク）、ban kempes（タイヤの空気抜け）、tambal ban（パンク修理屋）、ban serep（スペアタイヤ）。"
+      },
+      {
+        "p": "n",
+        "w": "spion",
+        "r": "spion",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "バックミラー、サイドミラー（『kaca spion』。オランダ語 spion 由来で車・バイクのミラー全般を指す超日常語！）",
+        "ex": "Selalu periksa kaca spion kiri dan kanan sebelum berpindah jalur atau berbelok di jalan raya.",
+        "tr": "幹線道路で車線変更したり曲がったりする前に、必ず左右のサイドミラーを確認しよう。",
+        "note": "■ 【運転・車両パーツセット】：setir（ハンドル）、rem（ブレーキ）、gas（アクセル）、kopling（クラッチ）、spion（ミラー）、lampu sein（ウインカー）。"
+      },
+      {
+        "p": "n",
+        "w": "zebra cross",
+        "r": "zebra cross",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "横断歩道（公式インドネシア語は『penyeberangan pejalan kaki / pita seberang』だが、日常・ニュースでは圧倒的に『zebra cross』が使われる！）",
+        "ex": "Pengendara wajib memperlambat laju kendaraan dan mendahulukan pejalan kaki yang menyeberang di zebra cross.",
+        "tr": "運転者は速度を落とし、横断歩道を渡る歩行者を優先しなければならない。",
+        "note": "■ 【道路設備セット】：zebra cross（横断歩道）、trotoar（歩道）、jembatan penyeberangan orang [JPO]（歩道橋）、lampu merah（信号機）。"
+      },
+      {
+        "p": "n",
+        "w": "helikopter",
+        "r": "helikopter",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "ヘリコプター（災害救助・山岳捜索・要人移動のニュースで頻出）",
+        "ex": "Tim penyelamat mengerahkan helikopter untuk menyalurkan bantuan logistik ke desa yang terisolasi akibat longsor.",
+        "tr": "救助隊は土砂崩れで孤立した村へ支援物資を届けるため、ヘリコプターを動員した。",
+        "note": "■ 【航空機セット】：pesawat terbang（飛行機）、helikopter（ヘリコプター）、pesawat tanpa awak / drone（ドローン）。"
+      },
+      {
+        "p": "n",
+        "w": "kapal feri",
+        "r": "kapal",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "フェリー、連絡船（ジャワ島〜スマトラ島のスンダ海峡や、ジャワ島〜バリ島のバリ海峡など島嶼国家インドネシアの大動脈！）",
+        "ex": "Banyak pemudik membawa mobil pribadi menyeberang dari Pulau Jawa ke Pulau Sumatra menggunakan kapal feri.",
+        "tr": "多くの帰省客が自家用車ごとフェリーに乗ってジャワ島からスマトラ島へ渡る。",
+        "note": "■ 【海上交通セット】：kapal feri（フェリー）、pelabuhan（港）、dermaga（桟橋・埠頭）、penyeberangan（渡船・海峡横断）。"
+      },
+      {
+        "p": "n",
+        "w": "mobil pemadam",
+        "r": "mobil",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "消防車（正式には『mobil pemadam kebakaran』、略称は『damkar』！街中やニュースで頻出）",
+        "ex": "Tiga unit mobil pemadam kebakaran tiba di lokasi dalam sepuluh menit untuk menjinakkan api di ruko tersebut.",
+        "tr": "店舗兼住宅の火を消し止めるため、10分以内に3台の消防車が現場に到着した。",
+        "note": "■ 【緊急車両3点セット】：mobil pemadam / damkar（消防車）、ambulans（救急車）、mobil polisi（パトカー）。"
+      },
+      {
+        "p": "n",
+        "w": "trem",
+        "r": "trem",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "路面電車、トラム（ヨーロッパや日本の広島・長崎などの路面電車や、オランダ植民地時代のジャカルタ・スラバヤの歴史でも登場）",
+        "ex": "Di beberapa kota wisata Eropa dan Jepang, trem masih menjadi moda transportasi umum yang nyaman dan ramah lingkungan.",
+        "tr": "ヨーロッパや日本のいくつかの観光都市では、路面電車が今も快適で環境に優しい公共交通手段となっている。",
+        "note": "■ 【鉄道系セット】：kereta api（鉄道）、kereta cepat（新幹線・高速鉄道）、KRL（通勤電車）、MRT（地下鉄・都市高速鉄道）、LRT（軽量軌道交通）、trem（路面電車）。"
+      },
+      {
+        "p": "n",
+        "w": "perahu motor",
+        "r": "perahu",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "モーターボート、動力船（カリマンタンの大河移動や離島観光の足として欠かせない小型エンジン付きボート）",
+        "ex": "Untuk mencapai pulau karang kecil itu, wisatawan menyewa perahu motor dari dermaga pantai selama dua puluh menit.",
+        "tr": "その小さなサンゴ島へ行くため、観光客はビーチの桟橋から20分間モーターボートを借りる。",
+        "note": "■ 【船の大きさ順】：sampan（手漕ぎ小舟） ＜ perahu / perahu motor（ボート・動力船） ＜ kapal（大型船・客船）。"
+      },
+      {
+        "p": "n",
+        "w": "boarding pass",
+        "r": "boarding pass",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "搭乗券（空港カウンターや自動チェックイン機・アプリで発行される飛行機・長距離列車の乗車／搭乗券。公式語は『pas naik』）",
+        "ex": "Siapkan paspor dan boarding pass di tangan sebelum memasuki antrean pemeriksaan keamanan bandara.",
+        "tr": "空港の保安検査の列に入る前に、パスポートと搭乗券を手に準備しておこう。",
+        "note": "■ 【空港手続きセット】：check-in（チェックイン）、boarding pass（搭乗券）、gerbang keberangkatan / gate（搭乗口）、bagasi（手荷物）。"
+      },
+      {
+        "p": "n",
+        "w": "delay",
+        "r": "delay",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "（飛行機・列車などの）遅延、遅れ（公式語は『penundaan / keterlambatan』だが、インドネシア国内線利用時は『pesawatnya delay』が超日常語！）",
+        "ex": "Penerbangan menuju Makassar mengalami delay selama satu jam akibat cuaca buruk di bandara tujuan.",
+        "tr": "目的地空港の悪天候のため、マカッサル行きのフライトは1時間の遅延となった。",
+        "note": "■ 【言い換え】：delay（空港・日常会話で最頻出） ＝ tertunda / terlambat（公式アナウンス・書き言葉）。"
+      },
+      {
+        "p": "n",
+        "w": "penukaran uang",
+        "r": "tukar",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "両替、外貨両替所（『tempat penukaran uang』＝英語 money changer の公式インドネシア語！）",
+        "ex": "Bandingkan terlebih dahulu kurs jual dan beli di beberapa tempat penukaran uang resmi sebelum menukar yen ke rupiah.",
+        "tr": "日本円をルピアに両替する前に、複数の公認両替所で売値・買値レートをまず比較しよう。",
+        "note": "■ 【旅行の両替セット】：penukaran uang / money changer（両替所）、kurs / nilai tukar（為替レート）、uang tunai（現金）、uang kecil / receh（小額紙幣・小銭）。"
+      },
+      {
+        "p": "n",
+        "w": "navigasi",
+        "r": "navigasi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①（車・スマホ地図・船・航空機の）ナビゲーション、航法・進路案内 ②（Webサイトやアプリの）操作メニュー案内",
+        "ex": "Aplikasi peta dan navigasi daring sangat membantu pengemudi mencari rute tercepat menghindari kemacetan.",
+        "tr": "オンラインの地図・ナビゲーションアプリは、運転手が渋滞を避ける最短ルートを探すのにとても役立つ。",
+        "note": "■ 【関連語】：GPS（全地球測位システム）、rute（ルート・経路）、peta（地図）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "GPS",
+        "r": "Global Positioning System",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "GPS、位置情報システム（カーナビ・配車アプリ・ランニング記録などで毎日使う必須略語）",
+        "ex": "Aktifkan fitur GPS di ponsel agar pengemudi ojek daring dapat menemukan titik penjemputan kita secara akurat.",
+        "tr": "配車バイクの運転手が私たちのピックアップ地点を正確に見つけられるように、スマホのGPS機能をオンにしよう。",
+        "note": "■ 【配車アプリ定番】：titik penjemputan（ピックアップ地点）、bagikan lokasi / shareloc（位置情報を共有する）。"
+      },
+      {
+        "p": "n",
+        "w": "suvenir",
+        "r": "suvenir",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "お土産品、記念品、グッズ（キーホルダーやマグネット等の雑貨土産や、結婚式でゲストに配る引き出物『suvenir pernikahan』！食べ物土産は『oleh-oleh』）",
+        "ex": "Di sekitar pintu keluar candi terdapat banyak kios yang menjual suvenir kerajinan tangan khas lokal.",
+        "tr": "寺院の出口周辺には、地元ならではの工芸品のお土産（雑貨）を売る売店がたくさんある。",
+        "note": "■ 【使い分け】：oleh-oleh（お菓子・食品を含むお土産全般） ／ suvenir（雑貨・キーホルダー・結婚式の引き出物・イベント記念品）。"
+      },
+      {
+        "p": "n",
+        "w": "turis",
+        "r": "turis",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "観光客、ツーリスト（日常会話の定番語。ニュースや丁寧な表現は『wisatawan』）",
+        "ex": "Kawasan pantai di Bali dan Lombok selalu dipadati turis lokal maupun mancanegara pada musim liburan.",
+        "tr": "バリ島やロンボク島のビーチエリアは、休暇シーズンになると国内外の観光客でいつも賑わう。",
+        "note": "■ 【観光基本セット】：turis / wisatawan（観光客）、wisata / pariwisata（観光）、objek wisata（観光スポット）、pemandu wisata（観光ガイド）。"
+      },
+      {
+        "p": "n",
+        "w": "reservasi",
+        "r": "reservasi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "予約（ホテル・レストラン・航空券などの事前予約。日常動詞の『pesan / pemesanan』よりスマートで丁寧なホテル・飲食業界の定番語！）",
+        "ex": "Sebaiknya lakukan reservasi meja terlebih dahulu jika ingin makan malam di restoran populer itu pada akhir pekan.",
+        "tr": "週末にその人気レストランで夕食をとりたいなら、あらかじめテーブルを予約しておくのがよい。",
+        "note": "■ 【現地で即使えるフレーズ】：Saya sudah punya reservasi atas nama ~（〜の名前で予約してあります）。"
+      },
+      {
+        "p": "v",
+        "w": "check-in",
+        "r": "check-in",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "チェックインする（ホテルの宿泊手続き・空港の搭乗手続き。公式語は『lapor masuk』だが現場では100%『check-in』が通じる！ ⇔ check-out）",
+        "ex": "Waktu check-in di sebagian besar hotel dimulai pukul dua siang, tetapi kita boleh menitipkan koper lebih awal.",
+        "tr": "ほとんどのホテルのチェックイン時刻は午後2時からだが、スーツケースを早めに預けることはできる。",
+        "note": "■ 【旅行対義ペア】：check-in（チェックイン） ⇔ check-out（チェックアウト）。"
+      },
+      {
+        "p": "v",
+        "w": "check-out",
+        "r": "check-out",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①（ホテルを）チェックアウトする（公式語『lapor keluar』） ②（通販アプリでカート内の商品を）購入確定・決済手続きへ進む",
+        "ex": "Sebelum check-out dari hotel pukul dua belas siang, periksa kembali seluruh laci dan stopkontak agar tidak ada barang tertinggal.",
+        "tr": "正午12時にホテルをチェックアウトする前に、忘れ物がないよう引き出しとコンセント周りをすべて再確認しよう。",
+        "note": "■ 【現代インドネシア通販あるある】：ShopeeやTokopediaで買うことを若者は『langsung check-out（即ポチる）』と言う！"
+      },
+      {
+        "p": "n",
+        "w": "supermarket",
+        "r": "supermarket",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "スーパーマーケット（生鮮食品や日用品をセルフ式で売る大型スーパー。公式語は『pasar swalayan』だが日常は『supermarket』が主流）",
+        "ex": "Setiap Minggu pagi ia berbelanja sayuran segar, buah beku, dan dada ayam di supermarket dekat stasiun.",
+        "tr": "毎週日曜日の朝、彼は駅近くのスーパーマーケットで新鮮な野菜・冷凍フルーツ・鶏むね肉を買い物する。",
+        "note": "■ 【買い物場所の規模順】：warung（個人商店・食堂） ＜ minimarket（コンビニ：Indomaret/Alfamart） ＜ supermarket（スーパー） ＜ mal（大型ショッピングモール）。"
+      },
+      {
+        "p": "n",
+        "w": "mal",
+        "r": "mal",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "ショッピングモール（KBBI標準綴りは l が1つの『mal』。ジャカルタ等の大都市では暑さを避けて食事・映画・買い物をする市民の憩いの場！）",
+        "ex": "Pada akhir pekan, banyak keluarga menghabiskan waktu berjalan-jalan dan makan siang di mal yang sejuk ber-AC.",
+        "tr": "週末になると、多くの家族がエアコンの効いた涼しいショッピングモールでぶらぶら買い物やランチをして過ごす。",
+        "note": "■ 【言い換え】：mal（日常・ニュース定番） ＝ pusat perbelanjaan（ショッピングセンター・商業施設）。"
+      },
+      {
+        "p": "n",
+        "w": "pusat perbelanjaan",
+        "r": "belanja",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "ショッピングセンター、大型商業施設（『mal』の公式・報道向け表現）",
+        "ex": "Pengelola pusat perbelanjaan memperketat pemeriksaan keamanan di setiap pintu masuk menjelang musim libur akhir tahun.",
+        "tr": "商業施設の運営側は年末年始の休暇シーズンを前に、各入口でのセキュリティチェックを強化している。",
+        "note": "■ 【関連語】：mal（モール）、berbelanja（買い物する）、gerai / toko（店舗）。"
+      },
+      {
+        "p": "n",
+        "w": "rumah makan",
+        "r": "makan",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "食堂、大衆レストラン（略記『RM』。パダン料理店『RM Padang』やスンダ料理店など、インドネシアの街角で最もよく見る看板表記！）",
+        "ex": "Kami mampir makan siang di sebuah rumah makan Padang yang terkenal dengan rendang dan gulai ikannya.",
+        "tr": "私たちはルンダンと魚のグライで有名なパダン料理の食堂に昼食で立ち寄った。",
+        "note": "■ 【飲食店の格と看板】：warung makan（屋台・小さな大衆食堂） ＜ rumah makan [RM]（しっかりした食堂・定食屋） ＜ restoran（レストラン）。"
+      },
+      {
+        "p": "n",
+        "w": "kedai kopi",
+        "r": "kedai",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "コーヒーショップ、喫茶店、カフェ（伝統的な珈琲店から現代のおしゃれなコーヒースタンドまで幅広く使える美しいインドネシア語！）",
+        "ex": "Banyak mahasiswa mengerjakan tugas kuliah sambil menikmati es kopi susu di kedai kopi yang memiliki Wi-Fi cepat.",
+        "tr": "多くの学生が高速Wi-Fiのあるコーヒーショップでアイスカフェラテを楽しみながら大学の課題に取り組んでいる。",
+        "note": "■ 【カフェの3呼称】：warkop [warung kopi]（庶民派ローカル珈琲屋台） ／ kedai kopi（コーヒー専門店・喫茶店） ／ kafe（カフェ）。"
+      },
+      {
+        "p": "n",
+        "w": "toko roti",
+        "r": "toko",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "パン屋、ベーカリー（焼きたてパンやケーキを売る店）",
+        "ex": "Aroma roti panggang yang baru keluar dari oven tercium harum setiap kali melewati toko roti di sudut jalan itu.",
+        "tr": "その街角のパン屋の前を通るたび、オーブンから出たばかりの焼きたてパンの香ばしい香りが漂ってくる。",
+        "note": "■ 【お店セット】：toko roti（パン屋）、toko buku（書店）、toko kelontong（雑貨・日用品店）、toko obat（ドラッグストア）。"
+      },
+      {
+        "p": "n",
+        "w": "toko buku",
+        "r": "toko",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "本屋、書店（インドネシア最大手の書店チェーン『Gramedia』などが有名）",
+        "ex": "Saya pergi ke toko buku besar di pusat kota untuk mencari novel sastra Indonesia dan buku latihan ujian.",
+        "tr": "インドネシア文学の小説と試験問題集を探すため、都心の大型書店へ行った。",
+        "note": "■ 【関連語】：perpustakaan（図書館）、penerbit（出版社）、rak buku（本棚）。"
+      },
+      {
+        "p": "n",
+        "w": "laundry",
+        "r": "laundry",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "クリーニング店、コインランドリー・洗濯代行（公式語は『binatu』だが、インドネシアの街中では100%『laundry / laundry kiloan＝キロ単位量り売り洗濯屋』の看板が並ぶ！）",
+        "ex": "Mahasiswa kos di Indonesia sering memanfaatkan jasa laundry kiloan yang sekaligus mencuci dan menyetrika pakaian.",
+        "tr": "インドネシアの下宿生は、洗濯とアイロン掛けまで一緒にやってくれる量り売りランドリーサービスをよく利用する。",
+        "note": "■ 【現地生活の神サービス】：『laundry kiloan』は1kg数百円以下で洗濯・乾燥・アイロン・畳みまで全部やってくれる超便利文化！公式語は『binatu』。"
+      },
+      {
+        "p": "n",
+        "w": "kantor polisi",
+        "r": "kantor",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "警察署、交番（パスポートや貴重品の紛失届『surat kehilangan』を作る時など、海外旅行の緊急サバイバルで必須！）",
+        "ex": "Apabila dompet atau paspor hilang saat bepergian, segera buat laporan kehilangan di kantor polisi terdekat.",
+        "tr": "旅行中に財布やパスポートを紛失した場合は、すぐに最寄りの警察署で紛失届を作成しよう。",
+        "note": "■ 【インドネシア警察署のレベル略称】：Polsek（郡警察署） ＜ Polres（市・県警） ＜ Polda（州警察本部） ＜ Mabes Polri（国家警察本部）。"
+      },
+      {
+        "p": "n",
+        "w": "kolam renang",
+        "r": "kolam",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "プール、水泳用プール（ホテル・マンション・スポーツ施設の定番施設）",
+        "ex": "Kolam renang di lantai atap hotel tersebut menawarkan pemandangan gedung pencakar langit kota yang menawan.",
+        "tr": "そのホテルの屋上階にあるプールからは、街の超高層ビル群の素敵な眺めが楽しめる。",
+        "note": "■ 【関連語】：berenang（泳ぐ）、baju renang（水着）、kolam ikan（魚の池）。"
+      },
+      {
+        "p": "n",
+        "w": "gym",
+        "r": "gym",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "ジム、フィットネスジム（公式語は『pusat kebugaran』だが、日常会話では『nge-gym / ke gym』が圧倒的に定番！）",
+        "ex": "Ia rutin berlatih angkat beban di gym empat kali seminggu demi menjaga massa otot dan kebugaran tubuh.",
+        "tr": "彼は筋肉量と体力を維持するため、週に4回ジムで定期的にウェイトトレーニングをしている。",
+        "note": "■ 【筋トレ・フィットネスセット】：nge-gym（ジムに行く）、angkat beban（ウェイトトレーニング）、latihan kardio（有酸素運動）、pusat kebugaran（公式語：フィットネスセンター）。"
+      },
+      {
+        "p": "n",
+        "w": "vihara",
+        "r": "vihara",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "仏教寺院、ヴィハーラ（KBBI標準綴りは『wihara』だが、街中の標識・施設名では『vihara』が広く使われる）",
+        "ex": "Menjelang Hari Raya Waisak, umat Buddha membersihkan dan menghias vihara dengan lampion warna-warni.",
+        "tr": "ウェーサーカ祭を前に、仏教徒たちは寺院を掃除して色とりどりの提灯で飾り付ける。",
+        "note": "■ 【6宗教の礼拝所完全セット】：masjid（イスラム）、gereja（キリスト・カトリック）、pura（ヒンドゥー）、vihara / wihara（仏教）、klenteng（儒教・中国廟）。"
+      },
+      {
+        "p": "n",
+        "w": "klenteng",
+        "r": "klenteng",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "中国寺院、道教・儒教の廟（びょう）（赤い柱と龍の装飾が特徴的で、春節に多くの参拝客が訪れる。KBBI標準綴りは『kelenteng』）",
+        "ex": "Klenteng Sam Poo Kong di Semarang merupakan salah satu situs wisata sejarah dan budaya Tionghoa paling terkenal di Jawa Tengah.",
+        "tr": "スマランのサム・ポー・コン廟は、中部ジャワで最も有名な中華系歴史・文化観光地のひとつだ。",
+        "note": "■ 【関連語】：Konghucu（儒教）、Imlek（春節）、dupa（線香）。"
+      },
+      {
+        "p": "n",
+        "w": "kuburan",
+        "r": "kubur",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "墓地、お墓（日常的な呼び方。丁寧・公式表現は『makam / pemakaman』、公営墓地は『TPU＝Tempat Pemakaman Umum』）",
+        "ex": "Menjelang bulan Ramadan, banyak keluarga berziarah ke kuburan leluhur untuk mendoakan dan menabur bunga.",
+        "tr": "ラマダン月を前に、多くの家族が先祖のお墓参りをして祈りを捧げ、花びらを撒く。",
+        "note": "■ 【使い分け】：kuburan（日常語・少し怖いニュアンスも） ／ makam（丁寧・尊敬を込めたお墓：makam pahlawan＝英雄墓地）。"
+      },
+      {
+        "p": "n",
+        "w": "planet",
+        "r": "planet",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "惑星（Bumi＝地球、Mars＝火星、Jupiter＝木星、Saturnus＝土星など太陽系の星々）",
+        "ex": "Para astronom terus meneliti kemungkinan keberadaan air di permukaan planet lain di luar tata surya.",
+        "tr": "天文学者たちは太陽系外の他の惑星の表面に水が存在する可能性を研究し続けている。",
+        "note": "■ 【宇宙セット】：tata surya（太陽系）、matahari（太陽）、bulan（月）、bintang（星）、planet（惑星）、galaksi（銀河）。"
+      },
+      {
+        "p": "n",
+        "w": "hujan deras",
+        "r": "hujan",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "大雨、土砂降り、豪雨（＝hujan lebat。雨季のインドネシアで毎日のように遭遇する激しいスコール！）",
+        "ex": "Hujan deras yang mengguyur sejak sore membuat jarak pandang di jalan tol menjadi sangat terbatas.",
+        "tr": "夕方から降り続く豪雨により、高速道路での視界が非常に悪くなった。",
+        "note": "■ 【雨の強さ3段階】：gerimis（霧雨・小雨） ＜ hujan ringan / sedang（弱い／並の雨） ＜ hujan deras / lebat（土砂降り・豪雨）。"
+      },
+      {
+        "p": "n",
+        "w": "hujan es",
+        "r": "hujan",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "雹（ひょう）、霰（あられ）（積乱雲から氷の粒が降る現象。熱帯のインドネシアでも季節の変わり目にまれに発生してニュースになる！）",
+        "ex": "Fenomena hujan es disertai angin kencang sempat mengejutkan warga di kawasan dataran tinggi tersebut.",
+        "tr": "強風を伴う雹（ひょう）の現象が一時その高原地域の住民を驚かせた。",
+        "note": "■ 【関連語】：es（氷）、salju（雪）、petir（雷）。"
+      },
+      {
+        "p": "n",
+        "w": "guruh",
+        "r": "guruh",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "雷鳴（らいめい）、ゴロゴロという雷の音（＝guntur。光は『kilat』、落雷・雷全体は『petir』！）",
+        "ex": "Suara guruh yang menggelegar di langit gelap menandakan badai hujan akan segera turun.",
+        "tr": "暗い空に轟く雷鳴の音は、もうすぐ激しい雨が降り出す前触れだ。",
+        "note": "■ 【雷3兄弟の区別】：kilat（稲妻の光） ／ guruh・guntur（ゴロゴロ鳴る雷鳴の音） ／ petir（落雷・雷現象全体）。"
+      },
+      {
+        "p": "n",
+        "w": "temperatur",
+        "r": "temperatur",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "温度、気温（科学・気象・機械で使う外来語。日常会話では『suhu』が最も一般的）",
+        "ex": "Alat pengukur ini mampu memantau perubahan temperatur ruangan secara otomatis setiap detik.",
+        "tr": "この測定器は部屋の温度変化を毎秒自動で監視することができる。",
+        "note": "■ 【言い換え】：suhu（日常・ニュースで最頻出：suhu tubuh＝体温、suhu udara＝気温） ／ temperatur（科学・技術）。"
+      },
+      {
+        "p": "n",
+        "w": "lava",
+        "r": "lava",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "溶岩（火山の噴火口から流れ出る高温のマグマ。『lava pijar＝赤熱溶岩』としてムラピ山やスメル山の噴火ニュースで超頻出！）",
+        "ex": "Guguran lava pijar dari puncak Gunung Merapi terlihat meluncur sejauh dua kilometer ke arah barat daya.",
+        "tr": "ムラピ山頂からの赤熱溶岩の崩落が、南西方向へ2キロメートル流れ下るのが観測された。",
+        "note": "■ 【火山ニュースの重要区別】：lava（火口から流れ出る高温の溶岩） ／ lahar（火山灰や岩が雨水と混ざって流れる土石流・泥流！）。"
+      },
+      {
+        "p": "n",
+        "w": "ngarai",
+        "r": "ngarai",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "渓谷、峡谷、キャニオン（両側が切り立った深い谷。西スマトラの絶景『Ngarai Sianok＝シアノック峡谷』が超有名！）",
+        "ex": "Pemandangan dinding tebing hijau di Ngarai Sianok, Bukittinggi, menjadi daya tarik utama wisatawan.",
+        "tr": "ブキティンギにあるシアノック峡谷の緑の絶壁の眺めは、観光客の大きな魅力となっている。",
+        "note": "■ 【地形の対比】：lembah（穏やかな谷・盆地） ／ ngarai（切り立った深い峡谷・キャニオン）。"
+      },
+      {
+        "p": "n",
+        "w": "padang rumput",
+        "r": "padang",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "草原、牧草地、サバンナ（東ジャワのバルラン国立公園やスンバ島の広大な草原が有名）",
+        "ex": "Kawanan kuda liar terlihat berlari bebas melintasi padang rumput luas di Pulau Sumba.",
+        "tr": "野生の馬の群れが、スンバ島の広大な草原を自由に駆け抜ける姿が見られる。",
+        "note": "■ 【padang 複合語】：padang rumput（草原）、padang pasir / gurun（砂漠）、padang savana（サバンナ）。"
+      },
+      {
+        "p": "n",
+        "w": "hutan hujan",
+        "r": "hutan",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "熱帯雨林（『hutan hujan tropis』：カリマンタン・スマトラ・パプアに広がる「地球の肺」と呼ばれる豊かな森林！）",
+        "ex": "Hutan hujan tropis di Kalimantan dan Sumatra merupakan habitat asli bagi ribuan spesies flora dan fauna langka.",
+        "tr": "カリマンタンとスマトラの熱帯雨林は、何千種もの希少な動植物の本来の生息地だ。",
+        "note": "■ 【森林の種類セット】：hutan hujan tropis（熱帯雨林）、hutan lindung（保安林・保護林）、hutan bakau / mangrove（マングローブ林）。"
+      },
+      {
+        "p": "n",
+        "w": "kulit kayu",
+        "r": "kulit",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "樹皮、木の皮（シナモンなどのスパイスや伝統的な樹皮布・生薬の原料にもなる）",
+        "ex": "Rempah kayu manis sebenarnya berasal dari lapisan dalam kulit kayu pohon khusus yang dikeringkan.",
+        "tr": "スパイスのシナモンは、実は特殊な木の内側の樹皮を乾燥させたものだ。",
+        "note": "■ 【樹木のパーツセット】：akar（根）、batang（幹）、kulit kayu（樹皮）、cabang（枝）、ranting（小枝）、daun（葉）。"
+      },
+      {
+        "p": "n",
+        "w": "tunas",
+        "r": "tunas",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "①新芽、若芽（植物の幹や種から出る芽） ②（比喩で：次世代を担う）若き人材、次世代の芽（tunas bangsa＝国の未来を担う若者たち！）",
+        "ex": "Setelah hujan pertama turun, tunas hijau muda mulai bermunculan dari dahan pohon yang sempat kering.",
+        "tr": "最初の雨が降った後、一時枯れかけていた木の枝から若緑色の新芽が次々と芽吹き始めた。",
+        "note": "■ 【インドネシアの定番象徴】：tunas kelapa（芽吹いたココナッツの実＝インドネシアのボーイスカウト『Pramuka』の公式シンボルマーク！）。"
+      },
+      {
+        "p": "n",
+        "w": "semak",
+        "r": "semak",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "茂み、やぶ、低木林（『semak belukar＝草むら・やぶ』のセット表現でニュースや冒険・自然描写に超頻出！）",
+        "ex": "Seekor kelinci liar berlari cepat lalu bersembunyi di balik semak belukar di pinggir ladang.",
+        "tr": "一羽の野うさぎが素早く走って、畑の端の茂みの陰に隠れた。",
+        "note": "■ 【定番連語】：semak belukar（草むら・やぶ・低木の茂み）。"
+      },
+      {
+        "p": "n",
+        "w": "kelapa sawit",
+        "r": "kelapa",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "アブラヤシ、パームヤシ（インドネシア最大の輸出農産物『minyak kelapa sawit [CPO]＝パーム油』の原料！経済・環境ニュースで毎日出る超必須語！）",
+        "ex": "Indonesia merupakan produsen sekaligus pengekspor minyak kelapa sawit terbesar di dunia.",
+        "tr": "インドネシアは世界最大のパーム油の生産国であると同時に輸出国でもある。",
+        "note": "■ 【経済・環境ニュース必須語】：perkebunan kelapa sawit（アブラヤシ農園）、minyak sawit mentah / CPO（粗パーム油）、biodiesel（バイオディーゼル）。"
+      },
+      {
+        "p": "n",
+        "w": "Brunei",
+        "r": "Brunei",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "ブルネイ（正式名称：Brunei Darussalam。ボルネオ［カリマンタン］島北部に位置するASEAN加盟国。インドネシア語と同じマレー語系を公用語とする豊かな産油国！）",
+        "ex": "Brunei Darussalam terletak di bagian utara Pulau Kalimantan dan merupakan salah satu negara anggota ASEAN.",
+        "tr": "ブルネイ・ダルサラーム国はカリマンタン島の北部に位置し、ASEAN加盟国のひとつである。",
+        "note": "■ 【ASEAN加盟国メモ】：インドネシア語（Bahasa Indonesia）とブルネイ・マレーシアのマレー語（Bahasa Melayu）は姉妹言語で基本構造がほぼ共通！"
+      },
+      {
+        "p": "n",
+        "w": "binatang",
+        "r": "binatang",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "動物、生き物（『kebun binatang＝動物園』で超定番！日常会話では『hewan』と並び使われるが、人に対して使うと罵倒語になるので注意）",
+        "ex": "Pada akhir pekan, banyak keluarga membawa anak-anak berkunjung ke kebun binatang untuk mengenal berbagai satwa.",
+        "tr": "週末には多くの家族が様々な動物を知るために子どもたちを動物園へ連れて行く。",
+        "note": "■ 【「動物」3語のニュアンス】：hewan（最も標準的・丁寧：hewan peliharaan＝ペット）、binatang（日常語：kebun binatang＝動物園）、satwa（書き言葉・野生保護動物：satwa langka）。"
+      },
+      {
+        "p": "n",
+        "w": "babi",
+        "r": "babi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "豚（ぶた）（イスラム教の禁忌動物。なおイノシシは『babi hutan』、バリ名物の丸焼きは『babi guling』、慣用句『membabi buta＝見境なく無鉄砲に』！）",
+        "ex": "Babi hutan sering turun ke area perkebunan warga di lereng bukit saat mencari makanan pada malam hari.",
+        "tr": "イノシシは夜間に餌を探して、丘の斜面の住民の農園エリアによく下りてくる。",
+        "note": "■ 【関連語】：daging babi（豚肉）、babi hutan（イノシシ）、membabi buta（慣用句：見境なく）。"
+      },
+      {
+        "p": "n",
+        "w": "orangutan",
+        "r": "orangutan",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "オランウータン（インドネシア語『orang＝人』＋『hutan＝森』＝「森の人」が世界共通語になった！カリマンタンとスマトラにのみ生息する希少絶滅危惧種）",
+        "ex": "Taman Nasional Tanjung Puting di Kalimantan Tengah terkenal sebagai pusat konservasi orangutan liar.",
+        "tr": "中部カリマンタンのタンジュン・プティン国立公園は、野生オランウータンの保護拠点として有名だ。",
+        "note": "■ 【語源豆知識】：インドネシア語から日本語や英語にそのまま輸出された超有名ワード（KBBI標準は1語の『orangutan』または『orang utan』）！"
+      },
+      {
+        "p": "n",
+        "w": "gorila",
+        "r": "gorila",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "ゴリラ（アフリカ原産の大型類人猿。動物園や自然番組での基本語）",
+        "ex": "Gorila dikenal sebagai primata terbesar di dunia yang hidup berkelompok di hutan Afrika.",
+        "tr": "ゴリラはアフリカの森で群れを作って暮らす世界最大の霊長類として知られている。",
+        "note": "■ 【類人猿セット】：orangutan（オランウータン）、gorila（ゴリラ）、simpanse（チンパンジー）、monyet（サル）。"
+      },
+      {
+        "p": "n",
+        "w": "panda",
+        "r": "panda",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "パンダ（ジャイアントパンダ。ボゴールのタマン・サファリでも飼育されている人気動物！なお目の下のクマは口語で『mata panda』と言う！）",
+        "ex": "Karena begadang semalaman mengerjakan tugas akhir, pagi ini muncul lingkaran hitam mirip mata panda di bawah matanya.",
+        "tr": "卒論を徹夜で書いたせいで、今朝彼の目の下にパンダ目みたいな黒いクマができている。",
+        "note": "■ 【面白い日常表現】：mata panda（寝不足でできた目の下の黒いクマ＝パンダ目！）。"
+      },
+      {
+        "p": "n",
+        "w": "koala",
+        "r": "koala",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "コアラ（オーストラリア固有の有袋類）",
+        "ex": "Koala menghabiskan sebagian besar waktunya tidur di dahan pohon eukaliptus untuk menghemat energi.",
+        "tr": "コアラはエネルギーを節約するため、ユーカリの木の枝で眠って一日の大半を過ごす。",
+        "note": "■ 【オーストラリア動物ペア】：koala（コアラ）、kanguru（カンガルー）。"
+      },
+      {
+        "p": "n",
+        "w": "kanguru",
+        "r": "kanguru",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "カンガルー（お腹の袋で子育てする動物。なおインドネシアのパプア島にも樹上性の『kanguru pohon＝キノボリカンガルー』が生息！）",
+        "ex": "Selain di Australia, spesies unik kanguru pohon juga dapat ditemukan hidup di hutan Papua.",
+        "tr": "オーストラリアのほか、珍しい種のキノボリカンガルーはパプアの森にも生息しているのが見られる。",
+        "note": "■ 【豆知識】：インドネシア東部のパプアはオーストラリア大陸と生物相が近いため、有袋類（kanguru pohon / kuskus）がいる！"
+      },
+      {
+        "p": "n",
+        "w": "hamster",
+        "r": "hamster",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "ハムスター（インドネシアでも学生や子どもに大人気の小型ペット！）",
+        "ex": "Hamster peliharaan suka berlari di roda putar pada malam hari karena termasuk hewan nokturnal.",
+        "tr": "ペットのハムスターは夜行性動物なので、夜になると回し車の中を走るのが好きだ。",
+        "note": "■ 【人気ペットセット】：kucing（猫）、anjing（犬）、kelinci（うさぎ）、hamster（ハムスター）、burung（鳥）、ikan hias（観賞魚）。"
+      },
+      {
+        "p": "n",
+        "w": "keledai",
+        "r": "keledai",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "ロバ（ことわざ『Keledai pun tidak akan jatuh di lubang yang sama dua kali＝ロバでさえ同じ穴に二度落ちない（同じ失敗を繰り返すな）』で超有名！）",
+        "ex": "Pepatah terkenal mengatakan bahwa keledai saja tidak jatuh ke lubang yang sama untuk kedua kalinya.",
+        "tr": "有名なことわざに、ロバでさえ同じ穴に二度目は落ちない、というものがある。",
+        "note": "■ 【関連語】：kuda（馬）、zebra（シマウマ）、keledai（ロバ）。"
+      },
+      {
+        "p": "n",
+        "w": "tokek",
+        "r": "tokek",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "トッケイヤモリ（『トッケー！トッケー！』と大声で鳴く、東南アジア名物の大型ヤモリ！室内の小さなヤモリは『cicak』）",
+        "ex": "Di malam yang tenang di desa, suara tokek yang nyaring sering terdengar dari balik atap rumah.",
+        "tr": "村の静かな夜には、家の屋根裏からトッケイヤモリの甲高い鳴き声がよく聞こえてくる。",
+        "note": "■ 【ヤモリ大小ペア】：cicak（家の中で毎日見る小型ヤモリ） ／ tokek（大声で鳴く大型のトッケイヤモリ）。鳴き声の回数で運勢を占う民間伝承もある！"
+      },
+      {
+        "p": "n",
+        "w": "ngengat",
+        "r": "ngengat",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "蛾（が）（夜の街灯に集まる昆虫。昼に飛ぶ蝶は『kupu-kupu』）",
+        "ex": "Beberapa ekor ngengat beterbangan mengelilingi lampu teras yang menyala terang pada malam hari.",
+        "tr": "夜、明るく灯ったテラスの電灯の周りを数匹の蛾が飛び回っている。",
+        "note": "■ 【対比】：kupu-kupu（蝶） ／ ngengat（蛾）。なお服の防虫剤は『kapur barus（樟脳・ナフタリン）』。"
+      },
+      {
+        "p": "n",
+        "w": "bibi",
+        "r": "bibi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①おば、叔母・伯母（標準語。日常都会ではオランダ語由来の『tante』も超一般的！） ②（家庭の年配女性お手伝いさんへの丁寧な呼びかけ『Bi』）",
+        "ex": "Setiap libur Lebaran, kami selalu berkunjung ke rumah paman dan bibi di Jawa Tengah.",
+        "tr": "レバラン休みのたびに、私たちはいつも中部ジャワの叔父と叔母の家を訪ねる。",
+        "note": "■ 【おじ・おばペア】：paman & bibi（標準・丁寧） ／ om & tante（日常会話・都会で定番）。"
+      },
+      {
+        "p": "n",
+        "w": "besan",
+        "r": "besan",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "（結婚した子どもの）相手方の両親、縁戚の親同士（自分の息子／娘の配偶者の父母を指すインドネシア語の超便利な親族語！）",
+        "ex": "Kedua orang tua mempelai kini telah resmi menjadi besan dan menjalin silaturahmi yang akrab.",
+        "tr": "新郎新婦の両親は今や正式に親戚の親同士（ベサン）となり、親密な交流を結んでいる。",
+        "note": "■ 【結婚で増える親族4点セット】：mertua（義理の父母）、menantu（婿・嫁）、ipar（義理の兄弟姉妹）、besan（子どもの配偶者の両親）。"
+      },
+      {
+        "p": "n",
+        "w": "buyut",
+        "r": "buyut",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "ひいおじいちゃん・ひいおばあちゃん（曾祖父母：kakek buyut / nenek buyut）、またはひ孫（cicit）",
+        "ex": "Foto hitam putih di ruang tamu itu adalah potret kakek buyut kami yang hidup pada masa kemerdekaan.",
+        "tr": "応接室にあるあの白黒写真は、独立時代に生きた私たちのひいおじいちゃんの肖像写真だ。",
+        "note": "■ 【世代順】：buyut（曾祖父母） ➔ kakek/nenek（祖父母） ➔ orang tua（両親） ➔ anak（子） ➔ cucu（孫） ➔ cicit（ひ孫）。"
+      },
+      {
+        "p": "n",
+        "w": "bos",
+        "r": "bos",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "①上司、社長、オーナー（日常会話での定番語。丁寧な書き言葉は『atasan / pimpinan』） ②（親しい間柄で冗談っぽく相手を呼ぶ）「大将」「親分」「旦那」",
+        "ex": "Meskipun sibuk, bos kami di kantor selalu terbuka mendengarkan saran dari para staf muda.",
+        "tr": "忙しいにもかかわらず、うちの職場の上司はいつも若手スタッフからの提案に耳を傾けてくれる。",
+        "note": "■ 【関連語】：atasan（上司）、bawahan（部下）、siap bos!（了解です、ボス！＝友達同士のノリ返事）。"
+      },
+      {
+        "p": "n",
+        "w": "wiraswasta",
+        "r": "wiraswasta",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "自営業者、起業家、フリーランス・個人事業主（履歴書・KTP身分証の職業欄『Pekerjaan: Wiraswasta』で超頻出！＝wirausaha）",
+        "ex": "Setelah bekerja lima tahun di perusahaan swasta, ia memutuskan menjadi wiraswasta dengan membuka usaha kuliner sendiri.",
+        "tr": "民間企業で5年間働いた後、彼は自分の飲食ビジネスを開いて自営業者（起業家）になる決意をした。",
+        "note": "■ 【KTP職業欄の定番】：Pelajar/Mahasiswa（学生）、Karyawan Swasta（会社員）、PNS/ASN（公務員）、Wiraswasta（自営業）、Mengurus Rumah Tangga（主婦・主夫）。"
+      },
+      {
+        "p": "n",
+        "w": "barista",
+        "r": "barista",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "バリスタ（カフェ・コーヒー専門店でエスプレッソやハンドドリップを淹れるプロフェッショナル。インドネシアのカフェブームで大人気の職業！）",
+        "ex": "Barista di kedai kopi itu dengan terampil menuangkan susu panas membentuk gambar daun di atas latte.",
+        "tr": "そのコーヒーショップのバリスタは、ラテの上に葉っぱの絵を描くように温かいミルクを巧みに注いだ。",
+        "note": "■ 【関連語】：kedai kopi（カフェ）、kopi seduh manual（ハンドドリップコーヒー）、koki（シェフ・料理人）。"
+      },
+      {
+        "p": "n",
+        "w": "musisi",
+        "r": "musisi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "ミュージシャン、音楽家（日常・メディアで最頻出。KBBI標準語形は『musikus』）",
+        "ex": "Banyak musisi indie Indonesia yang merilis lagu akustik bernuansa hangat dan sangat populer di kalangan mahasiswa.",
+        "tr": "多くのインドネシアのインディーズミュージシャンが温かみのあるアコースティック曲を発表しており、大学生の間でとても人気だ。",
+        "note": "■ 【言い換え】：musisi（メディア・日常で最頻出） ／ musikus（KBBI標準表記）、penyanyi（歌手）、pencipta lagu（作曲・作詞家）。"
+      },
+      {
+        "p": "n",
+        "w": "bankir",
+        "r": "bankir",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "銀行家、バンカー、銀行幹部（金融・経済ニュースで頻出。一般の窓口行員は『pegawai bank / teller』）",
+        "ex": "Para bankir senior membahas prospek suku bunga acuan dan pertumbuhan kredit dalam forum ekonomi nasional.",
+        "tr": "ベテラン銀行家たちは国家経済フォーラムで、政策金利の見通しと融資の伸びについて議論した。",
+        "note": "■ 【関連語】：perbankan（銀行業・バンキング）、nasabah（銀行顧客）、teller（窓口係）。"
+      },
+      {
+        "p": "n",
+        "w": "wakil presiden",
+        "r": "wakil",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "副大統領（インドネシアでは略称『Wapres』でニュースに毎日登場！大統領『Presiden』とペアで直接選挙により選出される）",
+        "ex": "Presiden dan wakil presiden terpilih dilantik secara resmi dalam sidang paripurna Majelis Permusyawaratan Rakyat.",
+        "tr": "選出された大統領と副大統領は、国民協議会（MPR）の本会議で正式に就任宣誓を行う。",
+        "note": "■ 【ニュース略称】：Wapres（Wakil Presiden＝副大統領）、Pilpres（大統領・副大統領選挙）。"
+      },
+      {
+        "p": "n",
+        "w": "kepala desa",
+        "r": "kepala",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "村長（むらおさ：略称『Kades』。農村部『desa』の住民選挙で選ばれるトップ！都市部の町長にあたる公務員は『lurah』）",
+        "ex": "Kepala desa mengundang seluruh ketua RT untuk membahas program perbaikan saluran irigasi sawah.",
+        "tr": "村長は水田の灌漑水路の改修計画を話し合うため、すべての町内会長（RT長）を招集した。",
+        "note": "■ 【地方行政トップの区別】：Gubernur（州知事） ➔ Bupati（県知事）/ Wali Kota（市長） ➔ Camat（郡長） ➔ Kepala Desa（農村の村長：選挙）/ Lurah（都市の町長：公務員）。"
+      },
+      {
+        "p": "n",
+        "w": "tukang kayu",
+        "r": "tukang",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "大工、木工職人（家具作りや家の木部修繕を担う職人）",
+        "ex": "Tukang kayu berpengalaman di Jepara mampu mengukir kayu jati menjadi meja dan kursi bernilai seni tinggi.",
+        "tr": "ジュパラの熟練した木工職人は、チーク材を彫って芸術的価値の高いテーブルや椅子に仕立てることができる。",
+        "note": "■ 【tukang（職人）定番セット】：tukang kayu（大工）、tukang batu（左官・石工）、tukang cukur（床屋）、tukang jahit（仕立屋）、tukang parkir（駐車場係）。"
+      },
+      {
+        "p": "n",
+        "w": "tukang cukur",
+        "r": "tukang",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "理容師、床屋（『pangkas rambut / barbershop』で髪を切ってくれる人。西ジャワのガルト出身者が経営する『pangkas rambut Garut』は全国で超有名！）",
+        "ex": "Ia selalu meminta tukang cukur langganannya merapikan bagian samping rambut agar terlihat lebih segar.",
+        "tr": "彼はさっぱり見えるように、いつも行きつけの床屋さんに髪のサイドを整えてもらっている。",
+        "note": "■ 【散髪フレーズ】：potong rambut（髪を切る）、pangkas rambut / barbershop（床屋・理容室）、salon（美容院）。"
+      }
+    ];
+
+    const idxByWord = new Map();
+    for (let i = 0; i < d.vocab.length; i++) {
+      const it = d.vocab[i];
+      if (it && it.w) idxByWord.set(it.w.trim().toLowerCase(), i);
+    }
+
+    for (let i = 0; i < DICT_PACK_6.length; i++) {
+      const item = DICT_PACK_6[i];
+      if (!item || !item.w) continue;
+      const key = item.w.trim().toLowerCase();
+
+      item.dictOnly = true;
+      item.tier = 3;
+      dictOnlySet.add(key);
+
+      if (item.topicCat) {
+        catMap.set(key, item.topicCat);
+      }
+
+      if (idxByWord.has(key)) {
+        const pos = idxByWord.get(key);
+        Object.assign(d.vocab[pos], item);
+        vMap.set(key, d.vocab[pos]);
+        persistentAdded.set(key, d.vocab[pos]);
+      } else {
+        d.vocab.push(item);
+        idxByWord.set(key, d.vocab.length - 1);
+        vMap.set(key, item);
+        persistentAdded.set(key, item);
+      }
+    }
+  } catch (e) {
+    console.error("WhatsIndo Dict Pack 6 error:", e);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 辞書充実プロジェクト 第7弾（全67語・すべて辞書専用 dictOnly: true）
+   - ① 大学・学業・キャンパス（19語）：prodi, program studi, IPK, UTS, UAS, KTM,
+       KRS, KHS, makalah, silabus, transkrip, SPP, bolos, PR, kuis, institut,
+       politeknik, ruang kelas, auditorium
+   - ② 文房具・オフィスツール（9語）：buku tulis, stabilo, tip-ex, lem, selotip,
+       steples, folder, kalkulator, proyektor
+   - ③ ビジネス・組織・人事（22語）：korporasi, startup, perusahaan rintisan,
+       anak perusahaan, induk perusahaan, komisaris, kepala bagian, HRD, resign,
+       mutasi, demosi, notulen, deadline, proposal, budget, KPI, supplier,
+       kompetitor, sinergi, materai, franchise, izin usaha
+   - ④ 金融・決済・投資・会計（17語）：yen, giro, gadai, kartu kredit, cek,
+       invoice, promo, cashback, reksa dana, bursa efek, IPO, portofolio,
+       liabilitas, ekuitas, pertumbuhan ekonomi, laba bersih, modal kerja
+   - **記号ゼロ・文字バグゼロ・try-catch完全保護・問題モードへ一切混入しません
+   ===================================================================== */
+(function() {
+  try {
+    const d = window.WHATSINDO_EXTERNAL_DATA;
+    if (!d || !Array.isArray(d.vocab)) return;
+
+    const dictOnlySet     = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+    const persistentAdded = window.__wiPersistentAddedVocab || (window.__wiPersistentAddedVocab = new Map());
+    const vMap            = window.__wiMasterVocabMap || (window.__wiMasterVocabMap = new Map());
+    const catMap          = window.__WI_V5_VCAT || (window.__WI_V5_VCAT = new Map());
+
+    const DICT_PACK_7 = [
+      {
+        "p": "singkatan",
+        "w": "prodi",
+        "r": "Program Studi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "学科、専攻課程（『program studi』の略称。インドネシアの大学で「何学部・何専攻？」と話すとき『jurusan』と並んで毎日使う必須語！）",
+        "ex": "Prodi Bahasa Indonesia dan Sastra di fakultas itu setiap tahun menerima sekitar enam puluh mahasiswa baru.",
+        "tr": "その学部のインドネシア語・文学専攻（学科）は、毎年約60人の新入生を受け入れている。",
+        "note": "■ 【大学の階層セット】：universitas（大学） ➔ fakultas（学部） ➔ jurusan / departemen（学科・部門） ➔ prodi / program studi（専攻・課程）。"
+      },
+      {
+        "p": "n",
+        "w": "program studi",
+        "r": "program",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "専攻課程、学科プログラム（略称『prodi』。大学の願書・卒業証書・シラバスに記載される正式名称）",
+        "ex": "Calon mahasiswa dapat memilih hingga dua program studi berbeda saat mendaftar seleksi masuk perguruan tinggi negeri.",
+        "tr": "受験生は国立大学入試に出願する際、最大2つの異なる専攻課程を選ぶことができる。",
+        "note": "■ 【関連語】：prodi（略称）、akreditasi（大学・学科の認証評価：A / Unggul 等）、kurikulum（カリキュラム）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "IPK",
+        "r": "Indeks Prestasi Kumulatif",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "累積GPA、通算成績平均点（4.00満点。インドネシアの就活・奨学金応募では『IPK minimal 3,00』のように必ず要求される超重要略語！）",
+        "ex": "Salah satu syarat utama pendaftaran beasiswa pascasarjana tersebut adalah memiliki IPK minimal tiga koma lima.",
+        "tr": "その大学院奨学金の主な応募要件のひとつは、累積GPA（IPK）が3.5以上であることだ。",
+        "note": "■ 【成績略語ペア】：IPS（Indeks Prestasi Semester＝今学期のGPA） ／ IPK（Indeks Prestasi Kumulatif＝通算GPA）。3.51以上は『cumlaude（優等卒業）』！"
+      },
+      {
+        "p": "singkatan",
+        "w": "UTS",
+        "r": "Ujian Tengah Semester",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "中間試験、中間テスト（インドネシアの学校・大学で毎学期半ばに行われる定期試験 ⇔ UAS＝期末試験）",
+        "ex": "Pekan depan seluruh mahasiswa mulai menghadapi UTS sehingga ruang baca perpustakaan selalu penuh sejak pagi.",
+        "tr": "来週から全学生が中間試験（UTS）に臨むため、図書館の閲覧室は朝からいつも満席だ。",
+        "note": "■ 【定期試験ペア】：UTS（中間試験） ⇔ UAS（Ujian Akhir Semester＝期末試験）。追試は『ujian susulan / remedial』。"
+      },
+      {
+        "p": "singkatan",
+        "w": "UAS",
+        "r": "Ujian Akhir Semester",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "期末試験、学期末テスト（単位取得の要となる学期末の本試験 ⇔ UTS＝中間試験）",
+        "ex": "Setelah menyelesaikan seluruh rangkaian UAS, mahasiswa akhirnya bisa menikmati masa libur antarsemester.",
+        "tr": "一連の期末試験（UAS）をすべて終えた後、学生たちはようやく学期間の休みを楽しめる。",
+        "note": "■ 【大学試験セット】：kuis（小テスト）、UTS（中間試験）、UAS（期末試験）、sidang skripsi（卒論口頭試問）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "KTM",
+        "r": "Kartu Tanda Mahasiswa",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "学生証（大学の図書館利用・試験受験・学割で常に携帯する身分証明書。住民証『KTP』の学生版！）",
+        "ex": "Setiap peserta ujian wajib menunjukkan KTM asli di atas meja sebelum lembar soal dibagikan oleh pengawas.",
+        "tr": "すべての受験生は試験監督から問題用紙が配られる前に、原本の学生証（KTM）を机の上に提示しなければならない。",
+        "note": "■ 【キャンパス必須略語4点セット】：KTM（学生証）、KRS（履修登録票）、KHS（成績通知表）、NIM（Nomor Induk Mahasiswa＝学籍番号）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "KRS",
+        "r": "Kartu Rencana Studi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "履修登録票、履修計画書（毎学期初めに取る科目と単位数を登録する手続き。インドネシアの大学生が『war KRS＝人気講義の履修争奪戦』と呼ぶ毎学期の大イベント！）",
+        "ex": "Mahasiswa harus berkonsultasi dengan dosen pembimbing akademik sebelum mengesahkan pengisian KRS secara daring.",
+        "tr": "学生はオンラインで履修登録（KRS）を確定する前に、指導教員と相談しなければならない。",
+        "note": "■ 【大学生活あるある】：『isi KRS / KRS-an（履修登録をする）』、『war KRS（履修枠の争奪戦）』はインドネシアの大学生なら全員通る道！"
+      },
+      {
+        "p": "singkatan",
+        "w": "KHS",
+        "r": "Kartu Hasil Studi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "学期成績表、単位修得結果表（毎学期末に発行される科目ごとの評価 A〜E と学期GPAが載った通知表。卒業時の通算版は『transkrip nilai』）",
+        "ex": "Nilai akhir setiap mata kuliah semester ini sudah dapat diunduh melalui dokumen KHS di portal kampus.",
+        "tr": "今学期の各科目の最終成績は、大学ポータルの成績表（KHS）書類からすでにダウンロードできる。",
+        "note": "■ 【流れで覚える】：学期始め『KRS（履修登録）』 ➔ 学期末『KHS（学期成績表）』 ➔ 卒業時『transkrip nilai（成績証明書）』。"
+      },
+      {
+        "p": "n",
+        "w": "makalah",
+        "r": "makalah",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "レポート、小論文、研究発表ペーパー（大学の授業課題や学会・セミナーで提出・発表する論文形式の文書）",
+        "ex": "Kelompok kami harus mengumpulkan makalah sepanjang sepuluh halaman mengenai aksesibilitas informasi sebelum hari Jumat.",
+        "tr": "私たちのグループは金曜日までに、情報アクセシビリティに関する10ページのレポート（論文）を提出しなければならない。",
+        "note": "■ 【大学論文・課題の段階】：tugas / esai（課題・エッセイ） ＜ makalah（レポート・研究論文） ＜ skripsi（卒論） ＜ tesis（修士論文） ＜ disertasi（博士論文）。"
+      },
+      {
+        "p": "n",
+        "w": "silabus",
+        "r": "silabus",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "シラバス、講義要項（各授業の到達目標・毎週のテーマ・評価基準・参考文献をまとめた一覧表）",
+        "ex": "Pada pertemuan kuliah pertama, dosen membagikan silabus beserta daftar buku referensi wajib kepada mahasiswa.",
+        "tr": "第1回目の講義で、教員はシラバスと必読参考文献リストを学生に配布した。",
+        "note": "■ 【関連語】：RPS（Rencana Pembelajaran Semester＝インドネシア大学でのシラバス正式文書名）、kurikulum（カリキュラム）。"
+      },
+      {
+        "p": "n",
+        "w": "transkrip",
+        "r": "transkrip",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "①成績証明書（『transkrip nilai』：卒業証書『ijazah』とセットで就活・留学出願に必須！） ②（音声・インタビューの）文字起こし、書き起こし（transkrip wawancara）",
+        "ex": "Pelamar kerja lulusan baru diminta melampirkan salinan ijazah dan transkrip nilai dalam satu berkas PDF.",
+        "tr": "新卒応募者は、卒業証書と成績証明書のコピーを1つのPDFファイルにまとめて添付するよう求められた。",
+        "note": "■ 【2大用法】：① 学業・就活『transkrip nilai（成績証明書）』、② 研究・取材『transkrip audio / wawancara（音声・インタビューの文字起こし）』。"
+      },
+      {
+        "p": "singkatan",
+        "w": "SPP",
+        "r": "Sumbangan Pembinaan Pendidikan",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "授業料、学費（主に私立の小中高・大学で毎月または毎学期納める学費。国立大学の所得連動型授業料は『UKT＝Uang Kuliah Tunggal』）",
+        "ex": "Orang tua murid kini dapat membayar uang SPP bulanan secara praktis melalui transfer bank atau dompet digital.",
+        "tr": "生徒の保護者は現在、毎月の授業料（SPP）を銀行振込や電子マネーで手軽に支払うことができる。",
+        "note": "■ 【学費の2大略語】：SPP（主に学校の月謝・私立の授業料） ／ UKT（国立大学の毎学期一括授業料）。"
+      },
+      {
+        "p": "v",
+        "w": "bolos",
+        "r": "bolos",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "（授業や仕事を無断で）サボる、欠席する、ずる休みする（正式動詞は『membolos』、日常会話では『bolos kuliah / bolos kerja』が超定番！）",
+        "ex": "Kalau terlalu sering bolos kuliah, jumlah kehadiranmu bisa kurang dari syarat minimal untuk mengikuti ujian akhir.",
+        "tr": "あまり頻繁に講義をサボると、出席日数が期末試験の受験最低条件に足りなくなるよ。",
+        "note": "■ 【キャンパス頻出フレーズ】：bolos kuliah（授業をサボる）、titip absen / TA（代返を頼む＝インドネシア大学生の定番スラング！）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "PR",
+        "r": "Pekerjaan Rumah",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "①宿題、ホームワーク（発音は『ペ・エル』。小中高生の毎日出る宿題） ②（比喩で：まだ残っている）大きな課題、宿題（PR besar bagi pemerintah＝政府に残された大きな課題！）",
+        "ex": "Pemerataan kualitas pendidikan di daerah terpencil masih menjadi PR besar bagi pemerintah hingga saat ini.",
+        "tr": "へき地における教育の質の均等化は、現在に至るまで政府にとって依然として大きな課題（宿題）となっている。",
+        "note": "■ 【超重要なニュース比喩】：ニュースや討論で『masih banyak PR（まだまだ課題が山積みだ）』のように日常・報道ともに大活躍する略語！"
+      },
+      {
+        "p": "n",
+        "w": "kuis",
+        "r": "kuis",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "①（大学の授業で行う）小テスト、抜き打ちテスト（kuis mendadak） ②クイズ、クイズ番組・アプリ",
+        "ex": "Dosen mengadakan kuis singkat sepuluh menit di awal kelas untuk mengecek pemahaman materi minggu lalu.",
+        "tr": "先生は先週の内容の理解度を確認するため、授業冒頭に10分間の小テストを行った。",
+        "note": "■ 【関連語】：kuis dadakan / mendadak（抜き打ち小テスト）、aplikasi kuis（クイズアプリ）。"
+      },
+      {
+        "p": "n",
+        "w": "institut",
+        "r": "institut",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "単科大学、専門系大学（理工系・農学系・芸術系など特定分野に特化した高等教育機関。バンドン工科大学『ITB』やボゴール農科大学『IPB』が超有名！）",
+        "ex": "Institut Teknologi Bandung merupakan salah satu perguruan tinggi teknik paling bergengsi di Indonesia.",
+        "tr": "バンドン工科大学（ITB）は、インドネシアで最も名門の理工系大学のひとつだ。",
+        "note": "■ 【インドネシアの高等教育機関3種】：universitas（総合大学：UI / UGM / Unair 等）、institut（専門系大学：ITB / IPB / ITS 等）、politeknik（高専・職業技術大学）。"
+      },
+      {
+        "p": "n",
+        "w": "politeknik",
+        "r": "politeknik",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "ポリテクニック、高等専門学校・職業技術大学（理論よりも実務・現場スキルを重視した専門課程 D3/D4 を提供する大学機関）",
+        "ex": "Lulusan politeknik banyak dicari industri manufaktur karena sudah terlatih dengan praktik langsung di bengkel kerja.",
+        "tr": "ポリテクニックの卒業生は実習工場での実践訓練を積んでいるため、製造業界から引く手あまただ。",
+        "note": "■ 【関連語】：pendidikan vokasi（職業・実務教育）、diploma [D3/D4]（専門士・応用学士課程）。"
+      },
+      {
+        "p": "n",
+        "w": "ruang kelas",
+        "r": "ruang",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "教室（学校や大学の講義室・クラスルーム。オンライン授業は『ruang kelas daring』）",
+        "ex": "Seluruh ruang kelas di gedung baru fakultas itu sudah dilengkapi proyektor digital dan penyejuk udara.",
+        "tr": "その学部の新校舎のすべての教室には、デジタルプロジェクターとエアコンがすでに完備されている。",
+        "note": "■ 【キャンパス施設セット】：ruang kelas（教室）、ruang dosen（教員室）、auditorium（講堂）、perpustakaan（図書館）、kantin（学食）。"
+      },
+      {
+        "p": "n",
+        "w": "auditorium",
+        "r": "auditorium",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "講堂、大ホール、オーディトリアム（大学の入学式・卒業式・大型講演会・音楽会が開かれる大ホール）",
+        "ex": "Seminar internasional tersebut digelar di auditorium utama kampus dengan dihadiri lebih dari lima ratus peserta.",
+        "tr": "その国際セミナーは500人以上の参加者を迎えて、キャンパスのメイン講堂で開催された。",
+        "note": "■ 【関連語】：aula（多目的ホール・体育館兼講堂）、panggung（ステージ・演壇）。"
+      },
+      {
+        "p": "n",
+        "w": "buku tulis",
+        "r": "buku",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "ノート、学習帳（罫線入りの一般的なノート。メモ帳・講義ノートは『buku catatan』とも言う）",
+        "ex": "Menjelang tahun ajaran baru, toko alat tulis ramai dikunjungi orang tua yang membeli buku tulis dan pensil.",
+        "tr": "新学期を前に、文房具店にはノートや鉛筆を買い求める保護者たちが大勢訪れる。",
+        "note": "■ 【ノート類セット】：buku tulis（ノート）、buku catatan（メモ帳・ノート）、buku gambar（スケッチブック）、buku teks（教科書）。"
+      },
+      {
+        "p": "n",
+        "w": "stabilo",
+        "r": "stabilo",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "蛍光ペン、マーカー（ドイツのブランド名 STABILO がそのまま一般名詞化！インドネシアでは蛍光ペン全般を100%『stabilo』と呼ぶ超定着語！）",
+        "ex": "Ia menandai kosakata baru yang sulit diingat di dalam bacaan berita menggunakan stabilo berwarna hijau muda.",
+        "tr": "彼はニュース記事の中の覚えにくい新出単語に、薄緑色の蛍光ペンで印をつけた。",
+        "note": "■ 【公式語との対比】：公式訳は『pena penanda / spidol penyorot』だが、文房具店や学校で通じるのは圧倒的に『stabilo』！"
+      },
+      {
+        "p": "n",
+        "w": "tip-ex",
+        "r": "tip-ex",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "修正液、修正テープ（ブランド名 Tipp-Ex がそのまま一般名詞化！インドネシアの学校・オフィスで修正液／修正テープはほぼ全員『tip-ex / tipe-x』と呼ぶ！）",
+        "ex": "Maaf, boleh pinjam tip-ex sebentar? Saya salah menulis satu angka di lembar formulir ini.",
+        "tr": "すみません、修正液（修正テープ）ちょっと借りてもいいですか？この用紙の数字を1文字書き間違えてしまって。",
+        "note": "■ 【公式語との対比】：公式インドネシア語は『cairan koreksi（修正液） / pita koreksi（修正テープ）』、日常会話は『tip-ex』！"
+      },
+      {
+        "p": "n",
+        "w": "lem",
+        "r": "lem",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "のり、接着剤（オランダ語 lijm 由来。工作用の『lem kertas＝紙のり』から強力瞬間接着剤の『lem super / lem korea』まで全部『lem』！）",
+        "ex": "Tempelkan pasfoto ukuran tiga kali empat pada sudut kanan atas formulir menggunakan lem kertas.",
+        "tr": "紙のりを使って、用紙の右上の隅に3×4センチの証明写真を貼ってください。",
+        "note": "■ 【のりの種類】：lem kertas / lem stik（スティックのり）、lem kayu（木工用ボンド）、lem super / lem alteco（瞬間接着剤）。動詞 mengelem（貼る・接着する）。"
+      },
+      {
+        "p": "n",
+        "w": "selotip",
+        "r": "selotip",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "セロハンテープ（透明の細い粘着テープ。荷造り用の太いガムテープは『lakban』！）",
+        "ex": "Kertas kado itu dibungkus rapi lalu direkatkan ujungnya dengan potongan kecil selotip bening.",
+        "tr": "そのプレゼント包装紙はきれいに包まれ、端を小さな透明セロハンテープで留められた。",
+        "note": "■ 【テープの区別】：selotip（透明の細いセロハンテープ） ／ lakban（梱包用の太いガムテープ・OPPテープ） ／ double tape（両面テープ）。"
+      },
+      {
+        "p": "n",
+        "w": "steples",
+        "r": "steples",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "ホッチキス、ステープラー（公式語は『stapler』だが、日常会話では『steples / hekter』が超定番！なおホッチキスの針は『isi steples』）",
+        "ex": "Tolong satukan kelima lembar tugas makalah ini dengan steples sebelum dikumpulkan ke meja dosen.",
+        "tr": "先生の机に提出する前に、この5枚のレポート課題をホッチキスでまとめて留めてね。",
+        "note": "■ 【オフィス文具セット】：steples（ホッチキス）、klip kertas（ゼムクリップ）、pelubang kertas（穴あけパンチ）、map / folder（ファイル）。"
+      },
+      {
+        "p": "n",
+        "w": "folder",
+        "r": "folder",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "①（PC・スマホ内のデータを整理する）フォルダ ②（書類を挟む）クリアファイル、フォルダー（紙ファイルは『map』も定番）",
+        "ex": "Simpan semua berkas materi kuliah berdasarkan nama mata kuliah ke dalam folder terpisah di laptop.",
+        "tr": "講義資料のファイルはすべて、ノートPCの中で科目名ごとに別々のフォルダへ保存しよう。",
+        "note": "■ 【IT＆オフィス整理セット】：berkas / file（ファイル）、folder（フォルダ）、map（書類用クリアファイル・紙バインダー）。"
+      },
+      {
+        "p": "n",
+        "w": "kalkulator",
+        "r": "kalkulator",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "電卓、計算機（関数電卓は『kalkulator ilmiah』）",
+        "ex": "Selama ujian akuntansi berlangsung, mahasiswa diperbolehkan membawa kalkulator standar namun dilarang memakai ponsel.",
+        "tr": "会計学の試験中は、学生は普通の電卓の持ち込みは許可されているがスマホの使用は禁じられている。",
+        "note": "■ 【関連語】：menghitung（計算する）、kalkulasi（計算・試算）。"
+      },
+      {
+        "p": "n",
+        "w": "proyektor",
+        "r": "proyektor",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "プロジェクター（大学の講義・会議室でスライドをスクリーンに映す機器。インドネシアではブランド名由来の『infokus [InFocus]』も超通じる！）",
+        "ex": "Sebelum presentasi dimulai, sambungkan kabel HDMI laptop ke proyektor dan pastikan layar tampil dengan jelas.",
+        "tr": "プレゼンが始まる前に、ノートPCのHDMIケーブルをプロジェクターにつないで画面がくっきり映るか確認しよう。",
+        "note": "■ 【大学・会社あるある】：インドネシアの教室や会議室で『nyalakan infokus』と言えば「プロジェクターをつけて」の意味！"
+      },
+      {
+        "p": "n",
+        "w": "korporasi",
+        "r": "korporasi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "大企業、法人、コーポレーション（『budaya korporasi＝企業文化』『aksi korporasi＝株式分割・M&A等のコーポレートアクション』として経済紙で頻出！）",
+        "ex": "Banyak korporasi multinasional kini mewajibkan laporan keberlanjutan lingkungan setiap akhir tahun buku.",
+        "tr": "多くの多国籍大企業は現在、毎会計年度末に環境サステナビリティ報告書の提出を義務付けている。",
+        "note": "■ 【重要コロケーション】：aksi korporasi（コーポレートアクション）、pajak korporasi（法人税）、tanggung jawab sosial korporasi [CSR]（企業の社会的責任）。"
+      },
+      {
+        "p": "n",
+        "w": "startup",
+        "r": "startup",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "スタートアップ企業、新興テック企業（公式インドネシア語は『perusahaan rintisan』だが、経済メディアや就活では『startup』が超一般的！）",
+        "ex": "Ekosistem startup teknologi di Jakarta dan Bandung melahirkan banyak layanan digital yang mengubah gaya hidup masyarakat.",
+        "tr": "ジャカルタとバンドンのテック系スタートアップのエコシステムは、市民の生活様式を変える多くのデジタルサービスを生み出した。",
+        "note": "■ 【関連語】：perusahaan rintisan（公式語）、pendiri / founder（創業者）、modal ventura（ベンチャーキャピタル）、unicorn（ユニコーン企業）。"
+      },
+      {
+        "p": "n",
+        "w": "perusahaan rintisan",
+        "r": "rintis",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "スタートアップ企業（英語 startup の公式インドネシア語。動詞『merintis＝切り開く・創始する』から派生し、新聞・検定で超頻出！）",
+        "ex": "Pemerintah menyediakan program pendampingan bisnis untuk membantu perusahaan rintisan lokal agar mampu bersaing di pasar global.",
+        "tr": "政府は地元のスタートアップ企業が世界市場で競争できるよう支援するため、ビジネス伴走プログラムを提供している。",
+        "note": "■ 【語構成】：perusahaan（企業）+ rintisan（先駆け・新規開拓の）。"
+      },
+      {
+        "p": "n",
+        "w": "anak perusahaan",
+        "r": "perusahaan",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "子会社（親会社に株式の過半数を所有・支配されるグループ企業 ⇔ induk perusahaan＝親会社）",
+        "ex": "Produsen alat berat asal Jepang tersebut mendirikan anak perusahaan di Indonesia untuk memperkuat jaringan pemasaran di Asia Tenggara.",
+        "tr": "その日本発の重機メーカーは、東南アジアの販売網を強化するためインドネシアに子会社を設立した。",
+        "note": "■ 【企業グループ構造】：induk perusahaan / holding（親会社・持株会社） ➔ anak perusahaan（子会社） ／ kantor cabang（支店）。"
+      },
+      {
+        "p": "n",
+        "w": "induk perusahaan",
+        "r": "induk",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "親会社、持株会社（＝perusahaan induk。複数の子会社を傘下に束ねる中心企業 ⇔ anak perusahaan）",
+        "ex": "Induk perusahaan menyuntikkan modal tambahan kepada anak usahanya guna mempercepat pembangunan pabrik baru.",
+        "tr": "親会社は新工場の建設を加速させるため、子会社に追加資本を注入した。",
+        "note": "■ 【関連語】：anak perusahaan / anak usaha（子会社）、kantor pusat（本社）。"
+      },
+      {
+        "p": "n",
+        "w": "komisaris",
+        "r": "komisaris",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "監査役、社外取締役・監督役員（インドネシアの株式会社 PT は二層構造で、経営執行の『Direksi＝取締役会』を監督するのが『Dewan Komisaris＝監査役会』！）",
+        "ex": "Rapat umum pemegang saham menyetujui pengangkatan seorang ekonom senior sebagai komisaris independen perusahaan.",
+        "tr": "株主総会は、ベテラン経済学者を同社の独立監査役（社外監督役員）に任命することを承認した。",
+        "note": "■ 【インドネシア株式会社 PT の必須知識】：\n・Direktur Utama [Dirut]（代表取締役社長）＋ Direksi（執行取締役会）\n・Komisaris Utama [Komut]（筆頭監査役・会長格）＋ Dewan Komisaris（監督・監査役会）"
+      },
+      {
+        "p": "n",
+        "w": "kepala bagian",
+        "r": "kepala",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "部長、課長、部門長（略称『Kabag』。会社や官公庁の各部署の責任者）",
+        "ex": "Usulan penambahan tenaga kerja baru harus mendapat persetujuan tertulis dari kepala bagian sumber daya manusia.",
+        "tr": "新規人員追加の提案は、人事部長の書面による承認を得なければならない。",
+        "note": "■ 【職位セット】：direktur（取締役・社長）、manajer（マネージャー）、kepala bagian / kepala divisi（部長・部門長）、staf（一般社員）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "HRD",
+        "r": "Human Resources Development",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "人事部、人事担当者（インドネシアの就活・職場で『wawancara HRD＝人事面接』『kirim CV ke HRD』と100%使われる超定番略語！公式語は『bagian SDM』）",
+        "ex": "Setelah lolos seleksi berkas, kandidat akan dihubungi oleh tim HRD untuk menjadwalkan wawancara tahap pertama.",
+        "tr": "書類選考を通過した後、候補者は一次面接の日程調整のため人事部（HRD）チームから連絡を受ける。",
+        "note": "■ 【就活フロー定番】：lamaran（応募） ➔ seleksi berkas（書類選考） ➔ wawancara HRD（人事面接） ➔ wawancara user（配属先現場面接） ➔ offering（内定通知）。"
+      },
+      {
+        "p": "v",
+        "w": "resign",
+        "r": "resign",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "（自主的に会社を）退職する、辞職する（公式語は『mengundurkan diri』だが、社会人の会話では『mau resign / surat resign』が圧倒的No.1！）",
+        "ex": "Sesuai aturan perusahaan, karyawan yang berencana resign wajib mengajukan pemberitahuan minimal satu bulan sebelumnya.",
+        "tr": "会社の規定に従い、退職を予定している従業員は最低1ヶ月前に届け出を提出しなければならない。",
+        "note": "■ 【言い換え＆対比】：resign / mengundurkan diri（自主退職） ⇔ di-PHK / pemecatan（会社都合の解雇・リストラ）。"
+      },
+      {
+        "p": "n",
+        "w": "mutasi",
+        "r": "mutasi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "①（会社・公務員の）配置転換、異動、転勤（mutasi kerja） ②（銀行口座の）入出金履歴・明細（mutasi rekening！） ③（生物学の）突然変異（mutasi virus）",
+        "ex": "Sebelum mengecek apakah dana sudah masuk, ia membuka aplikasi perbankan untuk melihat mutasi rekening hari ini.",
+        "tr": "お金がすでに入金されたか確認するため、彼は銀行アプリを開いて今日の口座入出金明細（ムタシ）を見た。",
+        "note": "■ 【3大超実用コロケーション】：\n① 人事：mutasi jabatan / kerja（異動・転勤）\n② 銀行：mutasi rekening（口座入出金履歴：銀行アプリで毎日見る語！）\n③ 科学：mutasi genetik / virus（遺伝子／ウイルスの突然変異）"
+      },
+      {
+        "p": "n",
+        "w": "demosi",
+        "r": "demosi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "降格、格下げ、左遷（役職や等級を引き下げること ⇔ promosi＝昇進・昇格）",
+        "ex": "Karyawan yang terbukti melanggar kode etik berat dapat dikenai sanksi berupa demosi atau pemutusan hubungan kerja.",
+        "tr": "重大な倫理規定違反が立証された従業員は、降格または解雇という処分を科されることがある。",
+        "note": "■ 【人事異動3点セット】：promosi（昇進） ／ mutasi（横の異動・転勤） ／ demosi（降格）。"
+      },
+      {
+        "p": "n",
+        "w": "notulen",
+        "r": "notulen",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "議事録（会議の議論内容・決定事項をまとめた公式記録。KBBI標準綴りは『notula』、書記担当は『notulis』だが職場では『notulen rapat』が超定着！）",
+        "ex": "Setelah rapat bulanan selesai, sekretaris mengirimkan notulen rapat beserta daftar tindak lanjut ke semua peserta.",
+        "tr": "月例会議が終わった後、秘書は議事録とネクストアクション一覧を全参加者へ送付した。",
+        "note": "■ 【会議の3点セット】：agenda rapat（議題）、notulen rapat（議事録）、notulis（書記・議事録係）。"
+      },
+      {
+        "p": "n",
+        "w": "deadline",
+        "r": "deadline",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "締め切り、期日、デッドライン（公式インドネシア語は『tenggat waktu / batas waktu』だが、大学・職場・会話では『deadline』が超頻出！）",
+        "ex": "Tim desain bekerja lembur malam ini agar seluruh materi presentasi klien selesai tepat sebelum deadline besok siang.",
+        "tr": "デザインチームは、クライアント向けプレゼン資料すべてを明日昼の締め切りぴったりに終わらせるため今夜残業している。",
+        "note": "■ 【言い換え】：deadline（日常・職場） ＝ tenggat waktu / batas waktu（公式・報道）。"
+      },
+      {
+        "p": "n",
+        "w": "proposal",
+        "r": "proposal",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "企画書、提案書、研究計画書（ビジネスの『proposal bisnis』、イベント協賛依頼の『proposal sponsor』、大学卒論の『proposal skripsi』まで毎日使う！）",
+        "ex": "Mahasiswa tingkat akhir harus mempresentasikan proposal skripsi terlebih dahulu sebelum memulai penelitian lapangan.",
+        "tr": "最終学年の学生は、フィールド調査を始める前にまず卒論研究計画書（プロポーザル）を発表しなければならない。",
+        "note": "■ 【重要コロケーション】：mengajukan proposal（企画書・計画書を提出する）、proposal penelitian（研究計画書）。"
+      },
+      {
+        "p": "n",
+        "w": "budget",
+        "r": "budget",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "予算、バジェット（公式語は『anggaran』だが、旅行計画・買い物・社内会議では『sesuai budget＝予算内で』『over budget＝予算オーバー』が超頻出！）",
+        "ex": "Kita perlu menyusun rincian biaya transportasi dan penginapan agar liburan selama sebulan tetap sesuai budget.",
+        "tr": "1ヶ月間の旅行がしっかり予算内に収まるように、交通費と宿泊費の内訳を整理する必要がある。",
+        "note": "■ 【言い換え】：budget（日常・ビジネス口語：KBBI定着綴り『bujet』） ＝ anggaran（公式・公的予算）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "KPI",
+        "r": "Key Performance Indicator",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "重要業績評価指標、KPI（企業・部署・個人の目標達成度を測る数値指標。公式訳は『Indikator Kinerja Utama [IKU]』）",
+        "ex": "Pencapaian KPI tahunan menjadi salah satu dasar utama perusahaan dalam menentukan besaran bonus karyawan.",
+        "tr": "年間KPIの達成度は、企業が従業員のボーナス額を決定する際の主な基準のひとつになる。",
+        "note": "■ 【ビジネス評価セット】：KPI（目標指標）、kinerja（パフォーマンス・業績）、target（目標値）、evaluasi（評価）。"
+      },
+      {
+        "p": "n",
+        "w": "supplier",
+        "r": "supplier",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "サプライヤー、仕入先、供給業者（公式インドネシア語は『pemasok』だが、商談・製造業・ECビジネスでは『supplier』も超一般的！）",
+        "ex": "Pemilik restoran itu bekerja sama langsung dengan supplier sayuran segar dari petani pegunungan agar kualitas terjaga.",
+        "tr": "そのレストランのオーナーは品質を保つため、高原農家の新鮮野菜サプライヤーと直接提携している。",
+        "note": "■ 【流通4段階】：produsen（メーカー） ➔ supplier / pemasok（供給業者） ➔ distributor（卸・代理店） ➔ konsumen（消費者）。"
+      },
+      {
+        "p": "n",
+        "w": "kompetitor",
+        "r": "kompetitor",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "競合他社、ライバル、競争相手（＝pesaing。マーケティング・経営戦略・スポーツ記事で頻出）",
+        "ex": "Untuk tetap unggul dari kompetitor, perusahaan terus meningkatkan kualitas layanan purnajual bagi pelanggan.",
+        "tr": "競合他社より優位に立ち続けるため、同社は顧客向けアフターサービスの質を向上させ続けている。",
+        "note": "■ 【関連語】：pesaing（競合・ライバル）、kompetisi（競争）、kompetitif（競争力のある）。"
+      },
+      {
+        "p": "n",
+        "w": "sinergi",
+        "r": "sinergi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "シナジー、相乗効果、連携協力（異なる企業・省庁・部署が協力して1+1以上の成果を生むこと。ビジネス・行政ニュースの大好物ワード！）",
+        "ex": "Sinergi antara universitas, pemerintah daerah, dan pelaku industri sangat penting untuk mempercepat inovasi teknologi.",
+        "tr": "技術革新を加速させるためには、大学・地方政府・産業界の間のシナジー（連携による相乗効果）が非常に重要だ。",
+        "note": "■ 【動詞形】：bersinergi（連携する・相乗効果を生み出す）、menyinergikan（統合連携させる）。"
+      },
+      {
+        "p": "n",
+        "w": "materai",
+        "r": "meterai",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "収入印紙（契約書・誓約書・領収書に貼って上からサインする法的効力用の印紙！KBBI標準綴りは『meterai』だが日常は『materai』が圧倒的。現在は10,000ルピア印紙や電子印紙『e-meterai』が主流）",
+        "ex": "Surat perjanjian kontrak kerja tersebut harus ditandatangani di atas materai sepuluh ribu rupiah agar sah secara hukum.",
+        "tr": "その労働契約書は法的に有効とするため、1万ルピアの収入印紙の上から署名しなければならない。",
+        "note": "■ 【インドネシア実務の必須知識】：重要書類には『tanda tangan di atas meterai Rp10.000（1万ルピア印紙に跨がって署名）』が鉄則！電子版は『e-meterai』。"
+      },
+      {
+        "p": "n",
+        "w": "franchise",
+        "r": "franchise",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "フランチャイズ、加盟店ビジネス（公式インドネシア語は『waralaba』だが、コンビニ・カフェ・飲食チェーンのビジネス会話では『franchise』が超一般的！）",
+        "ex": "Bisnis minuman teh dan kopi kekinian berkembang sangat cepat di berbagai kota melalui sistem franchise.",
+        "tr": "トレンドのお茶・コーヒー飲料ビジネスは、フランチャイズ制度を通じて各都市で非常に急速に拡大している。",
+        "note": "■ 【言い換え】：franchise（日常・ビジネス） ＝ waralaba（公式語・ニュース・検定）。"
+      },
+      {
+        "p": "n",
+        "w": "izin usaha",
+        "r": "izin",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "営業許可、事業免許（インドネシアで会社・店舗・学校などを合法的に運営するための公式許可。現在のオンライン一括登録番号は『NIB＝Nomor Induk Berusaha』）",
+        "ex": "Pelaku usaha mikro kini dapat mengurus izin usaha secara daring lebih cepat melalui sistem layanan satu pintu.",
+        "tr": "零細事業者は現在、ワンストップサービスシステムを通じてオンラインでより迅速に営業許可を取得できる。",
+        "note": "■ 【起業・行政セット】：izin usaha（営業許可）、NIB（事業基本番号）、OSS（オンライン統合許認可システム）、legalitas（法的正当性）。"
+      },
+      {
+        "p": "n",
+        "w": "yen",
+        "r": "yen",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "円、日本円（日本の通貨単位 JPY。為替ニュースや日本旅行・留学の会話で必須！）",
+        "ex": "Melemahnya nilai tukar yen terhadap dolar membuat biaya wisata ke Jepang menjadi lebih terjangkau bagi turis asing.",
+        "tr": "対ドルでの円安（円の為替レート下落）により、外国人観光客にとって日本旅行の費用がより手頃になった。",
+        "note": "■ 【主要通貨セット】：rupiah（ルピア：IDR）、yen（円：JPY）、dolar（ドル：USD/SGD/AUD）、euro（ユーロ：EUR）、ringgit（リンギット：MYR）。"
+      },
+      {
+        "p": "n",
+        "w": "giro",
+        "r": "giro",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "当座預金、当座口座（主に法人の事業決済用口座『rekening giro』、および振替小切手『bilyet giro』）",
+        "ex": "Perusahaan menggunakan rekening giro untuk memperlancar transaksi pembayaran dalam jumlah besar kepada pemasok.",
+        "tr": "企業はサプライヤーへの大口支払い取引を円滑にするため、当座預金口座を利用している。",
+        "note": "■ 【銀行口座3種】：tabungan（普通預金）、deposito（定期預金）、giro（当座預金）。"
+      },
+      {
+        "p": "v",
+        "w": "gadai",
+        "r": "gadai",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "質入れする、担保に入れて金を借りる（『menggadaikan』の語幹。インドネシアでは国営質屋『Pegadaian』が金（ゴールド）の積立や融資で国民的に超有名！）",
+        "ex": "Saat membutuhkan dana darurat cepat, sebagian masyarakat memilih gadai perhiasan emas di lembaga resmi.",
+        "tr": "急いで緊急資金が必要なとき、一部の市民は公的機関に金（ゴールド）の装飾品を質入れする選択をする。",
+        "note": "■ 【関連語】：Pegadaian（国営質屋・金金融機関）、menggadaikan（質に入れる・比喩で「将来や名誉を売り渡す」）、barang gadai（質草）。"
+      },
+      {
+        "p": "n",
+        "w": "kartu kredit",
+        "r": "kartu",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "クレジットカード（後払い決済カード ⇔ kartu debit＝銀行口座から即時引き落としのデビットカード）",
+        "ex": "Pastikan membayar tagihan kartu kredit secara penuh sebelum tanggal jatuh tempo agar tidak terkena denda bunga tinggi.",
+        "tr": "高い延滞金利がかからないよう、クレジットカードの請求額は支払期日前に全額支払うようにしよう。",
+        "note": "■ 【決済カードペア】：kartu debit（デビットカード） ／ kartu kredit（クレジットカード）。支払期日は『tanggal jatuh tempo』。"
+      },
+      {
+        "p": "n",
+        "w": "cek",
+        "r": "cek",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "①確認する、チェックする（mengecek の語幹：cek saldo＝残高確認、cek harga＝価格チェック） ②（金融の）小切手（cek kosong＝不渡り小切手）",
+        "ex": "Coba cek kembali alamat pengiriman dan nomor telepon sebelum menekan tombol bayar di aplikasi belanja.",
+        "tr": "ショッピングアプリで支払いボタンを押す前に、配送先住所と電話番号をもう一度チェックしてみて。",
+        "note": "■ 【2大用法】：① 動詞『cek / mengecek（確認する）』、② 金融名詞『cek（小切手）』。"
+      },
+      {
+        "p": "n",
+        "w": "invoice",
+        "r": "invoice",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "請求書、インボイス（公式語は『faktur / tagihan』だが、ビジネス取引・フリーランス・B2Bでは『kirim invoice』が圧倒的に定番！）",
+        "ex": "Bagian keuangan akan memproses pembayaran dalam tujuh hari kerja setelah menerima invoice resmi dari mitra.",
+        "tr": "経理部はパートナーから正式な請求書（インボイス）を受領した後、7営業日以内に支払い処理を行う。",
+        "note": "■ 【帳票3点セット】：invoice / faktur（請求書）、kuitansi（領収書）、struk / nota（レジのレシート・簡易伝票）。"
+      },
+      {
+        "p": "n",
+        "w": "promo",
+        "r": "promo",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "セール、特売、キャンペーン割引（『promosi』の略称。インドネシアのスーパー・カフェ・配車アプリ・ECで毎日一番目にする魔法のワード！）",
+        "ex": "Setiap tanggal kembar di bulan tertentu, toko daring selalu menawarkan promo potongan harga dan gratis ongkir.",
+        "tr": "特定の月のゾロ目の日（11.11や12.12等）になると、オンラインショップはいつも割引セールと送料無料キャンペーンを打ち出す。",
+        "note": "■ 【買い物お得3点セット】：promo（特売・キャンペーン）、diskon（割引）、cashback（キャッシュバック）、gratis ongkir（送料無料）。"
+      },
+      {
+        "p": "n",
+        "w": "cashback",
+        "r": "cashback",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "キャッシュバック、ポイント還元（電子マネーやクレカ決済で支払額の一部が戻ってくる特典。公式訳は『uang kembali』だが日常は100%『cashback』！）",
+        "ex": "Pembayaran menggunakan dompet digital di kedai kopi tersebut memberikan cashback sebesar dua puluh persen.",
+        "tr": "そのコーヒーショップで電子マネーを使って支払うと、20パーセントのキャッシュバックがもらえる。",
+        "note": "■ 【関連語】：promo（キャンペーン）、poin（ポイント）、kupon / voucher（クーポン）。"
+      },
+      {
+        "p": "n",
+        "w": "reksa dana",
+        "r": "reksa",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "投資信託（ミューチュアルファンド：投資家から集めた資金をプロが株・債券・MMFで運用する商品。インデックス投信は『reksa dana indeks』！）",
+        "ex": "Banyak investor pemula memilih berinvestasi secara rutin di reksa dana pasar uang dan reksa dana indeks saham.",
+        "tr": "多くの投資初心者が、マネーマーケット投信や株式インデックス投資信託への定期積立投資を選んでいる。",
+        "note": "■ 【投信の4大種類】：reksa dana pasar uang（MMF・低リスク）、pendapatan tetap（債券型）、campuran（バランス型）、saham / indeks（株式・インデックス型）。"
+      },
+      {
+        "p": "n",
+        "w": "bursa efek",
+        "r": "bursa",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "証券取引所（インドネシア証券取引所は『Bursa Efek Indonesia [BEI / IDX]』、東京証券取引所は『Bursa Efek Tokyo』）",
+        "ex": "Indeks harga saham gabungan di Bursa Efek Indonesia ditutup menguat seiring masuknya aliran modal investor asing.",
+        "tr": "インドネシア証券取引所（BEI）の総合株価指数（IHSG）は、外国人投資家の資金流入に伴い上昇して取引を終えた。",
+        "note": "■ 【株式市場セット】：BEI / IDX（インドネシア証券取引所）、IHSG（ジャカルタ総合株価指数）、emiten（上場企業）、saham（株式）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "IPO",
+        "r": "Initial Public Offering",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "新規株式公開、IPO（未上場企業が証券取引所に初めて上場して株を一般投資家へ売り出すこと。公式訳は『penawaran umum perdana』）",
+        "ex": "Perusahaan teknologi tersebut berencana melantai di bursa melalui IPO pada kuartal ketiga tahun ini untuk menghimpun modal ekspansi.",
+        "tr": "そのテクノロジー企業は事業拡大資金を調達するため、今年第3四半期にIPOを通じて証券取引所へ上場する計画だ。",
+        "note": "■ 【経済紙定番表現】：melantai di bursa（証券取引所に上場する）、penawaran umum perdana（IPOの公式訳）。"
+      },
+      {
+        "p": "n",
+        "w": "portofolio",
+        "r": "portofolio",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "①（投資の）ポートフォリオ、保有資産の組み合わせ ②（デザイナー・エンジニア・就活生の）作品集、実績集",
+        "ex": "Diversifikasi portofolio ke berbagai instrumen aset membantu mengurangi risiko kerugian saat pasar sedang bergejolak.",
+        "tr": "さまざまな資産商品へポートフォリオを分散させることは、相場が不安定なときの損失リスクを減らす助けになる。",
+        "note": "■ 【2大用法】：① 投資『portofolio investasi（投資ポートフォリオ）』、② キャリア・制作『portofolio karya（作品・開発実績集）』。"
+      },
+      {
+        "p": "n",
+        "w": "liabilitas",
+        "r": "liabilitas",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "負債、債務（決算書・貸借対照表『neraca』の3大要素のひとつ！『aset＝資産』『liabilitas＝負債』『ekuitas＝純資産・自己資本』）",
+        "ex": "Investor selalu memeriksa rasio liabilitas terhadap ekuitas untuk menilai kesehatan keuangan sebuah perusahaan.",
+        "tr": "投資家は企業の財務健全性を評価するため、必ず負債資本倍率（DER：負債と純資産の比率）を確認する。",
+        "note": "■ 【貸借対照表の黄金公式】：Aset（資産） ＝ Liabilitas（負債） ＋ Ekuitas（純資産／株主資本）。"
+      },
+      {
+        "p": "n",
+        "w": "ekuitas",
+        "r": "ekuitas",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "自己資本、純資産、株主資本（総資産から負債を差し引いた正味の企業価値。ROE＝Return on Equity の E！）",
+        "ex": "Pertumbuhan laba yang konsisten setiap tahun turut memperkuat posisi ekuitas perusahaan di neraca keuangan.",
+        "tr": "毎年の着実な利益成長は、貸借対照表における同社の自己資本（純資産）の強化にもつながっている。",
+        "note": "■ 【関連語】：aset（資産）、liabilitas（負債）、modal（資本金）、neraca（貸借対照表）。"
+      },
+      {
+        "p": "n",
+        "w": "pertumbuhan ekonomi",
+        "r": "tumbuh",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "経済成長（GDP＝PDB の増加率で測られる一国の経済拡大。インドネシアでは例年5%前後の『pertumbuhan ekonomi』が経済ニュースの主軸！）",
+        "ex": "Konsumsi rumah tangga dan peningkatan ekspor menjadi penopang utama pertumbuhan ekonomi nasional pada kuartal ini.",
+        "tr": "家計消費と輸出の増加が、今四半期の国家経済成長の主な支えとなった。",
+        "note": "■ 【経済マクロ指標セット】：pertumbuhan ekonomi（経済成長）、PDB（GDP）、inflasi（インフレ率）、suku bunga acuan（政策金利）。"
+      },
+      {
+        "p": "n",
+        "w": "laba bersih",
+        "r": "laba",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "純利益、最終利益（売上から原価・経費・税金をすべて差し引いた最終的な儲け ⇔ laba kotor＝売上総利益／粗利）",
+        "ex": "Berkat efisiensi biaya operasional, perusahaan mencatat kenaikan laba bersih sebesar delapan belas persen sepanjang tahun lalu.",
+        "tr": "営業コストの効率化のおかげで、同社は昨年1年間で純利益18パーセント増を記録した。",
+        "note": "■ 【損益計算書セット】：pendapatan / omzet（売上高）、laba kotor（粗利）、laba usaha（営業利益）、laba bersih（純利益）、rugi bersih（純損失）。"
+      },
+      {
+        "p": "n",
+        "w": "modal kerja",
+        "r": "modal",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "運転資金（日々の仕入れ・人件費・家賃など事業を回すための資金。『kredit modal kerja [KMK]＝運転資金融資』として銀行・中小企業ニュースで超頻出！）",
+        "ex": "Bank menyalurkan kredit modal kerja berbunga ringan untuk membantu pelaku usaha kecil menambah stok bahan baku.",
+        "tr": "銀行は零細事業者が原材料在庫を増やすのを支援するため、低金利の運転資金融資を実行している。",
+        "note": "■ 【関連語】：modal（元手・資本）、modal awal（初期資金）、arus kas（キャッシュフロー）。"
+      }
+    ];
+
+    const idxByWord = new Map();
+    for (let i = 0; i < d.vocab.length; i++) {
+      const it = d.vocab[i];
+      if (it && it.w) idxByWord.set(it.w.trim().toLowerCase(), i);
+    }
+
+    for (let i = 0; i < DICT_PACK_7.length; i++) {
+      const item = DICT_PACK_7[i];
+      if (!item || !item.w) continue;
+      const key = item.w.trim().toLowerCase();
+
+      item.dictOnly = true;
+      item.tier = 3;
+      dictOnlySet.add(key);
+
+      if (item.topicCat) {
+        catMap.set(key, item.topicCat);
+      }
+
+      if (idxByWord.has(key)) {
+        const pos = idxByWord.get(key);
+        Object.assign(d.vocab[pos], item);
+        vMap.set(key, d.vocab[pos]);
+        persistentAdded.set(key, d.vocab[pos]);
+      } else {
+        d.vocab.push(item);
+        idxByWord.set(key, d.vocab.length - 1);
+        vMap.set(key, item);
+        persistentAdded.set(key, item);
+      }
+    }
+  } catch (e) {
+    console.error("WhatsIndo Dict Pack 7 error:", e);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 辞書充実プロジェクト 第8弾（全60語・すべて辞書専用 dictOnly: true）
+   - ① 法務・司法・犯罪・人権（22語）：ayat, Mahkamah Agung, Mahkamah Konstitusi,
+       pencemaran nama baik, lapas, Rutan, kriminal, kriminalitas, bullying,
+       kekerasan seksual, ujaran kebencian, judi online, pinjol, disinformasi,
+       hukum perdata, praperadilan, somasi, inkrah, eksepsi, pleidoi,
+       akta kelahiran, akta notaris
+   - ② 政治・現代社会・経済ニュース（20語）：pandemi, endemi, reshuffle, kudeta,
+       amandemen, stagflasi, devaluasi, biodiversitas, sanksi ekonomi,
+       transisi energi, net zero, bonus demografi, kelas menengah,
+       pengangguran terbuka, inflasi inti, defisit anggaran, perang dagang,
+       polarisasi, kedaulatan pangan, hak angket
+   - ③ 必須略語・公的機関・歴史・行政（18語）：HAM, SDA, TKI, PPPK, OIKN, TJ,
+       BPUPKI, PPKI, UU ITE, Perpu, OTT, DPO, TKP, BAP, e-KTP, PK,
+       quick count, real count
+   - **記号ゼロ・文字バグゼロ・try-catch完全保護・問題モードへ一切混入しません
+   ===================================================================== */
+(function() {
+  try {
+    const d = window.WHATSINDO_EXTERNAL_DATA;
+    if (!d || !Array.isArray(d.vocab)) return;
+
+    const dictOnlySet     = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+    const persistentAdded = window.__wiPersistentAddedVocab || (window.__wiPersistentAddedVocab = new Map());
+    const vMap            = window.__wiMasterVocabMap || (window.__wiMasterVocabMap = new Map());
+    const catMap          = window.__WI_V5_VCAT || (window.__WI_V5_VCAT = new Map());
+
+    const DICT_PACK_8 = [
+      {
+        "p": "n",
+        "w": "ayat",
+        "r": "ayat",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①（法律の）項（こう）（『Pasal 28 ayat (1)＝第28条第1項』のように『pasal＝条』とセットで法令・ニュースに超頻出！） ②（クルアーンや聖書の）節、聖句",
+        "ex": "Ketentuan mengenai hak kebebasan berpendapat tercantum secara jelas pada Pasal 28E ayat 3 Undang-Undang Dasar.",
+        "tr": "意見表明の自由の権利に関する規定は、憲法第28E条第3項に明確に記されている。",
+        "note": "■ 【法令の階層セット】：bab（章） ➔ pasal（条） ➔ ayat（項） ➔ huruf / butir（号）。"
+      },
+      {
+        "p": "n",
+        "w": "Mahkamah Agung",
+        "r": "mahkamah",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "最高裁判所（略称『MA』。民事・刑事の上告『kasasi』や再審『PK』を審理するインドネシア司法の最高機関。憲法裁判所の『Mahkamah Konstitusi [MK]』とは別組織！）",
+        "ex": "Mahkamah Agung menolak permohonan kasasi terdakwa sehingga putusan pengadilan tinggi tetap berlaku.",
+        "tr": "最高裁判所は被告人の上告申立てを棄却し、高等裁判所の判決がそのまま有効となった。",
+        "note": "■ 【インドネシアの2大最高司法機関】：\n・Mahkamah Agung [MA]（最高裁判所）：一般の刑事・民事・行政事件の上告審\n・Mahkamah Konstitusi [MK]（憲法裁判所）：違憲審査・選挙結果の異議審理"
+      },
+      {
+        "p": "n",
+        "w": "Mahkamah Konstitusi",
+        "r": "mahkamah",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "憲法裁判所（略称『MK』。法律の違憲審査『uji materi』や大統領選・総選挙の結果をめぐる紛争『sengketa pemilu』の最終判断を下す機関！）",
+        "ex": "Sidang sengketa hasil pemilihan umum di Mahkamah Konstitusi disiarkan secara langsung ke seluruh negeri.",
+        "tr": "憲法裁判所での総選挙結果紛争の審理は、全国へ向けて生中継された。",
+        "note": "■ 【関連語】：hakim konstitusi（憲法裁判官）、uji materi（違憲審査・法令審査）、putusan final dan mengikat（最終的かつ法的拘束力のある判決）。"
+      },
+      {
+        "p": "n",
+        "w": "pencemaran nama baik",
+        "r": "cemar",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "名誉毀損（めいよきそん）（SNS投稿や発言で他人の名誉・評判を不当に傷つける罪。インドネシアでは『UU ITE』絡みのニュースで毎日登場する超重要法律用語！）",
+        "ex": "Pengusaha tersebut melaporkan pemilik akun anonim ke polisi atas dugaan pencemaran nama baik di media sosial.",
+        "tr": "その経営者は、SNS上での名誉毀損の疑いで匿名アカウントの所有者を警察へ告訴した。",
+        "note": "■ 【関連語】：fitnah（誹謗中傷・濡れ衣）、UU ITE（電子情報取引法）、somasi（法的警告・内容証明）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "lapas",
+        "r": "Lembaga Pemasyarakatan",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "刑務所、矯正施設（有罪判決が確定した受刑者『narapidana / warga binaan』を収容する施設。判決前の拘置所は『Rutan』、日常語は『penjara』）",
+        "ex": "Para warga binaan di lapas mengikuti pelatihan keterampilan menjahit dan pertukangan sebagai bekal setelah bebas.",
+        "tr": "刑務所の受刑者たちは、出所後の糧として裁縫や大工技術の職業訓練を受けている。",
+        "note": "■ 【収容施設の区別】：Rutan（拘置所：裁判中・確定前） ／ Lapas（刑務所：有罪確定後）。なお受刑者の丁寧な公式呼称は『warga binaan』。"
+      },
+      {
+        "p": "singkatan",
+        "w": "Rutan",
+        "r": "Rumah Tahanan Negara",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "拘置所、留置施設（まだ有罪判決が確定していない容疑者・被告人『tahanan』を一時収容する施設 ⇔ lapas＝刑務所）",
+        "ex": "Tersangka kasus penggelapan dana tersebut dititipkan sementara di Rutan sambil menunggu jadwal persidangan perdana.",
+        "tr": "その資金横領事件の容疑者は、初公判の日程を待つ間、拘置所（ルタン）に一時収容された。",
+        "note": "■ 【関連語】：tahanan（勾留中の被疑者・被告人）、narapidana / napi（受刑者）、lapas（刑務所）。"
+      },
+      {
+        "p": "a",
+        "w": "kriminal",
+        "r": "kriminal",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "犯罪の、刑事の、犯罪者（tindakan kriminal＝犯罪行為、catatan kriminal＝前科・犯罪歴、berita kriminal＝事件ニュース）",
+        "ex": "Pelamar kerja di beberapa instansi wajib melampirkan surat keterangan bebas catatan kriminal dari kepolisian.",
+        "tr": "いくつかの機関の求職者は、警察発行の無犯罪証明書（SKCK）を添付する義務がある。",
+        "note": "■ 【関連語】：kriminalitas（犯罪・犯罪率）、kriminalisasi（不当な立件・犯罪化）、SKCK（警察発行の無犯罪証明書）。"
+      },
+      {
+        "p": "n",
+        "w": "kriminalitas",
+        "r": "kriminal",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "犯罪発生、犯罪率、治安の悪さ（社会全体の犯罪傾向を指す名詞：angka kriminalitas＝犯罪件数・犯罪率）",
+        "ex": "Pemasangan kamera pengawas dan patroli malam rutin terbukti membantu menekan angka kriminalitas di kawasan perkotaan.",
+        "tr": "防犯カメラの設置と定期的な夜間パトロールは、都市部での犯罪率を抑えるのに役立つと証明された。",
+        "note": "■ 【重要コロケーション】：angka / tingkat kriminalitas（犯罪率）、menekan kriminalitas（犯罪を抑え込む）。"
+      },
+      {
+        "p": "n",
+        "w": "bullying",
+        "r": "bullying",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "いじめ、ハラスメント（公式インドネシア語は『perundungan』だが、学校現場・SNS・ニュース見出しでは『bullying / cyberbullying』も超頻出！）",
+        "ex": "Sekolah bekerja sama dengan orang tua untuk mencegah kasus bullying baik secara langsung maupun di dunia maya.",
+        "tr": "学校は保護者と協力して、対面でもネット上でもいじめ事案を防ぐ取り組みを行っている。",
+        "note": "■ 【言い換え】：perundungan（公式インドネシア語：語幹 rundung） ／ bullying（日常・メディア）。"
+      },
+      {
+        "p": "n",
+        "w": "kekerasan seksual",
+        "r": "keras",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "性暴力、性的ハラスメント（インドネシアでは2022年成立の性暴力犯罪法『UU TPKS』や大学の相談窓口『Satgas PPKS』関連ニュースで超重要！）",
+        "ex": "Setiap perguruan tinggi kini memiliki satuan tugas khusus untuk pencegahan dan penanganan kekerasan seksual di lingkungan kampus.",
+        "tr": "すべての大学には現在、キャンパス内での性暴力の防止と対応を担う専門タスクフォースが設置されている。",
+        "note": "■ 【関連語】：pelecehan seksual（セクハラ）、UU TPKS（性暴力犯罪法）、korban（被害者）、pendampingan（伴走支援）。"
+      },
+      {
+        "p": "n",
+        "w": "ujaran kebencian",
+        "r": "ujar",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "ヘイトスピーチ、憎悪表現（人種・宗教・民族・属性を標的にした差別的・攻撃的発言。選挙やSNS規制ニュースの頻出法律用語！）",
+        "ex": "Platform media sosial wajib menurunkan unggahan yang mengandung ujaran kebencian dan provokasi konflik.",
+        "tr": "SNSプラットフォームは、ヘイトスピーチや紛争扇動を含む投稿を削除する義務がある。",
+        "note": "■ 【関連語】：SARA（Suku, Agama, Ras, Antargolongan＝民族・宗教・人種・階層間のタブー・差別問題）、disinformasi（偽情報）。"
+      },
+      {
+        "p": "n",
+        "w": "judi online",
+        "r": "judi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "オンラインカジノ、違法ネット賭博（口語略称『judol』。現在のインドネシア社会で最大級の社会問題として毎日のように報じられる超時事ワード！）",
+        "ex": "Kementerian komunikasi telah memblokir jutaan situs dan rekening bank yang terindikasi terkait jaringan judi online.",
+        "tr": "通信省は、違法オンライン賭博ネットワークとの関連が疑われる何百万ものサイトと銀行口座をブロックした。",
+        "note": "■ 【現代インドネシア時事ペア】：judi online / judol（違法ネット賭博） ＆ pinjol ilegal（違法オンライン闇金）は2大社会問題！"
+      },
+      {
+        "p": "singkatan",
+        "w": "pinjol",
+        "r": "pinjaman online",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "オンライン融資、スマホ個人ローン（特に法外な高金利と悪質な取り立てを行う違法業者『pinjol ilegal』が現代インドネシアの超頻出社会ニュース！）",
+        "ex": "Otoritas Jasa Keuangan mengingatkan masyarakat agar tidak terjebak layanan pinjol ilegal yang menawarkan pencairan tanpa syarat.",
+        "tr": "金融サービス庁（OJK）は、無条件融資をうたう違法オンライン闇金（ピンジョル）に引っかからないよう市民へ注意喚起している。",
+        "note": "■ 【重要区別】：pinjol legal / berizin OJK（OJK認可の正規フィンテック融資） ⇔ pinjol ilegal（違法オンライン闇金）。"
+      },
+      {
+        "p": "n",
+        "w": "disinformasi",
+        "r": "informasi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "ディスインフォメーション、意図的な偽情報・デマ工作（単なる勘違いの誤情報『misinformasi』と異なり、悪意を持って世論を操作する偽情報！）",
+        "ex": "Literasi digital yang kuat sangat dibutuhkan agar pemilih tidak mudah terpengaruh arus disinformasi menjelang pemilu.",
+        "tr": "選挙前に有権者が偽情報（ディスインフォメーション）の流れに容易に左右されないよう、強いデジタルリテラシーが求められている。",
+        "note": "■ 【情報リテラシー3語区別】：hoaks（フェイクニュース全般） ／ misinformasi（悪意なき誤情報） ／ disinformasi（悪意ある意図的な偽情報）。"
+      },
+      {
+        "p": "n",
+        "w": "hukum perdata",
+        "r": "hukum",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "民法、民事法（契約・債務・相続・土地所有権など個人や企業間のトラブルを扱う法分野 ⇔ hukum pidana＝刑法・刑事法）",
+        "ex": "Sengketa wanprestasi kontrak bisnis antara kedua perusahaan itu diselesaikan melalui jalur hukum perdata di pengadilan negeri.",
+        "tr": "その両社間の商取引契約の不履行紛争は、地方裁判所の民事法手続きを通じて解決された。",
+        "note": "■ 【法分野2大対比】：hukum perdata（民事法：gugatan＝民事訴訟） ⇔ hukum pidana（刑事法：dakwaan＝刑事起訴）。"
+      },
+      {
+        "p": "n",
+        "w": "praperadilan",
+        "r": "adil",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "公判前審査（逮捕・勾留・容疑者指定・捜査打ち切りが法的に正当だったかを本裁判の前に裁判官へ異議審査させるインドネシア刑事訴訟の重要手続き！）",
+        "ex": "Tim kuasa hukum mengajukan gugatan praperadilan untuk menguji keabsahan penetapan status tersangka kliennya.",
+        "tr": "弁護団は依頼人に対する容疑者指定の正当性を問うため、公判前審査（プラプラディラン）を申し立てた。",
+        "note": "■ 【語構成】：pra-（〜前の）+ peradilan（裁判）。KPKの汚職事件ニュースで必ず出てくる司法用語！"
+      },
+      {
+        "p": "n",
+        "w": "somasi",
+        "r": "somasi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "法的警告書、催告書、内容証明（訴訟を起こす前に弁護士を通じて相手へ謝罪・訂正・支払いを公式要求する書面：melayangkan somasi）",
+        "ex": "Pihak perusahaan melayangkan somasi terbuka dan memberi batas waktu tujuh hari sebelum menempuh jalur hukum.",
+        "tr": "企業側は法的手段に踏み切る前に、公開警告書（ソマシ）を送付して7日間の期限を与えた。",
+        "note": "■ 【重要コロケーション】：melayangkan somasi（警告書を送る）、mensomasi（警告書を突きつける）。芸能・企業ニュースで超頻出！"
+      },
+      {
+        "p": "a",
+        "w": "inkrah",
+        "r": "inkrah",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "確定した、法的効力が確定済みの（オランダ語 in kracht van gewijsde 由来！控訴・上告の余地がなくなり判決が確定した状態『berkekuatan hukum tetap』）",
+        "ex": "Setelah putusan pengadilan dinyatakan inkrah, jaksa segera mengeksekusi hukuman penjara terhadap terpidana.",
+        "tr": "裁判所の判決が確定（インクラ）と宣言された後、検察官は直ちに受刑者に対する禁錮刑を執行した。",
+        "note": "■ 【裁判ニュースの決まり文句】：putusan yang sudah inkrah（確定判決）。"
+      },
+      {
+        "p": "n",
+        "w": "eksepsi",
+        "r": "eksepsi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "（刑事・民事裁判における）異議申立て、抗弁（検察の起訴状『dakwaan』の不備や管轄違いを指摘して被告側が出す書面『nota keberatan』）",
+        "ex": "Majelis hakim menolak eksepsi pihak terdakwa dan memerintahkan sidang dilanjutkan ke tahap pemeriksaan saksi.",
+        "tr": "裁判官団は被告側の異議申立て（エクセプシ）を却下し、証人尋問の段階へ審理を進めるよう命じた。",
+        "note": "■ 【刑事公判の4ステップ用語】：dakwaan（起訴状朗読） ➔ eksepsi（被告側の異議） ➔ tuntutan（検察の求刑） ➔ pleidoi（被告側の最終弁論） ➔ vonis（判決）。"
+      },
+      {
+        "p": "n",
+        "w": "pleidoi",
+        "r": "pleidoi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "（刑事裁判の）最終弁論、弁護書（検察官の求刑『tuntutan』を受けて、被告人と弁護団が無罪や減刑を訴える『nota pembelaan』）",
+        "ex": "Dalam sidang pembacaan pleidoi, terdakwa memohon keringanan hukuman kepada majelis hakim dengan alasan tulang punggung keluarga.",
+        "tr": "最終弁論の朗読公判で、被告人は一家の大黒柱であることを理由に裁判官団へ減刑を嘆願した。",
+        "note": "■ 【言い換え】：pleidoi ＝ nota pembelaan（弁護書・最終弁論）。"
+      },
+      {
+        "p": "n",
+        "w": "akta kelahiran",
+        "r": "akta",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "出生証明書（インドネシアの役所『Dukcapil』が発行する最重要の公的身分書類。学校入学・パスポート申請・ビザ手続きで必須！）",
+        "ex": "Orang tua disarankan segera mengurus akta kelahiran anak di dinas kependudukan tak lama setelah bayi lahir.",
+        "tr": "親は赤ちゃんが生まれて間もなく、住民登録局で子どもの出生証明書をすぐ手続きすることが勧められている。",
+        "note": "■ 【公的証明書セット】：akta kelahiran（出生証明書）、akta nikah（婚姻証明書）、akta kematian（死亡証明書）、KK（家族票）、KTP（住民登録証）。"
+      },
+      {
+        "p": "n",
+        "w": "akta notaris",
+        "r": "akta",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "公正証書（公証人『notaris』の前で作成・認証される強い法的証拠力を持つ契約書・会社設立定款『akta pendirian PT』等）",
+        "ex": "Pendirian perseroan terbatas secara resmi di Indonesia harus dibuat melalui akta notaris berbahasa Indonesia.",
+        "tr": "インドネシアでの株式会社（PT）の正式な設立は、インドネシア語の公正証書を通じて作成されなければならない。",
+        "note": "■ 【関連語】：notaris（公証人）、akta pendirian（設立定款）、akta jual beli [AJB]（不動産売買証書）。"
+      },
+      {
+        "p": "n",
+        "w": "pandemi",
+        "r": "pandemi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "パンデミック、世界的大流行（国境を越えて地球規模で感染症が広がる状態 ⇔ endemi＝特定地域の風土病・定着状態）",
+        "ex": "Pengalaman menghadapi pandemi mendorong banyak negara memperkuat kemandirian industri alat kesehatan dan vaksin.",
+        "tr": "パンデミックに直面した経験を受け、多くの国が医療機器とワクチン産業の自立強化を進めている。",
+        "note": "■ 【感染症規模3段階】：endemi（風土病・定常化） ／ epidemi・wabah（地域的流行） ／ pandemi（世界的大流行）。"
+      },
+      {
+        "p": "n",
+        "w": "endemi",
+        "r": "endemi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "エンデミック、風土病・地域定着状態（爆発的流行が収まり、季節性インフル等のように一定の低い水準で日常に共存する状態 ⇔ pandemi）",
+        "ex": "Setelah kasus harian melandai dan vaksinasi merata, status darurat kesehatan resmi beralih dari pandemi menuju endemi.",
+        "tr": "1日あたりの感染者数が落ち着きワクチン接種が行き渡った後、保健非常事態は正式にパンデミックからエンデミックへ移行した。",
+        "note": "■ 【形容詞形】：endemis（地域固有の・常在性の：daerah endemis malaria＝マラリア流行地域）。"
+      },
+      {
+        "p": "n",
+        "w": "reshuffle",
+        "r": "reshuffle",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "内閣改造、閣僚交代（『reshuffle kabinet』：大統領が大臣を入れ替える政治イベント。公式訳は『perombakan kabinet』だが新聞・テレビでは『reshuffle』が超定番！）",
+        "ex": "Isu reshuffle kabinet kembali menguat menjelang evaluasi kinerja kementerian di pertengahan masa jabatan presiden.",
+        "tr": "大統領任期半ばの省庁業績評価を前に、内閣改造（リシャッフル）の観測が再び強まっている。",
+        "note": "■ 【言い換え】：reshuffle kabinet ＝ perombakan kabinet（内閣改造）。"
+      },
+      {
+        "p": "n",
+        "w": "kudeta",
+        "r": "kudeta",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "クーデター（フランス語 coup d'état 由来。武力や非合法な手段で政権や組織のトップを強制的に転覆・奪取すること）",
+        "ex": "Negara-negara ASEAN menyerukan pemulihan demokrasi dan dialog damai pascaterjadinya kudeta militer di kawasan tersebut.",
+        "tr": "ASEAN諸国は同地域での軍事クーデター発生を受け、民主主義の回復と平和的対話を呼びかけた。",
+        "note": "■ 【重要コロケーション】：kudeta militer（軍事クーデター）、percobaan kudeta（クーデター未遂）、mengudeta（クーデターを起こす）。"
+      },
+      {
+        "p": "n",
+        "w": "amandemen",
+        "r": "amandemen",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "（憲法・法律・条約の）改正、修正（KBBI標準綴りは『amendemen』だがニュースでは『amandemen UUD 1945＝1945年憲法改正』が超定着！）",
+        "ex": "Usulan amandemen konstitusi harus melalui kajian akademik mendalam serta persetujuan sidang paripurna MPR.",
+        "tr": "憲法改正案は深い学術的検討および国民協議会（MPR）本会議の承認を経なければならない。",
+        "note": "■ 【インドネシア現代史メモ】：1999〜2002年に4回の憲法改正（Amandemen UUD 1945）が行われ、大統領直接選挙制と2期上限が確立された！"
+      },
+      {
+        "p": "n",
+        "w": "stagflasi",
+        "r": "stagflasi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "スタグフレーション（景気停滞［stagnasi］と高インフレ［inflasi］が同時進行する経済の深刻な悪化状態）",
+        "ex": "Bank sentral harus berhati-hati menetapkan suku bunga agar perlambatan ekonomi tidak berubah menjadi ancaman stagflasi.",
+        "tr": "中央銀行は景気減速がスタグフレーションの脅威へ転じないよう、政策金利の設定に慎重を期さなければならない。",
+        "note": "■ 【経済危機ワードセット】：inflasi（インフレ）、deflasi（デフレ）、resesi（景気後退）、stagflasi（スタグフレーション）。"
+      },
+      {
+        "p": "n",
+        "w": "devaluasi",
+        "r": "devaluasi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "平価切り下げ、通貨の意図的な切り下げ（政府・中央銀行が自国通貨の対外価値を意図的に引き下げる政策。市場変動による下落は『depresiasi』）",
+        "ex": "Kebijakan devaluasi mata uang pernah ditempuh beberapa negara untuk mendongkrak daya saing produk ekspor.",
+        "tr": "輸出製品の競争力を押し上げるため、通貨切り下げ政策がかつていくつかの国で採られたことがある。",
+        "note": "■ 【為替4用語の区別】：depresiasi（市場による通貨安） ⇔ apresiasi（通貨高） ／ devaluasi（政策的切り下げ） ⇔ revaluasi（政策的切り上げ）。"
+      },
+      {
+        "p": "n",
+        "w": "biodiversitas",
+        "r": "biodiversitas",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "生物多様性（＝keanekaragaman hayati。インドネシアはブラジルと並ぶ世界トップクラスの生物多様性大国『negara megabiodiversitas』！）",
+        "ex": "Perlindungan terumbu karang di Segitiga Terumbu Karang sangat vital bagi kelestarian biodiversitas laut dunia.",
+        "tr": "コーラル・トライアングルにおけるサンゴ礁の保護は、世界の海洋生物多様性の存続にとって極めて重要だ。",
+        "note": "■ 【言い換え】：biodiversitas ＝ keanekaragaman hayati（インドネシア語公式表現）。"
+      },
+      {
+        "p": "n",
+        "w": "sanksi ekonomi",
+        "r": "sanksi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "経済制裁（国際紛争や人権侵害に対し、貿易禁止・資産凍結・金融遮断などで相手国に圧力をかける外交措置）",
+        "ex": "Penerapan sanksi ekonomi oleh sejumlah negara besar turut memicu gangguan rantai pasok energi global.",
+        "tr": "複数の大国による経済制裁の発動は、世界のエネルギーサプライチェーンの混乱も引き起こした。",
+        "note": "■ 【国際ニュースセット】：sanksi ekonomi（経済制裁）、embargo（禁輸措置）、tarif balasan（報復関税）、perang dagang（貿易戦争）。"
+      },
+      {
+        "p": "n",
+        "w": "transisi energi",
+        "r": "transisi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "エネルギー転換（石炭・石油などの化石燃料から、太陽光・地熱・水力など再生可能エネルギーへ段階的に移行する世界＆インドネシアの超重要政策！）",
+        "ex": "Indonesia membutuhkan pendanaan hijau yang besar untuk mempercepat program transisi energi menuju pembangkit ramah lingkungan.",
+        "tr": "インドネシアは環境に優しい発電所へのエネルギー転換プログラムを加速するため、巨額のグリーン資金を必要としている。",
+        "note": "■ 【GXニュース必須セット】：transisi energi（エネルギー転換）、energi baru terbarukan [EBT]（再生可能エネルギー）、net zero（カーボンニュートラル）。"
+      },
+      {
+        "p": "n",
+        "w": "net zero",
+        "r": "net zero",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "ネットゼロ、カーボンニュートラル（温室効果ガスの排出量と吸収量を差し引きゼロにする目標『net zero emission [NZE]＝emisi nol bersih』。インドネシアは2060年目標！）",
+        "ex": "Pemerintah menargetkan pencapaian net zero emission pada tahun 2060 atau lebih cepat melalui elektrifikasi dan penghijauan.",
+        "tr": "政府は電動化と緑化を通じて、2060年あるいはそれ以前のネットゼロ（排出実質ゼロ）達成を目標としている。",
+        "note": "■ 【公式訳】：emisi nol bersih（ネットゼロ・エミッション）。"
+      },
+      {
+        "p": "n",
+        "w": "bonus demografi",
+        "r": "demografi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "人口ボーナス（生産年齢人口［15〜64歳］が子ども・高齢者を大きく上回り経済成長の黄金期を迎える現象！『Indonesia Emas 2045＝2045年黄金インドネシア』の核心語！）",
+        "ex": "Kualitas pendidikan dan kesehatan generasi muda menjadi kunci agar Indonesia mampu memanfaatkan bonus demografi secara optimal.",
+        "tr": "インドネシアが人口ボーナスを最大限に活かせるかどうかは、若い世代の教育と健康の質が鍵となる。",
+        "note": "■ 【インドネシア経済論説の超頻出語】：少子高齢化（penuaan populasi）の日本と対照的な、インドネシア最大の強みとして必ず語られるテーマ！"
+      },
+      {
+        "p": "n",
+        "w": "kelas menengah",
+        "r": "kelas",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "中間層、中流階級（内需・消費を支える経済の中核層。近年のインドネシア経済ニュースで『penurunan daya beli kelas menengah＝中間層の購買力低下』が超話題！）",
+        "ex": "Menjaga stabilitas harga pangan dan membuka lapangan kerja formal sangat penting untuk memperkuat daya beli kelas menengah.",
+        "tr": "食料価格の安定を保ち正規雇用を創出することは、中間層の購買力を強化する上で極めて重要だ。",
+        "note": "■ 【所得階層3区分】：kelas bawah（低所得層） ／ kelas menengah（中間層） ／ kelas atas（富裕層）。"
+      },
+      {
+        "p": "n",
+        "w": "pengangguran terbuka",
+        "r": "anggur",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "完全失業（率）（中央統計局 BPS の公式指標『Tingkat Pengangguran Terbuka [TPT]』＝働く意思があり求職中なのに仕事がない人の割合）",
+        "ex": "Badan Pusat Statistik melaporkan bahwa tingkat pengangguran terbuka nasional turun menjadi di bawah lima persen tahun ini.",
+        "tr": "中央統計局（BPS）は、今年の全国の完全失業率が5パーセント未満へ低下したと報告した。",
+        "note": "■ 【統計略語】：TPT（Tingkat Pengangguran Terbuka＝完全失業率）。"
+      },
+      {
+        "p": "n",
+        "w": "inflasi inti",
+        "r": "inflasi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "コアインフレ（価格変動が激しい生鮮食品やエネルギーを除いた基調的な物価上昇率。中央銀行 BI が金融政策で最も重視する指標！）",
+        "ex": "Bank Indonesia menilai tingkat inflasi inti masih terjaga stabil di dalam kisaran sasaran tahun ini.",
+        "tr": "インドネシア銀行は、コアインフレ率が今年の目標レンジ内で依然として安定推移していると評価した。",
+        "note": "■ 【インフレ関連語】：inflasi tahunan [YoY]（前年比インフレ率）、inflasi inti（コアインフレ）、inflasi pangan bergejolak（生鮮食品インフレ）。"
+      },
+      {
+        "p": "n",
+        "w": "defisit anggaran",
+        "r": "defisit",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "財政赤字（国の歳出が歳入を上回る状態。インドネシアでは法律で『defisit APBN』を対GDP比3%以内に抑える財政規律ルールが超有名！）",
+        "ex": "Kementerian Keuangan berkomitmen menjaga defisit anggaran tetap berada di bawah batas aman tiga persen dari PDB.",
+        "tr": "財務省は財政赤字を対GDP比3パーセントの安全上限未満に維持し続ける方針を表明している。",
+        "note": "■ 【対義語】：surplus anggaran（財政黒字） ⇔ defisit anggaran（財政赤字）。"
+      },
+      {
+        "p": "n",
+        "w": "perang dagang",
+        "r": "perang",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "貿易戦争（大国同士が互いに高い輸入関税や輸出規制を掛け合う経済対立）",
+        "ex": "Ketegangan perang dagang antara dua ekonomi terbesar dunia mendorong banyak pabrik merelokasi produksi ke Asia Tenggara.",
+        "tr": "世界二大経済大国間の貿易戦争の緊張により、多くの工場が生産拠点を東南アジアへ移転する動きが進んでいる。",
+        "note": "■ 【関連語】：tarif impor（輸入関税）、proteksionisme（保護貿易主義）、rantai pasok（サプライチェーン）。"
+      },
+      {
+        "p": "n",
+        "w": "polarisasi",
+        "r": "polarisasi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "二極化、分断（選挙・SNS・経済格差などによって世論や社会が真っ二つに対立する現象：polarisasi politik / sosial）",
+        "ex": "Para tokoh masyarakat menyerukan rekonsiliasi nasional untuk meredakan polarisasi politik pascapemilihan presiden.",
+        "tr": "社会の有力者たちは、大統領選挙後の政治的分断（二極化）を和らげるため国民和解を呼びかけた。",
+        "note": "■ 【重要コロケーション】：polarisasi politik / masyarakat（政治的／社会的分断）、rekonsiliasi（和解）。"
+      },
+      {
+        "p": "n",
+        "w": "kedaulatan pangan",
+        "r": "daulat",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "食料主権（輸入に頼り切らず、自国の農家と資源で食料を安定的に生産・決定できる力。『ketahanan pangan＝食料安全保障』よりさらに踏み込んだ重要政策語！）",
+        "ex": "Modernisasi pertanian dan perlindungan lahan sawah merupakan langkah strategis demi mewujudkan kedaulatan pangan nasional.",
+        "tr": "農業の近代化と水田農地の保護は、国家の食料主権を実現するための戦略的ステップである。",
+        "note": "■ 【食料政策3段階】：ketahanan pangan（食料安全保障） ／ swasembada pangan（食料自給自足） ／ kedaulatan pangan（食料主権）。"
+      },
+      {
+        "p": "n",
+        "w": "hak angket",
+        "r": "hak",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "国政調査権（国会 DPR が政府の重要政策や法令違反の疑いについて強制力を持って調査を行う憲法上の強い権限！）",
+        "ex": "Sejumlah fraksi di DPR mengusulkan penggunaan hak angket untuk menyelidiki dugaan penyimpangan dalam distribusi subsidi.",
+        "tr": "国会の複数の会派が、補助金配布における不正疑惑を調査するため国政調査権の行使を提案した。",
+        "note": "■ 【国会 DPR の3大監視権】：hak interpelasi（政府への説明要求権） ／ hak angket（国政調査権） ／ hak menyatakan pendapat（意見表明・弾劾発議権）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "HAM",
+        "r": "Hak Asasi Manusia",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "基本的人権（発音は『ハム』。Komnas HAM＝国家人権委員会、pelanggaran HAM＝人権侵害。インドネシアの政治・社会・法学で絶対必須の略語！）",
+        "ex": "Setiap negara demokrasi berkewajiban melindungi dan menegakkan nilai-nilai HAM bagi seluruh warganya tanpa diskriminasi.",
+        "tr": "すべての民主主義国家は、差別なく全国民の基本的人権（HAM）の価値を守り実現する義務がある。",
+        "note": "■ 【関連語】：Komnas HAM（国家人権委員会）、pelanggaran HAM berat（重大人権侵害）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "SDA",
+        "r": "Sumber Daya Alam",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "天然資源（ニッケル・石炭・天然ガス・森林・海洋資源など。『SDM＝人的資源』と対になる超頻出略語！）",
+        "ex": "Pengelolaan SDA yang berkelanjutan harus diimbangi dengan peningkatan kualitas SDM agar memberi nilai tambah maksimal.",
+        "tr": "持続可能な天然資源（SDA）の管理は、最大の付加価値を生むために人的資源（SDM）の質向上と両立させなければならない。",
+        "note": "■ 【最強の対義ペア】：SDA（Sumber Daya Alam＝天然資源） ⇔ SDM（Sumber Daya Manusia＝人的資源・人材）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "TKI",
+        "r": "Tenaga Kerja Indonesia",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "インドネシア人海外出稼ぎ労働者（日本・台湾・マレーシア・中東等で働く人々。現在は法律上の公式呼称が『PMI＝Pekerja Migran Indonesia』に改められたが日常・ニュースでは今も頻出！）",
+        "ex": "Banyak mantan TKI yang kembali dari Jepang menggunakan pengalaman dan tabungannya untuk membuka usaha di kampung halaman.",
+        "tr": "日本から帰国した元海外就労者（TKI）の多くが、経験と貯金を活かして故郷で起業している。",
+        "note": "■ 【新旧呼称】：旧称『TKI（男性/総称）・TKW（女性）』 ➔ 現行公式呼称『PMI（Pekerja Migran Indonesia）』。"
+      },
+      {
+        "p": "singkatan",
+        "w": "PPPK",
+        "r": "Pegawai Pemerintah dengan Perjanjian Kerja",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "任期付き契約国家公務員（発音は『ペ・ティガ・カ』。正規終身公務員の『PNS』と合わせて『ASN＝国家公務員』を構成する！教員・医療職採用ニュースで超頻出）",
+        "ex": "Pemerintah membuka ratusan ribu formasi PPPK tahun ini guna mengangkat guru honorer dan tenaga kesehatan di daerah.",
+        "tr": "政府は地方の非常勤教員や医療従事者を登用するため、今年数十万枠の契約公務員（PPPK）募集を開いた。",
+        "note": "■ 【公務員の構造式】：ASN（公務員総称） ＝ PNS（正規公務員） ＋ PPPK（契約公務員）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "OIKN",
+        "r": "Otorita Ibu Kota Nusantara",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "ヌサンタラ新首都庁（東カリマンタンに建設中の新首都 IKN の開発・行政・投資誘致を直接管轄する省庁レベルの特別行政機関！）",
+        "ex": "OIKN terus menjajaki kerja sama dengan investor asing untuk pembangunan kawasan hunian dan transportasi ramah lingkungan.",
+        "tr": "ヌサンタラ新首都庁（OIKN）は、環境に優しい住宅区域と交通網の整備に向けて外国投資家との協力を模索し続けている。",
+        "note": "■ 【関連語】：IKN（Ibu Kota Nusantara＝ヌサンタラ新首都）、kota pintar（スマートシティ）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "TJ",
+        "r": "Transjakarta",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "トランスジャカルタ（ジャカルタ市民が毎日乗る専用レーン高速バス『Transjakarta』の超定番略称！『naik TJ＝TJバスに乗る』）",
+        "ex": "Untuk menghindari macet parah pada jam pulang kerja, banyak karyawan memilih naik bus TJ yang memiliki jalur khusus.",
+        "tr": "退勤ラッシュのひどい渋滞を避けるため、多くの会社員が専用レーンを持つトランスジャカルタ（TJ）バスに乗ることを選ぶ。",
+        "note": "■ 【ジャカルタ公共交通略語4点セット】：TJ（トランスジャカルタ）、KRL（通勤電車）、MRT（地下鉄）、LRT（高架モノレール系電車）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "BPUPKI",
+        "r": "Badan Penyelidik Usaha-usaha Persiapan Kemerdekaan Indonesia",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "インドネシア独立準備調査会（日本占領末期の1945年春に設立され、スカルノによる建国五原則パンチャシラ演説や憲法草案が作られた歴史的超重要組織！）",
+        "ex": "Rumusan dasar negara Pancasila pertama kali disampaikan oleh Bung Karno dalam sidang pertama BPUPKI pada 1 Juni 1945.",
+        "tr": "建国五原則パンチャシラの構想は、1945年6月1日の独立準備調査会（BPUPKI）第1回会議でスカルノによって初めて発表された。",
+        "note": "■ 【インドネシア独立史ペア】：BPUPKI（独立準備調査会：草案作成） ➔ PPKI（独立準備委員会：憲法採択・初代大統領選出）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "PPKI",
+        "r": "Panitia Persiapan Kemerdekaan Indonesia",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "インドネシア独立準備委員会（独立宣言翌日の1945年8月18日に1945年憲法を採択し、スカルノを初代大統領・ハッタを副大統領に選出した歴史的機関！）",
+        "ex": "Sehari setelah Proklamasi Kemerdekaan, PPKI mengesahkan Undang-Undang Dasar 1945 serta memilih Soekarno dan Hatta sebagai pemimpin negara.",
+        "tr": "独立宣言の翌日、独立準備委員会（PPKI）は1945年憲法を承認し、スカルノとハッタを国家指導者に選出した。",
+        "note": "■ 【歴史メモ】：6月1日＝パンチャシラの日、8月17日＝独立記念日、8月18日＝憲法の日（PPKI会議）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "UU ITE",
+        "r": "Undang-Undang Informasi dan Transaksi Elektronik",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "電子情報取引法（ネット決済・電子署名からSNS上の名誉毀損・デマ・ハッキング・違法賭博まで規定する現代インドネシアで最もニュースに出る法律！）",
+        "ex": "Revisi UU ITE diharapkan mampu memberikan kepastian hukum sekaligus melindungi kebebasan berekspresi di ruang digital.",
+        "tr": "電子情報取引法（UU ITE）の改正は、法的確実性をもたらすと同時にデジタル空間での表現の自由を守れると期待されている。",
+        "note": "■ 【関連語】：pasal karet（ゴム条項＝解釈の幅が広すぎて濫用されやすい条文の通称）、pencemaran nama baik（名誉毀損）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "Perpu",
+        "r": "Peraturan Pemerintah Pengganti Undang-Undang",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "法律に代わる政令、緊急政令（緊急事態において大統領が国会審議を待たずに法律と同等の効力で発令できる政令。後日国会 DPR の承認が必要。綴りは『Perppu』とも書く）",
+        "ex": "Presiden menerbitkan Perpu dalam situasi kegentingan yang memaksa sebelum diajukan kepada DPR untuk disetujui menjadi undang-undang.",
+        "tr": "大統領は差し迫った緊急事態において、法律として承認を得るため国会へ提出するのに先立ち、緊急政令（ペルプ）を発令した。",
+        "note": "■ 【インドネシア法令略語セット】：UUD（憲法） ＞ UU（法律）/ Perpu（緊急政令） ＞ PP（政令） ＞ Perpres（大統領令） ＞ Perda（地方条例）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "OTT",
+        "r": "Operasi Tangkap Tangan",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "現行犯逮捕作戦、おとり・張り込み摘発（特に汚職撲滅委員会 KPK が賄賂の受け渡し現場を急襲して政治家・官僚を逮捕する『OTT KPK』で超有名！）",
+        "ex": "Komisi Pemberantasan Korupsi mengamankan sejumlah pejabat daerah dan uang tunai miliaran rupiah dalam OTT semalam.",
+        "tr": "汚職撲滅委員会（KPK）は昨夜の現行犯逮捕作戦（OTT）で、複数の地方高官と数十億ルピアの現金を確保した。",
+        "note": "■ 【ニュース超頻出】：『terjaring OTT KPK（KPKの現行犯摘発網にかかる）』は汚職ニュースの鉄板フレーズ！※IT業界では Over-The-Top（動画配信等）も意味する。"
+      },
+      {
+        "p": "singkatan",
+        "w": "DPO",
+        "r": "Daftar Pencarian Orang",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "指名手配リスト、指名手配犯（警察や検察・KPKから逃亡中の容疑者・受刑者を『masuk DPO / buronan DPO』と呼ぶ！事件報道で超頻出）",
+        "ex": "Setelah dua tahun berstatus DPO dan bersembunyi di luar negeri, buronan kasus korupsi itu akhirnya berhasil ditangkap.",
+        "tr": "2年間指名手配犯（DPO）として海外に潜伏していた後、その汚職事件の逃亡犯はついに逮捕された。",
+        "note": "■ 【類義語】：buronan（逃亡犯・お尋ね者）、masuk DPO（指名手配リストに載る）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "TKP",
+        "r": "Tempat Kejadian Perkara",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "犯行現場、事件・事故現場（『olah TKP＝現場検証』は警察報道で毎日出る！さらに日常スラングでも『meluncur ke TKP＝今から現場［集合場所］に向かってる！』と超多用！）",
+        "ex": "Tim penyidik kepolisian memasang garis polisi dan langsung melakukan olah TKP untuk mengumpulkan bukti forensik.",
+        "tr": "警察の捜査チームは規制線を張り、法医学的証拠を集めるため直ちに現場検証（オラ・テカペ）を行った。",
+        "note": "■ 【ニュース＆会話の両方で超活躍】：\n・報道：olah TKP（現場検証）、garis polisi（ポリスライン）\n・若者チャット：OTW TKP!（今から集合場所に向かってるぜ！）"
+      },
+      {
+        "p": "singkatan",
+        "w": "BAP",
+        "r": "Berita Acara Pemeriksaan",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "供述調書、取り調べ調書（警察・検察の取り調べで容疑者や証人の発言を公式記録した書類。事件・裁判ニュースの定番略語！）",
+        "ex": "Saksi kunci itu mencabut sebagian keterangannya yang pernah tertuang di dalam BAP saat diperiksa di persidangan.",
+        "tr": "その重要証人は公判で尋問を受けた際、かつて供述調書（BAP）に記載されていた証言の一部を撤回した。",
+        "note": "■ 【関連語】：penyidik（捜査官）、pemeriksaan saksi（証人尋問）、mencabut BAP（調書を撤回する）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "e-KTP",
+        "r": "Kartu Tanda Penduduk Elektronik",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "電子住民登録証（ICチップと16桁の国民背番号 NIK が入った、17歳以上のインドネシア国民全員の生涯有効な身分証明書！公式略記は『KTP-el』）",
+        "ex": "Masyarakat cukup menunjukkan e-KTP untuk mengakses berbagai layanan publik, perbankan, hingga pemungutan suara pemilu.",
+        "tr": "市民は電子住民登録証（e-KTP）を提示するだけで、各種行政サービスや銀行手続き、選挙投票まで利用できる。",
+        "note": "■ 【関連語】：NIK（16桁の個人番号）、Dukcapil（人口・住民登録局）、IKD（Identitas Kependudukan Digital＝スマホ版デジタルID）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "PK",
+        "r": "Peninjauan Kembali",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "（裁判の）再審請求（判決が確定『inkrah』した後でも、決定的な新証拠『novum』や裁判官の重大な誤りがある場合に最高裁 MA へ求める最後の非常上訴！）",
+        "ex": "Terpidana mengajukan permohonan PK ke Mahkamah Agung setelah tim pengacaranya menemukan bukti baru yang kuat.",
+        "tr": "受刑者は弁護団が強力な新証拠を見つけた後、最高裁判所へ再審請求（PK）を申し立てた。",
+        "note": "■ 【裁判の不服申立ルート】：Pengadilan Negeri（地裁） ➔ Banding（控訴） ➔ Kasasi（上告） ➔ PK（再審請求：新証拠 novum が必要）。"
+      },
+      {
+        "p": "n",
+        "w": "quick count",
+        "r": "quick count",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "（選挙の）クイックカウント、標本抽出速報集計（インドネシアの大統領選・地方選で投票終了数時間後に調査機関が発表する超高精度の出口・開票速報！公式訳『hitung cepat』 ⇔ real count）",
+        "ex": "Hasil quick count dari berbagai lembaga survei kredibel biasanya sudah dapat diketahui beberapa jam setelah tempat pemungutan suara ditutup.",
+        "tr": "信頼できる複数の調査機関によるクイックカウント（速報集計）の結果は、通常、投票所が閉まって数時間後には判明する。",
+        "note": "■ 【選挙報道ペア】：quick count / hitung cepat（民間調査機関の標本速報） ⇔ real count（総選挙委員会 KPU による全票の公式確定集計）。"
+      },
+      {
+        "p": "n",
+        "w": "real count",
+        "r": "real count",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "（選挙の）リアルカウント、公式全票集計（総選挙委員会 KPU が全国数十万の投票所 TPS から全票を集計して発表する法的効力のある確定開票結果！ ⇔ quick count）",
+        "ex": "KPU mengimbau seluruh pendukung calon tetap tenang menunggu hasil akhir real count resmi meskipun hasil hitung cepat sudah beredar.",
+        "tr": "総選挙委員会（KPU）は、速報集計の結果が出回っていても公式の確定全票集計（リアルカウント）の最終結果を冷静に待つよう全候補者の支持者へ呼びかけた。",
+        "note": "■ 【選挙必須セット】：TPS（Tempat Pemungutan Suara＝投票所）、KPU（総選挙委員会）、quick count（速報）、real count（公式全票集計）。"
+      }
+    ];
+
+    const idxByWord = new Map();
+    for (let i = 0; i < d.vocab.length; i++) {
+      const it = d.vocab[i];
+      if (it && it.w) idxByWord.set(it.w.trim().toLowerCase(), i);
+    }
+
+    for (let i = 0; i < DICT_PACK_8.length; i++) {
+      const item = DICT_PACK_8[i];
+      if (!item || !item.w) continue;
+      const key = item.w.trim().toLowerCase();
+
+      item.dictOnly = true;
+      item.tier = 3;
+      dictOnlySet.add(key);
+
+      if (item.topicCat) {
+        catMap.set(key, item.topicCat);
+      }
+
+      if (idxByWord.has(key)) {
+        const pos = idxByWord.get(key);
+        Object.assign(d.vocab[pos], item);
+        vMap.set(key, d.vocab[pos]);
+        persistentAdded.set(key, d.vocab[pos]);
+      } else {
+        d.vocab.push(item);
+        idxByWord.set(key, d.vocab.length - 1);
+        vMap.set(key, item);
+        persistentAdded.set(key, item);
+      }
+    }
+  } catch (e) {
+    console.error("WhatsIndo Dict Pack 8 error:", e);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 辞書充実プロジェクト 第9弾（全68語・すべて辞書専用 dictOnly: true）
+   - ① スポーツ種目・フィットネス・競技（18語）：badminton, basket, tenis meja,
+       renang, maraton, atletik, angkat besi, angkat beban, judo, karate,
+       taekwondo, balap, golf, esports, futsal, pacuan kuda, yoga, joging
+   - ② 試合・サッカー用語・大会ルール（16語）：liga, poin, penyisihan,
+       perempat final, penalti, kartu kuning, kartu merah, offside, suporter,
+       kiper, penjaga gawang, bek, gelandang, striker, adu penalti, degradasi
+   - ③ 音楽・楽器・ライブ・ジャンル（18語）：melodi, album, gitar, piano, biola,
+       drum, suling, sasando, saksofon, terompet, ukulele, band, vokalis,
+       akustik, keroncong, koplo, karaoke, komposer
+   - ④ 映画・ドラマ・アニメ・本・舞台・趣味（16語）：drama, serial, anime,
+       kartun, komedi, thriller, komik, puisi, teater, belanja, main game,
+       produser, trailer, spoiler, episode, layar lebar
+   - **記号ゼロ・文字バグゼロ・try-catch完全保護・問題モードへ一切混入しません
+   ===================================================================== */
+(function() {
+  try {
+    const d = window.WHATSINDO_EXTERNAL_DATA;
+    if (!d || !Array.isArray(d.vocab)) return;
+
+    const dictOnlySet     = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+    const persistentAdded = window.__wiPersistentAddedVocab || (window.__wiPersistentAddedVocab = new Map());
+    const vMap            = window.__wiMasterVocabMap || (window.__wiMasterVocabMap = new Map());
+    const catMap          = window.__WI_V5_VCAT || (window.__WI_V5_VCAT = new Map());
+
+    const DICT_PACK_9 = [
+      {
+        "p": "n",
+        "w": "badminton",
+        "r": "badminton",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "バドミントン（公式インドネシア語は『bulu tangkis』だが、日常会話では『main badminton』も超定番！インドネシア最大の国民的お家芸スポーツ）",
+        "ex": "Setiap malam Jumat, warga komplek rutin bermain badminton bersama di lapangan serbaguna.",
+        "tr": "毎週木曜日の夜、住宅街の住民たちは多目的コートで定期的に一緒にバドミントンをしている。",
+        "note": "■ 【バドミントン基本セット】：bulu tangkis / badminton（バドミントン）、raket（ラケット）、kok / shuttlecock（シャトル）、tunggal / ganda（シングルス／ダブルス）。"
+      },
+      {
+        "p": "n",
+        "w": "basket",
+        "r": "basket",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "バスケットボール（『bola basket』の日常略称。学生スポーツリーグ『DBL』などで中高生・大学生に超人気！）",
+        "ex": "Tim basket SMA itu berhasil menjuarai turnamen antarsekolah tingkat provinsi tahun ini.",
+        "tr": "その高校のバスケットボール部は、今年の州レベル高校対抗大会で優勝を果たした。",
+        "note": "■ 【球技セット】：sepak bola（サッカー）、futsal（フットサル）、basket（バスケ）、voli（バレーボール）、tenis（テニス）。"
+      },
+      {
+        "p": "n",
+        "w": "tenis meja",
+        "r": "tenis",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "卓球、ピンポン（日常会話では『pingpong』とも呼ばれる。町内会や独立記念日8月17日の定番競技！）",
+        "ex": "Lomba tenis meja antarwarga selalu menjadi acara paling meriah saat perayaan Hari Kemerdekaan di kampung kami.",
+        "tr": "住民対抗の卓球大会は、私たちの地元の独立記念日祝賀でいつも一番盛り上がるイベントだ。",
+        "note": "■ 【関連語】：pingpong（卓球の通称）、bet（卓球のラケット）、tenis lapangan（硬式テニス）。"
+      },
+      {
+        "p": "n",
+        "w": "renang",
+        "r": "renang",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "水泳、スイミング（動詞は『berenang』。gaya bebas＝自由形・クロール、gaya dada＝平泳ぎ、gaya punggung＝背泳ぎ、gaya kupu-kupu＝バタフライ）",
+        "ex": "Olahraga renang sangat baik untuk melatih pernapasan dan kekuatan otot tanpa memberi beban berlebih pada sendi lutut.",
+        "tr": "水泳は膝関節に過度な負担をかけずに呼吸機能と筋力を鍛えるのにとても良い。",
+        "note": "■ 【関連語】：berenang（泳ぐ）、kolam renang（プール）、baju renang（水着）、perenang（水泳選手）。"
+      },
+      {
+        "p": "n",
+        "w": "maraton",
+        "r": "maraton",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "①マラソン（42.195kmの長距離走競技：lari maraton） ②（比喩で：映画・ドラマ・勉強を）ぶっ通しで連続して行うこと（maraton film / drama！）",
+        "ex": "Ribuan pelari dari dalam dan luar negeri memadati jalanan Yogyakarta untuk mengikuti ajang lari maraton tahunan.",
+        "tr": "国内外から数千人のランナーが年次マラソン大会に参加するためジョグジャカルタの街並みを埋め尽くした。",
+        "note": "■ 【2大用法】：① スポーツ『lari maraton / half marathon』、② 日常比喩『maraton film / anime（映画やアニメを一気見する）』。"
+      },
+      {
+        "p": "n",
+        "w": "atletik",
+        "r": "atletik",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "陸上競技（短距離走・長距離走・走り幅跳び・砲丸投げなどの総称：cabang olahraga atletik）",
+        "ex": "Cabang olahraga atletik menyumbangkan beberapa medali emas penting bagi kontingen nasional di pesta olahraga Asia Tenggara.",
+        "tr": "陸上競技種目は東南アジア競技大会で、自国代表団にいくつかの重要な金メダルをもたらした。",
+        "note": "■ 【関連語】：atlet（アスリート・選手）、lari cepat / sprint（短距離走）、estafet（リレー）、lompat jauh（走り幅跳び）。"
+      },
+      {
+        "p": "n",
+        "w": "angkat besi",
+        "r": "angkat",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "ウェイトリフティング、重量挙げ（オリンピック公式競技！インドネシアがバドミントンと並んで毎回メダルを量産する超得意競技！）",
+        "ex": "Atlet angkat besi Indonesia kembali mengukir sejarah dengan meraih medali emas pada ajang Olimpiade.",
+        "tr": "インドネシアの重量挙げ選手が、オリンピックの舞台で金メダルを獲得し再び歴史を刻んだ。",
+        "note": "■ 【使い分け】：angkat besi（五輪競技の重量挙げ） ／ angkat beban（ジムでの筋トレ・ウェイトトレーニング全般）。"
+      },
+      {
+        "p": "n",
+        "w": "angkat beban",
+        "r": "angkat",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "ウェイトトレーニング、筋トレ（ダンベルやバーベルを使う筋力トレーニング全般：latihan angkat beban）",
+        "ex": "Latihan angkat beban secara teratur empat hingga lima kali seminggu membantu meningkatkan massa otot dan metabolisme tubuh.",
+        "tr": "週に4〜5回の定期的なウェイトトレーニングは、筋肉量と体の代謝を高めるのに役立つ。",
+        "note": "■ 【筋トレ関連語】：latihan kekuatan（筋力トレーニング）、massa otot（筋肉量）、lemak tubuh（体脂肪）、pemanasan（ウォーミングアップ）。"
+      },
+      {
+        "p": "n",
+        "w": "judo",
+        "r": "judo",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "柔道（日本発祥の武道・五輪競技。インドネシアでも『bela diri＝武道・護身術』として学校やクラブで親しまれている）",
+        "ex": "Dalam olahraga judo, teknik bantingan dan keseimbangan tubuh jauh lebih diutamakan daripada sekadar kekuatan fisik.",
+        "tr": "柔道というスポーツでは、単なる腕力よりも投げ技と体のバランスがはるかに重視される。",
+        "note": "■ 【武道・格闘技セット】：pencak silat（インドネシア伝統武術）、judo（柔道）、karate（空手）、taekwondo（テコンドー）、tinju（ボクシング）。"
+      },
+      {
+        "p": "n",
+        "w": "karate",
+        "r": "karate",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "空手（日本発祥の打撃系武道。インドネシアの学校部活［ekskul］や国体［PON］でも超定番の人気種目！）",
+        "ex": "Ia sudah berlatih karate sejak duduk di sekolah dasar hingga berhasil meraih sabuk hitam pada masa kuliah.",
+        "tr": "彼は小学生の頃から空手を稽古しており、大学時代に黒帯を取得するに至った。",
+        "note": "■ 【関連語】：sabuk hitam（黒帯）、bela diri（武道・護身術）、karateka（空手家）。"
+      },
+      {
+        "p": "n",
+        "w": "taekwondo",
+        "r": "taekwondo",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "テコンドー（韓国発祥の蹴り技を中心とした武道・五輪競技）",
+        "ex": "Ekstrakurikuler taekwondo di sekolah tersebut melatih kelenturan kaki, kecepatan tendangan, serta kedisiplinan siswa.",
+        "tr": "その学校のテコンドー部では、足の柔軟性・蹴りのスピード・そして生徒の規律を鍛えている。",
+        "note": "■ 【関連語】：bela diri（武道）、tendangan（蹴り）。"
+      },
+      {
+        "p": "n",
+        "w": "balap",
+        "r": "balap",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "レース、競走、スピード競技（『balap motor＝バイクレース／MotoGP』『balap mobil＝F1等のカーレース』『balap sepeda＝自転車レース』、さらに公道暴走レースは『balap liar』！）",
+        "ex": "Sirkuit Mandalika di Lombok secara rutin menjadi tuan rumah kejuaraan balap motor internasional.",
+        "tr": "ロンボク島のマンダリカ・サーキットは、国際バイクレース選手権の開催地として定期的に利用されている。",
+        "note": "■ 【balap 関連語ファミリー】：balapan（レース・競争する）、pembalap（レーサー・ドライバー）、balap liar（公道違法レース）。"
+      },
+      {
+        "p": "n",
+        "w": "golf",
+        "r": "golf",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "ゴルフ（東南アジア駐在員やビジネスパーソンの社交スポーツとしても超定番：lapangan golf＝ゴルフ場、stick golf＝ゴルフクラブ）",
+        "ex": "Banyak eksekutif perusahaan memanfaatkan waktu bermain golf di akhir pekan sambil menjalin relasi bisnis.",
+        "tr": "多くの企業幹部は、ビジネス上の人脈を築きながら週末にゴルフをする時間を活用している。",
+        "note": "■ 【関連語】：lapangan golf（ゴルフ場）、pegolf（ゴルファー）。"
+      },
+      {
+        "p": "n",
+        "w": "esports",
+        "r": "esports",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "eスポーツ（対戦型ビデオゲームのプロ競技。インドネシアは『Mobile Legends』等で世界最強クラスの超巨大eスポーツ大国！公式訳は『olahraga elektronik』）",
+        "ex": "Turnamen esports tingkat internasional di Jakarta selalu menyedot puluhan ribu penonton muda di arena maupun siaran daring.",
+        "tr": "ジャカルタでの国際eスポーツ大会は、会場でもネット配信でも毎回何万人もの若い観客を惹きつける。",
+        "note": "■ 【関連語】：atlet esports（プロゲーマー）、mabar（一緒にゲームする）、turnamen（トーナメント）。"
+      },
+      {
+        "p": "n",
+        "w": "futsal",
+        "r": "futsal",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "フットサル（5人制の屋内ミニサッカー。インドネシアの大学生・社会人が仕事終わりの夜に遊ぶスポーツ圧倒的No.1！）",
+        "ex": "Anak-anak jurusan kami biasa menyewa lapangan futsal setiap Sabtu malam untuk menjaga kekompakan sekaligus berolahraga.",
+        "tr": "うちの学科のみんなは、結束を保ちつつ運動するために毎週土曜の夜にフットサルコートを借りている。",
+        "note": "■ 【関連語】：lapangan futsal（フットサル場）、kiper（キーパー）、sepatu futsal（フットサルシューズ）。"
+      },
+      {
+        "p": "n",
+        "w": "pacuan kuda",
+        "r": "pacu",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "競馬、競走馬レース（『arena / gelanggang pacuan kuda＝競馬場』『kuda pacu＝競走馬』。インドネシアでも西スマトラやスンバワ島・ジャワ各地に伝統的な競馬文化がある！）",
+        "ex": "Ribuan penonton memadati arena pacuan kuda untuk menyaksikan pertandingan balap kelas utama pada akhir pekan.",
+        "tr": "週末のメインクラスのレースを観戦するため、数千人の観客が競馬場を埋め尽くした。",
+        "note": "■ 【語構成】：pacu（拍車をかけて走らせる・競わせる）+ -an + kuda（馬）。騎手は『joki』！"
+      },
+      {
+        "p": "n",
+        "w": "yoga",
+        "r": "yoga",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "ヨガ（呼吸法とポーズで心身の柔軟性とリラックスを高める運動。バリ島のウブドは世界的なヨガの聖地！）",
+        "ex": "Melakukan latihan yoga ringan selama dua puluh menit setiap pagi membantu meredakan ketegangan bahu dan pikiran.",
+        "tr": "毎朝20分間軽いヨガを行うと、肩のこりと心の緊張をほぐすのに役立つ。",
+        "note": "■ 【関連語】：matras yoga（ヨガマット）、kelenturan（柔軟性）、meditasi（瞑想）。"
+      },
+      {
+        "p": "n",
+        "w": "joging",
+        "r": "joging",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "ジョギング（軽いランニング。ジャカルタの毎週日曜朝の歩行者天国『Car Free Day [CFD]』で市民が一斉に『joging』するのが名物！KBBI標準綴りは g が1つの『joging』）",
+        "ex": "Setiap Minggu pagi, banyak warga melakukan joging santai mengelilingi taman kota dan jalur bebas kendaraan.",
+        "tr": "毎週日曜の朝、多くの市民が市の公園や歩行者天国をゆっくりジョギングして回っている。",
+        "note": "■ 【関連語】：lari pagi（朝ラン）、Car Free Day [CFD]（日曜朝の歩行者天国）、pemanasan（準備運動）。"
+      },
+      {
+        "p": "n",
+        "w": "liga",
+        "r": "liga",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①（サッカー・バスケ等のプロスポーツの）リーグ、リーグ戦（Liga 1＝インドネシア1部リーグ、Liga Inggris＝プレミアリーグ） ②同盟、連盟（Liga Arab＝アラブ連盟）",
+        "ex": "Persaingan perebutan gelar juara di papan atas klasemen liga sepak bola musim ini berlangsung sangat sengit.",
+        "tr": "今シーズンのサッカーリーグ順位表上位での優勝争いは非常に熾烈になっている。",
+        "note": "■ 【サッカーリーグ関連語】：klasemen（順位表）、papan atas（上位勢）、zona degradasi（降格圏）、juara bertahan（ディフェンディングチャンピオン）。"
+      },
+      {
+        "p": "n",
+        "w": "poin",
+        "r": "poin",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "①（試合・ゲーム・会員カードの）ポイント、勝ち点、得点 ②（プレゼン・議論の）要点、ポイント（poin penting＝重要ポイント）",
+        "ex": "Kemenangan tandang tersebut membuat tim nasional berhasil membawa pulang tiga poin penuh yang sangat berharga.",
+        "tr": "そのアウェーでの勝利により、代表チームは非常に貴重な勝ち点3を持ち帰ることに成功した。",
+        "note": "■ 【2大用法】：① スポーツ・買い物『poin kemenangan（勝ち点）』『tukar poin（ポイント交換）』、② 会議・学習『poin utama / penting（要点）』。"
+      },
+      {
+        "p": "n",
+        "w": "penyisihan",
+        "r": "sisih",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "予選、予選ラウンド、グループリーグ（『babak penyisihan / fase grup』：決勝トーナメント進出を懸けた予選段階！）",
+        "ex": "Tim bulu tangkis Indonesia melaju mulus melewati babak penyisihan grup tanpa menelan satu pun kekalahan.",
+        "tr": "インドネシアのバドミントンチームは、1敗も喫することなくグループ予選を順調に突破した。",
+        "note": "■ 【大会ラウンドの進行順】：babak penyisihan（予選・グループリーグ） ➔ 16 besar（ベスト16） ➔ perempat final（準々決勝） ➔ semifinal（準決勝） ➔ final（決勝）。"
+      },
+      {
+        "p": "n",
+        "w": "perempat final",
+        "r": "empat",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "準々決勝、ベスト8（『babak perempat final』＝直訳：決勝の4分の1の段階。スポーツニュースで必ず出る語！）",
+        "ex": "Dua wakil tunggal putra kita berhasil mengamankan tiket menuju babak perempat final turnamen tingkat dunia itu.",
+        "tr": "私たちの男子シングルス代表2名が、その世界大会の準々決勝への切符を確保した。",
+        "note": "■ 【関連語】：semifinal（準決勝）、final（決勝）、perebutan tempat ketiga（3位決定戦）。"
+      },
+      {
+        "p": "n",
+        "w": "penalti",
+        "r": "penalti",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①（サッカー等の）ペナルティキック、PK（tendangan penalti、kotak penalti＝ペナルティエリア） ②（契約違反・遅延等の）違約金、ペナルティ（＝denda）",
+        "ex": "Wasit langsung menunjuk titik putih dan memberikan hadiah tendangan penalti setelah bek lawan melakukan pelanggaran di kotak terlarang.",
+        "tr": "相手ディフェンダーがペナルティエリア内でファウルを犯したため、審判は即座にPKスポットを指差しペナルティキックを与えた。",
+        "note": "■ 【スポーツ実況の定番表現】：titik putih（PKスポット）、kotak penalti（ペナルティエリア）、adu penalti（PK戦）。"
+      },
+      {
+        "p": "n",
+        "w": "kartu kuning",
+        "r": "kartu",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①イエローカード、警告（サッカー等の反則に対する警告。2枚累積で退場！） ②（行政）求職者登録カード（AK1）",
+        "ex": "Gelandang bertahan itu diganjar kartu kuning oleh wasit karena melakukan tekel keras yang terlambat.",
+        "tr": "その守備的ミッドフィールダーは遅れた激しいタックルを行ったため、主審からイエローカードを提示された。",
+        "note": "■ 【カードペア】：kartu kuning（イエローカード＝警告） ／ kartu merah（レッドカード＝一発退場）。"
+      },
+      {
+        "p": "n",
+        "w": "kartu merah",
+        "r": "kartu",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "レッドカード、退場処分（悪質な反則またはイエローカード2枚による即退場！比喩で「一発アウト・失格」にも使う）",
+        "ex": "Tim tuan rumah terpaksa bermain dengan sepuluh pemain di babak kedua setelah salah satu pemainnya menerima kartu merah.",
+        "tr": "ホームチームは選手の1人がレッドカードを受けた後、後半を10人で戦わざるを得なくなった。",
+        "note": "■ 【関連語】：pelanggaran（ファウル・反則）、wasit（審判）、skorsing（出場停止処分）。"
+      },
+      {
+        "p": "n",
+        "w": "offside",
+        "r": "offside",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "オフサイド（サッカーの反則ルール。公式訳は『ofsaid』だがスポーツ中継・会話では100%『offside』！）",
+        "ex": "Gol kedua penyerang tersebut akhirnya dianulir oleh wasit setelah tinjauan VAR menunjukkan posisi offside tipis.",
+        "tr": "そのフォワードの2点目のゴールは、VAR判定でわずかなオフサイドの位置が示された後、最終的に取り消された。",
+        "note": "■ 【サッカー観戦用語】：dianulir（ゴール取り消しになる）、VAR（ビデオアシスタントレフェリー）、hakim garis（副審・線審）。"
+      },
+      {
+        "p": "n",
+        "w": "suporter",
+        "r": "suporter",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "サポーター、熱狂的な応援団・ファン（特にインドネシアのサッカー代表『Timnas』やプロクラブを全力応援するファン！＝pendukung）",
+        "ex": "Puluhan ribu suporter mengenakan seragam merah putih memadati Stadion Gelora Bung Karno untuk mendukung tim nasional.",
+        "tr": "赤と白のユニフォームを着た何万人ものサポーターが、代表チームを応援するためゲロラ・ブン・カルノ競技場を埋め尽くした。",
+        "note": "■ 【言い換え】：suporter（スポーツ応援団で最頻出） ＝ pendukung（支持者・サポーター）。"
+      },
+      {
+        "p": "n",
+        "w": "kiper",
+        "r": "kiper",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "ゴールキーパー（サッカー・フットサルの守護神！英語 keeper 由来で実況・日常会話の圧倒的定番。公式語は『penjaga gawang』）",
+        "ex": "Aksi penyelamatan gemilang sang kiper pada menit akhir berhasil menggagalkan tendangan bebas lawan.",
+        "tr": "試合終了間際のキーパーのスーパーセーブが、相手のフリーキックを阻止することに成功した。",
+        "note": "■ 【サッカー4大ポジション】：kiper / penjaga gawang（GK）、bek（DF）、gelandang（MF）、striker / penyerang（FW）。"
+      },
+      {
+        "p": "n",
+        "w": "penjaga gawang",
+        "r": "jaga",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "ゴールキーパー（『kiper』の公式インドネシア語。直訳：ゴールを守る人。新聞やテレビ解説で頻出！）",
+        "ex": "Penjaga gawang utama timnas tampil sangat tenang dan sukses menepis dua eksekusi penalti lawan.",
+        "tr": "代表の正ゴールキーパーは非常に冷静にプレーし、相手のPK2本を弾き出すことに成功した。",
+        "note": "■ 【語構成】：penjaga（見張り・守り手）+ gawang（ゴール枠）。"
+      },
+      {
+        "p": "n",
+        "w": "bek",
+        "r": "bek",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "ディフェンダー、DF（英語 back 由来！bek tengah＝センターバック、bek sayap＝サイドバック。公式語は『pemain bertahan』）",
+        "ex": "Bek tengah bertubuh tinggi itu sangat tangguh dalam memenangkan duel bola udara di depan gawang.",
+        "tr": "その長身のセンターバックは、ゴール前での空中戦に競り勝つのが非常に強い。",
+        "note": "■ 【関連語】：bek tengah（CB）、bek kiri / kanan（左／右SB）、pertahanan（守備）。"
+      },
+      {
+        "p": "n",
+        "w": "gelandang",
+        "r": "gelandang",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "ミッドフィールダー、MF（サッカーで攻守をつなぐ中盤の司令塔！gelandang serang＝攻撃的MF、gelandang bertahan＝ボランチ・守備的MF）",
+        "ex": "Gelandang kreatif tersebut menjadi motor serangan tim berkat umpan-umpan terobosan yang sangat akurat.",
+        "tr": "その創造性豊かなミッドフィールダーは、非常に正確なスルーパスによってチームの攻撃の原動力となっている。",
+        "note": "■ 【重要コロケーション】：gelandang serang（トップ下・OMF）、gelandang bertahan（ボランチ・DMF）、umpan terobosan（スルーパス）。"
+      },
+      {
+        "p": "n",
+        "w": "striker",
+        "r": "striker",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "ストライカー、フォワード、FW（点を取る最前線の攻撃選手。公式インドネシア語は『penyerang / ujung tombak＝槍の穂先』！）",
+        "ex": "Pelatih memasukkan striker muda berkecepatan tinggi di babak kedua untuk memecah kebuntuan lini depan.",
+        "tr": "監督は前線の膠着状態を打破するため、後半にスピードのある若手ストライカーを投入した。",
+        "note": "■ 【言い換え】：striker（会話・メディア定番） ＝ penyerang / ujung tombak（スポーツ紙の格好いい表現）。"
+      },
+      {
+        "p": "n",
+        "w": "adu penalti",
+        "r": "adu",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "PK戦（延長戦でも決着がつかずペナルティキックの蹴り合いで勝敗を決める決戦！）",
+        "ex": "Karena skor tetap imbang satu sama hingga babak tambahan berakhir, laga final harus ditentukan melalui adu penalti.",
+        "tr": "延長戦終了までスコアが1対1の同点のままだったため、決勝戦はPK戦で決着をつけることになった。",
+        "note": "■ 【関連語】：babak tambahan（延長戦）、tendangan penalti（PK）、skor imbang / seri（引き分け・同点）。"
+      },
+      {
+        "p": "n",
+        "w": "degradasi",
+        "r": "degradasi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "①（スポーツリーグの）下位リーグへの降格（zona degradasi＝降格圏 ⇔ promosi＝昇格） ②（環境・品質・道徳などの）劣化、悪化、低下（degradasi lingkungan＝環境劣化！）",
+        "ex": "Klub sepak bola itu berjuang keras meraih kemenangan pada pekan terakhir demi terhindar dari zona degradasi.",
+        "tr": "そのサッカークラブは降格圏を免れるため、最終節での勝利を目指して懸命に戦っている。",
+        "note": "■ 【2大頻出文脈】：① スポーツ『zona degradasi（降格圏）』、② 環境・論説『degradasi lingkungan / lahan / moral（環境／土壌／道徳の劣化）』。"
+      },
+      {
+        "p": "n",
+        "w": "melodi",
+        "r": "melodi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "メロディ、旋律（曲の主旋律。メロディが心地よい＝melodi yang merdu / menenangkan）",
+        "ex": "Lagu akustik Indonesia itu memiliki melodi yang lembut dan lirik puitis sehingga nyaman didengar malam hari.",
+        "tr": "そのインドネシアのアコースティック曲は優しいメロディと詩的な歌詞を持っており、夜に聴くと心地よい。",
+        "note": "■ 【音楽の3大要素】：melodi（メロディ・旋律）、irama / ritme（リズム）、harmoni（ハーモニー・和音）、lirik（歌詞）。"
+      },
+      {
+        "p": "n",
+        "w": "album",
+        "r": "album",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①（音楽の）アルバム（merilis album perdana＝デビューアルバムをリリースする） ②写真アルバム（album foto）",
+        "ex": "Band populer tersebut baru saja merilis album terbaru berisi sepuluh lagu bergenre pop akustik.",
+        "tr": "その人気バンドは、ポップアコースティック調の10曲を収録した最新アルバムをリリースしたばかりだ。",
+        "note": "■ 【音楽リリース表現】：singel（シングル曲）、album perdana（1stアルバム）、merilis（リリースする）。"
+      },
+      {
+        "p": "n",
+        "w": "gitar",
+        "r": "gitar",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "ギター（gitar akustik＝アコギ、gitar listrik＝エレキギター、petikan gitar＝ギターの爪弾き。学生の弾き語りの超定番楽器！）",
+        "ex": "Sambil duduk santai di teras, ia memetik gitar akustik mengiringi teman-temannya bernyanyi bersama.",
+        "tr": "テラスでくつろいで座りながら、彼は友人たちの合唱に合わせてアコースティックギターを爪弾いた。",
+        "note": "■ 【動詞コロケーション】：ギターを弾く＝『bermain gitar / memetik gitar（弦を弾く）』、ギター奏者＝『gitaris』、弦＝『senar』。"
+      },
+      {
+        "p": "n",
+        "w": "piano",
+        "r": "piano",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "ピアノ（pianis＝ピアニスト、tuts piano＝ピアノの鍵盤）",
+        "ex": "Alunan musik piano klasik yang tenang di lobi hotel membuat suasana sore terasa semakin hangat.",
+        "tr": "ホテルのロビーに流れる穏やかなクラシックピアノの調べが、午後の雰囲気をより温かくしている。",
+        "note": "■ 【関連語】：pianis（ピアニスト）、tuts（鍵盤）、keyboard（電子キーボード）。"
+      },
+      {
+        "p": "n",
+        "w": "biola",
+        "r": "biola",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "バイオリン、ヴァイオリン（ポルトガル語 viola 由来！『menggesek biola＝バイオリンを弾く』）",
+        "ex": "Musisi itu sangat piawai menggesek biola hingga berhasil memukau seluruh penonton di gedung konser.",
+        "tr": "その音楽家はバイオリンを弾くのが非常に巧みで、コンサートホールの観客全員を魅了した。",
+        "note": "■ 【楽器ごとの「弾く」動詞】：memetik gitar（ギターを爪弾く）、menggesek biola（バイオリンを弓で弾く）、meniup suling（笛を吹く）、memukul drum（ドラムを叩く）。"
+      },
+      {
+        "p": "n",
+        "w": "drum",
+        "r": "drum",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①ドラム、太鼓セット（バンドのリズム隊楽器） ②ドラム缶（drum minyak＝大型金属缶）",
+        "ex": "Ketukan drum yang bertenaga membuat seluruh penonton di stadion ikut melompat mengikuti irama lagu.",
+        "tr": "力強いドラムのビートに合わせ、スタジアムの観客全員が曲のリズムに乗って飛び跳ねた。",
+        "note": "■ 【関連語】：drummer / penabuh drum（ドラマー）、kendang（インドネシアの伝統両面太鼓）。"
+      },
+      {
+        "p": "n",
+        "w": "suling",
+        "r": "suling",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "竹笛、フルート（西ジャワのスンダ音楽やバリのガムラン、ダンドゥットに欠かせない美しい音色の縦笛！『seruling』とも言う）",
+        "ex": "Alunan merdu suling bambu khas Sunda sering diputar di rumah makan tradisional untuk menciptakan suasana damai.",
+        "tr": "スンダ特有の美しい竹笛（スリン）の音色は、穏やかな雰囲気を作るため伝統的な食堂でよく流されている。",
+        "note": "■ 【関連語】：seruling（笛・フルート）、suling bambu（竹笛）、meniup suling（笛を吹く）。"
+      },
+      {
+        "p": "n",
+        "w": "sasando",
+        "r": "sasando",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "ササンド（東ヌサ・トゥンガラ州ロテ島発祥のインドネシア伝統弦楽器！ヤシの葉を扇状に編んだ共鳴器と竹筒の弦が奏でるハープのような幻想的音色で超有名）",
+        "ex": "Alat musik petik tradisional sasando dari Pulau Rote memiliki bentuk unik menyerupai kipas dari daun lontar.",
+        "tr": "ロテ島発祥の伝統弦楽器ササンドは、ロンタルヤシの葉で作られた扇のような独特の形をしている。",
+        "note": "■ 【インドネシア代表伝統楽器セット】：gamelan（ガムラン）、angklung（アンクルン：西ジャワ）、sasando（ササンド：NTT）、kolintang（コリンタン：北スラウェシ）。"
+      },
+      {
+        "p": "n",
+        "w": "saksofon",
+        "r": "saksofon",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "サックス、サクソフォン（ジャズフェスティバル『Java Jazz』などインドネシアのジャズシーンで大人気の管楽器！）",
+        "ex": "Penampilan solo saksofon di panggung festival musik jazz malam itu mendapat tepuk tangan meriah dari penonton.",
+        "tr": "その夜のジャズ音楽祭のステージでのサックスソロ演奏は、観客から盛大な拍手を浴びた。",
+        "note": "■ 【管楽器セット】：saksofon（サックス）、terompet（トランペット）、suling（笛・フルート）、harmonika（ハーモニカ）。"
+      },
+      {
+        "p": "n",
+        "w": "terompet",
+        "r": "terompet",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①トランペット（金管楽器） ②（大晦日カウントダウンに街中で鳴らす）紙製ラッパ、パーティーホーン（terompet tahun baru！）",
+        "ex": "Menjelang malam pergantian tahun, banyak pedagang kaki lima menjual terompet warna-warni di pinggir jalan.",
+        "tr": "大晦日の年越しを前に、多くの露店商が道端で色とりどりのパーティーラッパを売っている。",
+        "note": "■ 【インドネシアの年末風物詩】：大晦日の夜は街中で『meniup terompet（ラッパを吹く）』＋『kembang api（花火）』が定番！"
+      },
+      {
+        "p": "n",
+        "w": "ukulele",
+        "r": "ukulele",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "ウクレレ（4弦の小型ギター。ハワイだけでなくインドネシアの伝統音楽『keroncong＝クロンチョン』やストリートミュージシャン『pengamen』にも欠かせない楽器！）",
+        "ex": "Suara petikan ukulele yang ceria menjadi ciri khas utama dalam iringan musik keroncong tradisional Indonesia.",
+        "tr": "軽快なウクレレの爪弾きの音は、インドネシアの伝統音楽クロンチョンの伴奏における大きな特徴だ。",
+        "note": "■ 【豆知識】：クロンチョンで使われるウクレレ系小型弦楽器は『cuk（3弦）』『cak（4弦）』と呼ばれる！"
+      },
+      {
+        "p": "n",
+        "w": "band",
+        "r": "band",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "バンド、音楽グループ（公式語は『grup musik』だが、音楽シーン・会話では『band pop / band indie / anak band』が100%定着！）",
+        "ex": "Band asal Jepang dan band indie Indonesia itu sama-sama memiliki banyak penggemar setia di kalangan mahasiswa.",
+        "tr": "その日本発のバンドとインドネシアのインディーズバンドは、どちらも大学生の間に熱心なファンが多い。",
+        "note": "■ 【バンド構成メンバー】：vokalis（ボーカル）、gitaris（ギター）、basis（ベース）、drummer（ドラム）、kibordis（キーボード）。"
+      },
+      {
+        "p": "n",
+        "w": "vokalis",
+        "r": "vokal",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "ボーカリスト、ボーカル（バンドのメイン歌手。ソロ歌手は『penyanyi』）",
+        "ex": "Suara khas sang vokalis membuat lagu balada patah hati tersebut terasa sangat menyentuh hati pendengar.",
+        "tr": "ボーカリストの独特の声質が、その失恋バラード曲を聴き手の心に強く響くものにしている。",
+        "note": "■ 【関連語】：vokal（ボーカル・声・母音）、penyanyi（歌手）、latar vokal（コーラス）。"
+      },
+      {
+        "p": "a",
+        "w": "akustik",
+        "r": "akustik",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①アコースティックの（生楽器主体の穏やかなサウンド：musik akustik / gitar akustik） ②音響の（ruang akustik＝音響空間）",
+        "ex": "Ia paling suka mendengarkan lagu pop akustik bernuansa tenang saat belajar atau berjalan santai di sore hari.",
+        "tr": "彼は勉強するときや夕方にのんびり歩くとき、穏やかな雰囲気のアコースティックポップ曲を聴くのが一番好きだ。",
+        "note": "■ 【関連語】：gitar akustik（アコースティックギター）、live akustik（カフェ等のアコースティック生演奏）。"
+      },
+      {
+        "p": "n",
+        "w": "keroncong",
+        "r": "keroncong",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "クロンチョン（16世紀のポルトガル音楽とジャワ文化が融合して生まれたインドネシア伝統ポップス！ウクレレ・バイオリン・チェロが奏でる郷愁あふれる調べで名曲『Bengawan Solo』が超有名）",
+        "ex": "Lagu legendaris Bengawan Solo karya Gesang merupakan mahakarya musik keroncong yang dikenal hingga ke Jepang.",
+        "tr": "グサン作曲の伝説的名曲『ブンガワン・ソロ』は、日本にまで広く知られるクロンチョン音楽の傑作だ。",
+        "note": "■ 【インドネシア音楽の2大伝統ポップス】：keroncong（ジャワ中心のノスタルジックな弦楽ポップス） ／ dangdut（太鼓と笛が踊る国民的大衆歌謡）。"
+      },
+      {
+        "p": "n",
+        "w": "koplo",
+        "r": "koplo",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "コプロ（東ジャワ発祥のアップテンポで超ノリノリなダンドゥット派生ジャンル『dangdut koplo』！高速の太鼓クンダンのビートで結婚式やフェスで大盛り上がりする現代インドネシアの国民的サウンド！）",
+        "ex": "Lagu pop maupun lagu daerah sering diaransemen ulang dengan irama dangdut koplo agar suasana pesta semakin meriah.",
+        "tr": "パーティーの雰囲気をさらに盛り上げるため、ポップスや地方民謡もよくダンドゥット・コプロ調にアレンジし直される。",
+        "note": "■ 【豆知識】：ジャワ語の歌（Denny Caknan 等）× コプロの融合は現在のインドネシアYouTubeで数億回再生される超巨大トレンド！"
+      },
+      {
+        "p": "n",
+        "w": "karaoke",
+        "r": "karaoke",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "カラオケ（日本語由来の世界共通語！インドネシアでもモールの『karaoke keluarga＝ファミリーカラオケ』で友達と歌い合う超定番の遊び！）",
+        "ex": "Setelah makan malam bersama, kami menyewa ruang karaoke selama dua jam untuk menyanyikan lagu Indonesia dan Jepang.",
+        "tr": "一緒に夕食を食べた後、私たちはインドネシアの曲と日本の曲を歌うために2時間カラオケルームを借りた。",
+        "note": "■ 【動詞形】：berkaraoke（カラオケをする）。インドネシアでは健全な個室カラオケを『karaoke keluarga（ファミリーカラオケ）』と呼ぶ！"
+      },
+      {
+        "p": "n",
+        "w": "komposer",
+        "r": "komposer",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "作曲家（映画音楽・クラシック・ポップスの作曲を手掛けるプロ。KBBI標準語は『komponis / pencipta lagu』）",
+        "ex": "Komposer musik film itu berhasil menciptakan melodi orkestra yang membangun suasana haru di akhir cerita.",
+        "tr": "その映画音楽の作曲家は、物語の終盤に感動的な雰囲気を盛り上げるオーケストラ旋律を生み出した。",
+        "note": "■ 【言い換え】：komposer（メディア・映画で頻出） ＝ komponis（KBBI標準） ＝ pencipta lagu（ソングライター）。"
+      },
+      {
+        "p": "n",
+        "w": "drama",
+        "r": "drama",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①ドラマ、演劇、戯曲（drama Korea / drakor＝韓ドラ、drama Jepang / dorama＝日ドラ、film drama＝人間ドラマ映画） ②（比喩・口語で）大げさな揉め事・修羅場（jangan bikin drama!＝面倒な騒ぎを起こすな！）",
+        "ex": "Film bergenre drama keluarga yang hangat dan menyentuh hati sering kali meninggalkan kesan mendalam bagi penontonnya.",
+        "tr": "温かくて心に響く家族ドラマジャンルの映画は、観る人に深い余韻を残すことが多い。",
+        "note": "■ 【会話スラング】：penuh drama（波乱万丈・揉め事だらけ）、bikin drama（大げさに騒ぎ立てる）。"
+      },
+      {
+        "p": "n",
+        "w": "serial",
+        "r": "serial",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "連続ドラマ、シリーズ作品（Netflixや配信サービスの連続ドラマ『serial TV / serial web』、漫画・小説シリーズなど）",
+        "ex": "Serial misteri terbaru di layanan streaming itu terdiri atas delapan episode dengan alur cerita yang penuh kejutan.",
+        "tr": "その配信サービスの最新ミステリー連続ドラマは、驚きに満ちた展開の全8エピソードで構成されている。",
+        "note": "■ 【配信・ドラマ用語セット】：serial（シリーズ・連ドラ）、musim / season（シーズン）、episode（話・エピソード）、tamat（完結）。"
+      },
+      {
+        "p": "n",
+        "w": "anime",
+        "r": "anime",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "アニメ（日本発のアニメーション作品！インドネシアは世界有数の日本アニメ大国で、学生同士の共通の話題として鉄板！）",
+        "ex": "Banyak mahasiswa Indonesia mulai tertarik belajar bahasa dan budaya Jepang setelah rutin menonton anime sejak kecil.",
+        "tr": "多くのインドネシア人学生は、子どもの頃からアニメを日常的に観ていたことがきっかけで日本語や日本文化に興味を持ち始めた。",
+        "note": "■ 【オタク・サブカル関連語】：manga（日本の漫画）、wibu（日本のアニメ・文化オタク＝やや自虐や愛称で超頻出！）、cosplay（コスプレ）。"
+      },
+      {
+        "p": "n",
+        "w": "kartun",
+        "r": "kartun",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "カートゥーン、子ども向けアニメ・漫画、風刺画（インドネシアのテレビで日曜朝に放送される『Doraemon』等のアニメを日常では『film kartun』と呼ぶことも多い！）",
+        "ex": "Setiap hari Minggu pagi, anak-anak duduk manis di depan televisi untuk menonton film kartun kesukaan mereka.",
+        "tr": "毎週日曜日の朝、子どもたちは大好きなアニメ（カートゥーン）番組を観るためテレビの前にお行儀よく座る。",
+        "note": "■ 【使い分け】：kartun（一般的なアニメ全般・1コマ風刺漫画） ／ anime（日本アニメ全般） ／ animasi（CG・アニメ制作技術全般）。"
+      },
+      {
+        "p": "n",
+        "w": "komedi",
+        "r": "komedi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "コメディ、喜劇（film komedi＝コメディ映画、komedi tunggal / stand-up comedy＝ピン芸人漫談［インドネシアの若者に超大人気！］）",
+        "ex": "Film komedi ringan sangat cocok ditonton pada akhir pekan untuk menghibur diri setelah sepekan penuh belajar.",
+        "tr": "軽快なコメディ映画は、1週間みっちり勉強した後の週末に気分転換して楽しむのにぴったりだ。",
+        "note": "■ 【映画ジャンル6点セット】：komedi（コメディ）、drama（ドラマ）、aksi（アクション）、horor（ホラー）、romantis（恋愛）、thriller（スリラー・サスペンス）。"
+      },
+      {
+        "p": "n",
+        "w": "thriller",
+        "r": "thriller",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "スリラー、サスペンス（ハラハラドキドキする心理戦・ミステリー・犯罪系の映画や小説ジャンル）",
+        "ex": "Film thriller psikologis itu membuat penonton terus menebak-nebak pelaku sebenarnya hingga menit terakhir.",
+        "tr": "その心理スリラー映画は、最後の1分まで観客に真犯人を推理させ続けた。",
+        "note": "■ 【関連語】：misteri（ミステリー）、horor（ホラー）、menegangkan（ハラハラ緊張させる）。"
+      },
+      {
+        "p": "n",
+        "w": "komik",
+        "r": "komik",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "漫画、コミック（紙の単行本からスマホの縦読み漫画『komik daring / webtoon』まで全部『komik』！漫画家は『komikus』）",
+        "ex": "Di sudut toko buku besar itu terdapat rak khusus yang penuh dengan terjemahan komik populer asal Jepang.",
+        "tr": "その大型書店の隅には、日本発の人気漫画の翻訳版がぎっしり並んだ専用棚がある。",
+        "note": "■ 【関連語】：komikus（漫画家）、manga（日本の漫画）、novel（小説）。"
+      },
+      {
+        "p": "n",
+        "w": "puisi",
+        "r": "puisi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "詩、ポエム（インドネシア文学ではハイリル・アンワル『Chairil Anwar』らの近代詩や、朗読『membaca puisi』が学校教育の定番！）",
+        "ex": "Kumpulan puisi karya Chairil Anwar masih terus dipelajari dan dikenang sebagai tonggak penting sastra modern Indonesia.",
+        "tr": "ハイリル・アンワルの詩集は、現代インドネシア文学の重要な金字塔として今も学び継がれ記憶されている。",
+        "note": "■ 【文学ジャンルセット】：puisi（詩）、pantun（伝統4行定型詩）、cerpen（短編小説）、novel（長編小説）、sastra（文学）。形容詞形：puitis（詩的な）。"
+      },
+      {
+        "p": "n",
+        "w": "teater",
+        "r": "teater",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①演劇、舞台芸術（seni teater＝演劇芸術、pementasan teater＝舞台公演） ②劇場、シアター（gedung teater＝劇場ホール）",
+        "ex": "Ia pergi ke Kyoto untuk menonton pementasan teater tradisional Jepang yang memadukan dialog jenaka dan gerak khas.",
+        "tr": "彼はユーモラスな台詞と独特の所作を融合させた日本の伝統演劇公演を観るために京都へ行った。",
+        "note": "■ 【舞台・芸能関連語】：pementasan / pertunjukan（公演・上演）、panggung（舞台）、aktor / pemeran（俳優）、naskah（脚本）。"
+      },
+      {
+        "p": "v",
+        "w": "belanja",
+        "r": "belanja",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "①買い物をする、ショッピングする（berbelanja の語幹。日常会話は『belanja bulanan＝月のまとめ買い』『belanja online＝ネット通販』が超頻出！） ②（財政の）歳出、支出（APBN＝歳入歳出予算）",
+        "ex": "Setiap awal bulan ia pergi belanja kebutuhan dapur seperti telur, sayuran, dan buah beku sekaligus.",
+        "tr": "毎月初め、彼は卵・野菜・冷凍フルーツといった食料品をまとめて買い物しに行く。",
+        "note": "■ 【2大用法】：① 日常『belanja bulanan / online（まとめ買い／ネットショッピング）』、② 経済『belanja negara / modal（国家歳出／設備投資支出）』。"
+      },
+      {
+        "p": "v",
+        "w": "main game",
+        "r": "main",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "ゲームをする、テレビゲーム・PCゲーム・スマホゲームで遊ぶ（公式表記は『bermain gim』だが会話では100%『main game』！）",
+        "ex": "Di waktu senggang setelah menyelesaikan tugas kuliah, ia suka main game strategi dan membangun dunia virtual di PC.",
+        "tr": "大学の課題を終わらせた空き時間には、彼はPCで戦略ゲームをしたり仮想世界を作ったりして遊ぶのが好きだ。",
+        "note": "■ 【ゲーム会話定番】：mabar [main bareng]（マルチプレイで一緒に遊ぶ）、gim（KBBI標準綴りの「ゲーム」）。"
+      },
+      {
+        "p": "n",
+        "w": "produser",
+        "r": "produser",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "プロデューサー（映画・音楽・テレビ番組の製作統括・資金管理を担う責任者。演出の『sutradara＝監督』とタッグを組む！）",
+        "ex": "Sutradara dan produser film itu bekerja sama selama dua tahun untuk menghasilkan kualitas gambar dan cerita terbaik.",
+        "tr": "その映画の監督とプロデューサーは、最高の映像美と物語を生み出すため2年間にわたり協力した。",
+        "note": "■ 【映画スタッフ3点セット】：sutradara（監督）、produser（プロデューサー）、penulis skenario（脚本家）。"
+      },
+      {
+        "p": "n",
+        "w": "trailer",
+        "r": "trailer",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①（映画・ドラマ・ゲームの）予告編（公式語は『cuplikan』だが、YouTubeや映画ファン会話では『nonton trailer』が超一般的！） ②大型トレーラー（truk trailer）",
+        "ex": "Baru sehari setelah trailer resmi film fiksi ilmiah tersebut dirilis, jumlah penayangannya langsung menembus lima juta kali.",
+        "tr": "そのSF映画の公式予告編が公開されてわずか1日で、再生回数はたちまち500万回を突破した。",
+        "note": "■ 【言い換え】：trailer（予告編） ＝ cuplikan film（公式語・映画クリップ）。"
+      },
+      {
+        "p": "n",
+        "w": "spoiler",
+        "r": "spoiler",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💬 スラング・口語",
+        "m": "ネタバレ（映画・ドラマ・漫画・小説の結末や重要な展開を先にバラしてしまうこと！公式語は『beberan』だがSNS・会話は100%『jangan spoiler!』）",
+        "ex": "Tolong jangan kasih spoiler akhir cerita film itu ya, soalnya saya baru berencana menontonnya akhir pekan ini!",
+        "tr": "今週末にやっと観に行く予定だから、その映画の結末のネタバレは絶対に言わないでね！",
+        "note": "■ 【SNS定番警告】：Awas spoiler!（ネタバレ注意！）、anti-spoiler（ネタバレ厳禁）。"
+      },
+      {
+        "p": "n",
+        "w": "episode",
+        "r": "episode",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "エピソード、第〜話（ドラマ・アニメ・ポッドキャストの各回：episode pertama＝第1話、episode terakhir＝最終話）",
+        "ex": "Episode terakhir serial anime tersebut berhasil membuat banyak penonton terharu sekaligus puas dengan penutupannya.",
+        "tr": "そのアニメシリーズの最終話は、多くの視聴者を感動させると同時にその締めくくりに満足させた。",
+        "note": "■ 【関連語】：serial（連続作品）、babak（幕・ラウンド）、tamat（完結・終了）。"
+      },
+      {
+        "p": "n",
+        "w": "layar lebar",
+        "r": "layar",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "映画館の大スクリーン、劇場公開映画（『film layar lebar』＝テレビドラマ『layar kaca』に対して「劇場版・映画作品」を指す超定番表現！）",
+        "ex": "Setelah sukses sebagai novel laris, kisah inspiratif tersebut akhirnya diadaptasi menjadi film layar lebar di bioskop.",
+        "tr": "ベストセラー小説として成功を収めた後、その感動的な物語はついに映画館で劇場公開映画として映画化された。",
+        "note": "■ 【スクリーン2大対比】：layar lebar（映画館の大画面＝映画界） ⇔ layar kaca（ブラウン管・テレビ画面＝テレビ界）。"
+      }
+    ];
+
+    const idxByWord = new Map();
+    for (let i = 0; i < d.vocab.length; i++) {
+      const it = d.vocab[i];
+      if (it && it.w) idxByWord.set(it.w.trim().toLowerCase(), i);
+    }
+
+    for (let i = 0; i < DICT_PACK_9.length; i++) {
+      const item = DICT_PACK_9[i];
+      if (!item || !item.w) continue;
+      const key = item.w.trim().toLowerCase();
+
+      item.dictOnly = true;
+      item.tier = 3;
+      dictOnlySet.add(key);
+
+      if (item.topicCat) {
+        catMap.set(key, item.topicCat);
+      }
+
+      if (idxByWord.has(key)) {
+        const pos = idxByWord.get(key);
+        Object.assign(d.vocab[pos], item);
+        vMap.set(key, d.vocab[pos]);
+        persistentAdded.set(key, d.vocab[pos]);
+      } else {
+        d.vocab.push(item);
+        idxByWord.set(key, d.vocab.length - 1);
+        vMap.set(key, item);
+        persistentAdded.set(key, item);
+      }
+    }
+  } catch (e) {
+    console.error("WhatsIndo Dict Pack 9 error:", e);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 辞書充実プロジェクト 第10弾・完結編（全68語・すべて辞書専用 dictOnly: true）
+   - ① チャット口語・若者スラング・相槌（35語）：ga, ngga, udh, blm, bgt, punten,
+       ngapain, emang, emangnya, cuman, trus, abis, ntar, kemaren, kepingin,
+       kudu, gausah, gapapa, gpp, ribet, bosen, FOMO, healing, kongkow, ghosting,
+       spill, relate, wkwk, anjay, waduh, wih, woi, bro, bestie, cuy
+   - ② 基本挨拶・プロフィール・旅行サバイバル（19語）：apa kabar, selamat tidur,
+       selamat makan, selamat ulang tahun, sampai jumpa, hari libur, berat badan,
+       tinggi badan, tanggal lahir, nomor telepon, kode pos, kurang manis,
+       tanpa pedas, lurus terus, belok kanan, belok kiri, alergi makanan,
+       vegetarian, boleh tawar
+   - ③ 重要接頭辞・助詞・文法パーツ（14語）：kah, nya, si, pra-, tuna-, nir-,
+       swa-, maha-, multi-, non-, anti-, sub-, semi-, tiap-tiap
+   - **記号ゼロ・文字バグゼロ・try-catch完全保護・問題モードへ一切混入しません
+   ===================================================================== */
+(function() {
+  try {
+    const d = window.WHATSINDO_EXTERNAL_DATA;
+    if (!d || !Array.isArray(d.vocab)) return;
+
+    const dictOnlySet     = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+    const persistentAdded = window.__wiPersistentAddedVocab || (window.__wiPersistentAddedVocab = new Map());
+    const vMap            = window.__wiMasterVocabMap || (window.__wiMasterVocabMap = new Map());
+    const catMap          = window.__WI_V5_VCAT || (window.__WI_V5_VCAT = new Map());
+
+    const DICT_PACK_10 = [
+      {
+        "p": "other",
+        "w": "ga",
+        "r": "tidak",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💬 スラング・口語",
+        "m": "〜ない、いいえ（標準語『tidak』のチャット最頻出の短縮口語！『gak / nggak / ngga』も同じ意味でLINE・WhatsAppで毎日飛び交う）",
+        "ex": "Hari ini aku ga jadi keluar kosan karena hujan dari sore belum berhenti juga.",
+        "tr": "夕方からまだ雨がやまないから、今日は下宿から出ないことにしたよ。",
+        "note": "■ 【否定語『tidak』の口語バリエーション】：tidak（標準） ➔ enggak / nggak / ngga / gak / ga（チャットで最頻出の短縮形！）。"
+      },
+      {
+        "p": "other",
+        "w": "ngga",
+        "r": "tidak",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💬 スラング・口語",
+        "m": "〜ない、いいえ（『tidak』の日常口語『nggak』の末尾 k を落とした柔らかなチャット表記）",
+        "ex": "Tenang aja, soal ujiannya ngga sesusah yang kita bayangkan kemarin kok!",
+        "tr": "安心していいよ、試験の問題は昨日うちらが想像してたほど難しくなかったからね！",
+        "note": "■ 【チャット定番】：ngga papa（大丈夫だよ・気にしないで）、ngga tau（知らない・分かんない）。"
+      },
+      {
+        "p": "other",
+        "w": "udh",
+        "r": "sudah",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💬 スラング・口語",
+        "m": "もう〜した、すでに（標準語『sudah』・口語『udah』をチャットで母音抜きにした超頻出略記！『udh makan?＝もうご飯食べた？』）",
+        "ex": "Eh bro, lo udh nyampe stasiun atau masih di jalan nih?",
+        "tr": "なぁブロ、お前もう駅に着いた？それともまだ移動中？",
+        "note": "■ 【WhatsApp母音抜きチャット略語5点セット】：udh（sudah＝もう）、blm（belum＝まだ）、bgt（banget＝めっちゃ）、gpp（tidak apa-apa＝大丈夫）、yg（yang）。"
+      },
+      {
+        "p": "other",
+        "w": "blm",
+        "r": "belum",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💬 スラング・口語",
+        "m": "まだ〜ない（標準語『belum』のチャット超頻出略記！『blm tau＝まだ分かんない』『blm tidur＝まだ寝てない』）",
+        "ex": "Sorry baru bales, tugas kelompok bagian gue blm kelar semua nih, tinggal satu halaman lagi.",
+        "tr": "返信遅れてごめん、グループ課題の俺の担当分がまだ全部終わってなくて、あと1ページだけなんだ。",
+        "note": "■ 【対比】：udh（もう終わった） ⇔ blm（まだ終わってない）。"
+      },
+      {
+        "p": "other",
+        "w": "bgt",
+        "r": "banget",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💬 スラング・口語",
+        "m": "めっちゃ、超〜、すごく（口語『banget』のチャット略記！標準語は『sangat / sekali』。enak bgt＝めっちゃ美味しい、makasih bgt＝本当にありがとう）",
+        "ex": "Gila sih, mie ayam di warung baru deket kampus rasanya enak bgt dan porsinya banyak!",
+        "tr": "マジでヤバい、大学近くの新店のミーアヤム、めっちゃ美味いし量も多いぞ！",
+        "note": "■ 【関連語】：banget（すごく）、parah（超〜・ヤバいくらい）、pol（ジャワ系スラング：マックスに・最高に）。"
+      },
+      {
+        "p": "other",
+        "w": "punten",
+        "r": "punten",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💬 スラング・口語",
+        "m": "すみません、失礼します、お邪魔します（本来はバンドン等西ジャワのスンダ語の丁寧表現『＝permisi』だが、今やインドネシア全国のチャット・会話で親しみやすく使われる超人気語！）",
+        "ex": "Punten kak, mau nanya ruang kuliah bahasa Indonesia lantai dua di sebelah mana ya?",
+        "tr": "すみません先輩、2階のインドネシア語の教室ってどちらでしょうか？",
+        "note": "■ 【バンドン・西ジャワ豆知識】：誰かの前を通る時やお店に入る時に『Punten』と言うと、相手は『Mangga（どうぞ）』と返すのがスンダ流の温かい挨拶！"
+      },
+      {
+        "p": "v",
+        "w": "ngapain",
+        "r": "apa",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💬 スラング・口語",
+        "m": "何してるの？、何をするの？（標準語『sedang berbuat apa / melakukan apa』にあたる会話圧倒的No.1表現！『Lagi ngapain?＝今何してるの？』）",
+        "ex": "Eh lagi ngapain sekarang? Kalau lagi kosong, yuk kita ngopi santai di kafe dekat stasiun.",
+        "tr": "ねぇ今何してるの？もし空いてたら、駅近くのカフェで気楽にコーヒー飲もうよ。",
+        "note": "■ 【会話の鉄板フレーズ】：\n・Lagi ngapain?（今何してる？）\n・Ngapain sih?（何やってんの？／わざわざ何のために？）"
+      },
+      {
+        "p": "other",
+        "w": "emang",
+        "r": "memang",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💬 スラング・口語",
+        "m": "本当に、たしかに、もともと〜だよね（標準語『memang』の口語形！『Emang enak banget!＝マジでめっちゃ美味いよ！』『Emang gitu＝もともとそういうもんだよ』）",
+        "ex": "Tempat itu emang selalu ramai pas akhir pekan, jadi lebih baik kita datang pagi-pagi.",
+        "tr": "あの場所は週末になると本当にいつも混んでるから、朝早く行った方がいいよ。",
+        "note": "■ 【派生疑問形】：emangnya（本当に〜なの？／っていうかさ〜）。"
+      },
+      {
+        "p": "other",
+        "w": "emangnya",
+        "r": "memang",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💬 スラング・口語",
+        "m": "本当に〜なの？、そもそも〜なの？（標準語『memangnya』の口語。驚き・ツッコミ・確認のニュアンスで文頭に置く！）",
+        "ex": "Emangnya besok kita libur kuliah ya? Aku kira masih ada kelas pagi seperti biasa.",
+        "tr": "え、本当に明日大学休みなの？いつものように朝イチの授業があると思ってたよ。",
+        "note": "■ 【関連語】：emang（本当に・たしかに）、masa sih?（まさか本当？）。"
+      },
+      {
+        "p": "other",
+        "w": "cuman",
+        "r": "cuma",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💬 スラング・口語",
+        "m": "ただ〜だけ、〜しか（標準語『hanya』、口語『cuma』の語尾に -n が付いた超頻出の話し言葉！）",
+        "ex": "Dari stasiun ke apartemenku dekat kok, jalan kaki cuman butuh waktu sekitar lima menit.",
+        "tr": "駅からうちのアパートまで近いよ、歩いてもたった5分くらいしかかからない。",
+        "note": "■ 【言い換え】：hanya（標準語） ➔ cuma / cuman（日常会話） ／ doang（後ろに置くスラング：cuma bercanda doang＝ただの冗談だよ）。"
+      },
+      {
+        "p": "other",
+        "w": "trus",
+        "r": "terus",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💬 スラング・口語",
+        "m": "それから、それで、あと（標準語『lalu / kemudian』にあたる口語『terus』のチャット短縮形！話を続けるときの相槌『Trus gimana?＝それでどうなった？』も超定番）",
+        "ex": "Kita makan siang dulu di sini, trus abis itu langsung jalan ke toko buku ya.",
+        "tr": "まずここで昼ご飯食べて、それからその後すぐ本屋さんへ行こうね。",
+        "note": "■ 【会話のつなぎ言葉セット】：trus（それで・それから）、abis itu（その後）、soalnya（だって・というのも）、makanya（だから）。"
+      },
+      {
+        "p": "other",
+        "w": "abis",
+        "r": "habis",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💬 スラング・口語",
+        "m": "①〜した後で（『habis』の頭文字 h 脱落口語：abis makan＝食後に、abis ini＝この後） ②売り切れ、なくなった（stoknya abis）",
+        "ex": "Abis kelas sore nanti kamu langsung pulang ke kosan atau mau ikut latihan gym bareng?",
+        "tr": "この後夕方の授業が終わったらすぐ下宿に帰る？それとも一緒にジムトレ行く？",
+        "note": "■ 【超頻出コロケーション】：abis ini（この後）、abis itu（その後）、udah abis（もうなくなった・売り切れ）。"
+      },
+      {
+        "p": "other",
+        "w": "ntar",
+        "r": "sebentar",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💬 スラング・口語",
+        "m": "あとで、ちょっと後で、後ほど（『nanti』や『sebentar』が混ざって短縮された超日常口語！『ntar malam＝今夜』『ntar ya＝ちょっと待ってね／あとでね』）",
+        "ex": "Ntar malem kalau tugasnya sudah beres, aku kabari lagi lewat WA ya.",
+        "tr": "今夜、課題が片付いたらまたWhatsAppで連絡するね。",
+        "note": "■ 【時間口語セット】：bentar（ちょっと待って）、ntar（あとで）、barusan（たった今・さっき）、kemaren（昨日）。"
+      },
+      {
+        "p": "other",
+        "w": "kemaren",
+        "r": "kemarin",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💬 スラング・口語",
+        "m": "昨日（きのう）（標準語『kemarin』の日常発音そのままのチャット表記！※検定やレポートでは必ず『kemarin』と書くこと）",
+        "ex": "Film yang kita tonton kemaren seru banget, sampai sekarang aku masih ingat adegan akhirnya.",
+        "tr": "昨日うちらが観た映画めっちゃ面白かったね、今でもラストシーン覚えてるよ。",
+        "note": "■ 【標準綴りとの対比】：kemarin（標準） ／ kemaren（口語・チャット）。"
+      },
+      {
+        "p": "v",
+        "w": "kepingin",
+        "r": "ingin",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💬 スラング・口語",
+        "m": "〜したい、〜が欲しくてたまらない（標準語『ingin』の口語強調形！さらに縮めた『pengen / pengin』も超頻出）",
+        "ex": "Lagi hujan dingin gini rasanya kepingin banget makan semangkuk bakso panas sama es teh manis.",
+        "tr": "こんな雨で涼しい日は、熱いバクソ1杯と甘いアイスティーがめっちゃ食べたくなるなぁ。",
+        "note": "■ 【「〜したい」のカジュアル度順】：ingin（丁寧・標準） ➔ mau（日常標準） ➔ kepingin / pengen（カジュアル・切望感）。"
+      },
+      {
+        "p": "other",
+        "w": "kudu",
+        "r": "kudu",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💬 スラング・口語",
+        "m": "〜しなければならない、絶対〜すべきだ（ジャワ語由来で『harus / mesti』の口語版！『kudu sabar＝我慢しなきゃね』『kudu coba＝絶対試すべき！』）",
+        "ex": "Kalau main ke Bandung, kamu kudu coba kuliner malam dan kopi susunya yang terkenal enak itu!",
+        "tr": "バンドンに遊びに行ったら、美味しいって有名な夜の屋台グルメとミルクコーヒーを絶対試すべきだよ！",
+        "note": "■ 【義務の言い換え】：wajib（規則上の義務） ／ harus（標準：〜ねばならない） ／ mesti（きっと・必ず） ／ kudu（口語：絶対〜しなきゃ）。"
+      },
+      {
+        "p": "other",
+        "w": "gausah",
+        "r": "usah",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💬 スラング・口語",
+        "m": "〜しなくていいよ、気にしないで（『tidak usah / nggak usah』のチャット合体略記！『Gausah repot-repot＝お気遣いなく』）",
+        "ex": "Gausah sungkan, anggap aja rumah sendiri dan ambil minumnya langsung di dapur ya.",
+        "tr": "遠慮しなくていいからね、自分の家だと思って飲み物もキッチンから自由に取ってね。",
+        "note": "■ 【丁寧度対比】：tidak perlu / tidak usah（標準・丁寧） ➔ nggak usah / gausah（親しい間柄のチャット）。"
+      },
+      {
+        "p": "other",
+        "w": "gapapa",
+        "r": "apa",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💬 スラング・口語",
+        "m": "大丈夫だよ、気にしないで、平気だよ（標準語『tidak apa-apa』の超定番口語！さらに略すと『gpp』）",
+        "ex": "Gapapa kok telat sepuluh menit, aku juga baru sampai dan lagi pesan kopi dulu.",
+        "tr": "10分遅れても全然大丈夫だよ、私も今着いたばっかりで先にコーヒー頼んでるところだから。",
+        "note": "■ 【最重要の優しさワード】：tidak apa-apa（標準） ➔ nggak apa-apa ➔ gapapa ➔ gpp（チャット最頻出）。"
+      },
+      {
+        "p": "other",
+        "w": "gpp",
+        "r": "apa",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💬 スラング・口語",
+        "m": "大丈夫、問題ないよ、気にしないで（『nggak apa-apa / gapapa』のチャット3文字略記！インドネシア人とのLINE/WAで1日に何回も見る必須略語）",
+        "ex": "A: Maaf ya kemarin ketiduran jadi belum balas. B: Santai aja, gpp kok!",
+        "tr": "A「昨日寝落ちしてまだ返せてなくてごめんね」 B「気楽にして、全然大丈夫だよ！」",
+        "note": "■ 【チャット返事の黄金セット】：gpp（大丈夫）、oke sip（了解！）、otw（今向かってる）、makasih（ありがとう）。"
+      },
+      {
+        "p": "a",
+        "w": "ribet",
+        "r": "ribet",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💬 スラング・口語",
+        "m": "ややこしい、めんどくさい、手続きが煩雑な（KBBI標準綴りは『ribat / rumit』だが、日常会話では圧倒的に『ribet』！⇔ simpel＝シンプル・手軽）",
+        "ex": "Sekarang urus perpanjangan tiket sudah jauh lebih praktis lewat aplikasi, jadi tidak ribet antre di loket lagi.",
+        "tr": "今はアプリからチケット手続きがずっと手軽になったから、もう窓口で並ぶ面倒くささ（ややこしさ）がないよ。",
+        "note": "■ 【会話定番フレーズ】：jangan dibikin ribet（ややこしくしないで／シンプルにいこう）、anti-ribet（手間いらず・超手軽）。"
+      },
+      {
+        "p": "a",
+        "w": "bosen",
+        "r": "bosan",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💬 スラング・口語",
+        "m": "退屈だ、飽きた（標準語『bosan』の日常発音・チャット表記！『bosen banget di kamar＝部屋にいてめっちゃ退屈』）",
+        "ex": "Kalau lagi bosen belajar sendirian di kamar, aku biasanya pindah ke perpustakaan atau kafe biar semangat lagi.",
+        "tr": "部屋で1人で勉強してて飽きたときは、またやる気を出すために普段は図書館かカフェへ移動するよ。",
+        "note": "■ 【関連語】：bosan（標準綴り）、membosankan（退屈させる・つまらない）、gabut（やることがなくて超暇）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "FOMO",
+        "r": "Fear of Missing Out",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💬 スラング・口語",
+        "m": "流行に乗り遅れる不安、自分だけ取り残される焦り（バズってるグルメ・イベント・投資に「みんなやってるから自分も！」と飛びつく心理。インドネシアの若者・ニュースで超頻出！）",
+        "ex": "Jangan membeli saham hanya karena ikut-ikutan FOMO di media sosial tanpa menganalisis laporan keuangannya terlebih dahulu.",
+        "tr": "決算書を事前に分析もせず、SNSの流行に乗り遅れたくない焦り（FOMO）だけで株を買ってはいけない。",
+        "note": "■ 【現代トレンド対義語】：FOMO（乗り遅れる不安） ⇔ JOMO（Joy of Missing Out＝流行を気にせずマイペースを楽しむ余裕）。"
+      },
+      {
+        "p": "n",
+        "w": "healing",
+        "r": "healing",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💬 スラング・口語",
+        "m": "リフレッシュ旅行、気晴らし、心の癒やし（英語由来だがインドネシアでは「週末に海・山・おしゃれカフェへ息抜きに行くこと」を指す国民的超頻出語！）",
+        "ex": "Setelah seminggu penuh menghadapi ujian akhir, kami berencana pergi healing sebentar ke pantai atau pegunungan.",
+        "tr": "1週間みっちり期末試験に挑んだ後、私たちは海か山へちょっとリフレッシュ旅行（ヒーリング）に行く計画だ。",
+        "note": "■ 【インドネシア独自の定着用法】：『butuh healing（息抜きが必要だ〜）』『yuk healing（どっかリフレッシュしに行こう）』は若者の口癖！"
+      },
+      {
+        "p": "v",
+        "w": "kongkow",
+        "r": "kongkow",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💬 スラング・口語",
+        "m": "（友達とカフェや屋台で）ダベる、たむろする、のんびりおしゃべりして過ごす（ジャカルタ［ブタウィ］＆福建語由来の超楽しい口語！＝nongkrong）",
+        "ex": "Malam Minggu enaknya kongkow santai bersama teman-teman lama sambil minum kopi dan bernostalgia.",
+        "tr": "土曜の夜は、昔の友達とコーヒーを飲みながら昔話をしてのんびりダベるのが最高だ。",
+        "note": "■ 【類義語】：nongkrong（若者最頻出：たむろする・カフェでダベる）、ngobrol（おしゃべりする）。"
+      },
+      {
+        "p": "v",
+        "w": "ghosting",
+        "r": "ghosting",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💬 スラング・口語",
+        "m": "突然音信不通になる、既読スルーして消える（恋愛・友達・就活の採用連絡まで、何の説明もなく急に連絡を絶つ現代スラング！『di-ghosting＝音信不通にされた』）",
+        "ex": "Kalau memang sibuk atau tidak jadi ikut, tolong kabari saja baik-baik dan jangan main ghosting tiba-tiba.",
+        "tr": "本当に忙しいとか参加できなくなったなら、ちゃんと一言連絡してね、いきなり音信不通（ゴースティング）にしないで。",
+        "note": "■ 【関連スラング】：ngilang（急に消える）、PHP（Pemberi Harapan Palsu＝思わせぶりなだけで期待を裏切る人）。"
+      },
+      {
+        "p": "v",
+        "w": "spill",
+        "r": "spill",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💬 スラング・口語",
+        "m": "教えて！、こっそりバラして、詳細を明かす（英語 spill the tea 由来。インドネシアSNSではゴシップだけでなく『Spill tempatnya / harganya dong!＝その店の場所／値段教えて！』と超多用！）",
+        "ex": "Kafe di foto ceritamu kelihatan nyaman banget, boleh spill nama tempat dan lokasinya dong!",
+        "tr": "ストーリーの写真のカフェめっちゃ居心地よさそうだね、お店の名前と場所教えてよ！",
+        "note": "■ 【SNSコメント欄No.1ワード】：『Spill link!（商品リンク教えて！）』『Spill resepnya!（レシピ教えて！）』。"
+      },
+      {
+        "p": "a",
+        "w": "relate",
+        "r": "relate",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💬 スラング・口語",
+        "m": "めっちゃ共感する、わかりみが深い、あるあるだ！（英語由来。『Relate banget!＝めちゃくちゃ分かる！』『relatable＝共感できる』）",
+        "ex": "Lirik lagu tentang perjuangan mahasiswa rantau itu benar-benar relate banget sama pengalaman hidupku sekarang.",
+        "tr": "地方から出てきた大学生の奮闘を歌ったその曲の歌詞、今の自分の実体験にマジで共感しまくるよ。",
+        "note": "■ 【関連語】：nyambung（話が合う・ピンとくる）、setuju banget（大賛成）。"
+      },
+      {
+        "p": "other",
+        "w": "wkwk",
+        "r": "wkwk",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💬 スラング・口語",
+        "m": "（笑）、www、ハハハ（インドネシアのネット＆チャットで圧倒的No.1の笑い表現！文字を長くして『wkwkwk』にするほど大爆笑。読みは『ウェカウェカ』）",
+        "ex": "Aduh aku baru sadar bajuku terbalik dari tadi pagi, untung belum keluar kamar wkwk!",
+        "tr": "うわ、さっき朝からずっと服を裏返しに着てたことに今気づいた、部屋を出る前でよかったわwww！",
+        "note": "■ 【インドネシアの笑い表現セット】：wkwk / wkwkwk（定番のwww）、haha / hahaha（普通）、xixixi（おじさん・ほのぼの系）、ngakak（腹を抱えて爆笑する）。"
+      },
+      {
+        "p": "other",
+        "w": "anjay",
+        "r": "anjay",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💬 スラング・口語",
+        "m": "うおお！、マジかよ！、すげぇ！（親しい若者同士で驚き・称賛を表すスラング感嘆詞！※元語がやや下品な罵倒語由来のマイルド化なので目上の人やフォーマルな場では絶対NG！）",
+        "ex": "Anjay, skor ujian bahasa Indonesiamu hampir sempurna padahal baru belajar setahun!",
+        "tr": "うおおすげぇ、まだ1年勉強しただけなのにインドネシア語の試験スコアほぼ満点じゃん！",
+        "note": "■ 【TPO注意】：友達同士のテンション高い会話限定！年上や先生・職場では『Wah! / Hebat! / Keren!』を使おう。"
+      },
+      {
+        "p": "other",
+        "w": "waduh",
+        "r": "waduh",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💬 スラング・口語",
+        "m": "うわっ、やばい、参ったな、あらら（困った時・うっかりミスした時・びっくりした時に反射的に出る超便利な感嘆詞！『aduh』より少し「やっちゃった／大変だ」感がある）",
+        "ex": "Waduh, dompetku ketinggalan di meja kamar padahal aku sudah di depan kasir minimarket!",
+        "tr": "うわっやばい、もうコンビニのレジの前なのに財布を部屋の机に置き忘れちゃった！",
+        "note": "■ 【感嘆詞3点セット】：aduh（痛っ・困った）、waduh（うわ参った・やばい）、astaga（なんてこった・信じられない）。"
+      },
+      {
+        "p": "other",
+        "w": "wih",
+        "r": "wih",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💬 スラング・口語",
+        "m": "うわぁ！、おっ、すごいじゃん！（『wah』の若者・親しみやすい口語版！相手の成果やカッコいいものを見たときの最高のリアクション）",
+        "ex": "Wih, keren banget hasil foto pemandangan gunung yang kamu ambil pakai kamera barumu!",
+        "tr": "おっ、新しいカメラで撮った山の景色の写真めちゃくちゃカッコいいじゃん！",
+        "note": "■ 【相槌リアクションセット】：wih / wah（おっ・すごい）、mantap（最高・いいね）、gokil（マジヤバい・すごい）。"
+      },
+      {
+        "p": "other",
+        "w": "woi",
+        "r": "woi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💬 スラング・口語",
+        "m": "おい！、なぁ！、よっ！（仲の良い友達に呼びかけたりツッコミを入れたりするときの元気な呼びかけ語。『oi / wey』も同じ）",
+        "ex": "Woi, jangan lupa bawa raket bulu tangkis ya, lapangan sudah kita pesan buat jam tujuh malam!",
+        "tr": "おい、バドミントンのラケット持ってくるの忘れるなよ、夜7時でコートもう予約してあるからな！",
+        "note": "■ 【親しい呼びかけセット】：woi / oi（おい・なぁ）、bro（ブロ・相棒）、cuy（おい君・ダチ）。※目上の人にはNG！"
+      },
+      {
+        "p": "n",
+        "w": "bro",
+        "r": "bro",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💬 スラング・口語",
+        "m": "ブロ、相棒、兄弟（英語 brother 由来。インドネシアの若者・同年代同士で距離を縮める最強のフレンドリーな呼びかけ語！口語変化形『brok / bray』も）",
+        "ex": "Makasih banyak ya bro sudah mau bantuin aku pindahan barang ke apartemen baru hari ini!",
+        "tr": "今日新しいアパートへの荷物引っ越し手伝ってくれて本当にありがとうな、ブロ！",
+        "note": "■ 【フレンドリーな呼びかけ】：bro（相棒・ダチ）、bestie（親友）、mas / kak（少し丁寧なお兄さん・先輩）。"
+      },
+      {
+        "p": "n",
+        "w": "bestie",
+        "r": "bestie",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💬 スラング・口語",
+        "m": "親友、マブダチ、ベスティ（英語 best friend 由来。インドネシアのZ世代の会話・SNSで男女問わず大流行の親愛な呼び方！）",
+        "ex": "Akhir pekan ini aku mau jalan-jalan kuliner bareng bestie SMA yang baru datang berkunjung dari Bandung.",
+        "tr": "今週末はバンドンから遊びに来たばかりの高校時代の親友（ベスティ）と一緒にグルメ巡りするんだ。",
+        "note": "■ 【言い換え】：sahabat karib（標準語：親友） ／ bestie（若者スラング）。"
+      },
+      {
+        "p": "n",
+        "w": "cuy",
+        "r": "cuy",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💬 スラング・口語",
+        "m": "おい、お前、ダチ、相棒（『bro / coy』と同じく気の置けない同年代の仲間へのノリのいい呼びかけ語！文末に添えて『Keren banget cuy!＝マジすげぇな！』）",
+        "ex": "Sumpah cuy, perjalanan mendaki gunung pagi tadi capek banget tapi pemandangannya beneran sepadan!",
+        "tr": "マジでさぁ、今朝の登山めっちゃ疲れたけど景色が本当に見合うくらい最高だったわ！",
+        "note": "■ 【同系スラング】：cuy / coy / bro / lur（ジャワ系：兄弟・仲間）。"
+      },
+      {
+        "p": "other",
+        "w": "apa kabar",
+        "r": "kabar",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "お元気ですか？、調子はどう？（インドネシア語最初の最重要挨拶！返事は『Kabar baik＝元気だよ』『Baik-baik saja＝変わりなく元気』）",
+        "ex": "Halo lama tidak bertemu, apa kabar? Semoga kamu dan keluarga di rumah selalu sehat ya.",
+        "tr": "こんにちは、お久しぶりです、お元気ですか？あなたとご家族がいつも健康でありますように。",
+        "note": "■ 【カジュアル版】：Gimana kabarnya?（調子どう？）、Sehat?（元気？）。"
+      },
+      {
+        "p": "other",
+        "w": "selamat tidur",
+        "r": "selamat",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "おやすみなさい（夜寝る前の挨拶。より優しく『Selamat istirahat＝ゆっくり休んでね』『Mimpi indah＝いい夢見てね』も定番！）",
+        "ex": "Sudah jam sebelas malam, aku tidur duluan ya. Selamat tidur dan semoga mimpi indah!",
+        "tr": "もう夜11時だから、お先に寝るね。おやすみなさい、いい夢見てね！",
+        "note": "■ 【1日の基本挨拶セット】：selamat pagi（おはよう）、selamat siang（こんにちは：昼）、selamat sore（こんにちは：夕方）、selamat malam（こんばんは）、selamat tidur（おやすみ）。"
+      },
+      {
+        "p": "other",
+        "w": "selamat makan",
+        "r": "selamat",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "どうぞ召し上がれ、美味しく食べてね（※日本語の「いただきます」ではなく、相手に食事を楽しむよう声をかける「召し上がれ！」の挨拶！）",
+        "ex": "Semua hidangan sudah siap di atas meja, silakan dicicipi dan selamat makan semuanya!",
+        "tr": "お料理がすべてテーブルに揃いましたよ、どうぞ召し上がれ、みんな美味しく食べてね！",
+        "note": "■ 【文化マナー注意】：自分で食べ始めるときはイスラム教徒なら『Bismillah』と言うか静かに食べ始める。『Selamat makan』は相手へ掛ける言葉！"
+      },
+      {
+        "p": "other",
+        "w": "selamat ulang tahun",
+        "r": "selamat",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "お誕生日おめでとう！（チャット略称は『HBD』や『Met ultah!』。後ろに『Semoga panjang umur dan sehat selalu＝長生きしていつも健康でありますように』を添えるのがインドネシア流！）",
+        "ex": "Selamat ulang tahun ya! Semoga selalu diberi kesehatan, kebahagiaan, dan kelancaran dalam segala urusan.",
+        "tr": "お誕生日おめでとう！いつも健康と幸せ、そしてすべてのことが順調に進みますように。",
+        "note": "■ 【お祝いの定番添え言葉】：panjang umur（長寿）、sehat selalu（いつも健康で）、sukses selalu（いつも成功を）。"
+      },
+      {
+        "p": "other",
+        "w": "sampai jumpa",
+        "r": "jumpa",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "また会いましょう、さようなら、じゃあね（英語 See you に相当する温かく一番使いやすい別れの挨拶！『Sampai jumpa lagi / Sampai ketemu besok』）",
+        "ex": "Terima kasih atas waktu dan obrolan serunya hari ini, hati-hati di jalan dan sampai jumpa pekan depan!",
+        "tr": "今日は時間を作って楽しいおしゃべりをしてくれてありがとう、帰り道気をつけて、また来週ね！",
+        "note": "■ 【別れの挨拶セット】：sampai jumpa（また会いましょう）、sampai ketemu lagi（カジュアル：またね）、hati-hati di jalan（道中気をつけて）。"
+      },
+      {
+        "p": "n",
+        "w": "hari libur",
+        "r": "hari",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "休日、祝日（『hari libur nasional＝国民の祝日』『tanggal merah＝カレンダーの赤い日・祝日』 ⇔ hari kerja＝平日・営業日）",
+        "ex": "Pada hari libur nasional, layanan kantor pemerintahan dan bank tutup seperti biasa.",
+        "tr": "国民の祝日には、官公庁の窓口と銀行は通常通り休業となる。",
+        "note": "■ 【カレンダー用語セット】：hari kerja（平日）、akhir pekan（週末）、hari libur（休日）、cuti bersama（政府指定の一斉有給連休）。"
+      },
+      {
+        "p": "n",
+        "w": "berat badan",
+        "r": "berat",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "体重（menurunkan berat badan＝減量する・痩せる、menambah berat badan＝増量する、berat badan ideal＝理想体重）",
+        "ex": "Dengan menjaga pola makan dan rutin berolahraga, ia berhasil menurunkan berat badan secara sehat dalam tiga bulan.",
+        "tr": "食生活を整え定期的に運動することで、彼は3ヶ月で健康的に体重を落とすことに成功した。",
+        "note": "■ 【身体測定ペア】：berat badan [BB]（体重） ／ tinggi badan [TB]（身長）。"
+      },
+      {
+        "p": "n",
+        "w": "tinggi badan",
+        "r": "tinggi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "身長（背の高さ：『Berapa tinggi badanmu?＝身長は何センチ？』）",
+        "ex": "Tinggi badan saya seratus tujuh puluh lima sentimeter dengan berat badan sekitar enam puluh tiga kilogram.",
+        "tr": "私の身長は175センチで、体重は約63キログラムです。",
+        "note": "■ 【関連語】：berat badan（体重）、indeks massa tubuh [IMT / BMI]（体格指数）。"
+      },
+      {
+        "p": "n",
+        "w": "tanggal lahir",
+        "r": "lahir",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "生年月日（ホテルのチェックイン用紙・銀行口座開設・願書で100%出てくる必須記入項目！『Tempat, tanggal lahir [TTL]＝出生地・生年月日』）",
+        "ex": "Pastikan nama lengkap dan tanggal lahir yang Anda isi di formulir sama persis dengan yang tertera di paspor.",
+        "tr": "申込用紙に記入したフルネームと生年月日が、パスポート記載と完全に一致しているか確認してください。",
+        "note": "■ 【書類記入セット】：nama lengkap（氏名）、tempat/tanggal lahir [TTL]（出生地・生年月日）、alamat（住所）、kewarganegaraan（国籍）。"
+      },
+      {
+        "p": "n",
+        "w": "nomor telepon",
+        "r": "nomor",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "電話番号（携帯番号は『nomor HP / nomor WA』、緊急連絡先は『nomor telepon darurat』）",
+        "ex": "Boleh saya minta nomor telepon atau WhatsApp Anda agar lebih mudah berkoordinasi nanti?",
+        "tr": "あとで連絡を取りやすいように、お電話番号かWhatsAppを教えていただけますか？",
+        "note": "■ 【関連語】：kode negara（国番号：インドネシアは +62、日本は +81）、nomor darurat（緊急通報番号）。"
+      },
+      {
+        "p": "n",
+        "w": "kode pos",
+        "r": "kode",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "郵便番号（インドネシアの郵便番号は5桁。ネット通販や国際郵便 EMS の宛名記入で必ず必要！）",
+        "ex": "Jangan lupa mencantumkan kode pos lima digit secara lengkap supaya kurir tidak salah mengantar paket.",
+        "tr": "配達員が荷物を誤配しないよう、5桁の郵便番号を漏れなく記載するのを忘れないでね。",
+        "note": "■ 【住所記入セット】：nama jalan（通り名）、RT/RW（町内会番号）、kelurahan（町）、kecamatan（郡）、kota（市）、provinsi（州）、kode pos（郵便番号）。"
+      },
+      {
+        "p": "other",
+        "w": "kurang manis",
+        "r": "manis",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "甘さ控えめで、あまり甘くしないで（インドネシアのカフェや食堂は飲み物が超激甘なので、旅行・滞在中に毎日使う神フレーズ！『less sugar』と同じ）",
+        "ex": "Permisi mbak, saya pesan satu es kopi susu, gulanya sedikit saja alias kurang manis ya.",
+        "tr": "すみませんお姉さん、アイスカフェラテを1つ、砂糖少なめつまり甘さ控えめでお願いします。",
+        "note": "■ 【甘さ指定3段階】：manis（普通に甘い） ➔ kurang manis / sedikit gula（甘さ控えめ） ➔ tawar / tanpa gula（無糖）。"
+      },
+      {
+        "p": "other",
+        "w": "tanpa pedas",
+        "r": "pedas",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "辛さ抜きで、辛くしないで（唐辛子たっぷりのインドネシア料理で辛みを抜きたいときの必須フレーズ！＝tidak pedas / jangan pedas）",
+        "ex": "Tolong buatkan satu porsi mie goreng tanpa pedas untuk adik saya karena ia tidak kuat makan cabai.",
+        "tr": "弟は唐辛子が苦手なので、ミーゴレンを1人前、辛さ抜きで作ってください。",
+        "note": "■ 【辛さ指定4段階】：tanpa pedas / tidak pedas（辛さなし） ➔ pedas sedikit / sedang（ちょい辛・中辛） ➔ pedas banget（激辛）。"
+      },
+      {
+        "p": "other",
+        "w": "lurus terus",
+        "r": "lurus",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "ずっと真っ直ぐ（道案内やタクシー運転手への指示で絶対使う基本フレーズ！『Lurus terus sampai lampu merah＝信号までずっと真っ直ぐ』）",
+        "ex": "Pak, dari sini lurus terus saja sekitar dua ratus meter, nanti berhenti di depan hotel sebelah kiri ya.",
+        "tr": "運転手さん、ここから200メートルほどずっと真っ直ぐ行って、左側のホテルの前で停めてくださいね。",
+        "note": "■ 【タクシー＆道案内5点セット】：lurus terus（ずっと真っ直ぐ）、belok kanan（右折）、belok kiri（左折）、putar balik（Uターン）、berhenti di sini（ここで停めて）。"
+      },
+      {
+        "p": "v",
+        "w": "belok kanan",
+        "r": "belok",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "右に曲がる、右折する（⇔ belok kiri＝左折する）",
+        "ex": "Setelah melewati jembatan kecil itu, langsung belok kanan masuk ke jalan menuju stasiun.",
+        "tr": "あの小さな橋を渡ったら、すぐ右に曲がって駅へ向かう道に入ってください。",
+        "note": "■ 【左右の確認】：kanan（右） ⇔ kiri（左）。"
+      },
+      {
+        "p": "v",
+        "w": "belok kiri",
+        "r": "belok",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "左に曲がる、左折する（インドネシアは日本と同じ左側通行！左折は『belok kiri jalan terus＝赤信号でも左折可』の標識がある交差点も多い）",
+        "ex": "Di pertigaan depan, silakan belok kiri lalu Anda akan melihat masjid besar di sisi kanan jalan.",
+        "tr": "前方の丁字路で左に曲がると、通りの右手に大きなモスクが見えますよ。",
+        "note": "■ 【現地交通標識豆知識】：『Belok kiri ikuti isyarat lampu（左折は信号に従え）』の標識がある交差点では赤信号左折禁止！"
+      },
+      {
+        "p": "n",
+        "w": "alergi makanan",
+        "r": "alergi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "食物アレルギー（レストラン注文時に命を守る超重要フレーズ！『Saya alergi kacang / udang＝私はピーナッツ／エビアレルギーです』）",
+        "ex": "Sebelum memesan hidangan, beri tahu pelayan terlebih dahulu apabila Anda memiliki alergi makanan tertentu seperti kacang atau makanan laut.",
+        "tr": "料理を注文する前に、ナッツや魚介類など特定の食物アレルギーがある場合はあらかじめ店員に伝えておこう。",
+        "note": "■ 【注意したい代表アレルゲン】：kacang（ピーナッツ：ガドガドやサテに多用！）、udang / makanan laut（エビ・シーフード）、susu（乳製品）、telur（卵）。"
+      },
+      {
+        "p": "n",
+        "w": "vegetarian",
+        "r": "vegetarian",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "ベジタリアン、菜食主義者（肉や魚を食べない人・メニュー。インドネシアではテンペや豆腐・ガドガドなど菜食メニューが超豊富！）",
+        "ex": "Restoran itu menyediakan banyak pilihan menu vegetarian yang lezat berbahan dasar tahu, tempe, dan jamur.",
+        "tr": "そのレストランでは、豆腐・テンペ・きのこを使った美味しいベジタリアンメニューの選択肢がたくさんある。",
+        "note": "■ 【関連語】：vegan（ヴィーガン＝卵・乳製品も摂らない完全菜食）、nabati（植物性の：protein nabati＝植物性タンパク質）。"
+      },
+      {
+        "p": "other",
+        "w": "boleh tawar",
+        "r": "tawar",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "値切ってもいいですか？、安くなりますか？（伝統市場やお土産屋で使う魔法の買い物フレーズ！『Boleh kurang sedikit?＝少し安くなりますか？』も超実用的）",
+        "ex": "Bu, kain batik tulis yang ini bagus sekali, apakah harganya masih boleh tawar sedikit?",
+        "tr": "お母さん、この手描きバティックの布すごく素敵ですね、お値段少し値切ってもいいですか？",
+        "note": "■ 【値切り交渉フレーズ】：Boleh tawar?（交渉OK？）、Bisa kurang lagi?（もうちょっと安くできる？）、harga pas（定価・値引き不可）。"
+      },
+      {
+        "p": "other",
+        "w": "kah",
+        "r": "kah",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "〜ですか？、〜でしょうか？（語尾に直結する疑問・強調の助詞『-kah』！apakah＝〜ですか、benarkah＝本当ですか、mungkinkah＝あり得るでしょうか）",
+        "ex": "Benarkah jadwal keberangkatan kereta cepat menuju Bandung dimajukan sepuluh menit mulai bulan depan?",
+        "tr": "バンドン行きの高速鉄道の出発時刻が来月から10分早まるというのは本当ですか？",
+        "note": "■ 【正書法ルール】：前の語にスペースなしで直結する（例：apakah, sudahkah, pernahkah, adakah）。書き言葉や丁寧な質問を作る超重要パーツ！"
+      },
+      {
+        "p": "other",
+        "w": "nya",
+        "r": "nya",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "①彼／彼女の〜（3人称所有格：bukunya＝彼の本） ②その〜（英語 the 的な特定：rumahnya besar＝その家は大きい） ③〜すること（名詞化：pentingnya belajar＝学ぶことの重要性）",
+        "ex": "Banyak pembaca mulai menyadari pentingnya memeriksa sumber berita sebelum membagikannya ke grup keluarga.",
+        "tr": "多くの読者が、家族グループへシェアする前にニュースの情報源を確認することの重要性に気づき始めている。",
+        "note": "■ 【インドネシア語最強の多機能接尾辞『-nya』】：所有・定冠詞・名詞化（pentingnya / turunnya）・副詞化（sebenarnya / biasanya）の4役を1つでこなす！"
+      },
+      {
+        "p": "other",
+        "w": "si",
+        "r": "si",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "（親愛・カジュアル・または少し軽んじて）〜ちゃん、あの〜、〜のやつ（人名・あだ名・動物・性質を表す語の前に置く冠詞的語：si kecil＝ちびちゃん、si pelaku＝その犯人）",
+        "ex": "Si kecil tampak sangat gembira saat pertama kali melihat kelinci cokelat yang jinak itu di taman.",
+        "tr": "ちびちゃん（幼い子）は、公園で初めてその人懐っこい茶色いうさぎを見たときとても嬉しそうだった。",
+        "note": "■ 【sang との対比】：『sang』は尊敬・威厳（sang juara / sang guru）、『si』は親しみ・可愛らしさ・または容疑者等（si kecil / si kancil / si pelaku）。"
+      },
+      {
+        "p": "other",
+        "w": "pra-",
+        "r": "pra",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "〜前の、プレ〜、事前〜（名詞の直前にスペースなしで結合する接頭辞！prasejarah＝先史時代、prasyarat＝前提条件、prakerja＝就労前研修 ⇔ pasca-＝〜後の）",
+        "ex": "Penguasaan kosakata dasar merupakan prasyarat penting sebelum melangkah membaca artikel berita tingkat lanjut.",
+        "tr": "基本語彙の習得は、上級レベルのニュース記事を読み進める前の重要な前提条件である。",
+        "note": "■ 【対義ペア】：pra-（〜前の：prabencana, prasekolah, praperadilan） ⇔ pasca-（〜後の：pascabencana, pascasarjana）。"
+      },
+      {
+        "p": "other",
+        "w": "tuna-",
+        "r": "tuna",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "〜を持たない、〜を欠く（古ジャワ・サンスクリット由来で名詞に直結する接頭辞！tunanetra＝視覚障害者、tunarungu＝聴覚障害者、tunawisma＝ホームレス、tunakarya＝失業者）",
+        "ex": "Pemerintah kota terus menambah fasilitas aksesibilitas informasi bagi penyandang tunarungu dan tunanetra di ruang publik.",
+        "tr": "市政府は公共空間において聴覚障害者および視覚障害者のための情報アクセシビリティ設備を増やし続けている。",
+        "note": "■ 【重要複合語セット】：tunanetra（視覚障害）、tunarungu（聴覚障害）、tunawicara（発話障害）、tunadaksa（肢体不自由）、tunawisma（住居喪失者）。"
+      },
+      {
+        "p": "other",
+        "w": "nir-",
+        "r": "nir",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "無〜、〜なしの、〜レス（サンスクリット由来の否定接頭辞！英語 -less に相当し、nirkabel＝ワイヤレス・無線、nirlaba＝非営利、nirtunai＝キャッシュレス等で現代語に大活躍！）",
+        "ex": "Kini semakin banyak perangkat kerja seperti tetikus dan penyuara telinga yang menggunakan teknologi nirkabel.",
+        "tr": "現在ではマウスやイヤホンのように、ワイヤレス（無線）技術を採用した作業機器がますます増えている。",
+        "note": "■ 【超頻出 nir- ファミリー】：nirkabel（無線・ワイヤレス）、nirlaba（非営利：organisasi nirlaba＝NPO）、nirawak（無人の：pesawat nirawak＝ドローン）。"
+      },
+      {
+        "p": "other",
+        "w": "swa-",
+        "r": "swa",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "自ら〜、自己〜、セルフ〜（サンスクリット由来！swadaya＝自助努力、swasembada＝自給自足、swalayan＝セルフサービス、swakelola＝直営管理）",
+        "ex": "Warga desa membangun jembatan kayu kecil itu secara swadaya tanpa menunggu bantuan dana dari pemerintah.",
+        "tr": "村人たちは政府からの資金援助を待たずに、自助努力（自力）でその小さな木造橋を建設した。",
+        "note": "■ 【超頻出 swa- ファミリー】：swadaya（自助：LSM＝NGO）、swasembada（自給自足）、swalayan（セルフサービス）、swafoto（自撮り＝セルフィー！）。"
+      },
+      {
+        "p": "other",
+        "w": "maha-",
+        "r": "maha",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "大〜、最も偉大な、至高の（サンスクリット由来！mahasiswa＝大学生、mahakarya＝傑作・大作、Mahakuasa＝全能の神［Maha Esa＝唯一無二の神］）",
+        "ex": "Candi Borobudur dan wayang kulit diakui dunia sebagai mahakarya peradaban Nusantara yang tak ternilai.",
+        "tr": "ボロブドゥール寺院とワヤン・クリットは、計り知れない価値を持つヌサンタラ文明の傑作（大作）として世界に認められている。",
+        "note": "■ 【正書法の豆知識】：一般語は結合（mahasiswa, mahakarya, mahaguru）、神の属性は原則スペースあり（Maha Esa, Maha Pengasih ※ただし Mahakuasa 等は結合可）。"
+      },
+      {
+        "p": "other",
+        "w": "multi-",
+        "r": "multi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "多〜、複数の、マルチ〜（名詞・形容詞に直結：multinasional＝多国籍の、multikultural＝多文化の、multifungsi＝多機能の、multimedia＝マルチメディア）",
+        "ex": "Sebagai negara multikultural dengan ratusan suku bangsa, sikap saling menghormati menjadi fondasi utama persatuan.",
+        "tr": "何百もの民族を擁する多文化国家として、互いに尊重し合う姿勢が団結の最大の土台となる。",
+        "note": "■ 【関連語】：multinasional（多国籍）、multilateral（多国間の）、multifungsi（多目的・多機能）。"
+      },
+      {
+        "p": "other",
+        "w": "non-",
+        "r": "non",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "非〜、〜以外の、ノン〜（標準正書法では一般語と直結：nontunai＝キャッシュレス、nonformal＝非公式の、nonaktif＝休止中の ※固有名詞・略語の前はハイフン：non-ASEAN / non-PNS）",
+        "ex": "Transaksi nontunai melalui kode QR kini mendominasi pembayaran di restoran hingga pasar modern.",
+        "tr": "QRコードを通じたキャッシュレス決済が現在、レストランから近代市場まで支払いの主流を占めている。",
+        "note": "■ 【正書法ルール】：小文字普通名詞とは1語で結合（nontunai, nonmigas＝非石油ガス）、大文字語の前はハイフン（non-ASN, non-Indonesia）。"
+      },
+      {
+        "p": "other",
+        "w": "anti-",
+        "r": "anti",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "反〜、対〜、〜防止の、アンチ〜（一般語と直結：antikorupsi＝反汚職、antibiotik＝抗生物質、antiair＝防水の、antilengket＝焦げ付かない ※大文字語の前はハイフン）",
+        "ex": "Jam tangan olahraga ini sudah dilengkapi fitur antiair sehingga aman dipakai saat berenang maupun kehujanan.",
+        "tr": "このスポーツ腕時計は防水機能を備えているため、水泳中や雨に降られたときでも安心して使える。",
+        "note": "■ 【日常＆ニュース頻出語】：antiair（防水）、antinyamuk（虫除け）、antikorupsi（反汚職）、antioksidan（抗酸化物質）。"
+      },
+      {
+        "p": "other",
+        "w": "sub-",
+        "r": "sub",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "下位の〜、副〜、サブ〜（小分類や下部組織を表す接頭辞：subbab＝節・小見出し、subjudul＝サブタイトル、subsektor＝サブセクター・小部門、subtropis＝亜熱帯）",
+        "ex": "Penulis membagi bab ketiga laporan penelitian tersebut menjadi empat subbab agar alur argumennya mudah diikuti.",
+        "tr": "筆者は議論の流れを追いやすくするため、その研究報告書の第3章を4つの節（小見出し）に分けた。",
+        "note": "■ 【関連語】：subbab（小見出し・節）、subsektor（小部門）、subtropis（亜熱帯）、subkontraktor（下請け業者）。"
+      },
+      {
+        "p": "other",
+        "w": "semi-",
+        "r": "semi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "準〜、半〜、セミ〜（semifinal＝準決勝、semipermanen＝仮設・半永久的な、semiotomatis＝半自動の、semiformal＝セミフォーマルの）",
+        "ex": "Timnas berhasil menembus babak semifinal setelah mengalahkan lawan tangguh dengan skor dua nol.",
+        "tr": "代表チームは強豪相手に2対0のスコアで勝利した後、準決勝進出を果たした。",
+        "note": "■ 【重要複合語】：semifinal（準決勝）、semiformal（セミフォーマル）、semipermanen（半恒久的・簡易構造の）。"
+      },
+      {
+        "p": "other",
+        "w": "tiap-tiap",
+        "r": "tiap",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "それぞれの、各〜、〜ごとに（『setiap』より1つ1つの個別性を強調する硬め・丁寧な表現！＝masing-masing）",
+        "ex": "Tiap-tiap peserta lomba diminta memperkenalkan diri secara singkat sebelum sesi wawancara dimulai.",
+        "tr": "大会のそれぞれの参加者は、面接セッションが始まる前に簡潔に自己紹介するよう求められた。",
+        "note": "■ 【「それぞれ・毎日」の使い分け】：setiap / tiap（〜ごとに・毎〜：setiap hari）、tiap-tiap（それぞれの：後ろに名詞を置く）、masing-masing（各自・それぞれ：名詞の前後どちらでも使える）。"
+      }
+    ];
+
+    const idxByWord = new Map();
+    for (let i = 0; i < d.vocab.length; i++) {
+      const it = d.vocab[i];
+      if (it && it.w) idxByWord.set(it.w.trim().toLowerCase(), i);
+    }
+
+    for (let i = 0; i < DICT_PACK_10.length; i++) {
+      const item = DICT_PACK_10[i];
+      if (!item || !item.w) continue;
+      const key = item.w.trim().toLowerCase();
+
+      item.dictOnly = true;
+      item.tier = 3;
+      dictOnlySet.add(key);
+
+      if (item.topicCat) {
+        catMap.set(key, item.topicCat);
+      }
+
+      if (idxByWord.has(key)) {
+        const pos = idxByWord.get(key);
+        Object.assign(d.vocab[pos], item);
+        vMap.set(key, d.vocab[pos]);
+        persistentAdded.set(key, d.vocab[pos]);
+      } else {
+        d.vocab.push(item);
+        idxByWord.set(key, d.vocab.length - 1);
+        vMap.set(key, item);
+        persistentAdded.set(key, item);
+      }
+    }
+  } catch (e) {
+    console.error("WhatsIndo Dict Pack 10 error:", e);
+  }
+})();
+/* =====================================================================
+   WhatsIndo ご指名66語 追加・強化パック（安全直結版）
+   - 出題対象（32語）：jago（jago kandang解説付き）, melantunkan, lenyap, antonim,
+       kiasan, segenap, koreksi, kerancuan, busana, pimpinan, kitab, kuman（出題昇格）,
+       pembenaran, bule, bertentangan, kafir, rubrik, berkeberatan, memperbolehkan,
+       pipa, romo, penciuman, konsulat, kuli, lampau, sela, mebel, resapan, kadar,
+       kendati, dibandingkan dengan, komite
+   - 辞書専用（dictOnly: true, 34語）：melenyapkan（meleyapkan正規綴り）, memantul,
+       pemantulan, kelenyapan（kenyelapan正規綴り）, pemufakatan, tendensi, musang,
+       surfaktan, hidrometeorologi, penjambret, notabene, ralat, bertikai,
+       penggembosan, kemasyarakatan, memasyarakatkan, sedikit-sedikit, bung,
+       bercengkerama, tersia-sia, mahasiswi, panggang, membolehkan, bubar, pencet,
+       cicitan, kicauan, kretek, pencak, mencandu, Letkol（略語）, Tapol（略語）,
+       hakekat（hakikat非標準綴り案内）, sambal（代表10種詳解付き）
+   - **記号ゼロ・文字バグゼロ・try-catch完全保護
+   ===================================================================== */
+(function() {
+  try {
+    const d = window.WHATSINDO_EXTERNAL_DATA;
+    if (!d || !Array.isArray(d.vocab)) return;
+
+    const dictOnlySet     = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+    const persistentAdded = window.__wiPersistentAddedVocab || (window.__wiPersistentAddedVocab = new Map());
+    const vMap            = window.__wiMasterVocabMap || (window.__wiMasterVocabMap = new Map());
+    const catMap          = window.__WI_V5_VCAT || (window.__WI_V5_VCAT = new Map());
+
+    const NEW_66_PACK = [
+      {
+        "p": "a",
+        "w": "jago",
+        "r": "jago",
+        "tier": 1,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①（スポーツ・語学・料理・ゲームなどが）とても上手い、達人だ、強い（＝mahir / pandai） ②雄鶏（おんどり：ayam jago）、闘鶏の王者 ③チャンピオン、エース、優勝候補（jagoan）",
+        "ex": "Meskipun baru setahun belajar di kampus, ia sudah sangat jago berbicara bahasa Indonesia dengan lancar.",
+        "tr": "大学で学び始めてまだ1年にもかかわらず、彼はすでに流暢にインドネシア語を話すのがとても上手い。",
+        "note": "■ 【超有名慣用表現『jago kandang』】：\n・jago kandang（直訳：鳥小屋の中の雄鶏）＝「内弁慶」「ホーム弁慶」！地元やホーム戦では威張って強いのに、外の世界やアウェー・国際舞台に出ると途端に弱くなる人やチームを皮肉る定番表現（例：Jangan hanya menjadi jago kandang!＝内弁慶で終わるな！）。\n■ 【関連語】：jagoan（ヒーロー・エース・ガキ大将）、menjagokan（〜を優勝候補に推す）。"
+      },
+      {
+        "p": "v",
+        "w": "melantunkan",
+        "r": "lantun",
+        "tier": 1,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "（歌・聖典の朗誦・詩・祈りなどを美しい声で）歌い上げる、詠唱する、響かせる（melantunkan lagu / ayat suci / doa）",
+        "ex": "Penyanyi muda itu melantunkan lagu daerah dengan suara merdu hingga membuat seluruh penonton terharu.",
+        "tr": "その若手歌手は美しい声で地方民謡を歌い上げ、観客全員を感動させた。",
+        "note": "■ 【語構成】：me- + lantun（跳ね返る・響く）+ -kan。単なる『menyanyikan（歌う）』よりも、声が美しく響き渡る情緒的なニュアンスを持つ上品な表現！\n■ 【重要コロケーション】：melantunkan lagu（歌を歌い上げる）、melantunkan ayat suci Al-Qur'an（クルアーンを朗誦する）、lantunan（美しい調べ・詠唱）。"
+      },
+      {
+        "p": "v",
+        "w": "lenyap",
+        "r": "lenyap",
+        "tier": 1,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①跡形もなく消え去る、消滅する、姿を消す（＝hilang sama sekali / sirna） ②（感情・不安・記憶などが）すっかり消える ③ぐっすり眠り込む（tidur lenyap）",
+        "ex": "Rasa lelah setelah mendaki gunung berjam-jam seketika lenyap saat melihat pemandangan matahari terbit dari puncak.",
+        "tr": "何時間も山を登った後の疲労感は、山頂から日の出の景色を見た瞬間に跡形もなく消え去った。",
+        "note": "■ 【lenyap 関連語ファミリー】：\n・lenyap（自動詞）：跡形もなく消え去る\n・melenyapkan（他動詞）：消滅させる、消し去る、抹消する\n・kelenyapan（名詞）：消滅、消失、跡形もなく消えること"
+      },
+      {
+        "p": "n",
+        "w": "antonim",
+        "r": "antonim",
+        "tier": 1,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "対義語、反意語（意味が正反対になる語：antonim kata 'besar' adalah 'kecil' ⇔ sinonim＝類義語）",
+        "ex": "Dalam pelajaran bahasa Indonesia hari ini, siswa berlatih mencari sinonim dan antonim dari berbagai kata sifat.",
+        "tr": "今日のインドネシア語の授業で、生徒たちは様々な形容詞の類義語と対義語を探す練習をした。",
+        "note": "■ 【言語学基本セット】：antonim（対義語）、sinonim（類義語）、homonim（同音異義語）、akronim（合成略語）。"
+      },
+      {
+        "p": "n",
+        "w": "kiasan",
+        "r": "kias",
+        "tier": 1,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "比喩（ひゆ）、たとえ、暗喩、比喩的表現（arti / makna kiasan＝比喩的意味 ⇔ makna sebenarnya / denotatif＝文字通りの意味）",
+        "ex": "Ungkapan 'banting tulang' bukan berarti memukul tulang secara nyata, melainkan makna kiasan untuk bekerja sangat keras.",
+        "tr": "『banting tulang』という表現は実際に骨を打ちつける意味ではなく、身を粉にして働くという比喩的意味である。",
+        "note": "■ 【語構成】：kias（たとえ・暗示）+ -an。KBBI辞書の略号『ki』はこの『kiasan（比喩）』の略！\n■ 【重要コロケーション】：bahasa kiasan（比喩表現）、kata kiasan（たとえ言葉）、mengiaskan（〜に例える）。"
+      },
+      {
+        "p": "other",
+        "w": "segenap",
+        "r": "genap",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "すべての、全体の、ありったけの、心からの（『seluruh / semua』より格調高く重みのある書き言葉・演説語！segenap jiwa raga＝全身全霊、segenap lapisan masyarakat＝社会のあらゆる層）",
+        "ex": "Atas nama panitia, saya mengucapkan terima kasih kepada segenap pihak yang telah mendukung kelancaran acara ini.",
+        "tr": "委員会を代表し、本イベントの円滑な進行をご支援くださったすべての関係者の皆様に感謝申し上げます。",
+        "note": "■ 【語構成】：se- + genap（完全な・満ちた・偶数の）。式典・挨拶文・新聞論説で超頻出！\n■ 【定番コロケーション】：segenap jiwa dan raga（全身全霊）、segenap bangsa Indonesia（インドネシア全国民）、segenap kemampuan（ありったけの力）。"
+      },
+      {
+        "p": "n",
+        "w": "koreksi",
+        "r": "koreksi",
+        "tier": 1,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "①訂正、修正、添削（koreksi kesalahan＝誤りの訂正、koreksi ujian＝答案採点） ②（株式・相場の）一時的な下落調整（terkoreksi＝下落・調整する！）",
+        "ex": "Dosen mengembalikan draf makalah mahasiswa lengkap dengan beberapa catatan koreksi pada bagian tata bahasa.",
+        "tr": "教員は文法箇所へのいくつかの訂正メモを添えて、学生のレポート草稿を返却した。",
+        "note": "■ 【2大頻出文脈】：\n① 学習・実務：mengoreksi（訂正・添削する）、koreksi diri（自己反省・軌道修正）\n② 株式・経済ニュース：IHSG terkoreksi（株価指数が調整下落する）"
+      },
+      {
+        "p": "n",
+        "w": "kerancuan",
+        "r": "rancu",
+        "tier": 1,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "混乱、混同、ごちゃ混ぜになって曖昧・不明確になること（言語表現の誤用混同『kerancuan bahasa』や制度・方針の矛盾混乱『kerancuan aturan』でニュース・論説超頻出！）",
+        "ex": "Aturan yang tumpang tindih antarinstansi sering menimbulkan kerancuan dalam pelaksanaan di lapangan.",
+        "tr": "関係機関間で重複する規則は、現場での運用においてしばしば混乱（曖昧さ）を引き起こす。",
+        "note": "■ 【語構成】：ke- + rancu（混乱した・入り混じって不自然な）+ -an。\n■ 【重要コロケーション】：kerancuan bahasa / istilah（言語・用語の混同）、kerancuan berpikir（思考の混乱）、merancukan（混乱させる・曖昧にする）。"
+      },
+      {
+        "p": "n",
+        "w": "busana",
+        "r": "busana",
+        "tier": 1,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "衣装、服装、ファッション（『pakaian』より上品・洗練された表現！busana muslim＝ムスリムファッション、peragaan busana＝ファッションショー、tata busana＝服飾デザイン）",
+        "ex": "Peragaan busana tahunan di Jakarta menampilkan karya perancang muda yang memadukan kain tenun tradisional dengan gaya modern.",
+        "tr": "ジャカルタの年次ファッションショーでは、伝統織物と現代スタイルを融合させた若手デザイナーの衣装作品が披露された。",
+        "note": "■ 【重要コロケーション】：perancang busana（ファッションデザイナー）、peragaan busana（ファッションショー）、busana adat（民族衣装）、berbusana（装う・服装をする）。"
+      },
+      {
+        "p": "n",
+        "w": "pimpinan",
+        "r": "pimpin",
+        "tier": 1,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "①指導部、幹部陣、トップ・上司（pimpinan perusahaan / KPK / DPR＝会社・KPK・国会の指導部／トップ） ②指揮、指導、リーダーシップ（di bawah pimpinan ~＝〜の指揮の下で）",
+        "ex": "Rapat darurat tersebut dihadiri langsung oleh seluruh jajaran pimpinan perusahaan dan kepala divisi.",
+        "tr": "その緊急会議には、企業の全幹部陣（指導部）と各部門長が直接出席した。",
+        "note": "■ 【pemimpin との微妙な違い】：\n・pemimpin：個人としての「リーダー・指導者」\n・pimpinan：組織の「指導部・幹部・トップ役職」または「指揮・統率（di bawah pimpinan ~）」"
+      },
+      {
+        "p": "n",
+        "w": "kitab",
+        "r": "kitab",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①聖典、経典（kitab suci＝聖典：クルアーン・聖書・ヴェーダ等） ②法典、古典書（Kitab Undang-Undang Hukum Pidana [KUHP]＝刑法典）",
+        "ex": "Setiap agama memiliki kitab suci yang mengajarkan nilai-nilai kebaikan, kasih sayang, dan perdamaian.",
+        "tr": "それぞれの宗教には、善行・慈愛・平和の価値を教える聖典がある。",
+        "note": "■ 【重要コロケーション】：kitab suci（聖典）、kitab kuning（イスラム寄宿塾プサントレンで学ぶ伝統古典書）、KUHP（刑法典＝Kitab Undang-Undang Hukum Pidana）。"
+      },
+      {
+        "p": "n",
+        "w": "kuman",
+        "r": "kuman",
+        "tier": 1,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "ばい菌、病原菌、雑菌（衛生・医療の超基本語！ことわざ『Kuman di seberang lautan tampak, gajah di pelupuk mata tak tampak＝海の向こうのばい菌は見えるのに、まぶたの上の象は見えない［他人の小さな欠点はすぐ目につくのに自分の大きな欠点には気づかない］』も超有名！）",
+        "ex": "Mencuci tangan dengan sabun dan air mengalir sangat efektif menghilangkan kuman setelah beraktivitas di luar.",
+        "tr": "石けんと流水で手を洗うことは、屋外での活動後にばい菌を取り除くのに非常に効果的だ。",
+        "note": "■ 【重要コロケーション】：membunuh / membasmi kuman（殺菌・除菌する）、sabun antikuman（薬用殺菌石けん）、kuman penyakit（病原菌）。"
+      },
+      {
+        "p": "n",
+        "w": "pembenaran",
+        "r": "benar",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①正当化、自己弁護、こじつけの言い訳（mencari pembenaran＝自分の過ちを正当化しようとする！） ②承認、是認、正しいと認めること",
+        "ex": "Kesulitan ekonomi tidak boleh dijadikan pembenaran untuk melakukan tindakan penipuan yang merugikan orang lain.",
+        "tr": "経済的な苦しさは、他人に損害を与える詐欺行為を行うための正当化（言い訳）にしてはならない。",
+        "note": "■ 【語構成】：peN- + benar（正しい）+ -an。ニュース・評論で「誤った行為への正当化」を批判する文脈で超頻出！\n■ 【benar 関連語】：membenarkan（事実と認める・正当化する・直す）、kebenaran（真実・正しさ）。"
+      },
+      {
+        "p": "n",
+        "w": "bule",
+        "r": "bule",
+        "tier": 1,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "西洋人、白人外国人（元々は「アルビノ／白い肌」を意味したが、現代インドネシアでは欧米系・白人の外国人を親しみを込めて、あるいはカジュアルに指す超日常語！）",
+        "ex": "Kawasan pantai Canggu dan Ubud di Bali selalu ramai dikunjungi banyak turis bule dari Eropa dan Australia.",
+        "tr": "バリ島のチャングーやウブドのビーチエリアは、ヨーロッパやオーストラリアからの多くの欧米人観光客でいつも賑わっている。",
+        "note": "■ 【インドネシア文化メモ】：悪意はなく日常会話で普通に使うが、フォーマルな場面やニュースでは『warga negara asing [WNA] / wisatawan mancanegara』を使うのがマナー！"
+      },
+      {
+        "p": "v",
+        "w": "bertentangan",
+        "r": "tentang",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "矛盾する、相反する、対立する、反する（『bertentangan dengan ~＝〜と矛盾する／〜に反する』の形で法律・論説・ニュースで超頻出！）",
+        "ex": "Peraturan daerah yang baru diterbitkan itu dinilai bertentangan dengan undang-undang yang lebih tinggi.",
+        "tr": "新たに発令されたその地方条例は、より上位の法律と矛盾する（反する）と評価されている。",
+        "note": "■ 【語構成】：ber- + tentang（向かい合う・反対する）+ -an。\n■ 【重要コロケーション】：bertentangan dengan hukum / konstitusi / hati nurani（法律／憲法／良心に反する）。\n■ 【関連語】：menentang（反対する・抗う）、pertentangan（対立・矛盾・葛藤）。"
+      },
+      {
+        "p": "n",
+        "w": "kafir",
+        "r": "kafir",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "不信仰者、神を信じない者、異教徒（イスラム教の宗教用語で、アッラーと預言者の教えを認めない人を指す語。インドネシアの社会・宗教論議で『nonmuslim』との言い換え議論でも話題になる）",
+        "ex": "Dalam sejarah Islam awal, istilah kafir digunakan untuk menyebut pihak yang menolak ajaran tauhid secara terbuka.",
+        "tr": "初期イスラム史において、『kafir』という言葉は唯一神の教えを公然と拒んだ人々を指すために使われた。",
+        "note": "■ 【現代インドネシアの社会マナー】：現代の多宗教共生社会インドネシアでは、日常で他宗教の人を指すときは『kafir』ではなく丁寧で中立な『nonmuslim（非ムスリム）』を使うのが一般的（NU等も推奨）。"
+      },
+      {
+        "p": "n",
+        "w": "rubrik",
+        "r": "rubrik",
+        "tier": 1,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "①（新聞・雑誌・ニュースサイトの）コラム欄、連載コーナー、特集欄（rubrik opini / budaya / olahraga） ②（教育学の）評価基準表、ルーブリック（rubrik penilaian）",
+        "ex": "Setiap hari Minggu, ia selalu membaca rubrik sastra dan opini di surat kabar nasional untuk memperkaya wawasan.",
+        "tr": "毎週日曜日、彼は見識を深めるために全国紙の文学欄とオピニオン欄をいつも読んでいる。",
+        "note": "■ 【2大頻出コロケーション】：\n① メディア：rubrik opini / ekonomi / konsultasi（オピニオン欄／経済欄／相談コーナー）\n② 大学・教育：rubrik penilaian（課題・プレゼンの採点ルーブリック）"
+      },
+      {
+        "p": "v",
+        "w": "berkeberatan",
+        "r": "berat",
+        "tier": 1,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "異議がある、不服である、差し支えがある、気が進まない（丁寧な依頼『Apakah Anda berkeberatan jika...?＝もし〜しても差し支えありませんか？』や『tidak berkeberatan＝構わない・快諾する』で超頻出！）",
+        "ex": "Apakah Bapak berkeberatan apabila rapat evaluasi minggu ini kita geser ke hari Kamis pagi?",
+        "tr": "今週の評価会議を木曜日の朝に変更させていただいても、差し支えございませんでしょうか。",
+        "note": "■ 【語構成】：ber- + keberatan（重荷・異議）。ビジネス・敬語会話の最強フレーズ！\n■ 【返答のコツ】：OKなときは『Tidak, saya sama sekali tidak berkeberatan（いいえ、全く差し支えありません）』と返すのが丁寧。"
+      },
+      {
+        "p": "v",
+        "w": "memperbolehkan",
+        "r": "boleh",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "〜を許可する、認める、〜してよいとする（＝membolehkan / mengizinkan。規則・学校・法律・親が許可を与える文脈で頻出！）",
+        "ex": "Pengelola museum memperbolehkan pengunjung mengambil foto selama tidak menggunakan lampu kilat kamera.",
+        "tr": "博物館の管理者は、カメラのフラッシュを使用しない限り来場者が写真撮影をすることを許可している。",
+        "note": "■ 【語構成】：memper- + boleh（〜してよい）+ -kan。『membolehkan』と同義だが、『memperbolehkan』の方がやや硬くニュース・規則文で好まれる。"
+      },
+      {
+        "p": "n",
+        "w": "pipa",
+        "r": "pipa",
+        "tier": 1,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①パイプ、配管、水道管、ガス管・石油パイプライン（pipa air / pipa gas / pipa bocor＝水道管漏水） ②喫煙用パイプ（pipa rokok）",
+        "ex": "Pasokan air bersih di tiga kelurahan sempat terhenti sementara akibat pipa utama PDAM bocor terkena proyek galian.",
+        "tr": "掘削工事が当たって水道公社（PDAM）の主配管が破損・漏水したため、3つの町で一時的に上水供給が停止した。",
+        "note": "■ 【重要コロケーション】：pipa air / gas / minyak（水道管／ガス管／石油パイプライン）、pipa bocor（配管の漏水）、perpipaan（配管設備網）。"
+      },
+      {
+        "p": "n",
+        "w": "romo",
+        "r": "romo",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①カトリックの神父、司祭（特にジャワ島を中心にインドネシア全域でカトリック神父への敬称として使われる！例：Romo Mangun＝建築家・作家の名神父） ②（ジャワ語敬語）お父様、父上",
+        "ex": "Romo memimpin ibadah misa malam Natal dengan penuh khidmat di gereja katedral yang dipadati jemaat.",
+        "tr": "神父は信徒で埋め尽くされたカテドラル教会で、厳粛にクリスマスイブのミサを執り行った。",
+        "note": "■ 【宗教指導者の呼び方セット】：ustaz / kiai（イスラム）、pendeta（プロテスタント牧師）、romo / pastor（カトリック神父）、biksu（仏教僧侶）、pemangku / pedanda（バリ・ヒンドゥー司祭）。"
+      },
+      {
+        "p": "n",
+        "w": "penciuman",
+        "r": "cium",
+        "tier": 1,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "嗅覚（きゅうかく）、匂いを嗅ぎ取る感覚（indra penciuman＝嗅覚、hilang penciuman＝嗅覚喪失）",
+        "ex": "Anjing pelacak memiliki indra penciuman yang sangat tajam sehingga sering membantu tim SAR mencari korban bencana.",
+        "tr": "探知犬は非常に鋭い嗅覚を持っているため、しばしば救助隊（SAR）の被災者捜索を助けている。",
+        "note": "■ 【五感（panca indra）完全セット】：\n・penglihatan（視覚） ／ pendengaran（聴覚） ／ penciuman（嗅覚） ／ pengecapan（味覚） ／ peraba（触覚）\n※語幹『cium』には「匂いを嗅ぐ」と「キスをする」の2義がある！"
+      },
+      {
+        "p": "n",
+        "w": "konsulat",
+        "r": "konsulat",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "領事館（首都の大使館『kedutaan besar』とは別に、大阪・スラバヤ・メダン等の主要都市に置かれる在外公館！『Konsulat Jenderal [Konjen]＝総領事館』）",
+        "ex": "Warga negara Indonesia yang tinggal di wilayah Kansai dapat memperpanjang paspor di Konsulat Jenderal Republik Indonesia di Osaka.",
+        "tr": "関西地域に住むインドネシア国民は、在大阪インドネシア共和国総領事館（KJRI Osaka）でパスポートを更新できる。",
+        "note": "■ 【在外公館ペア】：\n・KBRI（Kedutaan Besar RI）：大使館（東京など首都）\n・KJRI（Konsulat Jenderal RI）：総領事館（大阪など地方中核都市）\n・konsul（領事）、duta besar（大使）。"
+      },
+      {
+        "p": "n",
+        "w": "kuli",
+        "r": "kuli",
+        "tier": 1,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "①肉体労働者、現場作業員、荷運び人夫（kuli bangunan＝建設作業員、kuli panggul＝市場や港の荷運び人） ②（※慣用比喩）『kuli tinta＝新聞記者・文筆家』（直訳：インクの労働者！）",
+        "ex": "Para kuli bangunan itu bekerja dengan tekun di bawah terik matahari untuk menyelesaikan renovasi gedung sekolah.",
+        "tr": "その建設作業員たちは、校舎の改修工事を終えるため強い日差しの下で黙々と働いている。",
+        "note": "■ 【検定・ニュースで有名な比喩】：kuli tinta（新聞記者・ジャーナリストのユーモラスな呼び名：＝wartawan）。英語 coolie の語源にも関係するアジア共通語。"
+      },
+      {
+        "p": "a",
+        "w": "lampau",
+        "r": "lampau",
+        "tier": 1,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "過去の、過ぎ去った、昔の（『masa lampau＝過去』『tahun-tahun yang lampau＝過ぎ去った歳月』。会話の『lalu』より文学的・改まった書き言葉！）",
+        "ex": "Kegagalan di masa lampau hendaknya dijadikan pelajaran berharga untuk melangkah lebih mantap ke masa depan.",
+        "tr": "過去の失敗は、未来へ向かってより力強く歩み出すための貴重な教訓とすべきだ。",
+        "note": "■ 【lampau 関連語ファミリー】：\n・masa lampau（過去＝masa lalu）\n・melampaui（〜を超える・上回る：melampaui target＝目標を上回る！）\n・terlampau（あまりにも〜すぎる＝terlalu）"
+      },
+      {
+        "p": "n",
+        "w": "sela",
+        "r": "sela",
+        "tier": 1,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①すき間、割れ目、間（sela-sela jari＝指と指の間、sela-sela batu＝岩のすき間） ②合間（あいま）（『di sela-sela ~＝〜の合間に』はニュース・インタビューで毎日出る超必須表現！）",
+        "ex": "Di sela-sela kesibukan kuliah dan kerja paruh waktu, ia selalu menyempatkan diri berlatih di gym.",
+        "tr": "大学の講義とアルバイトの忙しさの合間に、彼はいつも時間を作ってジムでトレーニングしている。",
+        "note": "■ 【超頻出コロケーション】：di sela-sela rapat / kunjungan / kesibukan（会議／訪問／忙しさの合間に）。\n■ 【関連語】：menyela（会話に割り込む・口を挟む）、tanpa sela（すき間なく）。"
+      },
+      {
+        "p": "n",
+        "w": "mebel",
+        "r": "mebel",
+        "tier": 1,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "家具、調度品（テーブル・椅子・タンス等の木製家具全般。オランダ語 meubel 由来！『toko mebel＝家具屋』『industri mebel Jepara＝ジュパラの木製家具産業』）",
+        "ex": "Produk mebel berbahan kayu jati dari Jepara terkenal sangat awet dan banyak diekspor ke Eropa serta Jepang.",
+        "tr": "ジュパラ産のチーク材家具製品は非常に丈夫なことで知られ、ヨーロッパや日本へ多く輸出されている。",
+        "note": "■ 【言い換え】：mebel（街の看板・製造業で最頻出） ＝ perabot / perabotan rumah tangga（家財道具全般） ＝ furnitur（モダン家具）。"
+      },
+      {
+        "p": "n",
+        "w": "resapan",
+        "r": "resap",
+        "tier": 1,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "浸透、しみ込み（特に環境・防災ニュースの2大黄金語『daerah resapan air＝雨水浸透域・保水地域』『sumur resapan＝雨水浸透井戸』で超頻出！）",
+        "ex": "Berkurangnya daerah resapan air akibat alih fungsi lahan menjadi penyebab utama banjir di kawasan perkotaan.",
+        "tr": "土地の用途転換による保水地域（雨水浸透エリア）の減少が、都市部における洪水の主な原因となっている。",
+        "note": "■ 【語構成】：resap（しみ込む）+ -an。\n■ 【関連語】：meresap（しみ込む・心にしみる）、penyerapan / peresapan（浸透・吸収）、sumur resapan（洪水対策の雨水浸透井戸）。"
+      },
+      {
+        "p": "n",
+        "w": "kadar",
+        "r": "kadar",
+        "tier": 1,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "①含有量、濃度、水準、度合い（kadar gula darah＝血糖値、kadar oksigen＝酸素濃度、kadar garam＝塩分濃度、kadar alkohol＝アルコール度数） ②運命、神の定め（qada dan qadar）／限度（ala kadarnya＝質素に・身の丈なりに）",
+        "ex": "Penderita diabetes perlu memantau kadar gula darah secara rutin setiap minggu sesuai anjuran dokter.",
+        "tr": "糖尿病患者は医師の指示に従い、毎週定期的に血糖値（血中糖度）をチェックする必要がある。",
+        "note": "■ 【2大頻出文脈】：\n① 科学・健康：kadar gula / garam / lemak / kolesterol / oksigen（糖／塩分／脂肪／コレステロール／酸素の濃度・含有量）\n② 慣用句：ala kadarnya（あり合わせで・質素に）、sekadar（ただ〜だけ）。"
+      },
+      {
+        "p": "other",
+        "w": "kendati",
+        "r": "kendati",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "〜にもかかわらず、たとえ〜であっても（譲歩を表す硬め・洗練された書き言葉接続詞！＝meskipun / walaupun / kendatipun。Kompas等の新聞記事で超頻出！）",
+        "ex": "Kendati diguyur hujan deras sejak pagi, ribuan peserta tetap antusias mengikuti jalannya upacara hingga selesai.",
+        "tr": "朝から豪雨に見舞われたにもかかわらず、数千人の参加者は最後まで熱心に式典に参列し続けた。",
+        "note": "■ 【譲歩接続詞の格式順】：walaupun / meskipun（標準・万能） ＜ kendati / kendatipun（新聞・論説・検定B〜A級の硬い書き言葉） ＜ biarpun（口語寄り）。"
+      },
+      {
+        "p": "other",
+        "w": "dibandingkan dengan",
+        "r": "banding",
+        "tier": 1,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "〜と比較して、〜と比べて（データ比較・グラフ説明・論文・経済ニュースで毎日使う最強の比較フレーズ！＝dibanding / daripada）",
+        "ex": "Volume ekspor tahun ini meningkat sebesar dua belas persen dibandingkan dengan periode yang sama tahun lalu.",
+        "tr": "今年の輸出量は、前年同期と比較して12パーセント増加した。",
+        "note": "■ 【ビジネス＆ニュース定番】：dibandingkan dengan tahun lalu / bulan sebelumnya（昨年／前月と比べて）。省略して『dibanding dengan』や『dibanding』もよく使われる。"
+      },
+      {
+        "p": "n",
+        "w": "komite",
+        "r": "komite",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "委員会（特定の任務や監査・学校運営・スポーツ統括のために組織される委員会：komite sekolah＝学校運営委員会、komite audit＝監査委員会、KONI＝インドネシア国民スポーツ委員会）",
+        "ex": "Pihak sekolah dan komite sekolah mengadakan rapat bersama untuk membahas program peningkatan fasilitas perpustakaan.",
+        "tr": "学校側と学校委員会は、図書館設備の充実プログラムを協議するため合同会議を開いた。",
+        "note": "■ 【komisi とのゆるやかな使い分け】：『komisi』は国会委員会や独立国家委員会（KPK / KPU / Komisi I DPR）に多く、『komite』は学校・企業・スポーツ・事故調査委員会（KNKT / KONI / komite audit）によく使われる。"
+      },
+      {
+        "p": "v",
+        "w": "melenyapkan",
+        "r": "lenyap",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "〜を跡形もなく消し去る、消滅させる、抹消する（lenyap の使役他動詞。証拠隠滅や不安・希望を消し去る文脈で頻出）",
+        "ex": "Pelaku kejahatan itu berusaha melenyapkan jejak dan barang bukti sebelum petugas kepolisian tiba di lokasi.",
+        "tr": "その犯罪の実行犯は、警察官が現場に到着する前に痕跡と証拠品を消し去ろうとした。",
+        "note": "■ 【語構成】：me- + lenyap（消え去る）+ -kan。\n■ 【関連語】：lenyap（消える）、kelenyapan（消滅・消失）、menghilangkan（なくす・消す）。"
+      },
+      {
+        "p": "v",
+        "w": "memantul",
+        "r": "pantul",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "（ボール・光・音波などが壁や鏡・床に当たって）跳ね返る、反射する、バウンドする",
+        "ex": "Bola basket itu memantul tinggi setelah membentur ring besi lalu jatuh tepat ke tangan pemain lawan.",
+        "tr": "そのバスケットボールは鉄のリングに当たって高く跳ね返り、ちょうど相手選手の手に落ちた。",
+        "note": "■ 【語構成】：meN- + pantul（跳ね返る：頭文字 p が鼻音化して m）。\n■ 【pantul 関連語ファミリー】：memantul（跳ね返る）、memantulkan（反射・跳ね返らせる）、pantulan（反射・反響・バウンド）、pemantulan（反射現象）。"
+      },
+      {
+        "p": "n",
+        "w": "pemantulan",
+        "r": "pantul",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "反射、跳ね返り（物理学の『pemantulan cahaya＝光の反射』『pemantulan bunyi＝音の反射・反響』など科学・技術用語で定番！）",
+        "ex": "Prinsip pemantulan cahaya pada cermin datar dipelajari siswa sejak tingkat sekolah menengah pertama.",
+        "tr": "平面鏡における光の反射の原理は、生徒たちが中学校段階から学ぶ。",
+        "note": "■ 【語構成】：peN- + pantul + -an。関連語：pembiasan（光の屈折）。"
+      },
+      {
+        "p": "n",
+        "w": "kelenyapan",
+        "r": "lenyap",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "消滅、消失、跡形もなく消えてしまうこと（lenyap の抽象名詞形）",
+        "ex": "Kelenyapan beberapa spesies langka akibat perusakan habitat menjadi peringatan keras bagi kelestarian ekosistem.",
+        "tr": "生息地の破壊に伴ういくつかの希少種の消滅は、生態系保全への厳しい警告となっている。",
+        "note": "■ 【語構成】：ke- + lenyap（消え去る）+ -an。動詞：lenyap（消える）、melenyapkan（消滅させる）。"
+      },
+      {
+        "p": "n",
+        "w": "pemufakatan",
+        "r": "mufakat",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①合意形成、協議による一致 ②（法律・事件報道で）『pemufakatan jahat＝犯罪共謀、陰謀、悪だくみの談合』として超頻出！",
+        "ex": "Jaksa mendakwa kedua tersangka atas dugaan pemufakatan jahat dalam pengaturan pemenang proyek pemerintah.",
+        "tr": "検察官は、政府事業の落札者調整における犯罪共謀（談合）の疑いで両容疑者を起訴した。",
+        "note": "■ 【語構成】：peN- + mufakat（合意・一致）+ -an。\n■ 【ニュース超重要フレーズ】：pemufakatan jahat（犯罪の共謀：薬物事件や汚職・談合裁判の定番罪名！）。"
+      },
+      {
+        "p": "n",
+        "w": "tendensi",
+        "r": "tendensi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "傾向、性向、偏向・偏った意図（＝kecenderungan。形容詞形『tendensius＝偏向的な・悪意ある誘導的な』も報道批評で頻出！）",
+        "ex": "Hasil penelitian menunjukkan adanya tendensi meningkatnya minat baca buku digital di kalangan pelajar muda.",
+        "tr": "研究結果は、若い学生の間で電子書籍の読書関心が高まる傾向があることを示している。",
+        "note": "■ 【関連語】：kecenderungan（傾向）、tendensius（偏向的な・誘導的な：pertanyaan tendensius＝誘導尋問）。"
+      },
+      {
+        "p": "n",
+        "w": "musang",
+        "r": "musang",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "ジャコウネコ、ハクビシン（特に高級コーヒー『kopi luwak』を生み出すパームシベットは『musang luwak』！ことわざ『musang berbulu ayam / domba＝羊の皮をかぶった狼』も超有名！）",
+        "ex": "Musang luwak yang hidup di perkebunan kopi memilih hanya buah kopi terbaik yang sudah matang sempurna.",
+        "tr": "コーヒー農園に生息するジャコウネコ（ルワック）は、完熟した最高品質のコーヒーの実だけを選んで食べる。",
+        "note": "■ 【超有名ことわざ】：musang berbulu ayam（鶏の羽をまとったジャコウネコ＝善人を装う悪人・羊の皮をかぶった狼）。"
+      },
+      {
+        "p": "n",
+        "w": "surfaktan",
+        "r": "surfaktan",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "界面活性剤（水と油を混ぜて汚れを落とす化学物質。洗剤・シャンプー・石けん・化粧品の成分表や化学ニュースで登場）",
+        "ex": "Bahan surfaktan di dalam sabun dan deterjen berfungsi mengangkat noda minyak agar mudah larut bersama air.",
+        "tr": "石けんや洗剤に含まれる界面活性剤は、油汚れを浮かせて水と一緒に溶けやすくする働きをする。",
+        "note": "■ 【語源】：英語 surfactant（surface active agent＝表面活性剤）由来。"
+      },
+      {
+        "p": "n",
+        "w": "hidrometeorologi",
+        "r": "hidrometeorologi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "水文気象（学）（『bencana hidrometeorologi＝気象・水害災害』として、洪水・土砂崩れ・竜巻・干ばつを総称するインドネシア防災庁 BNPB / 気象庁 BMKG ニュースの超頻出専門語！）",
+        "ex": "BNPB mengimbau pemerintah daerah meningkatkan kesiapsiagaan menghadapi bencana hidrometeorologi seperti banjir dan tanah longsor.",
+        "tr": "国家災害対策庁（BNPB）は地方政府に対し、洪水や土砂崩れなどの水文気象災害への備えを高めるよう呼びかけた。",
+        "note": "■ 【防災ニュース必須フレーズ】：bencana hidrometeorologi（雨・風・水・気候が原因の自然災害＝洪水・土砂崩れ・竜巻・干ばつ） ⇔ bencana geologi（地震・火山・津波）。"
+      },
+      {
+        "p": "n",
+        "w": "penjambret",
+        "r": "jambret",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "ひったくり犯（バイク等で背後からスマホやバッグを奪い去る犯人！行為は『penjambretan』、動詞は『menjambret』）",
+        "ex": "Warga dan petugas keamanan berhasil meringkus penjambret yang mencoba merampas ponsel pejalan kaki di trotoar.",
+        "tr": "住民と警備員は、歩道の歩行者からスマホを奪おうとしたひったくり犯を取り押さえることに成功した。",
+        "note": "■ 【防犯・窃盗犯の区別】：pencopet（スリ犯）、penjambret（ひったくり犯）、pencuri / maling（泥棒）、perampok（強盗）、begal（バイク強盗・追い剥ぎ）。"
+      },
+      {
+        "p": "other",
+        "w": "notabene",
+        "r": "notabene",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①（補足・対比で）ちなみに、言うまでもなく、事実上〜であるのに（『yang notabene adalah ~＝そもそも〜であるところの』の形でニュース・論説・会話で超頻出！） ②追伸、注意書き（略記 NB）",
+        "ex": "Keputusan itu mengecewakan para pekerja kontrak yang notabene menjadi tulang punggung operasional pabrik sehari-hari.",
+        "tr": "その決定は、そもそも日々の工場稼働の要（大黒柱）である契約労働者たちを失望させた。",
+        "note": "■ 【使い方のコツ】：ラテン語 nota bene（よく注意せよ）由来。インドネシア語では『yang notabene ...（〜という立場・事実があるのに／そもそも〜なのだが）』というつなぎで大活躍！"
+      },
+      {
+        "p": "n",
+        "w": "ralat",
+        "r": "ralat",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "訂正、正誤表、お詫びと訂正（書籍・記事・発表・チャットでの言い間違いや誤記を後から正式に直すこと！動詞：meralat＝訂正する）",
+        "ex": "Redaksi menerbitkan catatan ralat atas kesalahan penulisan angka tahun pada artikel yang terbit kemarin.",
+        "tr": "編集部は昨日掲載された記事中の年号表記の誤りについて、訂正記事を出した。",
+        "note": "■ 【チャットでも超使える】：誤字を送った直後に『*Ralat: ...（訂正：〜）』と送るのはインドネシア人の定番マナー！\n■ 【関連語】：meralat（訂正する）、koreksi（訂正・添削）。"
+      },
+      {
+        "p": "v",
+        "w": "bertikai",
+        "r": "tikai",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "対立する、争う、紛争・仲違いを起こす（＝berselisih / berkonflik。ニュースの『pihak yang bertikai＝紛争当事者・対立する双方』で超頻出！）",
+        "ex": "Mediator berusaha mempertemukan kedua kubu yang bertikai agar tercapai kesepakatan damai.",
+        "tr": "調停者は平和的合意に達するよう、対立する両陣営を引き合わせようと努めた。",
+        "note": "■ 【tikai 関連語ファミリー】：bertikai（対立・紛争する）、pertikaian（紛争・対立・争い＝perselisihan / konflik）。"
+      },
+      {
+        "p": "n",
+        "w": "penggembosan",
+        "r": "gembos",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①（タイヤ等の）空気を抜くこと（路上違法駐車への取締り『penggembosan ban』） ②（政治・組織ニュースの比喩で）勢力や支持票・運動の切り崩し、弱体化工作、骨抜き化！",
+        "ex": "Petugas dinas perhubungan melakukan penggembosan ban terhadap kendaraan yang nekat parkir liar di atas trotoar.",
+        "tr": "運輸局の係官は、歩道上に強引に違法駐車した車両に対してタイヤの空気抜き処分を実施した。",
+        "note": "■ 【語構成】：peN- + gembos（空気が抜けてしぼむ）+ -an。ジャカルタの違法駐車取締りと、政党・労組の「切り崩し工作（penggembosan suara）」の両方でニュース頻出！"
+      },
+      {
+        "p": "n",
+        "w": "kemasyarakatan",
+        "r": "masyarakat",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "社会的な、市民社会に関する（『organisasi kemasyarakatan [ormas]＝社会団体・大衆組織』『kegiatan kemasyarakatan＝地域社会活動』で超頻出！）",
+        "ex": "Berbagai organisasi kemasyarakatan turut menyalurkan bantuan logistik bagi warga yang terdampak banjir.",
+        "tr": "様々な社会団体（オルマス）が、洪水の被害を受けた住民への支援物資配布に参加した。",
+        "note": "■ 【語構成】：ke- + masyarakat（社会）+ -an。\n■ 【関連語】：ormas（社会団体＝organisasi kemasyarakatan）、memasyarakatkan（普及させる）。"
+      },
+      {
+        "p": "v",
+        "w": "memasyarakatkan",
+        "r": "masyarakat",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "社会全体に普及させる、広く大衆に定着させる、市民に浸透させる（標語『Memasyarakatkan olahraga dan mengolahragakan masyarakat＝スポーツを社会に普及させ、社会をスポーツ化する』が超有名！）",
+        "ex": "Komunitas literasi itu aktif memasyarakatkan kebiasaan membaca buku sejak usia dini di desa-desa.",
+        "tr": "その読書推進コミュニティは、村々で幼少期からの読書習慣を広く普及させる活動に積極的に取り組んでいる。",
+        "note": "■ 【語構成】：me- + masyarakat + -kan。自動詞『memasyarakat』は「社会に広く浸透している・定着している」。"
+      },
+      {
+        "p": "other",
+        "w": "sedikit-sedikit",
+        "r": "sedikit",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①少しずつ、ちょっとずつ（＝sedikit demi sedikit。ことわざ『Sedikit-sedikit lama-lama menjadi bukit＝塵も積もれば山となる』！） ②何かというとすぐに、ちょっとしたことですぐに（sedikit-sedikit marah＝すぐ怒る）",
+        "ex": "Jangan menjadi orang yang mudah mengeluh dan sedikit-sedikit menyerah saat baru menemui kesulitan kecil.",
+        "tr": "ちょっとした小さな困難にぶつかっただけですぐに泣き言を言って諦めるような人になってはいけない。",
+        "note": "■ 【超有名ことわざ】：Sedikit-sedikit, lama-lama menjadi bukit（少しずつでも積もればやがて丘［山］になる＝塵も積もれば山となる）。"
+      },
+      {
+        "p": "n",
+        "w": "bung",
+        "r": "bung",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "兄貴、同志、〜君（男性への親愛と敬意を込めた伝統的呼称！インドネシア独立の英雄『Bung Karno [スカルノ]』『Bung Hatta [ハッタ]』『Bung Tomo』や、現在のサッカー解説者『Bung Towel』等の敬称で超有名！）",
+        "ex": "Pidato penuh semangat dari Bung Tomo pada 10 November 1945 membakar keberanian arek-arek Surabaya.",
+        "tr": "1945年11月10日のブン・トモによる情熱あふれる演説は、スラバヤの若者たちの勇気に火をつけた。",
+        "note": "■ 【文化メモ】：元々は『abang（兄）』の短縮から生まれ、独立運動期に身分の上下を超えた平等な「同志・兄弟」の呼びかけとして定着した歴史ある美しい語！"
+      },
+      {
+        "p": "v",
+        "w": "bercengkerama",
+        "r": "cengkerama",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "和気あいあいと語らう、楽しく談笑する、親しく団らんする（家族や友人とくつろいで楽しくおしゃべりする上品で温かい書き言葉！）",
+        "ex": "Di malam Lebaran, seluruh anggota keluarga besar duduk bersama di ruang keluarga sambil bercengkerama hingga larut.",
+        "tr": "レバランの夜、大家族全員がリビングに集まって遅くまで和気あいあいと談笑した。",
+        "note": "■ 【語構成】：ber- + cengkerama（くつろいだ語らい・団らん）。日常会話の『ngobrol』の上品な書き言葉版！"
+      },
+      {
+        "p": "a",
+        "w": "tersia-sia",
+        "r": "sia",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "無駄になる、徒労に終わる、台無しになる、放置されて活かされない（sia-sia の受動・状態強調形！）",
+        "ex": "Usaha keras belajar selama berbulan-bulan tidak akan pernah tersia-sia jika dilakukan dengan konsisten.",
+        "tr": "何ヶ月にもわたる懸命な勉強の努力は、継続して行えば決して無駄にはならない。",
+        "note": "■ 【sia 関連語ファミリー】：sia-sia（無駄な・甲斐のない）、menyia-nyiakan（無駄にする・せっかくの機会を棒に振る）、tersia-sia（無駄になってしまう）。"
+      },
+      {
+        "p": "n",
+        "w": "mahasiswi",
+        "r": "mahasiswi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "女子大学生（サンスクリット由来の女性語尾 -i！男子大学生・または男女総称は『mahasiswa』）",
+        "ex": "Seorang mahasiswi jurusan bahasa asing tersebut berhasil meraih juara pertama lomba pidato tingkat nasional.",
+        "tr": "その外国語学科の女子大学生が、全国スピーチコンテストで見事優勝を果たした。",
+        "note": "■ 【サンスクリット由来 -a（男/総称） vs -i（女）ペア】：\n・mahasiswa / mahasiswi（大学生）\n・siswa / siswi（生徒）\n・pemuda / pemudi（青年）\n・wartawan / wartawati（記者）"
+      },
+      {
+        "p": "v",
+        "w": "panggang",
+        "r": "panggang",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "（オーブン・グリル・トースター等で）焼く、ローストする、トーストする（roti panggang＝トースト、ayam panggang＝ローストチキン、daging panggang＝焼肉・グリル肉）",
+        "ex": "Setiap pagi ia sarapan dua lembar roti panggang hangat dan telur rebus sebelum berangkat ke kampus.",
+        "tr": "毎朝、彼は大学へ出かける前に温かいトースト2枚とゆで卵を朝食に食べる。",
+        "note": "■ 【bakar との使い分け】：『panggang』はオーブン・トースター・グリル等の間接熱や網焼き、『bakar』は炭火や直火で香ばしく炙る（ayam bakar / sate bakar）ニュアンス。\n■ 【関連語】：memanggang（焼く）、pemanggang（トースター・グリル）。"
+      },
+      {
+        "p": "v",
+        "w": "membolehkan",
+        "r": "boleh",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "〜を許可する、認める、許す（＝memperbolehkan / mengizinkan）",
+        "ex": "Orang tua itu membolehkan anaknya ikut berkemah bersama teman sekolah asalkan selalu memberi kabar.",
+        "tr": "その親は、必ず連絡を入れるという条件で子どもが学校の友達とキャンプに参加するのを許可した。",
+        "note": "■ 【語構成】：meN- + boleh + -kan。より改まった同義語に『memperbolehkan』がある。"
+      },
+      {
+        "p": "v",
+        "w": "bubar",
+        "r": "bubar",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①（集会・授業・デモ・人混みが）解散する、散会する、お開きになる ②（バンド・組織・チーム・関係が）解散する、崩壊する",
+        "ex": "Setelah acara penutupan selesai, para penonton mulai bubar meninggalkan stadion dengan tertib.",
+        "tr": "閉会セレモニーが終わった後、観客たちは整然とスタジアムを後にして解散し始めた。",
+        "note": "■ 【bubar 関連語ファミリー】：bubar（解散する）、membubarkan（解散させる・強制排除する）、pembubaran（解散・解体）。"
+      },
+      {
+        "p": "v",
+        "w": "pencet",
+        "r": "pencet",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💬 スラング・口語",
+        "m": "①（ボタン・スイッチ・スマホ画面を指で）押す、プッシュする（日常会話での『tekan』の定番口語！他動詞『memencet』、うっかり押す『kepencet / terpencet』） ②指で押して潰す・絞る",
+        "ex": "Maaf tadi teleponnya terputus sendiri, kayaknya tombol merah di layar HP tidak sengaja kepencet di dalam saku.",
+        "tr": "ごめんさっき電話が勝手に切れちゃった、ポケットの中でスマホ画面の赤いボタンがうっかり押されちゃったみたい。",
+        "note": "■ 【会話で超頻出】：pencet tombol（ボタンを押す）、kepencet / terpencet（うっかり誤タップ・誤押下する）。"
+      },
+      {
+        "p": "n",
+        "w": "cicitan",
+        "r": "cicit",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "①小鳥やネズミのチュンチュン・チューチューという鳴き声 ②（IT・SNSの）ツイート、つぶやき（旧Twitter / X の投稿を指す公式・ニュース表現！＝cuitan）",
+        "ex": "Cicitan singkat tokoh publik di media sosial tersebut langsung memicu perdebatan luas di kalangan warganet.",
+        "tr": "その著名人によるSNS上の短いツイート（つぶやき）は、たちまちネットユーザーの間で幅広い議論を引き起こした。",
+        "note": "■ 【SNS言い換えペア】：cicitan / cuitan（ツイート・つぶやき）、kicauan（さえずり・つぶやき）。動詞 mencicit / mencuit。"
+      },
+      {
+        "p": "n",
+        "w": "kicauan",
+        "r": "kicau",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "①小鳥の美しいさえずり（kicauan burung＝鳥のさえずり。インドネシアでは小鳥の鳴き声コンテスト『lomba kicau burung』が大人気文化！） ②（比喩で）SNSでのつぶやき・発言、または容疑者等の暴露発言",
+        "ex": "Pagi hari di desa pegunungan itu terasa sangat damai ditemani udara sejuk dan kicauan burung liar.",
+        "tr": "その山村の朝は、涼しい空気と野鳥のさえずりに包まれてとても穏やかに感じられる。",
+        "note": "■ 【語構成】：kicau（さえずる）+ -an。動詞 berkicau（鳥がさえずる／SNSでつぶやく）。"
+      },
+      {
+        "p": "n",
+        "w": "kretek",
+        "r": "kretek",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "クレテック（刻みタバコに丁子［クローブ：cengkih］を混ぜたインドネシア独自の伝統タバコ！『rokok kretek』：吸うときにクローブが『クレテック』とパチパチ弾ける音が名前の由来！）",
+        "ex": "Kota Kudus di Jawa Tengah dikenal luas sejak lama sebagai salah satu pusat sejarah industri rokok kretek di Indonesia.",
+        "tr": "中部ジャワのクドゥス市は、インドネシアにおけるクレテックタバコ産業の歴史的中心地のひとつとして古くから広く知られている。",
+        "note": "■ 【インドネシア文化・経済豆知識】：SKT（Sigaret Kretek Tangan＝手巻きクレテック）と SKM（Sigaret Kretek Mesin＝機械巻き）は国内の巨大雇用産業でもある。"
+      },
+      {
+        "p": "n",
+        "w": "pencak",
+        "r": "pencak",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "プンチャック（ユネスコ無形文化遺産にも登録されているインドネシア伝統武術『pencak silat』の構成語！主に芸術的な型・演武の動きを指す）",
+        "ex": "Gerakan pencak silat memadukan keindahan seni tari tradisional dengan teknik bela diri yang tangguh.",
+        "tr": "プンチャック・シラットの動きは、伝統舞踊の芸術的な美しさと力強い護身武術の技を融合させている。",
+        "note": "■ 【関連語】：pencak silat（インドネシア伝統武術）、pesilat（シラット武術家）、bela diri（武道・護身術）。"
+      },
+      {
+        "p": "v",
+        "w": "mencandu",
+        "r": "candu",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "中毒になる、やみつきになる、のめり込む（薬物・賭博・ゲーム等の深刻な依存から、美味しい料理や音楽にハマる比喩まで使われる！）",
+        "ex": "Penggunaan gawai tanpa batas waktu dapat membuat anak mudah mencandu permainan daring hingga lupa belajar.",
+        "tr": "時間制限なしのスマホ使用は、子どもが勉強を忘れるほどオンラインゲームに中毒になりやすくする。",
+        "note": "■ 【candu 関連語ファミリー】：candu（アヘン・依存対象）、kecanduan（依存症・中毒になっている）、pecandu（中毒者・依存症患者）、mencandu（のめり込む・中毒になる）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "Letkol",
+        "r": "Letnan Kolonel",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "中佐（インドネシア国軍 TNI の佐官階級：『Mayor＝少佐』の上、『Kolonel＝大佐』の下！軍事・政治・歴史ニュースで超頻出の階級略称）",
+        "ex": "Komandan batalion berpangkat Letkol itu memimpin langsung operasi evakuasi warga saat bencana alam terjadi.",
+        "tr": "中佐（レトコル）の階級を持つその大隊長は、自然災害発生時に住民の避難作戦を自ら陣頭指揮した。",
+        "note": "■ 【インドネシア国軍 TNI の主な階級略称】：\n・将官：Jenderal（大将） ＞ Letjen（中将） ＞ Mayjen（少将） ＞ Brigjen（准将）\n・佐官：Kolonel（大佐） ＞ Letkol（中佐） ＞ Mayor（少佐）\n・尉官：Kapten（大尉） ＞ Lettu（中尉） ＞ Letda（少尉）"
+      },
+      {
+        "p": "singkatan",
+        "w": "Tapol",
+        "r": "Tahanan Politik",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "政治犯、政治的拘束者（政治的信条・反政府運動・言論等を理由に拘束された人々。特に1965年事件後のスハルト新秩序体制『Orde Baru』時代の歴史・人権記事や小説で頻出！）",
+        "ex": "Novel sejarah Indonesia banyak mengangkat kisah perjuangan dan pengalaman kemanusiaan para mantan tapol pada masa lalu.",
+        "tr": "インドネシアの歴史小説は、過去の元政治犯（タポル）たちの苦闘と人間的な体験を多く取り上げている。",
+        "note": "■ 【歴史・人権セット】：tapol（Tahanan Politik＝政治犯）、napol（Narapidana Politik＝有罪確定した政治受刑者）、Orde Baru（スハルト新秩序体制）。"
+      },
+      {
+        "p": "n",
+        "w": "hakekat",
+        "r": "hakikat",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "本質、真髄、本来の姿（※『hakikat』の非標準綴り！日常・SNS・古い文章ではよく見かけるが、検定・論文・ニュースのKBBI標準語形は i の『hakikat』！）",
+        "ex": "Meskipun sering ditulis hakekat dalam percakapan, ejaan baku yang benar menurut KBBI adalah hakikat.",
+        "tr": "会話や日常ではよく『hakekat』と書かれるが、KBBIによる正しい標準綴りは『hakikat』である。",
+        "note": "■ 【検定の超定番スペルチェック】：\n・正（KBBI標準）：hakikat（pada hakikatnya＝本質的には）、hakiki（真の）\n・非標準：hakekat（他にも nasihat vs nasehat、aktivitas vs aktifitas と同じ頻出パターン！）"
+      },
+      {
+        "p": "n",
+        "w": "sambal",
+        "r": "sambal",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "サンバル（唐辛子を主原料に、赤小玉ねぎ・ニンニク・トマト・発酵エビペースト・ライム等を加えて作るインドネシア料理の魂ともいえる辛味調味料！全国に300種以上あると言われる）",
+        "ex": "Setiap daerah di Indonesia memiliki racikan sambal khas yang membuat cita rasa hidangan lokal semakin menggugah selera.",
+        "tr": "インドネシアの各地域には独自のサンバルの調合があり、地元料理の味わいをさらに食欲そそるものにしている。",
+        "note": "■ 【作り方と伝統道具】：石のすり鉢『cobek（チョベッ）』と石のすりこぎ『ulekan（ウルカン）』ですり潰して（mengulek）作るのが王道！\n■ 【これだけは知っておきたい代表サンバル10選】：\n・sambal terasi（サンバル・トラシ）：唐辛子・トマト・エシャロットに発酵エビペースト『terasi』を加えた最強の王道！旨味爆発で揚げ魚やララパンの定番。\n・sambal matah（サンバル・マタ）：バリ島名物の「生サンバル」！赤唐辛子・エシャロット・レモングラス・こぶみかんの葉を細かく刻み、熱いココナッツ油とライムをかける爽やか系。\n・sambal ijo / hijau（サンバル・イジョ）：西スマトラ・パダン料理の象徴！青唐辛子と青トマトを蒸して粗く潰すため辛さはマイルドで甘みとコクがある。\n・sambal bajak（サンバル・バジャック）：ジャワ発祥。唐辛子・トマト・トラシ・ヤシ砂糖・タマリンドを油でじっくり炒め煮した、甘辛くてコク深いマイルド系。\n・sambal bawang / korek（サンバル・バワン／コレッ）：激辛小粒唐辛子『cabai rawit』と生ニンニクを潰し、熱々の揚げ油をジュッとかけたシンプル＆超激辛系（アヤム・グプレックの命！）。\n・sambal dabu-dabu（サンバル・ダブダブ）：北スラウェシ・マナド名物。刻んだ赤青トマト・唐辛子・エシャロットにライムを絞った、サルサ風の超フレッシュ焼き魚用サンバル。\n・sambal kecap（サンバル・ケチャップ）：甘い醤油『kecap manis』に刻み唐辛子・エシャロット・トマト・ライムを混ぜた、焼き魚・サテ・揚げ豆腐の超万能ダレ。\n・sambal kacang（サンバル・カチャン）：揚げピーナッツをすり潰した甘辛ダレ（ガドガド・サテ・チロッ・シュウマイに必須！）。\n・sambal pencit / mangga（サンバル・プンチット）：東ジャワ名物！酸っぱい青マンゴーの千切りを混ぜた爽やか激辛サンバル（揚げダック『bebek goreng』に最高）。\n・sambal roa（サンバル・ロア）：マナド名物。燻製にしたトビウオ科の魚『ikan roa』をほぐして唐辛子と炒めた、香ばしい旨味たっぷりの食べるサンバル！"
+      }
+    ];
+
+    const idxByWord = new Map();
+    for (let i = 0; i < d.vocab.length; i++) {
+      const it = d.vocab[i];
+      if (it && it.w) idxByWord.set(it.w.trim().toLowerCase(), i);
+    }
+
+    const newlyDictOnlyKeys = new Set();
+
+    for (let i = 0; i < NEW_66_PACK.length; i++) {
+      const item = NEW_66_PACK[i];
+      if (!item || !item.w) continue;
+      const key = item.w.trim().toLowerCase();
+
+      if (item.dictOnly === true || item.tier === 3) {
+        item.dictOnly = true;
+        item.tier = 3;
+        dictOnlySet.add(key);
+        newlyDictOnlyKeys.add(key);
+      } else {
+        delete item.dictOnly;
+        item.tier = 1;
+        dictOnlySet.delete(key);
+      }
+      if (item.topicCat) {
+        catMap.set(key, item.topicCat);
+      }
+
+      if (idxByWord.has(key)) {
+        const pos = idxByWord.get(key);
+        Object.assign(d.vocab[pos], item);
+        if (item.tier === 1) {
+          delete d.vocab[pos].dictOnly;
+        }
+        vMap.set(key, d.vocab[pos]);
+        persistentAdded.set(key, d.vocab[pos]);
+      } else {
+        d.vocab.push(item);
+        idxByWord.set(key, d.vocab.length - 1);
+        vMap.set(key, item);
+        persistentAdded.set(key, item);
+      }
+    }
+
+    // 辞書専用化した既存語（sedikit-sedikit / panggang / pencet / sambal 等）を保存済み復習・スターから安全除外
+    ["wi_wrongs_v2", "wi_stars_v2", "wi_master_stars_v5"].forEach(function(storageKey) {
+      try {
+        const raw = localStorage.getItem(storageKey);
+        if (!raw) return;
+        const list = JSON.parse(raw);
+        if (!Array.isArray(list)) return;
+        const cleaned = list.filter(function(it) {
+          if (!it || typeof it !== "object") return false;
+          const qid = String(it.id || "");
+          const m = qid.match(/^(?:voc|voc_ja2id|ctx::voc|abbr_ja|abbr_full)::(.+)$/i);
+          const w = (m ? m[1] : (it.w || it.ttsWord || "")).trim().toLowerCase();
+          return !newlyDictOnlyKeys.has(w);
+        });
+        if (cleaned.length !== list.length) {
+          localStorage.setItem(storageKey, JSON.stringify(cleaned));
+        }
+      } catch (err) {}
+    });
+  } catch (e) {
+    console.error("WhatsIndo 66-word pack error:", e);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 検定B〜A級・新聞キラー動詞 55語パック（辞書＆問題 両対応 tier: 1）
+   - ① 報道・捜査・政治の現場動詞（23語）：menggaungkan, menggemakan, mendengungkan,
+       memantik, menyentil, mengkritisi, menyambangi, mengulik, merogoh, mencokok,
+       menilap, memelintir, mendiskreditkan, mempolitisasi, mengonsolidasikan,
+       mensinyalir, mengulur, memperkeruh, memperuncing, mengejawantahkan,
+       mengakselerasi, merevitalisasi, menyetop
+   - ② ニュース超頻出の ter- ＆ ber- 動詞（26語）：terkendala, terganjal, terjegal,
+       tergerus, terpinggirkan, terbelit, terseret, terjaring, terciduk, terimbas,
+       bersikukuh, bersikeras, bergeming, berjibaku, berkelit, berkilah, berkaca,
+       berkecimpung, berkiblat, bernaung, berpijak, berpaling, berujung, berbuntut,
+       menggeliat, berikhtiar
+   - ③ 文芸・論説の「出現・消滅・崩壊」系（6語）：menyeruak, menguar, raib,
+       pupus, sirna, luluh lantak
+   - **記号ゼロ・文字バグゼロ・try-catch完全保護・出題対象（tier: 1）＆辞書登録
+   ===================================================================== */
+(function() {
+  try {
+    const d = window.WHATSINDO_EXTERNAL_DATA;
+    if (!d || !Array.isArray(d.vocab)) return;
+
+    const dictOnlySet     = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+    const persistentAdded = window.__wiPersistentAddedVocab || (window.__wiPersistentAddedVocab = new Map());
+    const vMap            = window.__wiMasterVocabMap || (window.__wiMasterVocabMap = new Map());
+    const catMap          = window.__WI_V5_VCAT || (window.__WI_V5_VCAT = new Map());
+
+    const B2A_KILLER_VERBS_55 = [
+      {
+        "p": "v",
+        "w": "menggaungkan",
+        "r": "gaung",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①（スローガン・主張・キャンペーン・運動などを世間へ）声高に響かせる、広く拡散する、アピールする ②（音や声を）反響させる",
+        "ex": "Komunitas lingkungan aktif menggaungkan gerakan pengurangan plastik sekali pakai melalui berbagai kampanye digital.",
+        "tr": "環境コミュニティは、さまざまなデジタルキャンペーンを通じて使い捨てプラスチック削減運動を積極的に広く訴えている（響かせている）。",
+        "note": "■ 【語構成】：meN- + gaung（反響・こだま）+ -kan。\n■ 【重要コロケーション】：menggaungkan isu / pesan / semangat / gerakan（問題／メッセージ／精神／運動を声高に広める）。\n■ 【類義3兄弟】：menggaungkan / menggemakan / mendengungkan（いずれも「反響・鳴り響かせる」から転じた報道頻出語）。"
+      },
+      {
+        "p": "v",
+        "w": "menggemakan",
+        "r": "gema",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①（平和・団結・理念・声などを広く）響き渡らせる、反響させる、大々的に広める ②（谷間やホールに音を）こだまさせる",
+        "ex": "Para delegasi muda menggemakan seruan perdamaian dan kerja sama lintas bangsa di forum internasional tersebut.",
+        "tr": "若手代表団はその国際フォーラムで、平和と国境を越えた協力の呼びかけを広く響き渡らせた。",
+        "note": "■ 【語構成】：meN- + gema（こだま・反響）+ -kan。自動詞『bergema』は「響き渡る・反響する」。\n■ 【関連語】：gema（反響・こだま）、bergema（鳴り響く）、menggaungkan（声高に広める）。"
+      },
+      {
+        "p": "v",
+        "w": "mendengungkan",
+        "r": "dengung",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "（スローガン・主張・公約・プロパガンダなどを何度も繰り返し）喧伝（けんでん）する、鳴り響かせる、盛んに唱える",
+        "ex": "Setiap menjelang pemilu, para kandidat selalu mendengungkan janji penciptaan lapangan kerja baru di berbagai daerah.",
+        "tr": "選挙が近づくたびに、候補者たちはいつも各地で新規雇用創出の公約を盛んに唱え回る。",
+        "note": "■ 【語構成】：meN- + dengung（ブンブンいう羽音・唸り音）+ -kan。繰り返し耳に残るほど宣伝・主張するニュアンスがあり、政治報道の定番！\n■ 【関連語】：berdengung（耳鳴りがする・ブンブン唸る）、pendengung（SNSで世論工作・拡散をする「バザー／インフルエンサー工作員」＝buzzer の公式訳語！）。"
+      },
+      {
+        "p": "v",
+        "w": "memantik",
+        "r": "pantik",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①（議論・怒り・対立・関心・インスピレーションなどに）火をつける、引き金となる、誘発する（＝memicu / menyulut） ②火打ち石やライターで火花を散らす",
+        "ex": "Pernyataan kontroversial pejabat tersebut langsung memantik perdebatan sengit di ruang publik dan media sosial.",
+        "tr": "その高官の物議を醸す発言は、たちまち公共の場とSNSで激しい議論に火をつけた。",
+        "note": "■ 【語構成】：meN- + pantik（火打ち石で火花を出す：頭文字 p が鼻音化して m）。『memicu』の言い換えとして Kompas 等の新聞で毎日見かける洗練動詞！\n■ 【重要コロケーション】：memantik diskusi / polemik / emosi / ide（議論／論争／感情／アイデアに火をつける）。"
+      },
+      {
+        "p": "v",
+        "w": "menyentil",
+        "r": "sentil",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①（政治家・企業・相手に対してチクリと）皮肉を込めて注意する、軽く釘を刺す、批判する ②指でピンと弾く（デコピンする）",
+        "ex": "Dalam pidatonya, presiden sempat menyentil kinerja beberapa instansi yang masih lamban dalam melayani masyarakat.",
+        "tr": "演説の中で、大統領は市民へのサービス対応が依然として遅い複数の機関の働きぶりをチクリと批判した。",
+        "note": "■ 【語構成】：meN- + sentil（指で弾く：頭文字 s が鼻音化して ny）。激しい非難（mengecam）より軽めで「チクリと刺す・お灸を据える」絶妙なニュース表現！\n■ 【関連語】：sentilan（チクリとした皮肉・苦言）、menyindir（皮肉る）。"
+      },
+      {
+        "p": "v",
+        "w": "mengkritisi",
+        "r": "kritis",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "（政策・法案・データ・発言などを批判的視点から）厳しく検証する、論評する、批判的に検討する",
+        "ex": "Para ekonom dan akademisi ramai-ramai mengkritisi rencana kenaikan tarif pajak di tengah lesunya daya beli.",
+        "tr": "経済学者や研究者たちは、購買力が低迷する中での増税計画を一斉に批判的に検証（批判）した。",
+        "note": "■ 【語構成】：meN- + kritis（批判的な）+ -i。単なる悪口ではなく「根拠を持って問題点を鋭く検討・批判する」知的ニュアンス！\n■ 【関連語】：mengkritik（批判する）、kritik（批判・批評）、kritis（批判的な・危機的な）。"
+      },
+      {
+        "p": "v",
+        "w": "menyambangi",
+        "r": "sambang",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "（要人・警察・記者・団体などが現場や役所・家へ）訪問する、訪ねる、足を運ぶ、視察・巡回に訪れる（＝mengunjungi / mendatangi）",
+        "ex": "Gubernur menyambangi sejumlah pasar tradisional sejak subuh untuk memantau langsung harga kebutuhan pokok.",
+        "tr": "知事は生活必需品の価格を直接視察するため、夜明け前から複数の伝統市場を訪れた。",
+        "note": "■ 【語構成】：meN- + sambang（巡回・見回り：頭文字 s が鼻音化して ny）+ -i。新聞記事で『mengunjungi』の代わりとして超頻出！"
+      },
+      {
+        "p": "v",
+        "w": "mengulik",
+        "r": "ulik",
+        "tier": 1,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "（仕組み・背景・原因・趣味・技術などを）隅々まで深く掘り下げる、徹底的に探る・いじくり回して調べる",
+        "ex": "Jurnalis investigasi itu menghabiskan waktu berbulan-bulan untuk mengulik aliran dana di balik proyek bermasalah tersebut.",
+        "tr": "その調査報道ジャーナリストは、問題となった事業の裏にある資金の流れを徹底的に掘り下げるのに何ヶ月も費やした。",
+        "note": "■ 【語構成】：meN- + ulik（徹底的に探る）。調査報道だけでなく、IT・プログラミング・音楽・ガジェットを「深掘りする・いじり倒す」文脈でも超よく使う！"
+      },
+      {
+        "p": "v",
+        "w": "merogoh",
+        "r": "rogoh",
+        "tier": 1,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "①（ポケットや袋・財布の奥へ）手を突っ込んで探る ②（※超定番比喩『merogoh kocek』で）財布からお金を出す、大金を払う、自腹を切る",
+        "ex": "Penggemar rela merogoh kocek cukup dalam demi mendapatkan tiket konser baris terdepan.",
+        "tr": "ファンたちは最前列のコンサートチケットを手に入れるため、喜んでかなり深い懐から大金を払う（自腹を切る）。",
+        "note": "■ 【ニュース＆日常の黄金慣用句】：\n・merogoh kocek (dalam-dalam)：（深く）財布の紐を緩める、大金を支払う、自腹を切る（kocek＝ポケット・財布）。"
+      },
+      {
+        "p": "v",
+        "w": "mencokok",
+        "r": "cokok",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "（警察や当局が容疑者・犯人を）逮捕する、しょっ引く、取り押さえる（＝menangkap / meringkus / membekuk）",
+        "ex": "Aparat kepolisian berhasil mencokok tiga anggota komplotan pencuri kendaraan bermotor di tempat persembunyiannya.",
+        "tr": "警察当局は、自動車・バイク窃盗団のメンバー3人を潜伏先で逮捕する（取り押さえる）ことに成功した。",
+        "note": "■ 【事件報道の「逮捕する」4大バリエーション】：menangkap（標準） ／ meringkus（取り押さえる） ／ membekuk（ねじ伏せて捕らえる） ／ mencokok（しょっ引く・捕まえる）。"
+      },
+      {
+        "p": "v",
+        "w": "menilap",
+        "r": "tilap",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "（公金・会社資金・補助金・他人の金などをこっそり）着服する、くすねる、横領する（＝menggelapkan）",
+        "ex": "Oknum bendahara itu terbukti menilap dana bantuan sosial warga hingga ratusan juta rupiah selama dua tahun.",
+        "tr": "その悪質な会計担当者は、2年間で住民向け社会扶助資金を数億ルピアも着服（くすねて横領）していたことが立証された。",
+        "note": "■ 【語構成】：meN- + tilap（折り畳む・くすねる：頭文字 t が鼻音化して n）。汚職・横領ニュースで『menggelapkan（横領する）』と並んで超頻出！"
+      },
+      {
+        "p": "v",
+        "w": "memelintir",
+        "r": "pelintir",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①（発言・事実・記事・歴史などを意図的に）ねじ曲げる、曲解する、印象操作する ②（紐・ひげ・腕などを）ひねる、ねじり上げる",
+        "ex": "Ia menegaskan bahwa potongan video yang viral tersebut sengaja dibuat untuk memelintir pernyataan aslinya.",
+        "tr": "彼は、拡散された切り抜き動画が元の発言を意図的にねじ曲げるために作られたものだと強調した。",
+        "note": "■ 【語構成】：meN- + pelintir（ひねる：頭文字 p が鼻音化して m）。SNSの切り抜きやフェイクニュース批判で『memelintir fakta / pernyataan（事実・発言をねじ曲げる）』が定番！"
+      },
+      {
+        "p": "v",
+        "w": "mendiskreditkan",
+        "r": "diskredit",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "（人や組織・競争相手の名誉や信頼を意図的に）傷つける、信用失墜させる、貶める",
+        "ex": "Penyebaran rumor palsu tersebut diduga merupakan upaya terencana untuk mendiskreditkan lembaga pengawas independen.",
+        "tr": "その偽の噂の拡散は、独立監視機関の信用を失墜させるための計画的な工作だと疑われている。",
+        "note": "■ 【語構成】：meN- + diskredit（信用毀損）+ -kan。政治・企業法務のニュースで頻出。"
+      },
+      {
+        "p": "v",
+        "w": "mempolitisasi",
+        "r": "politisasi",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "（本来は非政治的な問題・災害援助・宗教・スポーツ・司法などを）政治利用する、政治問題化する",
+        "ex": "Semua pihak diminta tidak mempolitisasi penyaluran bantuan kemanusiaan bagi para korban bencana alam.",
+        "tr": "すべての当事者に対し、自然災害の被災者への人道支援物資の配布を政治利用しないよう求められた。",
+        "note": "■ 【綴りメモ】：KBBIの厳密な鼻音化規則では『memolitisasi』も載るが、新聞・実務では『mempolitisasi』が圧倒的に広く使われる。名詞形：politisasi（政治利用・政治化）。"
+      },
+      {
+        "p": "v",
+        "w": "mengonsolidasikan",
+        "r": "konsolidasi",
+        "tier": 1,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "（組織・支持層・財務・複数事業などを）統合する、結束を固める、一本化して強化する",
+        "ex": "Manajemen baru berfokus mengonsolidasikan seluruh anak usaha agar operasional perusahaan jauh lebih efisien.",
+        "tr": "新経営陣は、会社の運営をはるかに効率化するため全子会社の統合・体制強化に注力している。",
+        "note": "■ 【語構成】：meN- + konsolidasi（頭文字 k が鼻音化して ng！）+ -kan。政治の支持固めから企業財務の連結・統合まで頻出。"
+      },
+      {
+        "p": "v",
+        "w": "mensinyalir",
+        "r": "sinyalir",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "（不正・陰謀・異常・問題などの兆候があると）指摘する、示唆する、にらむ、察知して警告する",
+        "ex": "Lembaga pengawas mensinyalir adanya praktik monopoli terselubung dalam distribusi bahan pangan pokok.",
+        "tr": "監視機関は、基礎食料の流通において隠れた独占行為が存在すると指摘（示唆）している。",
+        "note": "■ 【語源と綴り】：オランダ語 signaleren 由来。報道では『mensinyalir / disinyalir（〜と疑われている・示唆されている）』が毎日使われる（KBBIでは menyinyalir 形も併載）。"
+      },
+      {
+        "p": "v",
+        "w": "mengulur",
+        "r": "ulur",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①（時間・議論・交渉・支払いなどをわざと）引き延ばす、先延ばしにする（mengulur waktu＝時間稼ぎをする！） ②（糸やロープを）繰り出す、緩める",
+        "ex": "Pengamat menilai pihak terdakwa sengaja mengulur waktu agar proses persidangan berjalan berlarut-larut.",
+        "tr": "専門家は、裁判手続きが長引くように被告側がわざと時間稼ぎをしていると見ている。",
+        "note": "■ 【重要コロケーション】：mengulur waktu / mengulur-ulur waktu（時間稼ぎをする・ダラダラ引き延ばす）、mengulurkan tangan（助けの手を差し伸べる）。"
+      },
+      {
+        "p": "v",
+        "w": "memperkeruh",
+        "r": "keruh",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "（事態・空気・関係・紛争などをさらに）濁らせる、こじらせる、悪化させる（memperkeruh suasana / keadaan）",
+        "ex": "Komentar provokatif tanpa bukti di media sosial justru hanya akan memperkeruh suasana yang mulai tenang.",
+        "tr": "SNS上での根拠のない挑発的コメントは、せっかく落ち着き始めた空気をかえって悪化させる（濁らせる）だけだ。",
+        "note": "■ 【語構成】：memper- + keruh（水が濁った・不穏な）。対比表現：menjernihkan suasana（場を澄ませる・誤解を解いて空気を良くする）。"
+      },
+      {
+        "p": "v",
+        "w": "memperuncing",
+        "r": "runcing",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①（対立・紛争・格差・緊張などをさらに）先鋭化させる、激化させる、尖らせる ②（鉛筆などの先端を）さらに尖らせる",
+        "ex": "Kebijakan kenaikan tarif impor sepihak dikhawatirkan akan semakin memperuncing ketegangan perdagangan internasional.",
+        "tr": "一方的な輸入関税引き上げ政策は、国際貿易の緊張をさらに先鋭化させるのではないかと懸念されている。",
+        "note": "■ 【語構成】：memper- + runcing（尖った）。自動詞『meruncing（対立が先鋭化する）』の使役他動詞ペア！"
+      },
+      {
+        "p": "v",
+        "w": "mengejawantahkan",
+        "r": "ejawantah",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "（抽象的な理念・価値観・憲法精神・理想などを現実の行動や形として）具現化する、体現する（＝mewujudkan）",
+        "ex": "Kita perlu mengejawantahkan semangat gotong royong dalam kehidupan bermasyarakat sehari-hari, bukan sekadar menjadikannya slogan.",
+        "tr": "私たちは相互扶助の精神を単なるスローガンにするのではなく、日々の社会生活の中で具現化（体現）していく必要がある。",
+        "note": "■ 【語構成】：meN- + ejawantah（ジャワ語由来：具現・顕現）+ -kan。大統領演説や社説・学術論文で登場する超格調高いB〜A級語彙！名詞形：pengejawantahan（具現化）。"
+      },
+      {
+        "p": "v",
+        "w": "mengakselerasi",
+        "r": "akselerasi",
+        "tier": 1,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "（経済成長・デジタル化・インフラ建設・改革などを）加速させる、スピードアップする（＝mempercepat）",
+        "ex": "Pemerintah bekerja sama dengan sektor swasta untuk mengakselerasi pembangunan jaringan internet cepat di daerah terpencil.",
+        "tr": "政府はへき地での高速インターネット網整備を加速させるため、民間セクターと協力している。",
+        "note": "■ 【関連語】：akselerasi（加速・スピードアップ）、mempercepat（速める・加速する）。ビジネス・政策ニュースで超頻出。"
+      },
+      {
+        "p": "v",
+        "w": "merevitalisasi",
+        "r": "revitalisasi",
+        "tier": 1,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "（老朽化した市場・駅・観光地・伝統文化・産業などを）再活性化する、再生・刷新する、息を吹き返す",
+        "ex": "Pemerintah kota tengah merevitalisasi kawasan kota tua dan pasar tradisional agar kembali bersih, rapi, dan menarik pengunjung.",
+        "tr": "市政府は再び清潔で整然とし来訪者を惹きつける場所にするため、旧市街エリアと伝統市場の再活性化を進めている。",
+        "note": "■ 【関連語】：revitalisasi（再活性化・再生事業）。都市開発・観光・教育ニュースの定番語！"
+      },
+      {
+        "p": "v",
+        "w": "menyetop",
+        "r": "setop",
+        "tier": 1,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "（生産・輸出・プロジェクト・配信・車両などを）停止する、ストップする、打ち切る（＝menghentikan）",
+        "ex": "Kementerian memutuskan untuk menyetop sementara ekspor bahan mentah tertentu guna menjamin pasokan industri dalam negeri.",
+        "tr": "省は国内産業への供給を確保するため、特定の原材料の輸出を一時停止することを決定した。",
+        "note": "■ 【語構成】：meN- + setop（ストップ：頭文字 s が鼻音化して ny）。KBBI標準綴りは『setop / menyetop / disetop』！"
+      },
+      {
+        "p": "v",
+        "w": "terkendala",
+        "r": "kendala",
+        "tier": 1,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "（悪天候・資金不足・許認可などの障害により）支障をきたす、妨げられる、足止めされる（＝terhambat）",
+        "ex": "Pengiriman bantuan logistik melalui jalur laut sempat terkendala gelombang tinggi dan angin kencang.",
+        "tr": "海路での支援物資輸送は、高波と強風によって一時支障をきたした（阻まれた）。",
+        "note": "■ 【語構成】：ter- + kendala（障害・ボトルネック）。ビジネス・物流・防災ニュースで毎日見る超定番語！"
+      },
+      {
+        "p": "v",
+        "w": "terganjal",
+        "r": "ganjal",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "（規則・手続き・資金・反対意見などの壁に）阻まれる、引っかかる、足止めを食う",
+        "ex": "Rencana pembangunan jembatan layang baru itu masih terganjal masalah pembebasan lahan di beberapa titik.",
+        "tr": "その新しい高架橋の建設計画は、数ヶ所での土地収用問題によって依然として足止めされている（阻まれている）。",
+        "note": "■ 【語構成】：ter- + ganjal（くさび・ストッパー）。『terganjal aturan / dana / izin（規則／資金／許可の壁に阻まれる）』は新聞の鉄板表現！"
+      },
+      {
+        "p": "v",
+        "w": "terjegal",
+        "r": "jegal",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①（スポーツで相手に）足を引っ掛けられて転ぶ、進撃を止められる ②（選挙・昇進・計画などが妨害や条件の壁で）足をすくわれる、阻止される、敗退する",
+        "ex": "Langkah tim unggulan tersebut akhirnya terjegal di babak perempat final oleh tim kuda hitam.",
+        "tr": "そのシードチームの進撃は、ついに準々決勝でダークホースのチームによって阻まれた（足をすくわれた）。",
+        "note": "■ 【語構成】：ter- + jegal（足を引っ掛ける・進路を妨害する）。スポーツ記事と政治の立候補・出馬阻止ニュースの2大頻出語！"
+      },
+      {
+        "p": "v",
+        "w": "tergerus",
+        "r": "gerus",
+        "tier": 1,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "①（インフレ・競争・時代変化によって購買力・利益・シェア・伝統などが）浸食される、じわじわ削られる、目減りする ②（川岸や土壌が水流で）削り取られる",
+        "ex": "Daya beli masyarakat berpenghasilan tetap dikhawatirkan akan terus tergerus apabila inflasi pangan tidak segera dikendalikan.",
+        "tr": "食品インフレが直ちに抑制されなければ、定額所得層の購買力は引き続き目減りし続けるのではないかと懸念されている。",
+        "note": "■ 【語構成】：ter- + gerus（擦り潰す・削る）。能動形『menggerus』の受動・状態ペア！経済紙で超頻出。"
+      },
+      {
+        "p": "v",
+        "w": "terpinggirkan",
+        "r": "pinggir",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "（社会・経済・開発・組織の中で隅へ追いやられて）周縁化される、取り残される、疎外される（＝termarginalkan / tersingkir）",
+        "ex": "Kebijakan pembangunan inklusif bertujuan memastikan kelompok rentan tidak semakin terpinggirkan oleh arus modernisasi.",
+        "tr": "包摂的な開発政策は、脆弱な人々が近代化の流れによってますます取り残されない（周縁化されない）ようにすることを目的としている。",
+        "note": "■ 【語構成】：ter- + pinggir（端・隅）+ -kan。福祉・人権・社会学レポートで必須の重要語！"
+      },
+      {
+        "p": "v",
+        "w": "terbelit",
+        "r": "belit",
+        "tier": 1,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "（多額の借金・違法ローン・複雑な問題・スキャンダルなどにぐるぐる）絡め取られる、がんじがらめになる、苦しむ（terbelit utang / pinjol / kasus）",
+        "ex": "Banyak warga terbelit utang pinjaman daring ilegal akibat tergiur pencairan dana cepat tanpa membaca rincian bunga.",
+        "tr": "金利の詳細を読まずに即時融資に釣られた結果、多くの市民が違法オンライン闇金の借金に絡め取られている（借金地獄に陥っている）。",
+        "note": "■ 【語構成】：ter- + belit（巻きつく）。定番フレーズ：terbelit utang（借金まみれになる）、berbelit-belit（回りくどい・複雑に入り組んだ）。"
+      },
+      {
+        "p": "v",
+        "w": "terseret",
+        "r": "seret",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①（事件・汚職・スキャンダル・紛争などに）巻き込まれる、引きずり込まれる ②（波・洪水・車などに）引きずられる、流される",
+        "ex": "Nama beberapa pejabat daerah ikut terseret dalam penyidikan kasus dugaan suap proyek infrastruktur tersebut.",
+        "tr": "そのインフラ事業贈収賄疑惑の捜査において、複数の地方高官の名前も巻き込まれた（浮上した）。",
+        "note": "■ 【語構成】：ter- + seret（引きずる）。物理的な『terseret arus（水流に流される）』と比喩の『terseret kasus（事件に巻き込まれる）』の両方が超頻出！"
+      },
+      {
+        "p": "v",
+        "w": "terjaring",
+        "r": "jaring",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①（警察の一斉検問・KPKの現行犯摘発 OTT・規制網などに）引っかかる、検挙される ②（魚や人材が）網にかかる、選抜される",
+        "ex": "Puluhan pengendara motor terjaring razia petugas karena tidak mengenakan helm dan tidak membawa surat kendaraan.",
+        "tr": "ヘルメット未着用や車検証不携帯のため、数十人のバイク運転手が係官の一斉検問（取り締まり）に引っかかった。",
+        "note": "■ 【重要コロケーション】：terjaring razia（一斉検問に引っかかる）、terjaring OTT KPK（KPKの現行犯逮捕作戦で摘発される）。"
+      },
+      {
+        "p": "v",
+        "w": "terciduk",
+        "r": "ciduk",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "（警察に）捕まる、現行犯摘発される、現場を押さえられる（元々は『menciduk＝すくい上げる』だが、現代メディア＆SNSでは「悪事がバレて逮捕・摘発される」定番語！）",
+        "ex": "Komplotan pengedar barang ilegal itu akhirnya terciduk polisi saat sedang bertransaksi di area parkir.",
+        "tr": "その違法物資密売グループは、駐車場エリアで取引している最中についに警察に御用となった（摘発された）。",
+        "note": "■ 【語構成】：ter- + ciduk（柄杓ですくう）。ニュース見出しから若者の軽い冗談『terciduk bolos（サボってるのがバレた！）』まで大活躍！"
+      },
+      {
+        "p": "v",
+        "w": "terimbas",
+        "r": "imbas",
+        "tier": 1,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "（他所で起きた危機・値上げ・紛争・災害などの）あおりを受ける、波及影響を受ける（＝terdampak）",
+        "ex": "Sektor industri tekstil dalam negeri ikut terimbas melemahnya permintaan pasar ekspor di Eropa.",
+        "tr": "国内の繊維産業セクターも、欧州輸出市場の需要低迷のあおりを受けた。",
+        "note": "■ 【語構成】：ter- + imbas（風圧・余波・波及影響）。関連語：berimbas（波及影響を及ぼす）、imbas dari ~（〜のあおりで）。"
+      },
+      {
+        "p": "v",
+        "w": "bersikukuh",
+        "r": "kukuh",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "（自分の意見・主張・方針を）頑として譲らない、固執する、断固として押し通す（＝bersikeras）",
+        "ex": "Meskipun mendapat banyak kritik dari warga, pengembang proyek tetap bersikukuh melanjutkan pembangunan sesuai rencana awal.",
+        "tr": "住民から多くの批判を受けたにもかかわらず、開発業者は当初計画通りに建設を続けると頑として譲らなかった。",
+        "note": "■ 【語構成】：ber- + si- + kukuh（強固な・揺るぎない）。交渉・政治・裁判ニュースの超定番動詞！"
+      },
+      {
+        "p": "v",
+        "w": "bersikeras",
+        "r": "keras",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "（意見を曲げずに）強硬に主張する、言い張る、頑固に固執する（＝bersikukuh / ngotot）",
+        "ex": "Kedua belah pihak sama-sama bersikeras mempertahankan tuntutan masing-masing sehingga perundingan menemui jalan buntu.",
+        "tr": "双方がそれぞれの要求を強硬に主張して譲らなかったため、交渉は行き詰まった。",
+        "note": "■ 【言い換え3段階】：bersikukuh（硬め・書き言葉） ／ bersikeras（標準・報道） ／ ngotot（口語・会話：意地を張る）。"
+      },
+      {
+        "p": "v",
+        "w": "bergeming",
+        "r": "geming",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "（※最重要注意！本来のKBBI意味は『じっと動かない』だが、現代インドネシア語のニュース・日常ではほぼ100%否定語を伴う『tidak / tak bergeming』で「微動だにしない、一歩も引かない、全く動じない」の意味で定着！）",
+        "ex": "Meski harga bahan bakar naik, minat wisatawan mengunjungi pulau tersebut tampak tak bergeming dan tetap tinggi.",
+        "tr": "燃料価格が上昇したにもかかわらず、その島を訪れる観光客の関心は微動だにせず（びくともせず）高いままだ。",
+        "note": "■ 【検定・読解の重要ポイント】：KBBI本来の定義は「動かない」だが、現代報道では『tak bergeming＝びくともしない・頑として動かない・影響を受けない』という慣用句として使われる！"
+      },
+      {
+        "p": "v",
+        "w": "berjibaku",
+        "r": "jibaku",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "死力を尽くして奮闘する、決死の覚悟で立ち向かう、体を張って全力で取り組む（※実は日本語の「自爆」が戦時中に入り、現代インドネシア語では消防士・救助隊・選手らの「捨て身の全力奮闘」を称える超ポジティブ報道語として完全定着！）",
+        "ex": "Petugas pemadam kebakaran berjibaku selama empat jam melawan kobaran api besar di kawasan gudang industri.",
+        "tr": "消防隊員たちは工業倉庫エリアの大きな炎に立ち向かい、4時間にわたり死力を尽くして消火にあたった。",
+        "note": "■ 【日本語由来のおもしろ語源】：日本語「自爆（jibaku）」由来だが、現代インドネシア語では悪意味はなく「命がけで・全力で奮闘する（消防・救助・スポーツ・医療現場）」の定番語！"
+      },
+      {
+        "p": "v",
+        "w": "berkelit",
+        "r": "kelit",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①（質問・追及・責任などから巧みに）言い逃れをする、身をかわす、はぐらかす ②（攻撃や障害物をひょいと）避ける、かわす",
+        "ex": "Saat ditanya wartawan mengenai aliran dana mencurigakan itu, ia terus berkelit dan mengalihkan pembicaraan.",
+        "tr": "不審な資金の流れについて記者から質問されると、彼はしきりに言い逃れをして話題をそらし続けた。",
+        "note": "■ 【言い逃れ3動詞】：berkelit（ひょいとかわす・言い逃れる）、berkilah（言い訳・口実を並べる）、mengelak（回避する・否認する）。"
+      },
+      {
+        "p": "v",
+        "w": "berkilah",
+        "r": "kilah",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "（自分の過ちや失敗を隠すために）言い訳をする、こじつけの理屈を並べる、弁解する（＝berdalih）",
+        "ex": "Pengemudi yang menerobos lampu merah itu berkilah bahwa ia sedang terburu-buru karena urusan mendadak.",
+        "tr": "赤信号を無視したその運転手は、急用で焦っていたのだと苦しい言い訳をした。",
+        "note": "■ 【語構成】：ber- + kilah（言い訳・詭弁）。類義語：berdalih（口実を設ける・言い訳する）。"
+      },
+      {
+        "p": "v",
+        "w": "berkaca",
+        "r": "kaca",
+        "tier": 1,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "①（過去や他国の事例を）鏡に映して学ぶ、教訓とする、参考にする（berkaca dari / pada ~） ②鏡を見る（＝bercermin）",
+        "ex": "Berkaca dari pengalaman banjir besar tahun lalu, pemerintah kota mulai mempercepat normalisasi seluruh saluran air.",
+        "tr": "昨年の大洪水の経験を教訓として（鏡として）、市政府はすべての水路の正常化改修を急ぎ始めた。",
+        "note": "■ 【論説文の超頻出フレーズ】：Berkaca dari pengalaman / kasus tersebut ...（その経験／事例から学ぶと…）。"
+      },
+      {
+        "p": "v",
+        "w": "berkecimpung",
+        "r": "kecimpung",
+        "tier": 1,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "（ある業界・専門分野・組織活動に長く）身を置く、携わる、活躍する（berkecimpung di dunia / bidang ~）",
+        "ex": "Beliau telah lebih dari dua puluh tahun berkecimpung di dunia penerjemahan sastra dan pendidikan bahasa.",
+        "tr": "彼は20年以上にわたり、文学翻訳と語学教育の世界に身を置いて活躍してきた。",
+        "note": "■ 【語源豆知識】：元々は「水の中でバシャバシャと遊ぶ・泳ぐ」音から転じて、「その業界にどっぷり浸かって活動する」という意味になった美しい動詞！"
+      },
+      {
+        "p": "v",
+        "w": "berkiblat",
+        "r": "kiblat",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①（ある国・思想・モデル・トレンドなどを）規範とする、手本にする、傾倒する（berkiblat ke / pada ~） ②（礼拝時に）メッカの方角（キブラ）を向く",
+        "ex": "Pengembangan sistem transportasi massal berbasis rel di kota ini banyak berkiblat pada ketepatan waktu kereta Jepang.",
+        "tr": "この都市における鉄道ベースの大量輸送システム開発は、日本の鉄道の定時性を大いに手本としている。",
+        "note": "■ 【語構成】：ber- + kiblat（メッカの礼拝方角 ➔ 比喩で「方向性・規範・ロールモデル」）。"
+      },
+      {
+        "p": "v",
+        "w": "bernaung",
+        "r": "naung",
+        "tier": 1,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "①（ある団体・省庁・グループ企業・連盟の）傘下に属する、所属する（bernaung di bawah ~） ②（木陰や屋根の下で）雨宿り・日陰休みをする",
+        "ex": "Seluruh klub sepak bola profesional di Indonesia bernaung di bawah federasi resmi PSSI.",
+        "tr": "インドネシアのすべてのプロサッカークラブは、公式連盟であるPSSIの傘下に属している。",
+        "note": "■ 【重要コロケーション】：bernaung di bawah payung / bendera / kementerian ~（〜の傘下・旗印・省庁の下に属する）。名詞形：naungan（庇護・傘下）。"
+      },
+      {
+        "p": "v",
+        "w": "berpijak",
+        "r": "pijak",
+        "tier": 1,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "①（理論・データ・原則・現実に）立脚する、基づく、足を据える（berpijak pada ~） ②地面に足を踏みしめる",
+        "ex": "Setiap rekomendasi kebijakan publik seharusnya berpijak pada data ilmiah yang valid, bukan sekadar asumsi.",
+        "tr": "すべての公共政策提言は、単なる推測ではなく確かな科学的データに立脚すべきである。",
+        "note": "■ 【語構成】：ber- + pijak（踏む）。関連語：pijakan（足場・基盤：batu pijakan＝足がかり）、menginjak（踏む）。"
+      },
+      {
+        "p": "v",
+        "w": "berpaling",
+        "r": "paling",
+        "tier": 1,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①（別の選択肢・ブランド・人・方向へ）乗り換える、心変わりする、背を向ける（berpaling dari A ke B） ②顔を背ける、振り返る",
+        "ex": "Karena harga terus naik tanpa peningkatan kualitas, banyak pelanggan mulai berpaling ke produk pesaing.",
+        "tr": "品質が向上しないまま価格が上がり続けたため、多くの顧客が競合他社の製品へと乗り換え始めた。",
+        "note": "■ 【重要コロケーション】：berpaling dari ~（〜から背を向ける・離れる）、berpaling ke ~（〜へ乗り換える・目を向ける）。"
+      },
+      {
+        "p": "v",
+        "w": "berujung",
+        "r": "ujung",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "（議論・対立・交渉・事件などが最終的に〜という結末に）至る、終わる、帰結する（berujung pada ~）",
+        "ex": "Kesalahpahaman kecil di media sosial itu hampir saja berujung pada laporan polisi sebelum keduanya berdamai.",
+        "tr": "SNS上のその小さな誤解は、双方が和解する前にはあわや警察への告訴に至るところだった。",
+        "note": "■ 【語構成】：ber- + ujung（先端・末端・結末）。『berujung damai（円満解決で終わる）』『berujung ricuh（騒乱に発展して終わる）』『berujung maut（死亡事故に至る）』はニュース見出しの超定番！"
+      },
+      {
+        "p": "v",
+        "w": "berbuntut",
+        "r": "buntut",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①（事件・発言・ミスなどが後々まで尾を引いて〜という）余波・後遺症をもたらす、結果につながる（berbuntut panjang＝長引く大騒動になる！） ②尾がある",
+        "ex": "Kelalaian pengawasan di pabrik itu berbuntut panjang hingga berujung pada pencabutan izin operasional.",
+        "tr": "その工場での管理不備は長く尾を引き、最終的には営業許可の取り消しにまでつながった。",
+        "note": "■ 【ニュース見出しの黄金表現】：berbuntut panjang（尾を引く大問題になる）、berbuntut pemecatan / sanksi（解雇／処分という結果を引き起こす）。"
+      },
+      {
+        "p": "v",
+        "w": "menggeliat",
+        "r": "geliat",
+        "tier": 1,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "①（停滞していた経済・観光・ビジネスなどが）再び動き出す、活気づき始める、息を吹き返す ②（目覚めたときに体を）グッと伸ばす、うごめく",
+        "ex": "Setelah masa liburan panjang dimulai, sektor pariwisata dan perhotelan daerah kembali menggeliat dengan tingkat hunian tinggi.",
+        "tr": "大型連休が始まると、地方の観光・ホテルセクターは高い稼働率で再び活気づき始めた。",
+        "note": "■ 【語構成】：meN- + geliat（伸びをする・うごめく）。経済紙で『ekonomi mulai menggeliat（景気が動き出した）』『geliat UMKM（中小企業の活気）』として超頻出！"
+      },
+      {
+        "p": "v",
+        "w": "berikhtiar",
+        "r": "ikhtiar",
+        "tier": 1,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "（望む結果を得るために自分にできる）最善の努力を尽くす、手を尽くして試みる（アラビア語由来で、努力を尽くした上で結果は神に委ねる『ikhtiar dan tawakal』というインドネシアの大切な価値観を表す！）",
+        "ex": "Sebagai manusia, tugas kita adalah terus berikhtiar dan belajar sebaik mungkin sebelum menyerahkan hasilnya kepada Tuhan.",
+        "tr": "人間として私たちの務めは、結果を神に委ねる前にできる限り最善の努力を尽くして学び続けることだ。",
+        "note": "■ 【インドネシア精神文化の定番ペア】：berikhtiar（人事を尽くす・全力で努力する）＋ berdoa（祈る）＋ bertawakal（結果を神に委ねる）。"
+      },
+      {
+        "p": "v",
+        "w": "menyeruak",
+        "r": "seruak",
+        "tier": 1,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①（人混み・茂み・障害を）押し分けて進む、突き抜けて現れる ②（香り・噂・疑問・感情などが周囲へ）ふわっと広がる、湧き上がる",
+        "ex": "Aroma harum kopi seduh dan roti panggang langsung menyeruak begitu kami membuka pintu kedai kecil itu.",
+        "tr": "その小さな店のドアを開けた途端、淹れたてコーヒーと焼き立てパンの香ばしい香りがふわっと広がった。",
+        "note": "■ 【語構成】：meN- + seruak（押し分ける：頭文字 s が鼻音化して ny）。小説描写から『dugaan baru menyeruak（新たな疑惑が浮上した）』という報道まで幅広く活躍！"
+      },
+      {
+        "p": "v",
+        "w": "menguar",
+        "r": "uar",
+        "tier": 1,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①（香り・湯気・煙・臭いなどが空気中に）立ち込める、漂い出る ②（噂・ニュース・情報などが）広まる、漏れ伝わる",
+        "ex": "Dari dapur belakang, wangi rempah rendang dan serai menguar memenuhi seluruh ruangan rumah.",
+        "tr": "裏のキッチンから、ルンダンのスパイスとレモングラスの香りが立ち込めて家中の部屋を満たしている。",
+        "note": "■ 【語構成】：meN- + uar（広まる・発散する）。小説やグルメ記事の香り描写の定番動詞！"
+      },
+      {
+        "p": "v",
+        "w": "raib",
+        "r": "raib",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "（金品・車両・データ・人などが）こつ然と消える、行方不明になる、盗まれて消える（＝hilang lenyap。盗難・詐欺ニュースの超頻出見出し語！）",
+        "ex": "Saldo tabungan korban senilai puluhan juta rupiah raib dalam hitungan menit setelah ia mengklik tautan palsu.",
+        "tr": "偽リンクをクリックした後、被害者の預金残高数千万ルピアが数分のうちに跡形もなく消えた（奪われた）。",
+        "note": "■ 【「消える」4語のニュアンス整理】：hilang（標準：なくす・消える）、lenyap（跡形もなく消滅する）、sirna（完全に消え去る・文学寄り）、raib（盗難・ミステリーでこつ然と消える！）。"
+      },
+      {
+        "p": "v",
+        "w": "pupus",
+        "r": "pupus",
+        "tier": 1,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "（希望・夢・チャンス・期待などが）潰える、絶たれる、消え去る（『pupus harapan＝希望が潰える』でスポーツ敗退・ニュース記事に超頻出！）",
+        "ex": "Harapan tim tamu untuk lolos ke babak final akhirnya pupus setelah kebobolan gol pada menit tambahan.",
+        "tr": "アウェーチームの決勝進出への希望は、アディショナルタイムに失点したことでついに潰えた。",
+        "note": "■ 【重要コロケーション】：pupus harapan / mimpi / peluang（希望／夢／チャンスが潰える）、memupus（希望を断ち切る・打ち砕く）。"
+      },
+      {
+        "p": "v",
+        "w": "sirna",
+        "r": "sirna",
+        "tier": 1,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "跡形もなく消え去る、消滅する、雲散霧消する（＝lenyap / musnah。感情・不安・栄光・歴史遺産などが消え去る文学的・重厚な表現！）",
+        "ex": "Segala rasa cemas dan ragu perlahan sirna setelah ia menerima hasil pengumuman kelulusan ujian tersebut.",
+        "tr": "その試験の合格発表結果を受け取った後、あらゆる不安と迷いはゆっくりと消え去った。",
+        "note": "■ 【関連語】：lenyap（消え去る）、musnah（全滅・焼失する）、menyirnakan（消し去る）。"
+      },
+      {
+        "p": "a",
+        "w": "luluh lantak",
+        "r": "luluh",
+        "tier": 1,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "①（地震・津波・戦争・爆撃などで建物や街が）跡形もなく崩壊した、粉々に瓦礫と化した（＝hancur lebur） ②（比喩で：心や誇りが）粉々に砕け散った",
+        "ex": "Gempa berkekuatan besar dan tsunami menyebabkan sebagian kawasan pesisir luluh lantak dalam sekejap.",
+        "tr": "大規模な地震と津波により、沿岸エリアの一部は一瞬にして跡形もなく瓦礫と化した（崩壊した）。",
+        "note": "■ 【災害・歴史ニュースの定番連語】：luluh lantak ＝ hancur lebur（完全に破壊・崩壊した）。他動詞：meluluhlantakkan（跡形もなく破壊し尽くす）。"
+      }
+    ];
+
+    const idxByWord = new Map();
+    for (let i = 0; i < d.vocab.length; i++) {
+      const it = d.vocab[i];
+      if (it && it.w) idxByWord.set(it.w.trim().toLowerCase(), i);
+    }
+
+    for (let i = 0; i < B2A_KILLER_VERBS_55.length; i++) {
+      const item = B2A_KILLER_VERBS_55[i];
+      if (!item || !item.w) continue;
+      const key = item.w.trim().toLowerCase();
+
+      delete item.dictOnly;
+      item.tier = 1;
+      dictOnlySet.delete(key);
+
+      if (item.topicCat) {
+        catMap.set(key, item.topicCat);
+      }
+
+      if (idxByWord.has(key)) {
+        const pos = idxByWord.get(key);
+        Object.assign(d.vocab[pos], item);
+        delete d.vocab[pos].dictOnly;
+        vMap.set(key, d.vocab[pos]);
+        persistentAdded.set(key, d.vocab[pos]);
+      } else {
+        d.vocab.push(item);
+        idxByWord.set(key, d.vocab.length - 1);
+        vMap.set(key, item);
+        persistentAdded.set(key, item);
+      }
+    }
+  } catch (e) {
+    console.error("WhatsIndo B2A Killer Verbs 55 pack error:", e);
+  }
+})();
+/* =====================================================================
+   WhatsIndo 検定B〜A級・鋭い形容詞・副詞・書き言葉接続詞 39語パック（辞書＆問題 両対応 tier: 1）
+   - ① 評価・状態を表す鋭い形容詞（26語）：jomplang, senjang, amburadul, kacau balau,
+       sporadis, volatil, urgen, kapabel, holistik, konsekuen, inkonsisten,
+       kontraproduktif, tendensius, sensasional, persuasif, progresif, konservatif,
+       moderat, radikal, pesimis, tragis, buntu, klise, arkais, anyar, gres
+   - ② 書き言葉の副詞・接続詞（13語）：sejatinya, sepatutnya, sedianya, sontak,
+       walhasil, berjamaah, beramai-ramai, sungguhpun, walau, bilamana,
+       manakala, jikalau, andaikan
+   - **記号ゼロ・文字バグゼロ・try-catch完全保護・出題対象（tier: 1）＆辞書登録
+   ===================================================================== */
+(function() {
+  try {
+    const d = window.WHATSINDO_EXTERNAL_DATA;
+    if (!d || !Array.isArray(d.vocab)) return;
+
+    const dictOnlySet     = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+    const persistentAdded = window.__wiPersistentAddedVocab || (window.__wiPersistentAddedVocab = new Map());
+    const vMap            = window.__wiMasterVocabMap || (window.__wiMasterVocabMap = new Map());
+    const catMap          = window.__WI_V5_VCAT || (window.__WI_V5_VCAT = new Map());
+
+    const B2A_ADJ_ADV_39 = [
+      {
+        "p": "a",
+        "w": "jomplang",
+        "r": "jomplang",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "（格差・実力・配分・バランスなどが）極端に偏った、著しく不均衡な、大きくかけ離れた（＝timpang / tidak seimbang）",
+        "ex": "Perbedaan fasilitas pendidikan antara kota besar dan desa terpencil masih terlihat sangat jomplang.",
+        "tr": "大都市とへき地の村との間の教育設備の差は、依然として非常に大きくかけ離れている（極端に偏っている）。",
+        "note": "■ 【語感と使い分け】：『timpang（不均衡な）』よりも「シーソーが片方にガクッと傾くほど極端に差が開いている」生々しいニュアンスがあり、経済格差やスポーツの実力差報道で超頻出！\n■ 【重要コロケーション】：perbedaan / ketimpangan yang jomplang（極端な格差）、kekuatan tim yang jomplang（大きく開いたチーム力差）。"
+      },
+      {
+        "p": "a",
+        "w": "senjang",
+        "r": "senjang",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "（水準・所得・発展・左右のバランスなどに）隔たりがある、格差がある、不揃いな（名詞『kesenjangan＝格差』の語幹！）",
+        "ex": "Pembangunan infrastruktur di luar Jawa terus dikebut agar perkembangan ekonomi antarwilayah tidak lagi terlalu senjang.",
+        "tr": "地域間の経済発展にもはや大きな隔たり（格差）が生じないよう、ジャワ島外でのインフラ建設が急ピッチで進められている。",
+        "note": "■ 【senjang 関連語ファミリー】：senjang（隔たりのある・不均衡な）、kesenjangan（格差・ギャップ：kesenjangan sosial / ekonomi＝社会・経済格差）。"
+      },
+      {
+        "p": "a",
+        "w": "amburadul",
+        "r": "amburadul",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "（管理・計画・交通・データ・暮らしなどが）めちゃくちゃな、ずさんな、ぐちゃぐちゃで収拾がつかない（＝kacau balau / berantakan）",
+        "ex": "Sistem pendataan penerima bantuan yang amburadul menyebabkan banyak subsidi justru jatuh ke pihak yang tidak berhak.",
+        "tr": "支援対象者のずさんな（めちゃくちゃな）データ管理システムのせいで、多くの補助金がかえって受給資格のない人々へ渡ってしまった。",
+        "note": "■ 【「ぐちゃぐちゃ・大混乱」の類義語セット】：berantakan（部屋等が散らかった）、semrawut（交通・街並みが無秩序な）、amburadul（管理・仕組みがずさんでめちゃくちゃな）、kacau balau（収拾不能な大混乱）。"
+      },
+      {
+        "p": "a",
+        "w": "kacau balau",
+        "r": "kacau",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "大混乱の、収拾がつかないほど乱れた、めちゃくちゃな（kacau をさらに強調した慣用連語）",
+        "ex": "Akibat pemadaman listrik mendadak di jam sibuk, arus lalu lintas di pusat kota sempat menjadi kacau balau.",
+        "tr": "ラッシュアワーの突然の停電により、都心部の交通の流れは一時大混乱に陥った。",
+        "note": "■ 【語構成】：kacau（混乱した）+ balau（乱れた）の強調対語。\n■ 【関連語】：kekacauan（混乱・騒動）、mengacaukan（かき乱す・台無しにする）。"
+      },
+      {
+        "p": "a",
+        "w": "sporadis",
+        "r": "sporadis",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "散発的な、あちこちで不規則に発生する（＝tidak merata / kadang-kadang ⇔ sistematis＝組織的・計画的な）",
+        "ex": "Aksi unjuk rasa yang awalnya berlangsung sporadis di beberapa titik akhirnya menyatu di depan gedung parlemen.",
+        "tr": "当初いくつかの地点で散発的に行われていた抗議デモは、最終的に国会議事堂前で合流した。",
+        "note": "■ 【重要コロケーション】：hujan / serangan / protes / penolakan sporadis（散発的な雨／攻撃／抗議／反発）。対義語：terstruktur / sistematis（組織的・体系的な）。"
+      },
+      {
+        "p": "a",
+        "w": "volatil",
+        "r": "volatil",
+        "tier": 1,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "（為替相場・株価・物価などが）変動の激しい、乱高下しやすい、不安定な（名詞：volatilitas＝ボラティリティ・価格変動率）",
+        "ex": "Harga komoditas pangan seperti cabai dan bawang merah cenderung sangat volatil menjelang musim hujan.",
+        "tr": "唐辛子やエシャロットといった食料品目の価格は、雨季を前に非常に変動が激しくなりやすい。",
+        "note": "■ 【経済・金融ニュース必須ペア】：volatil（変動の激しい） ／ fluktuatif（上下に変動する）。名詞形：volatilitas pasar（市場の変動性）。"
+      },
+      {
+        "p": "a",
+        "w": "urgen",
+        "r": "urgen",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "緊急の、差し迫った、最優先で対処すべき（＝mendesak / sangat penting。名詞形：urgensi＝緊急性・必要性）",
+        "ex": "Perbaikan sistem keamanan siber merupakan agenda yang sangat urgen untuk segera dibahas oleh pemerintah dan parlemen.",
+        "tr": "サイバーセキュリティ体制の立て直しは、政府と国会が直ちに議論すべき極めて緊急な課題である。",
+        "note": "■ 【関連語】：urgensi（緊急性・差し迫った必要性）、mendesak（切迫した・緊急の）。"
+      },
+      {
+        "p": "a",
+        "w": "kapabel",
+        "r": "kapabel",
+        "tier": 1,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "有能な、十分な実力と資質を備えた、頼りになる（＝cakap / mumpuni / kompeten）",
+        "ex": "Pemimpin proyek berskala besar harus memiliki tim teknis yang kapabel dan berpengalaman di bidangnya.",
+        "tr": "大規模プロジェクトのリーダーには、その分野で有能かつ経験豊富な技術チームが不可欠だ。",
+        "note": "■ 【関連語】：kapabilitas（能力・実力・ケーパビリティ）、mumpuni（熟達して実力十分な）、kredibel（信頼できる）。"
+      },
+      {
+        "p": "a",
+        "w": "holistik",
+        "r": "holistik",
+        "tier": 1,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "包括的な、全体論的な、総合的な視点からの（一部だけでなく全体を見渡すアプローチ＝menyeluruh ⇔ parsial＝部分的な）",
+        "ex": "Penanganan masalah sampah perkotaan membutuhkan pendekatan holistik mulai dari edukasi warga hingga teknologi daur ulang.",
+        "tr": "都市ごみ問題への対処には、市民教育からリサイクル技術に至るまで包括的なアプローチが必要だ。",
+        "note": "■ 【論説・政策の黄金対比】：pendekatan holistik / komprehensif（包括的・総合的アプローチ） ⇔ pendekatan parsial / sektoral（部分的・縦割りアプローチ）。"
+      },
+      {
+        "p": "a",
+        "w": "konsekuen",
+        "r": "konsekuen",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "首尾一貫した、言行一致の、自分の原則や責任を最後まで貫く（＝konsisten / taat asas）",
+        "ex": "Pemimpin yang dihormati adalah mereka yang bersikap konsekuen antara ucapan saat kampanye dan kebijakan setelah menjabat.",
+        "tr": "尊敬される指導者とは、選挙運動中の発言と就任後の政策との間で首尾一貫した（言行一致の）態度をとる人々だ。",
+        "note": "■ 【関連語】：konsekuensi（結果・報い・責任）、konsisten（一貫した） ⇔ inkonsisten（一貫性がない）。"
+      },
+      {
+        "p": "a",
+        "w": "inkonsisten",
+        "r": "inkonsisten",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "一貫性がない、矛盾した、コロコロ変わる（⇔ konsisten＝一貫した）",
+        "ex": "Aturan investasi yang sering berubah dan inkonsisten dapat menurunkan kepercayaan pelaku usaha asing.",
+        "tr": "頻繁に変わり一貫性のない投資規則は、外国事業者の信頼を低下させる恐れがある。",
+        "note": "■ 【語構成】：in-（否定）+ konsisten（一貫した）。名詞形：inkonsistensi（矛盾・一貫性の欠如）。"
+      },
+      {
+        "p": "a",
+        "w": "kontraproduktif",
+        "r": "produktif",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "逆効果な、かえって成果を損なう、足を引っ張る（目標達成の妨げになること ⇔ produktif / konstruktif）",
+        "ex": "Perdebatan yang hanya saling menyalahkan di media sosial dinilai sangat kontraproduktif bagi upaya pencarian solusi.",
+        "tr": "SNS上で互いに非難し合うだけの議論は、解決策を探る取り組みにとって極めて逆効果だと評価されている。",
+        "note": "■ 【語構成】：kontra-（反・逆）+ produktif（生産的な）。社説やビジネス会議でダメ出しするときの超洗練ワード！"
+      },
+      {
+        "p": "a",
+        "w": "tendensius",
+        "r": "tendensi",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "偏向的な、悪意ある意図を含んだ、誘導的な（中立を装いながら特定方向へ印象操作する報道・質問・発言に使う！）",
+        "ex": "Narasumber menolak menjawab pertanyaan yang dinilai terlalu tendensius dan tidak didukung fakta lapangan.",
+        "tr": "インタビュー対象者は、あまりにも偏向的（誘導的）で現場の事実に裏付けられていないと判断した質問への回答を拒んだ。",
+        "note": "■ 【重要コロケーション】：berita / judul / pertanyaan / pernyataan tendensius（偏向報道／扇動的な見出し／誘導質問／悪意ある発言）。名詞形：tendensi（傾向・偏向）。"
+      },
+      {
+        "p": "a",
+        "w": "sensasional",
+        "r": "sensasi",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "扇情的な、センセーショナルな、世間の耳目を過度に引く（クリック稼ぎの過激見出しや大番狂わせの勝利など）",
+        "ex": "Media yang bertanggung jawab seharusnya mengutamakan akurasi data daripada sekadar mengejar judul berita yang sensasional.",
+        "tr": "責任あるメディアは、単に扇情的なニュース見出しを追いかけるよりもデータの正確さを優先すべきだ。",
+        "note": "■ 【関連語】：sensasi（センセーション・話題性：mencari sensasi＝炎上・話題作りを狙う）。"
+      },
+      {
+        "p": "a",
+        "w": "persuasif",
+        "r": "persuasi",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "説得力のある、対話的で穏やかな説得による（警察・行政ニュースで『pendekatan persuasif＝対話・説得によるアプローチ』⇔『pendekatan represif＝強硬・実力行使』の対比で毎日出る！）",
+        "ex": "Petugas terlebih dahulu mengedepankan pendekatan persuasif agar para pedagang kaki lima bersedia pindah ke lokasi resmi dengan sukarela.",
+        "tr": "係官は露店商たちが自発的に公式エリアへ移転してくれるよう、まず対話による説得アプローチを優先した。",
+        "note": "■ 【行政・治安ニュースの黄金対比】：pendekatan persuasif（対話・説得型） ⇔ pendekatan represif（強硬・取締り型）。"
+      },
+      {
+        "p": "a",
+        "w": "progresif",
+        "r": "progres",
+        "tier": 1,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "①進歩的な、前向きに改革を進める（⇔ konservatif＝保守的な） ②（税制の）累進的な（pajak progresif＝所得や所有台数が増えるほど税率が上がる累進課税！）",
+        "ex": "Pemerintah provinsi menerapkan tarif pajak progresif bagi warga yang memiliki lebih dari satu kendaraan bermotor atas nama sama.",
+        "tr": "州政府は、同一名義で複数の自動車・バイクを所有する市民に対して累進課税率を適用している。",
+        "note": "■ 【インドネシア生活の超頻出語】：pajak progresif kendaraan（2台目以降の自動車税が高くなる累進課税）と、思想・政策の『pemikiran progresif（進歩的な思考）』の2大用法！"
+      },
+      {
+        "p": "a",
+        "w": "konservatif",
+        "r": "konservatif",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①保守的な、伝統や現状維持を重んじる（⇔ progresif / liberal） ②（投資・予測などが）慎重な、控えめな、安全重視の（investor konservatif＝堅実派投資家）",
+        "ex": "Investor bertipe konservatif biasanya lebih memilih instrumen berisiko rendah seperti deposito dan obligasi pemerintah.",
+        "tr": "保守的（慎重派）タイプの投資家は通常、定期預金や国債のような低リスク商品を好む。",
+        "note": "■ 【2大頻出文脈】：① 政治・社会『kelompok / pandangan konservatif（保守派／保守的見解）』、② 金融・経済『target konservatif（控えめな目標値）』。"
+      },
+      {
+        "p": "a",
+        "w": "moderat",
+        "r": "moderat",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "穏健な、中道的な、極端に走らない、ほどよい（インドネシアの宗教・外交を語る超重要キーワード『Islam moderat＝穏健イスラム』『sikap moderat＝中道姿勢』！）",
+        "ex": "Sikap beragama yang moderat dan saling menghargai perbedaan menjadi pilar penting kerukunan di Indonesia.",
+        "tr": "穏健で違いを尊重し合う信仰の姿勢は、インドネシアにおける調和の重要な柱となっている。",
+        "note": "■ 【政治・宗教の座標セット】：moderat（穏健・中道） ⇔ radikal / ekstrem（過激・極端）。名詞形：moderasi（穏健化・節度：moderasi beragama）。"
+      },
+      {
+        "p": "a",
+        "w": "radikal",
+        "r": "radikal",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①急進的な、過激な（paham radikal＝過激思想 ⇔ moderat） ②根本的な、抜本的な（perubahan radikal＝抜本的改革）",
+        "ex": "Perguruan tinggi berperan penting menanamkan wawasan kebangsaan untuk membentengi mahasiswa dari pengaruh paham radikal.",
+        "tr": "大学は過激思想の影響から学生を守るため、国家観（共生意識）を育む上で重要な役割を果たしている。",
+        "note": "■ 【関連語】：radikalisme（過激主義）、deradikalisasi（脱過激化プログラム）、perubahan radikal（抜本的変革）。"
+      },
+      {
+        "p": "a",
+        "w": "pesimis",
+        "r": "pesimis",
+        "tier": 1,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "悲観的な、悲観主義者（⇔ optimis＝楽観的な。KBBI厳密な形容詞形は『pesimistis』だが、ニュース・会話では『pesimis』が圧倒的に一般的！）",
+        "ex": "Meskipun menghadapi persaingan ketat, kita tidak boleh bersikap pesimis sebelum mencoba memberikan usaha terbaik.",
+        "tr": "激しい競争に直面しても、最善の努力を試みる前から悲観的な態度をとってはならない。",
+        "note": "■ 【対義ペア】：optimis / optimistis（楽観的な） ⇔ pesimis / pesimistis（悲観的な）。名詞：pesimisme（悲観主義）。"
+      },
+      {
+        "p": "a",
+        "w": "tragis",
+        "r": "tragis",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "悲劇的な、痛ましい、惨めな（kecelakaan tragis＝痛ましい事故、akhir yang tragis＝悲劇的な結末）",
+        "ex": "Insiden kecelakaan beruntun di jalur turunan tajam itu berakhir tragis dan meninggalkan duka mendalam bagi keluarga korban.",
+        "tr": "急な下り坂での玉突き事故は悲劇的な結末を迎え、被害者遺族に深い悲しみを残した。",
+        "note": "■ 【関連語】：tragedi（悲劇・大惨事）、miris（胸が痛む・痛ましい）。"
+      },
+      {
+        "p": "a",
+        "w": "buntu",
+        "r": "buntu",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①行き止まりの、塞がった（jalan buntu＝袋小路・行き詰まり、usus buntu＝盲腸・虫垂炎！） ②（交渉・思考・捜査が）行き詰まった、暗礁に乗り上げた",
+        "ex": "Perundingan upah antara manajemen dan perwakilan buruh masih buntu karena kedua pihak belum menemukan titik temu.",
+        "tr": "経営陣と労働者代表との賃金交渉は、双方がまだ妥協点を見いだせていないため依然として行き詰まっている。",
+        "note": "■ 【超重要な3大コロケーション】：\n・jalan buntu（行き止まり・デッドロック）\n・usus buntu（盲腸・虫垂炎！）\n・kebuntuan（名詞：膠着状態・行き詰まり：memecah kebuntuan＝膠着を打破する）"
+      },
+      {
+        "p": "a",
+        "w": "klise",
+        "r": "klise",
+        "tier": 1,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "①ありきたりな、陳腐な、聞き飽きた常套句の（alasan klise＝ありきたりな言い訳、alur cerita klise＝ベタな展開） ②（写真の）ネガフィルム、原版",
+        "ex": "Film itu mendapat kritik karena jalan ceritanya dianggap terlalu klise dan mudah ditebak sejak awal.",
+        "tr": "その映画はストーリー展開があまりにもありきたり（陳腐）で最初から予測しやすいとして批判を受けた。",
+        "note": "■ 【語源】：フランス語 cliché 由来。映画レビュー・書評・政治家の言い訳批判でよく使われる知的形容詞！"
+      },
+      {
+        "p": "a",
+        "w": "arkais",
+        "r": "arkais",
+        "tier": 1,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "古語の、古風な、時代遅れの（KBBI辞書で古語・廃語に付くラベル『ark』の正体！文学や言語学で必須 ⇔ mutakhir / modern）",
+        "ex": "Dalam hikayat Melayu klasik, kita masih sering menjumpai kosakata arkais yang kini sudah jarang dipakai dalam percakapan sehari-hari.",
+        "tr": "古典マレー物語の中では、現代の日常会話ではもうめったに使われない古語（アルカイス語彙）に今もしばしば出会う。",
+        "note": "■ 【辞書ユーザー必携知識】：KBBIオンラインを引いたときに出るラベル『ark』がこの『arkais（古語・死語）』！"
+      },
+      {
+        "p": "a",
+        "w": "anyar",
+        "r": "anyar",
+        "tier": 1,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "新しい、新加入の、最新の（ジャワ語由来で標準語『baru』の粋な言い換え！スポーツ紙の『pemain anyar＝新加入選手』『pelatih anyar＝新監督』や『model anyar＝新型モデル』で超頻出！）",
+        "ex": "Klub sepak bola tersebut resmi memperkenalkan penyerang anyar asal Brasil menjelang bergulirnya musim kompetisi baru.",
+        "tr": "そのサッカークラブは新シーズン開幕を前に、ブラジル出身の新加入フォワードを正式にお披露目した。",
+        "note": "■ 【ニュース＆日常の「新しい」3語】：baru（標準）、anyar（ジャワ語由来：スポーツ・自動車ニュースで超愛用！）、gres（新品ピカピカ）。"
+      },
+      {
+        "p": "a",
+        "w": "gres",
+        "r": "gres",
+        "tier": 1,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "新品ピカピカの、出たばかりの、おろしたての（『baru gres＝まっさらな新品』として車・スマホ・映画・靴などに使う生き生きした形容詞！）",
+        "ex": "Ia tampak sangat bangga mengendarai sepeda motor listrik baru gres yang baru saja diantar dari diler pagi ini.",
+        "tr": "今朝ディーラーから届いたばかりの新品ピカピカの電動バイクに乗って、彼はとても誇らしげに見えた。",
+        "note": "■ 【重要コロケーション】：baru gres（まっさらの新品、ホヤホヤの最新作）。"
+      },
+      {
+        "p": "other",
+        "w": "sejatinya",
+        "r": "jati",
+        "tier": 1,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "本来は、実のところは、本質的には（＝sesungguhnya / pada hakikatnya / sebenarnya。論説・社説・エッセイを一気に格上げする最強の副詞！）",
+        "ex": "Teknologi kecerdasan buatan sejatinya diciptakan untuk membantu pekerjaan manusia, bukan menggantikan empati dan etika.",
+        "tr": "人工知能技術は本来、人間の仕事を助けるために作られたのであり、共感や倫理に取って代わるものではない。",
+        "note": "■ 【語構成】：se- + jati（真の・本物の）+ -nya。\n■ 【類義副詞セット】：sejatinya（本来・本質的に）、pada hakikatnya（本質的には）、sesungguhnya（実に・本当は）。"
+      },
+      {
+        "p": "other",
+        "w": "sepatutnya",
+        "r": "patut",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "当然〜すべきである、〜するのがふさわしい・筋である（＝selayaknya / semestinya / seharusnya。礼儀・倫理・公的責任を語る硬い文章で頻出！）",
+        "ex": "Sebagai pejabat publik, beliau sepatutnya menjadi teladan dalam mematuhi peraturan lalu lintas dan membayar pajak tepat waktu.",
+        "tr": "公職者として、彼は交通規則を守り期限通りに納税する模範となるのが当然だ（そうすべきである）。",
+        "note": "■ 【語構成】：se- + patut（ふさわしい・当然の）+ -nya。\n■ 【「〜すべき」副詞の格式順】：seharusnya（標準） ＜ semestinya（当然〜のはず） ＜ sepatutnya / selayaknya / seyogianya（硬め・論説文）。"
+      },
+      {
+        "p": "other",
+        "w": "sedianya",
+        "r": "sedia",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "当初の予定では、本来ならば（予定されていたが実際には変更・延期・中止になった文脈で使う超重要ニュース副詞！）",
+        "ex": "Rapat paripurna yang sedianya digelar pukul sembilan pagi terpaksa ditunda hingga siang hari karena peserta belum memenuhi kuorum.",
+        "tr": "当初朝9時に開催される予定だった本会議は、出席者が定足数に達しなかったため昼まで延期せざるを得なくなった。",
+        "note": "■ 【検定B〜A級の狙い目語！】：『sedianya（当初の予定では〜のはずだった）』は後ろに『namun batal / ditunda（しかし中止／延期された）』が続くのがお約束パターン！"
+      },
+      {
+        "p": "other",
+        "w": "sontak",
+        "r": "sontak",
+        "tier": 1,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "とっさに、たちまち、一斉に驚いて（予想外の出来事に周囲が瞬間的に反応するさま！＝serta-merta / seketika。ニュースや物語描写で超頻出！）",
+        "ex": "Pengumuman gol kemenangan pada detik terakhir sontak disambut sorak-sorai gemuruh seluruh penonton di stadion.",
+        "tr": "ラスト1秒の決勝ゴールの瞬間、スタジアムの観客全員からたちまち割れんばかりの歓声が湧き上がった。",
+        "note": "■ 【重要コロケーション】：sontak kaget / terkejut / viral / riuh（たちまち驚いた／瞬く間にバズった／一斉に騒然となった）。"
+      },
+      {
+        "p": "other",
+        "w": "walhasil",
+        "r": "hasil",
+        "tier": 1,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "その結果、結局のところ、ついに（＝alhasil / akibatnya / akhirnya。文頭で「結局こうなってしまった」という帰結を述べる書き言葉接続詞！）",
+        "ex": "Mereka berangkat menuju bandara terlalu mepet saat jam pulang kerja; walhasil, pesawat mereka hampir saja tertinggal.",
+        "tr": "彼らは退勤ラッシュ時にギリギリで空港へ出発した。その結果、危うく飛行機に乗り遅れるところだった。",
+        "note": "■ 【アラビア語由来ペア】：alhasil / walhasil（いずれも「結果として・結局のところ」）。"
+      },
+      {
+        "p": "other",
+        "w": "berjamaah",
+        "r": "jamaah",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①（礼拝などを）集団で、みんなで揃って（salat berjamaah＝集団礼拝 ※KBBI標準綴りは『berjemaah』） ②（※ニュースの皮肉比喩で）グルになって集団で（korupsi berjamaah＝組織ぐるみの集団汚職！）",
+        "ex": "Selain bermakna ibadah bersama di masjid, istilah korupsi berjamaah sering dipakai media untuk menggambarkan penyimpangan yang melibatkan banyak pejabat sekaligus.",
+        "tr": "モスクでの集団礼拝を意味するほか、『集団汚職（korupsi berjamaah）』という言葉は複数の高官が同時に絡む不正を表すためにメディアでよく使われる。",
+        "note": "■ 【2大文脈】：① 本義『salat berjamaah（集団礼拝）』、② 報道比喩『korupsi berjamaah（ぐるになった集団汚職）』。KBBI標準綴りは『berjemaah』、報道・日常は『berjamaah』も広く使われる。"
+      },
+      {
+        "p": "other",
+        "w": "beramai-ramai",
+        "r": "ramai",
+        "tier": 1,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "大勢で一緒に、みんなで一斉に、こぞって（＝bersama-sama / berbondong-bondong）",
+        "ex": "Warga desa beramai-ramai turun ke lapangan untuk membersihkan sampah dan lumpur sisa banjir kemarin.",
+        "tr": "村人たちは昨日の洪水の残りのごみと泥を掃除するため、大勢で一斉に広場へ繰り出した。",
+        "note": "■ 【語構成】：ber- + ramai-ramai（賑やかに大勢で）。口語では単に『ramai-ramai / rame-rame』とも言う。"
+      },
+      {
+        "p": "other",
+        "w": "sungguhpun",
+        "r": "sungguh",
+        "tier": 1,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "〜にもかかわらず、たとえ〜であっても（＝meskipun / walaupun / kendatipun。格調高い文語・論説・検定上位級の譲歩接続詞！）",
+        "ex": "Sungguhpun menghadapi keterbatasan dana penelitian, tim mahasiswa itu tetap berhasil menciptakan purwarupa alat bantu yang inovatif.",
+        "tr": "研究資金の制約に直面していたにもかかわらず、その学生チームは革新的な補助器具のプロトタイプを作り上げることに成功した。",
+        "note": "■ 【正書法ルール】：『sungguhpun』は『meskipun / walaupun / kendatipun / biarpun』と同じく接続詞なので、pun をスペースなしで1語に結合して綴る！"
+      },
+      {
+        "p": "other",
+        "w": "walau",
+        "r": "walau",
+        "tier": 1,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "〜けれども、〜にもかかわらず、たとえ〜でも（『walaupun』の短縮形！会話・歌詞・見出し・エッセイすべてで超頻出）",
+        "ex": "Walau jarak memisahkan kami di dua negara berbeda, komunikasi melalui pesan singkat tetap terjaga setiap pekan.",
+        "tr": "距離が私たちを2つの異なる国に隔てていても、メッセージでの連絡は毎週ずっと続いている。",
+        "note": "■ 【関連語】：walaupun（〜にもかかわらず）、meski / meskipun（〜にもかかわらず）。"
+      },
+      {
+        "p": "other",
+        "w": "bilamana",
+        "r": "bila",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "もし〜ならば、〜するときはいつでも（＝apabila / jika / kalau。法律・契約書・公式案内で好まれる硬い条件・時の接続詞！）",
+        "ex": "Perjanjian kerja sama ini dapat dibatalkan secara sepihak bilamana salah satu pihak melanggar ketentuan pokok kontrak.",
+        "tr": "一方の当事者が契約の基本規定に違反した場合（〜ならば）、本協力契約は一方的に解除され得る。",
+        "note": "■ 【硬い条件接続詞4点セット】：apabila（〜の場合）、bilamana（もし〜ならば）、jikalau（もし〜なら）、manakala（〜するときには）。"
+      },
+      {
+        "p": "other",
+        "w": "manakala",
+        "r": "kala",
+        "tier": 1,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "〜するときに、〜する場合には（＝ketika / tatkala / apabila。新聞論説・文学・公式声明で時間と条件を上品につなぐ接続詞！）",
+        "ex": "Krisis kepercayaan publik mudah muncul manakala lembaga penegak hukum gagal bersikap transparan dan adil.",
+        "tr": "法執行機関が透明かつ公正な態度を保てないときに、国民の信頼危機は容易に生じる。",
+        "note": "■ 【kala（時）ファミリー】：tatkala（〜のとき）、manakala（〜するときに）、adakalanya（時には）、berkala（定期的な）。"
+      },
+      {
+        "p": "other",
+        "w": "jikalau",
+        "r": "jika",
+        "tier": 1,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "もし〜ならば、仮に〜だとしたら（＝jika / kalau。jika と kalau が合わさったやや古風・丁寧な書き言葉・スピーチ用接続詞）",
+        "ex": "Jikalau tidak ada halangan yang berarti, rombongan tamu kehormatan akan tiba di bandara tepat pukul sepuluh pagi.",
+        "tr": "もし大きな支障がなければ、賓客一行は午前10時ちょうどに空港へ到着する予定だ。",
+        "note": "■ 【「もし〜なら」の使い分け】：kalau（日常会話で最頻出） ／ jika・apabila（標準書き言葉） ／ jikalau・bilamana（格調高い文章・契約・演説）。"
+      },
+      {
+        "p": "other",
+        "w": "andaikan",
+        "r": "andai",
+        "tier": 1,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "もし〜だとしたら、仮に〜と仮定しよう（反事実の仮定や想像を導く接続詞＝seandainya / andai kata。歌詞やエッセイの冒頭でも超定番！）",
+        "ex": "Andaikan waktu dapat diputar kembali, ia ingin memanfaatkan masa mudanya untuk belajar lebih banyak bahasa asing.",
+        "tr": "もし時間を巻き戻せるなら、彼は若い頃をもっと多くの外国語を学ぶために活かしたいと思っている。",
+        "note": "■ 【andai（仮定）ファミリー】：andai / andaikan / seandainya / andai kata（もし〜なら）、berandai-andai（もし〜だったらと空想する）。"
+      }
+    ];
+
+    const idxByWord = new Map();
+    for (let i = 0; i < d.vocab.length; i++) {
+      const it = d.vocab[i];
+      if (it && it.w) idxByWord.set(it.w.trim().toLowerCase(), i);
+    }
+
+    for (let i = 0; i < B2A_ADJ_ADV_39.length; i++) {
+      const item = B2A_ADJ_ADV_39[i];
+      if (!item || !item.w) continue;
+      const key = item.w.trim().toLowerCase();
+
+      delete item.dictOnly;
+      item.tier = 1;
+      dictOnlySet.delete(key);
+
+      if (item.topicCat) {
+        catMap.set(key, item.topicCat);
+      }
+
+      if (idxByWord.has(key)) {
+        const pos = idxByWord.get(key);
+        Object.assign(d.vocab[pos], item);
+        delete d.vocab[pos].dictOnly;
+        vMap.set(key, d.vocab[pos]);
+        persistentAdded.set(key, d.vocab[pos]);
+      } else {
+        d.vocab.push(item);
+        idxByWord.set(key, d.vocab.length - 1);
+        vMap.set(key, item);
+        persistentAdded.set(key, item);
+      }
+    }
+  } catch (e) {
+    console.error("WhatsIndo B2A Adj/Adv 39 pack error:", e);
+  }
+})();
+/* =====================================================================
+   WhatsIndo セクション3「比喩名詞・社会・司法ワード」全56語パック（ハイブリッド安全直結版）
+   - 出題対象（37語・tier: 1）：
+     ① 定番の比喩名詞（16語）：cetak biru, peta jalan, benang merah, batu loncatan,
+        lingkaran setan, buah simalakama, pisau bermata dua, senjata makan tuan,
+        fenomena gunung es, bom waktu, lampu kuning, bola panas, bola liar,
+        buntut, blunder, euforia
+     ② 社会・治安・政治の頻出語（21語）：akar rumput, pungli, makelar, preman,
+        begal, copet, rampok, gembong, otak pelaku, kaki tangan, saksi kunci,
+        saksi ahli, preseden, moratorium, ultimatum, kompromi, stigma, tabu,
+        skandal, faksi, kubu
+   - 辞書専用（19語・dictOnly: true, tier: 3）：
+     ③ 細かい司法・制度語（7語）：yurisprudensi, arbitrase, terlapor, termohon,
+        terperiksa, saksi mahkota, eksekutor
+     ④ 外来語・ニッチな社会語（12語）：propaganda, hegemoni, infiltrasi,
+        marginalisasi, mafia, premanisme, upeti, borok, antek, wong cilik,
+        kaum marjinal, kaum duafa
+   - **記号ゼロ・文字バグゼロ・try-catch完全保護
+   ===================================================================== */
+(function() {
+  try {
+    const d = window.WHATSINDO_EXTERNAL_DATA;
+    if (!d || !Array.isArray(d.vocab)) return;
+
+    const dictOnlySet     = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+    const persistentAdded = window.__wiPersistentAddedVocab || (window.__wiPersistentAddedVocab = new Map());
+    const vMap            = window.__wiMasterVocabMap || (window.__wiMasterVocabMap = new Map());
+    const catMap          = window.__WI_V5_VCAT || (window.__WI_V5_VCAT = new Map());
+
+    const SEC3_NEWS_NOUNS_56 = [
+      {
+        "p": "n",
+        "w": "cetak biru",
+        "r": "cetak",
+        "tier": 1,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "青写真、マスタープラン、基本設計図（英語 blueprint の公式インドネシア語！国家・企業の中長期計画『cetak biru pembangunan』で超頻出）",
+        "ex": "Kementerian menyusun cetak biru transformasi digital nasional untuk sepuluh tahun ke depan.",
+        "tr": "省は今後10年間の国家デジタル変革の青写真（マスタープラン）を策定した。",
+        "note": "■ 【政策・ビジネス定番ペア】：cetak biru（青写真・全体設計図） ／ peta jalan（ロードマップ・工程表）。"
+      },
+      {
+        "p": "n",
+        "w": "peta jalan",
+        "r": "peta",
+        "tier": 1,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "ロードマップ、段階的工程表（英語 roadmap の公式インドネシア語！目標達成に向けた具体的ステップを示す計画書）",
+        "ex": "Pemerintah meluncurkan peta jalan transisi energi guna mencapai target emisi nol bersih secara bertahap.",
+        "tr": "政府は排出実質ゼロ目標を段階的に達成するため、エネルギー転換のロードマップを発表した。",
+        "note": "■ 【重要コロケーション】：peta jalan industri / hilirisasi / transisi energi（産業／下流化／エネルギー転換のロードマップ）。"
+      },
+      {
+        "p": "n",
+        "w": "benang merah",
+        "r": "benang",
+        "tier": 1,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "一貫した筋道、共通のテーマ、核心的なつながり（『menarik benang merah＝共通点・一貫した筋を見出す』として論文・ニュース解説で超頻出！）",
+        "ex": "Moderator seminar berhasil menarik benang merah dari berbagai pandangan pembicara yang semula tampak berbeda.",
+        "tr": "セミナーの司会者は、一見異なって見えた各登壇者の見解から一貫した筋道（共通の核）を引き出すことに成功した。",
+        "note": "■ 【語源イメージ】：直訳は「赤い糸」だが恋愛ではなく、複雑な議論や事件を貫く「一本の筋・共通のつながり（＝hubungan yang jelas）」を表す！"
+      },
+      {
+        "p": "n",
+        "w": "batu loncatan",
+        "r": "loncat",
+        "tier": 1,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "踏み台、ステップアップの足がかり（英語 stepping stone：キャリアや成功の次の段階へ跳ぶための通過点）",
+        "ex": "Pengalaman magang di perusahaan rintisan tersebut menjadi batu loncatan penting bagi karier profesionalnya.",
+        "tr": "そのスタートアップ企業でのインターン経験は、彼のプロとしてのキャリアにとって重要な足がかり（踏み台）となった。",
+        "note": "■ 【重要コロケーション】：menjadikan A sebagai batu loncatan（Aをステップアップの踏み台・足がかりにする）。"
+      },
+      {
+        "p": "n",
+        "w": "lingkaran setan",
+        "r": "lingkar",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "悪循環、負のスパイラル（英語 vicious circle：原因と結果が連鎖して抜け出せない状態！『lingkaran setan kemiskinan＝貧困の悪循環』で超頻出）",
+        "ex": "Pendidikan berkualitas merupakan kunci utama untuk memutus lingkaran setan kemiskinan antargenerasi.",
+        "tr": "質の高い教育は、世代間の貧困の悪循環を断ち切るための最大の鍵である。",
+        "note": "■ 【動詞コロケーション】：memutus lingkaran setan（悪循環を断ち切る）、terjebak dalam lingkaran setan（悪循環にはまり込む）。"
+      },
+      {
+        "p": "n",
+        "w": "buah simalakama",
+        "r": "buah",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "進退両難、究極のジレンマ（食べれば母が死に、食べなければ父が死ぬという民話の果実が語源！『bagai makan buah simalakama＝どっちを選んでも地獄』）",
+        "ex": "Kenaikan harga bahan bakar bersubsidi sering menjadi buah simalakama bagi pemerintah antara beban anggaran dan daya beli rakyat.",
+        "tr": "補助金付き燃料の値上げは、財政負担と国民の購買力の板挟みとなり、政府にとってしばしば究極のジレンマ（進退両難）になる。",
+        "note": "■ 【インドネシア超有名比喩】：『bagai makan buah simalakama（シマカマの実を食べるよう＝進むも地獄、退くも地獄）』。類義語：dilema（ジレンマ）。"
+      },
+      {
+        "p": "n",
+        "w": "pisau bermata dua",
+        "r": "pisau",
+        "tier": 1,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "諸刃（もろは）の剣（便利なメリットと深刻なリスク・弊害の両面を併せ持つもの！英語 double-edged sword）",
+        "ex": "Perkembangan kecerdasan buatan ibarat pisau bermata dua yang mampu meningkatkan produktivitas sekaligus memicu risiko disinformasi.",
+        "tr": "人工知能の発展は、生産性を高め得る一方で偽情報リスクをも引き起こす諸刃の剣のようなものだ。",
+        "note": "■ 【論説文の鉄板比喩】：AI・SNS・借金・規制緩和など「良い面と悪い面が表裏一体」のテーマでそのまま使える！"
+      },
+      {
+        "p": "n",
+        "w": "senjata makan tuan",
+        "r": "senjata",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "自業自得、しっぺ返し、自分の策・武器が裏目に出て自分自身を傷つけること（直訳：武器が主人を食らう！）",
+        "ex": "Kampanye hitam yang dilancarkan untuk menjatuhkan lawan justru menjadi senjata makan tuan setelah publik mengetahui faktanya.",
+        "tr": "相手を蹴落とすために仕掛けたネガティブキャンペーンは、世間が事実を知った後、かえって自分に跳ね返るしっぺ返しとなった。",
+        "note": "■ 【ニュース＆日常定番】：『menjadi senjata makan tuan（自分の武器で自分がやられる＝裏目に出る・ブーメランになる）』。"
+      },
+      {
+        "p": "n",
+        "w": "fenomena gunung es",
+        "r": "fenomena",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "氷山の一角現象（表に出ている事件・感染者・被害はほんの一部で、水面下に何倍もの実態が隠れていること！）",
+        "ex": "Para peneliti menilai kasus penipuan daring yang dilaporkan ke polisi hanyalah fenomena gunung es dari jumlah korban sebenarnya.",
+        "tr": "研究者たちは、警察に通報されたオンライン詐欺事件は実際の被害者数から見れば氷山の一角にすぎないと見ている。",
+        "note": "■ 【ニュース超頻出】：汚職・感染症・いじめ・違法賭博・DVなどの社会問題報道で必ず出てくる定番比喩！"
+      },
+      {
+        "p": "n",
+        "w": "bom waktu",
+        "r": "bom",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "時限爆弾（放置すればいずれ大惨事や危機を引き起こす潜在的な大問題！『bom waktu demografi / sampah / utang』）",
+        "ex": "Penumpukan sampah plastik di laut tanpa pengelolaan serius dapat menjadi bom waktu bagi ekosistem pesisir.",
+        "tr": "本格的な対策なしでの海洋プラスチックごみの蓄積は、沿岸生態系にとって時限爆弾になりかねない。",
+        "note": "■ 【重要コロケーション】：menjadi bom waktu（時限爆弾となる）、menjinakkan bom waktu（時限爆弾を解除する＝危機を未然に防ぐ）。"
+      },
+      {
+        "p": "n",
+        "w": "lampu kuning",
+        "r": "lampu",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①黄信号、警戒サイン、警告段階（経済や治安が悪化しつつある注意喚起！） ②信号機の黄色",
+        "ex": "Penurunan ekspor selama tiga bulan berturut-turut menjadi lampu kuning bagi daya saing industri manufaktur nasional.",
+        "tr": "3ヶ月連続の輸出減少は、国内製造業の競争力にとって黄信号（警戒サイン）となっている。",
+        "note": "■ 【信号比喩3点セット】：lampu hijau（青信号＝ゴーサイン・承認） ／ lampu kuning（黄信号＝警戒・注意報） ／ lampu merah（赤信号＝危険・停止警告）。"
+      },
+      {
+        "p": "n",
+        "w": "bola panas",
+        "r": "bola",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "厄介な火種、誰も引き受けたがらない熱い問題（直訳：熱いボール！『melempar bola panas＝厄介な責任を他人へ押し付ける』）",
+        "ex": "Usulan revisi aturan tersebut kini berubah menjadi bola panas yang terus digulirkan antarfraksi di parlemen.",
+        "tr": "その規則改正案はいまや、国会内の会派間でたらい回しにされ続ける厄介な火種（熱いボール）と化している。",
+        "note": "■ 【bola 比喩ペア】：bola panas（誰も触りたがらない厄介な政治問題・責任） ／ bola liar（制御不能に暴走する噂やスキャンダル）。"
+      },
+      {
+        "p": "n",
+        "w": "bola liar",
+        "r": "bola",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "制御不能に広がる噂・騒動、どこへ転がるか予測不能な問題（直訳：野生のボール・ルーズボール！『menjadi bola liar＝炎上・憶測が独り歩きする』）",
+        "ex": "Kementerian segera memberikan klarifikasi resmi agar isu pemotongan anggaran tidak berkembang menjadi bola liar di masyarakat.",
+        "tr": "予算削減の噂が世間で制御不能な騒動（独り歩き）に発展しないよう、省は直ちに公式説明を行った。",
+        "note": "■ 【報道定番表現】：isu bergulir menjadi bola liar（噂や問題が転がり続けて収拾がつかなくなる）。"
+      },
+      {
+        "p": "n",
+        "w": "buntut",
+        "r": "buntut",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①（事件・問題・失言などの）余波、発端の結果（『buntut dari ~＝〜の余波で／〜がきっかけで』はニュース見出しの超定番！） ②（動物の）しっぽ、尾（『sop buntut＝オックステールスープ』！）",
+        "ex": "Pencabutan izin operasional restoran itu merupakan buntut dari temuan pelanggaran standar kebersihan pekan lalu.",
+        "tr": "そのレストランの営業許可取り消しは、先週の衛生基準違反の発覚に伴う余波（結果）である。",
+        "note": "■ 【2大超頻出用法】：\n① ニュース：buntut dari ~（〜の余波で）、berbuntut panjang（長く尾を引く大問題になる）\n② グルメ：sop buntut（牛テールスープ＝インドネシア屈指のごちそう！）"
+      },
+      {
+        "p": "n",
+        "w": "blunder",
+        "r": "blunder",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "痛恨のミス、大ポカ、致命的な失言・判断ミス（政治家の失言、企業の炎上対応、サッカーのキーパーのミスまで毎日使われる！）",
+        "ex": "Kiper tersebut melakukan blunder fatal pada menit akhir yang membuat timnya gagal mempertahankan keunggulan.",
+        "tr": "そのキーパーは試合終了間際に痛恨のミスを犯し、チームはリードを守り切れなかった。",
+        "note": "■ 【重要コロケーション】：blunder fatal（致命的な大ポカ）、blunder komunikasi（広報・発言の大失態）。"
+      },
+      {
+        "p": "n",
+        "w": "euforia",
+        "r": "euforia",
+        "tier": 1,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "熱狂、歓喜の渦、浮かれ気分（優勝・選挙勝利・相場急騰などで理性を忘れるほど盛り上がる高揚状態！）",
+        "ex": "Pelatih mengingatkan para pemain agar tidak larut terlalu lama dalam euforia kemenangan karena laga final masih menanti.",
+        "tr": "監督は決勝戦がまだ控えているため、選手たちに勝利の熱狂（浮かれ気分）にいつまでも浸りすぎないよう釘を刺した。",
+        "note": "■ 【重要コロケーション】：euforia kemenangan / pasar / pemilu（勝利の熱狂／市場の過熱高揚／選挙のお祭り騒ぎ）、larut dalam euforia（熱狂に酔いしれる）。"
+      },
+      {
+        "p": "n",
+        "w": "akar rumput",
+        "r": "akar",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "草の根、一般庶民層、現場の地域住民（英語 grassroots の訳語！『tingkat akar rumput＝草の根レベル』として政治・選挙・社会活動で超頻出）",
+        "ex": "Gerakan literasi yang tumbuh dari tingkat akar rumput sering kali jauh lebih bertahan lama daripada program sesaat.",
+        "tr": "草の根レベルから育った読書推進運動は、一時的なプログラムよりもしばしばはるかに長続きする。",
+        "note": "■ 【対比表現】：akar rumput（草の根・一般市民層） ⇔ elite politik（政治エリート層）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "pungli",
+        "r": "pungutan liar",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "違法徴収、不正な金銭要求、袖の下（法的根拠のない手数料・違法な駐車料金・許認可のわいろ等、インドネシア社会ニュースの超代表アクロニム！）",
+        "ex": "Digitalisasi pembayaran parkir dan perizinan dinilai sangat efektif untuk menutup celah praktik pungli di lapangan.",
+        "tr": "駐車料金や許認可決済のデジタル化は、現場での違法徴収（プンリ）の余地を塞ぐのに非常に効果的だと評価されている。",
+        "note": "■ 【関連語】：Satgas Saber Pungli（違法徴収撲滅タスクフォース）、memberantas pungli（違法徴収を根絶する）。"
+      },
+      {
+        "p": "n",
+        "w": "makelar",
+        "r": "makelar",
+        "tier": 1,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "ブローカー、仲介屋、口利き業者（不動産・土地・中古車の仲介屋から、裁判や政界の不正な『makelar kasus [markus]＝事件屋・司法ブローカー』まで広く使う！）",
+        "ex": "Pembeli disarankan bertransaksi langsung dengan pemilik tanah resmi guna menghindari biaya tambahan dari makelar tak berizin.",
+        "tr": "無許可のブローカーによる追加手数料を避けるため、買い手は正規の土地所有者と直接取引することが勧められている。",
+        "note": "■ 【仲介系3語の区別】：makelar（不動産・事件等のブローカー）、calo（チケット・免許・役所のダフ屋／闇仲介）、tengkulak（農作物を買い叩く中間買い付け人）。"
+      },
+      {
+        "p": "n",
+        "w": "preman",
+        "r": "preman",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①チンピラ、ゴロツキ、ヤクザ紛いの不良（路上や市場で縄張りみかじめ料を取る荒くれ者） ②（※本来のオランダ語 vrijman 由来）私服の、非番の（polisi berpakaian preman＝私服警官！）",
+        "ex": "Kepolisian rutin menggelar patroli malam untuk menertibkan aksi pemalakan oleh preman di kawasan terminal dan pasar.",
+        "tr": "警察はターミナルや市場エリアでのチンピラによる恐喝（カツアゲ）を取り締まるため、夜間パトロールを定期的に行っている。",
+        "note": "■ 【超おもしろ語源注意！】：オランダ語 vrijman（自由市民）由来のため、『polisi berpakaian preman』は「チンピラの服を着た警官」ではなく「私服警官（制服でない一般服の警官）」の意味！"
+      },
+      {
+        "p": "n",
+        "w": "begal",
+        "r": "begal",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "バイク強盗、夜間の追い剥ぎ（暗い夜道で刃物などで脅しバイクや貴重品を奪う強盗犯！動詞：membegal。治安ニュースで超頻出）",
+        "ex": "Warga diminta menghindari jalanan sepi yang minim penerangan pada larut malam demi mewaspadai aksi begal.",
+        "tr": "バイク強盗（ブガル）を警戒するため、住民には深夜に街灯が少ない人通りのない道を避けるよう注意喚起されている。",
+        "note": "■ 【防犯用語4点セット】：copet（スリ）、jambret（ひったくり）、rampok（強盗）、begal（夜道でのバイク強盗・追い剥ぎ）。"
+      },
+      {
+        "p": "n",
+        "w": "copet",
+        "r": "copet",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "スリ、すり犯（満員電車・バス・市場の人混みで気づかれずに財布やスマホを抜き取る犯人！被害に遭う＝『kecopetan』）",
+        "ex": "Berhati-hatilah menyimpan dompet dan ponsel di dalam tas depan saat naik angkutan umum yang padat agar tidak menjadi sasaran copet.",
+        "tr": "スリの標的にならないよう、混雑した公共交通機関に乗るときは財布とスマホを前掛けのバッグに気をつけてしまおう。",
+        "note": "■ 【関連語】：pencopet（スリ犯）、mencopet（する）、kecopetan（スリに遭う＝旅行サバイバル重要語！）。"
+      },
+      {
+        "p": "n",
+        "w": "rampok",
+        "r": "rampok",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "強盗、押し入り強盗（暴力や脅迫を伴って家・店・銀行から金品を奪うこと／犯人＝perampok、動詞＝merampok、被害に遭う＝kerampokan）",
+        "ex": "Kawanan rampok bersenjata itu akhirnya berhasil diringkus aparat kurang dari dua puluh empat jam setelah kejadian.",
+        "tr": "その武装強盗団は、事件発生から24時間足らずでついに当局によって取り押さえられた。",
+        "note": "■ 【rampok 関連語ファミリー】：merampok（強盗する）、perampok（強盗犯）、perampokan（強盗事件）、kerampokan（強盗被害に遭う）。"
+      },
+      {
+        "p": "n",
+        "w": "gembong",
+        "r": "gembong",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "（犯罪組織・麻薬カルテル・テロ組織などの）首領、大物ボス、親玉（gembong narkoba＝麻薬王・麻薬密売組織のボス！）",
+        "ex": "Tim gabungan lintas negara berhasil menangkap gembong narkoba internasional yang telah lama menjadi buronan.",
+        "tr": "多国籍合同チームは、長らく逃亡犯となっていた国際麻薬組織の首領（大物ボス）の逮捕に成功した。",
+        "note": "■ 【事件報道コロケーション】：gembong narkoba / terorisme / judi online（麻薬／テロ／違法賭博組織の大物ボス）。"
+      },
+      {
+        "p": "n",
+        "w": "otak pelaku",
+        "r": "otak",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "首謀者、黒幕、主犯格（事件の計画を裏で練った頭脳役！実行犯の『eksekutor』と対比して事件報道で毎日出る！）",
+        "ex": "Polisi telah menangkap dua eksekutor di lapangan dan kini masih memburu otak pelaku yang merancang kejahatan tersebut.",
+        "tr": "警察は現場の実行犯2人をすでに逮捕しており、現在その犯罪を計画した首謀者（黒幕）を追っている。",
+        "note": "■ 【事件の役割ペア】：otak pelaku / dalang（黒幕・首謀者） ⇔ eksekutor（現場の実行犯）。動詞形：mengotaki（首謀する）。"
+      },
+      {
+        "p": "n",
+        "w": "kaki tangan",
+        "r": "kaki",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "手先、手下、共犯の手足（悪い黒幕や敵に操られて汚れ仕事を手伝う部下・協力者！＝antek ※良い意味の「右腕」は『tangan kanan』なので区別必須！）",
+        "ex": "Penyidik juga memeriksa sejumlah kaki tangan tersangka yang diduga membantu menyamarkan aset hasil korupsi.",
+        "tr": "捜査官は、汚職による不正資産の隠匿を手伝ったと疑われる容疑者の手先（手下）数名も取り調べた。",
+        "note": "■ 【超重要な対比】：\n・tangan kanan（右腕＝最も信頼される優秀な補佐役：ポジティブ）\n・kaki tangan（手先・手下＝悪事や陰謀の協力者：ネガティブ）"
+      },
+      {
+        "p": "n",
+        "w": "saksi kunci",
+        "r": "saksi",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "重要証人、事件の鍵を握る目撃者・証人（裁判や捜査の行方を決定づける決定的な証言を持つ人物！）",
+        "ex": "Lembaga Perlindungan Saksi dan Korban memberikan pengamanan ketat kepada saksi kunci dalam persidangan kasus besar itu.",
+        "tr": "証人被害者保護機関（LPSK）は、その大型事件の公判における重要証人に厳重な警護を提供している。",
+        "note": "■ 【裁判の証人3種セット】：saksi kunci（重要証人）、saksi ahli（専門証人・鑑定人）、saksi mahkota（共犯者証人）。"
+      },
+      {
+        "p": "n",
+        "w": "saksi ahli",
+        "r": "saksi",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "専門証人、鑑定人（法医学・会計・IT・言語学などの専門知識をもとに法廷で客観的見解を述べる専門家！）",
+        "ex": "Hakim menghadirkan saksi ahli forensik digital untuk memastikan keaslian rekaman kamera pengawas yang diajukan sebagai bukti.",
+        "tr": "裁判官は証拠として提出された防犯カメラ映像の真正性を確認するため、デジタルフォレンジックの専門証人を召喚した。",
+        "note": "■ 【重要コロケーション】：menghadirkan saksi ahli（専門証人を法廷に呼ぶ）、keterangan saksi ahli（専門証人の鑑定証言）。"
+      },
+      {
+        "p": "n",
+        "w": "preseden",
+        "r": "preseden",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "前例、先例、判例（ニュースで『preseden buruk＝悪しき前例』『preseden baik＝良き前例』として超頻出！）",
+        "ex": "Pemberian hukuman yang terlalu ringan bagi koruptor dikhawatirkan akan menjadi preseden buruk bagi penegakan hukum.",
+        "tr": "汚職犯に対する軽すぎる量刑は、法執行にとって悪しき前例になるのではないかと懸念されている。",
+        "note": "■ 【報道定番表現】：menciptakan preseden buruk / baik（悪い／良い前例を作る）。"
+      },
+      {
+        "p": "n",
+        "w": "moratorium",
+        "r": "moratorium",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "一時停止措置、凍結、モラトリアム（森林伐採・新規許認可・海外労働者派遣・債務返済などを一定期間ストップさせる政策！『moratorium izin sawit＝新規パーム農園許可の一時凍結』）",
+        "ex": "Pemerintah memperpanjang kebijakan moratorium pembukaan lahan hutan primer demi menekan laju deforestasi.",
+        "tr": "政府は森林破壊のペースを抑えるため、原生林の開墾を一時凍結するモラトリアム政策を延長した。",
+        "note": "■ 【インドネシア報道でよく出る例】：moratorium izin tambang / sawit（鉱山／アブラヤシ新規許可の一時停止）、moratorium pengiriman TKI（出稼ぎ労働者派遣の一時停止）。"
+      },
+      {
+        "p": "n",
+        "w": "ultimatum",
+        "r": "ultimatum",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "最後通牒（さいごつうちょう）、最終警告（これ以上譲歩しない期限付きの強い要求！スポーツの『ultimatum untuk pelatih＝監督への最終通告』でも頻出）",
+        "ex": "Manajemen klub memberikan ultimatum kepada pelatih agar segera memperbaiki performa tim dalam tiga laga berikutnya.",
+        "tr": "クラブ経営陣は監督に対し、次の3試合で直ちにチームの成績を立て直すよう最後通告（最終警告）を突きつけた。",
+        "note": "■ 【重要コロケーション】：memberikan / melayangkan ultimatum（最後通牒を突きつける）。"
+      },
+      {
+        "p": "n",
+        "w": "kompromi",
+        "r": "kompromi",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "妥協、譲歩による歩み寄り（『tanpa kompromi＝妥協なしに・断固として』『berkompromi＝妥協する』）",
+        "ex": "Kepolisian menegaskan akan menindak tegas pelaku peredaran narkotika tanpa kompromi.",
+        "tr": "警察は薬物密売の実行犯に対して妥協なしに（断固として）厳正に対処すると明言した。",
+        "note": "■ 【重要コロケーション】：tanpa kompromi（一切妥協せず）、kompromi politik（政治的妥協）、berkompromi（妥協・歩み寄りをする）。"
+      },
+      {
+        "p": "n",
+        "w": "stigma",
+        "r": "stigma",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "スティグマ、社会的汚名、根強い負の偏見（元受刑者・精神疾患・特定の病気や属性に対する社会的なレッテル貼り：stigma negatif）",
+        "ex": "Edukasi kesehatan mental sangat penting untuk menghapus stigma negatif terhadap orang yang mencari bantuan psikolog.",
+        "tr": "メンタルヘルス教育は、心理士の助けを求める人々に対する負の偏見（スティグマ）を取り除く上で極めて重要だ。",
+        "note": "■ 【重要コロケーション】：menghapus stigma（偏見・汚名を払拭する）、stigma sosial（社会的偏見）、menstigma（レッテルを貼る）。"
+      },
+      {
+        "p": "n",
+        "w": "tabu",
+        "r": "tabu",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "タブー、禁忌、口に出したり行ったりするのが憚られること（＝pantangan / pamali。形容詞的にも『hal yang tabu＝タブー視される事柄』と使う！）",
+        "ex": "Membicarakan pendidikan kesehatan reproduksi secara ilmiah kini tidak lagi dianggap sebagai hal yang tabu di kalangan keluarga muda.",
+        "tr": "生殖健康教育について科学的に話し合うことは、現在では若い世代の家庭の間でもはやタブーとは見なされなくなっている。",
+        "note": "■ 【関連語】：pantangan（禁忌・食べてはいけないもの）、pamali（ジャワ・スンダ系の言い伝え的タブー）。"
+      },
+      {
+        "p": "n",
+        "w": "skandal",
+        "r": "skandal",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "スキャンダル、醜聞、大不祥事（政治・企業・芸能・スポーツ界を揺るがす不正や不祥事）",
+        "ex": "Terbongkarnya skandal manipulasi laporan keuangan tersebut langsung membuat harga saham perusahaan anjlok tajam.",
+        "tr": "その決算書粉飾スキャンダルの発覚を受け、同社の株価は直ちに急落した。",
+        "note": "■ 【重要コロケーション】：skandal korupsi / keuangan（汚職／不正会計スキャンダル）、terseret skandal（不祥事に巻き込まれる）。"
+      },
+      {
+        "p": "n",
+        "w": "faksi",
+        "r": "faksi",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "派閥、党内グループ、セクト（政党や組織の内部で意見や利害が分かれて対立する内部グループ！※国会内の公式政党会派は『fraksi』なのでスペル注意！）",
+        "ex": "Konflik internal antar faksi di dalam organisasi itu akhirnya mereda setelah diselenggarakan musyawarah luar biasa.",
+        "tr": "その組織内部の派閥間の内紛は、臨時総会が開催された後についに沈静化した。",
+        "note": "■ 【1文字違いの超重要区別】：\n・faksi（r なし）：党内・組織内の「派閥・非公式グループ」\n・fraksi（r あり）：国会 DPR 内の公式な「政党会派・議員団」"
+      },
+      {
+        "p": "n",
+        "w": "kubu",
+        "r": "kubu",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①陣営、勢力、側（選挙や論争・スポーツで対立する一方の陣営：dua kubu yang bertikai＝対立する2つの陣営！） ②砦、防壁",
+        "ex": "Kedua kubu pendukung kandidat presiden sepakat menjaga ketenangan dan menerima hasil resmi dari KPU.",
+        "tr": "大統領候補を支持する両陣営は、冷静さを保ち総選挙委員会（KPU）の公式結果を受け入れることで合意した。",
+        "note": "■ 【報道定番表現】：terbelah menjadi dua kubu（2つの陣営に真っ二つに割れる）、kubu pemerintah / oposisi（与党陣営／野党陣営）。"
+      },
+      {
+        "p": "n",
+        "w": "yurisprudensi",
+        "r": "yurisprudensi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "判例、判例法（過去の最高裁判決の積み重ねで、後の同種裁判の判断基準となる法的先例）",
+        "ex": "Majelis hakim merujuk pada yurisprudensi Mahkamah Agung dalam memutus perkara sengketa kontrak yang serupa.",
+        "tr": "裁判官団は類似の契約紛争事件に判決を下すにあたり、最高裁判所の判例を参照した。",
+        "note": "■ 【関連語】：preseden（前例・先例）、Mahkamah Agung（最高裁判所）。"
+      },
+      {
+        "p": "n",
+        "w": "arbitrase",
+        "r": "arbitrase",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "仲裁（裁判所ではなく中立の第三者機関［インドネシア国家仲裁院 BANI やスポーツ仲裁裁判所 CAS 等］が法的拘束力のある裁定を下して紛争を解決する手続き）",
+        "ex": "Sengketa bisnis bernilai besar antara kedua perusahaan lintas negara tersebut diselesaikan melalui badan arbitrase internasional.",
+        "tr": "その多国籍企業2社間の巨額の商事紛争は、国際仲裁機関を通じて解決された。",
+        "note": "■ 【紛争解決3段階の区別】：negosiasi（当事者間の直接交渉） ➔ mediasi（調停：合意を仲介） ➔ arbitrase（仲裁：第三者が拘束力ある裁定を下す）。"
+      },
+      {
+        "p": "n",
+        "w": "terlapor",
+        "r": "lapor",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "被通報人、告訴された側（警察や監督機関に通報・告発された段階の当事者 ⇔ pelapor＝通報者・告発人。捜査が進んで立件されると『tersangka＝容疑者』になる！）",
+        "ex": "Penyidik telah melayangkan surat panggilan pertama kepada pihak terlapor untuk dimintai klarifikasi awal.",
+        "tr": "捜査官は初期の事情聴取を求めるため、被通報人側に対して第1回出頭要請書を送付した。",
+        "note": "■ 【司法当事者ペア】：pelapor（通報・告訴人） ⇔ terlapor（被通報人）。"
+      },
+      {
+        "p": "n",
+        "w": "termohon",
+        "r": "mohon",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "被申立人（公判前審査『praperadilan』や憲法裁判所 MK・破産申立てなどで、申立てを受けた側の当事者 ⇔ pemohon＝申立人）",
+        "ex": "Dalam sidang sengketa pemilu di Mahkamah Konstitusi, KPU bertindak sebagai pihak termohon yang menyampaikan jawaban resmi.",
+        "tr": "憲法裁判所での選挙紛争審理において、総選挙委員会（KPU）は公式答弁を行う被申立人側として臨んだ。",
+        "note": "■ 【民事・憲法裁判ペア】：pemohon（申立人） ⇔ termohon（被申立人） ／ penggugat（原告） ⇔ tergugat（被告）。"
+      },
+      {
+        "p": "n",
+        "w": "terperiksa",
+        "r": "periksa",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "被聴取人、検査・事情聴取を受ける対象者（警察・検察・倫理委員会などから取り調べや監査を受ける人物）",
+        "ex": "Dewan etik mendengarkan keterangan langsung dari pejabat terperiksa dalam sidang tertutup selama tiga jam.",
+        "tr": "倫理委員会は3時間にわたる非公開審問で、被聴取人である高官から直接証言を聴取した。",
+        "note": "■ 【語構成】：ter- + periksa（調べる・検査する）。"
+      },
+      {
+        "p": "n",
+        "w": "saksi mahkota",
+        "r": "saksi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "共犯者証人（同じ事件の被告人の1人が、別の共犯被告人の公判において証人として出廷・証言する法的立場！直訳：王冠の証人）",
+        "ex": "Jaksa penuntut umum menghadirkan salah satu terdakwa sebagai saksi mahkota untuk mengungkap peran pelaku utama.",
+        "tr": "検察官は主犯の役割を明らかにするため、被告人の1人を共犯者証人として法廷に召喚した。",
+        "note": "■ 【関連語】：justice collaborator [JC]（捜査協力者＝黒幕の罪を暴く証言と引き換えに減刑・保護を受ける共犯者）。"
+      },
+      {
+        "p": "n",
+        "w": "eksekutor",
+        "r": "eksekusi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①（犯罪の）現場実行犯（黒幕『otak pelaku』の指示で実際に手を下す者） ②（サッカーのPK・フリーキックの）キッカー（eksekutor penalti！） ③（判決・業務の）執行人",
+        "ex": "Penyerang andalan timnas kembali dipercaya menjadi eksekutor tendangan penalti pada laga penting tersebut.",
+        "tr": "代表のエースストライカーが、その重要な試合で再びPKのキッカー（実行役）を任された。",
+        "note": "■ 【2大頻出文脈】：① 犯罪ニュース『eksekutor lapangan（現場実行犯）』、② サッカー実況『eksekutor penalti / tendangan bebas（PK・FKキッカー）』。"
+      },
+      {
+        "p": "n",
+        "w": "propaganda",
+        "r": "propaganda",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "プロパガンダ、政治的宣伝工作（特定の思想・政権・戦争を正当化するために世論を誘導する大々的な情報宣伝）",
+        "ex": "Di era media digital, propaganda politik sering dikemas dalam bentuk video pendek agar mudah menarik emosi penonton.",
+        "tr": "デジタルメディア時代において、政治プロパガンダは視聴者の感情を引きつけやすいようにショート動画の形で発信されることが多い。",
+        "note": "■ 【関連語】：disinformasi（意図的偽情報）、agitasi（扇動）、opini publik（世論）。"
+      },
+      {
+        "p": "n",
+        "w": "hegemoni",
+        "r": "hegemoni",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "覇権（はけん）、圧倒的支配力（国際政治・経済・文化・スポーツ界で一国や一強チームが他を圧倒し主導権を握る状態）",
+        "ex": "Kemenangan klub debutan itu akhirnya mematahkan hegemoni juara bertahan yang telah mendominasi liga selama lima musim.",
+        "tr": "その初昇格クラブの優勝は、5シーズンにわたりリーグを支配してきたディフェンディングチャンピオンの覇権をついに打ち破った。",
+        "note": "■ 【重要コロケーション】：hegemoni global / ekonomi / budaya（世界覇権／経済覇権／文化覇権）、mematahkan hegemoni（覇権・一強支配を打ち破る）。"
+      },
+      {
+        "p": "n",
+        "w": "infiltrasi",
+        "r": "infiltrasi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①（敵地・組織・デモ隊への）潜入、浸透工作 ②（地学・環境で雨水が地中へ）しみ込むこと、浸透",
+        "ex": "Aparat keamanan mewaspadai adanya infiltrasi pihak luar yang mencoba memicu kericuhan dalam aksi unjuk rasa damai.",
+        "tr": "治安当局は、平和的な抗議デモの中に騒乱を引き起こそうとする外部勢力の潜入がないか警戒している。",
+        "note": "■ 【関連語】：menyusup（潜入する）、penyusup（潜入者・スパイ）、resapan air（雨水浸透）。"
+      },
+      {
+        "p": "n",
+        "w": "marginalisasi",
+        "r": "marginal",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "周縁化、社会的疎外・排除（少数派や弱者が政治・経済・情報の中心から締め出されて隅へ追いやられるプロセス。KBBI標準綴り『marjinalisasi』も併用）",
+        "ex": "Akses pendidikan dan informasi yang setara merupakan langkah kunci untuk mencegah marginalisasi masyarakat adat.",
+        "tr": "平等な教育と情報へのアクセスは、先住民族コミュニティの周縁化（疎外）を防ぐための鍵となるステップである。",
+        "note": "■ 【関連語】：kaum marjinal（社会的弱者・周縁層）、terpinggirkan（取り残される・周縁化される）。"
+      },
+      {
+        "p": "n",
+        "w": "mafia",
+        "r": "mafia",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "マフィア、裏の利権シンジケート（インドネシア報道では暴力団だけでなく、裏で土地・輸入枠・裁判・サッカー八百長を牛耳る闇ネットワークを『mafia tanah / mafia bola / mafia impor』と呼ぶ！）",
+        "ex": "Kementerian agraria bekerja sama dengan kepolisian untuk memberantas jaringan mafia tanah yang merugikan petani kecil.",
+        "tr": "土地省は零細農家に損害を与える土地マフィア（不正土地登記シンジケート）のネットワークを根絶するため警察と協力している。",
+        "note": "■ 【インドネシア報道の定番 mafia セット】：mafia tanah（土地マフィア）、mafia peradilan（司法マフィア）、mafia bola（サッカー八百長組織）、mafia impor（輸入利権組織）。"
+      },
+      {
+        "p": "n",
+        "w": "premanisme",
+        "r": "preman",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "プレマニズム、チンピラによる暴力的な縄張り支配・恐喝行為（市場や駐車場・工事現場でのみかじめ料徴収や脅迫行為の総称）",
+        "ex": "Pelaku usaha berharap aparat menindak tegas segala bentuk premanisme yang menghambat iklim investasi daerah.",
+        "tr": "事業者たちは、地域の投資環境を阻害するあらゆる形態のプレマニズム（暴力的な恐喝・縄張り支配）を当局が厳しく取り締まることを望んでいる。",
+        "note": "■ 【関連語】：preman（チンピラ・不良）、pemalakan（カツアゲ・恐喝）、pungli（違法徴収）。"
+      },
+      {
+        "p": "n",
+        "w": "upeti",
+        "r": "upeti",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①（歴史上の）朝貢品、貢ぎ物 ②（現代の汚職・治安ニュースで）上納金、みかじめ料、部下から上司へ定期的に差し出す不正な貢ぎ金！",
+        "ex": "Dalam persidangan terungkap bahwa sejumlah kontraktor diminta menyetor upeti rutin agar tetap memenangkan tender.",
+        "tr": "公判の中で、複数の請負業者が入札を勝ち取り続けるために定期的な上納金を納めるよう求められていたことが明らかになった。",
+        "note": "■ 【関連語】：setoran（上納金・納付金）、suap（賄賂）、gratifikasi（違法な謝礼・贈答）。"
+      },
+      {
+        "p": "n",
+        "w": "borok",
+        "r": "borok",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①皮膚の膿んだ潰瘍・できもの ②（報道比喩で：組織内部に隠されていた）醜い膿（うみ）、腐敗、恥ずべきスキャンダル（membongkar borok＝隠れた腐敗を暴く！）",
+        "ex": "Audit menyeluruh akhirnya membongkar borok pengelolaan keuangan yang selama bertahun-tahun ditutup-tutupi.",
+        "tr": "全面的な監査によって、長年隠蔽されてきた財務管理の腐敗（膿）がついに暴かれた。",
+        "note": "■ 【重要コロケーション】：membongkar / menguak borok（隠れた腐敗・醜聞を暴き出す）。類義語：aib（恥部）、skandal（不祥事）。"
+      },
+      {
+        "p": "n",
+        "w": "antek",
+        "r": "antek",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "手先、傀儡（かいらい）、腰巾着（外国勢力・悪徳資本・犯罪組織の言いなりになって動く協力者を強く非難する政治・歴史語！＝kaki tangan）",
+        "ex": "Dalam buku sejarah kemerdekaan, istilah antek penjajah digunakan untuk menyebut pihak yang bersekongkol dengan kekuasaan kolonial.",
+        "tr": "独立の歴史書では、『植民地主義者の手先』という言葉が植民地権力と結託した人々を指すために使われている。",
+        "note": "■ 【関連語】：kaki tangan（手先・手下）、boneka（操り人形・傀儡：negara boneka＝傀儡国家）。"
+      },
+      {
+        "p": "n",
+        "w": "wong cilik",
+        "r": "wong",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "庶民、一般大衆、立場の弱い普通の人々（ジャワ語で直訳「小さな人々」＝rakyat kecil！インドネシアの政治演説やニュースで全国的に定着した温かい言葉）",
+        "ex": "Kebijakan subsidi energi dan pangan seharusnya benar-benar tepat sasaran membantu kehidupan wong cilik.",
+        "tr": "エネルギーと食料の補助金政策は、一般庶民（ウォン・チリッ）の暮らしを助けるために真に的確な対象へ届くべきだ。",
+        "note": "■ 【言い換えセット】：wong cilik（ジャワ語由来の定番庶民語） ＝ rakyat kecil（標準インドネシア語：庶民） ／ akar rumput（草の根）。"
+      },
+      {
+        "p": "n",
+        "w": "kaum marjinal",
+        "r": "marjinal",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "社会的弱者、周縁層、社会の隅に追いやられた人々（貧困層・路上生活者・障害者・少数派など、支援や包摂の対象となる人々）",
+        "ex": "Organisasi bantuan hukum itu fokus memberikan pendampingan gratis bagi kaum marjinal yang berhadapan dengan masalah hukum.",
+        "tr": "その法律扶助団体は、法的トラブルに直面した社会的弱者（周縁層）へ無料の伴走支援を提供することに注力している。",
+        "note": "■ 【関連語】：marginalisasi（周縁化）、terpinggirkan（取り残された）、kelompok rentan（脆弱層）。"
+      },
+      {
+        "p": "n",
+        "w": "kaum duafa",
+        "r": "duafa",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "貧困層、生活困窮者、支援を必要とする弱い立場の人々（アラビア語由来で、特にザカート［喜捨］やラマダン期の慈善活動『santunan kaum duafa』で毎日使われる丁寧な表現！）",
+        "ex": "Setiap bulan Ramadan, panitia masjid menghimpun zakat dan sedekah untuk disalurkan kepada anak yatim serta kaum duafa.",
+        "tr": "毎年ラマダン月になると、モスクの委員会は孤児や生活困窮者（ドゥアファ）へ配るためのザカートと寄付を集める。",
+        "note": "■ 【文化メモ】：旧綴り『dhuafa』も看板等でよく見かけるが、KBBI標準綴りは『duafa』。孤児の『anak yatim』とセットで『yatim piatu dan kaum duafa』として超定番！"
+      }
+    ];
+
+    const idxByWord = new Map();
+    for (let i = 0; i < d.vocab.length; i++) {
+      const it = d.vocab[i];
+      if (it && it.w) idxByWord.set(it.w.trim().toLowerCase(), i);
+    }
+
+    const newlyDictOnlyKeys = new Set();
+
+    for (let i = 0; i < SEC3_NEWS_NOUNS_56.length; i++) {
+      const item = SEC3_NEWS_NOUNS_56[i];
+      if (!item || !item.w) continue;
+      const key = item.w.trim().toLowerCase();
+
+      if (item.dictOnly === true || item.tier === 3) {
+        item.dictOnly = true;
+        item.tier = 3;
+        dictOnlySet.add(key);
+        newlyDictOnlyKeys.add(key);
+      } else {
+        delete item.dictOnly;
+        item.tier = 1;
+        dictOnlySet.delete(key);
+      }
+      if (item.topicCat) {
+        catMap.set(key, item.topicCat);
+      }
+
+      if (idxByWord.has(key)) {
+        const pos = idxByWord.get(key);
+        Object.assign(d.vocab[pos], item);
+        if (item.tier === 1) {
+          delete d.vocab[pos].dictOnly;
+        }
+        vMap.set(key, d.vocab[pos]);
+        persistentAdded.set(key, d.vocab[pos]);
+      } else {
+        d.vocab.push(item);
+        idxByWord.set(key, d.vocab.length - 1);
+        vMap.set(key, item);
+        persistentAdded.set(key, item);
+      }
+    }
+
+    ["wi_wrongs_v2", "wi_stars_v2", "wi_master_stars_v5"].forEach(function(storageKey) {
+      try {
+        const raw = localStorage.getItem(storageKey);
+        if (!raw) return;
+        const list = JSON.parse(raw);
+        if (!Array.isArray(list)) return;
+        const cleaned = list.filter(function(it) {
+          if (!it || typeof it !== "object") return false;
+          const qid = String(it.id || "");
+          const m = qid.match(/^(?:voc|voc_ja2id|ctx::voc|abbr_ja|abbr_full)::(.+)$/i);
+          const w = (m ? m[1] : (it.w || it.ttsWord || "")).trim().toLowerCase();
+          return !newlyDictOnlyKeys.has(w);
+        });
+        if (cleaned.length !== list.length) {
+          localStorage.setItem(storageKey, JSON.stringify(cleaned));
+        }
+      } catch (err) {}
+    });
+  } catch (e) {
+    console.error("WhatsIndo Sec3 56-word pack error:", e);
+  }
+})();
+/* =====================================================================
+   WhatsIndo セクション4「超定番＆検定頻出 慣用句」全68語パック（ハイブリッド安全直結版）
+   - 出題対象（36語・tier: 1 ＆「慣用句」4択モード36問同時追加！）：
+     kuda hitam, tikus kantor, mata duitan, muka tembok, tebal telinga,
+     lidah bercabang, darah muda, banting harga, makan gaji buta, gantung sepatu,
+     pecah telur, turun gunung, angkat koper, buka kartu, main belakang,
+     main mata, main api, cuci otak, silat lidah, perang dingin, pasang mata,
+     urat nadi, hitam putih, pahit getir, jatuh bangun, jungkir balik,
+     tunggang langgang, kalang kabut, kecil hati, berat hati, tangan besi,
+     tangan terbuka, gigit jari, salah kaprah, salah sasaran, mati kutu
+   - 辞書専用（32語・dictOnly: true, tier: 3）：
+     kupu-kupu malam, darah panas, mata keranjang, panjang lidah, kepala angin,
+     makan garam, gantung raket, turun kasta, naik kelas, naik haji,
+     gulung layar, buka pintu, main kayu, main sabun, cuci mata, cari angin,
+     cari perkara, jual tampang, pasang kuping, perang urat saraf, adu mulut,
+     adu jotos, susah payah, sakit hati, jatuh hati, hilang muka, pendek akal,
+     sempit dada, panas dingin, mati langkah, mati gaya, mati suri
+   - **記号ゼロ・文字バグゼロ・try-catch完全保護
+   ===================================================================== */
+(function() {
+  try {
+    const d = window.WHATSINDO_EXTERNAL_DATA;
+    if (!d) return;
+    if (!Array.isArray(d.vocab)) d.vocab = [];
+    if (!Array.isArray(d.idiom)) d.idiom = [];
+
+    const dictOnlySet     = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+    const persistentAdded = window.__wiPersistentAddedVocab || (window.__wiPersistentAddedVocab = new Map());
+    const vMap            = window.__wiMasterVocabMap || (window.__wiMasterVocabMap = new Map());
+    const catMap          = window.__WI_V5_VCAT || (window.__WI_V5_VCAT = new Map());
+
+    const SEC4_IDIOMS_VOCAB_68 = [
+      {
+        "p": "n",
+        "w": "kuda hitam",
+        "r": "kuda",
+        "tier": 1,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "ダークホース、伏兵（事前の予想では注目されていなかったのに、本番で次々と強豪を破り活躍する選手・チーム・候補者！直訳：黒い馬）",
+        "ex": "Tim debutan dari divisi bawah itu tampil sebagai kuda hitam yang mengejutkan dengan menembus babak semifinal.",
+        "tr": "下位リーグからの初昇格チームは、準決勝進出を果たす驚くべきダークホース（伏兵）として活躍した。",
+        "note": "■ 【スポーツ＆選挙の超定番比喩】：英語 dark horse の直訳定着語。対比：tim unggulan（シード・優勝候補）。"
+      },
+      {
+        "p": "n",
+        "w": "tikus kantor",
+        "r": "tikus",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "汚職役人、公金横領する悪徳公務員・社員（直訳：オフィスのネズミ！社内の資金や税金をこっそりかじり取る汚職犯への辛辣な比喩。名曲 Iwan Fals『Tikus-Tikus Kantor』でも超有名！）",
+        "ex": "Penegakan hukum yang tegas dan transparan diperlukan untuk memberantas para tikus kantor yang menggerogoti anggaran negara.",
+        "tr": "国家予算を食い荒らす汚職役人（オフィスのネズミ）たちを根絶するには、厳格で透明な法執行が必要だ。",
+        "note": "■ 【インドネシア文化メモ】：国民的歌手イワン・ファルス（Iwan Fals）の風刺ソング『Tikus-Tikus Kantor』で全国民に浸透した『koruptor（汚職犯）』の代名詞！"
+      },
+      {
+        "p": "a",
+        "w": "mata duitan",
+        "r": "mata",
+        "tier": 1,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "拝金主義の、お金に目がない、現金な、守銭奴（直訳：お金の目！何事もお金で判断し金儲けばかり気にする性格を批判する日常定番表現）",
+        "ex": "Banyak orang tidak menyukai sikapnya yang terlalu mata duitan dan selalu menghitung segala bantuan dengan uang.",
+        "tr": "あまりにもお金に目がなく、あらゆる親切をお金で勘定する彼の態度を多くの人が快く思っていない。",
+        "note": "■ 【mata（目）の人物比喩セット】：mata duitan（金に目がない）、mata keranjang（女好き・浮気性）、gelap mata（我を忘れて逆上する）。口語では『matre（materialistis）』も超頻出！"
+      },
+      {
+        "p": "a",
+        "w": "muka tembok",
+        "r": "muka",
+        "tier": 1,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "面の皮が厚い、恥知らずな、図々しい（直訳：壁の顔！批判されても平然として恥じない厚顔無恥さ＝tebal muka）",
+        "ex": "Meski sudah jelas terbukti melanggar aturan di depan umum, ia tetap bersikap santai seperti orang bermuka tembok.",
+        "tr": "人前で規則違反が明白に立証されたにもかかわらず、彼はまるで面の皮が厚い人間のように平然としていた。",
+        "note": "■ 【muka（顔）の重要慣用句】：muka tembok / tebal muka（面の皮が厚い・恥知らず）、hilang muka（面目を失う）、cari muka（いい顔をする・媚びを売る）、bermuka dua（裏表がある）。"
+      },
+      {
+        "p": "a",
+        "w": "tebal telinga",
+        "r": "telinga",
+        "tier": 1,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "①何を言われても平気な、批判や悪口を聞き流せる図太さ ②忠告や叱責を全く聞き入れない、馬耳東風（直訳：耳が厚い！）",
+        "ex": "Menjadi tokoh publik menuntut seseorang memiliki mental kuat dan tebal telinga menghadapi berbagai kritik tajam warganet.",
+        "tr": "公人になるには、ネットユーザーからの様々な厳しい批判に直面しても動じない強いメンタルと図太さ（厚い耳）が求められる。",
+        "note": "■ 【対義表現】：tipis telinga（耳が薄い＝ちょっとした批判や悪口ですぐカッと怒りやすい・傷つきやすい）。"
+      },
+      {
+        "p": "a",
+        "w": "lidah bercabang",
+        "r": "lidah",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "二枚舌の、言うことがコロコロ変わる信用できない嘘つき（直訳：蛇のように先が二股に分かれた舌！＝berlidah dua）",
+        "ex": "Masyarakat sulit mempercayai politisi yang dikenal memiliki lidah bercabang karena pernyataannya sering bertolak belakang.",
+        "tr": "発言がしばしば正反対になるため、二枚舌として知られる政治家を市民が信頼するのは難しい。",
+        "note": "■ 【lidah（舌）の慣用句セット】：lidah bercabang（二枚舌）、silat lidah（詭弁・口論）、panjang lidah（おしゃべり・口が軽い）、gigit lidah（恥じて言葉を失う）。"
+      },
+      {
+        "p": "n",
+        "w": "darah muda",
+        "r": "darah",
+        "tier": 1,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "血気盛んな若さ、若気の至り（直訳：若い血！情熱的で勢いがある反面、熱くなりやすく無鉄砲になりがちな若者気質）",
+        "ex": "Semangat darah muda yang penuh energi sebaiknya diarahkan pada kegiatan kreatif dan olahraga yang positif.",
+        "tr": "エネルギーに満ちた血気盛んな若さの情熱は、クリエイティブな活動や前向きなスポーツへ向けるのが望ましい。",
+        "note": "■ 【darah（血）の慣用句セット】：darah muda（血気盛んな若さ）、darah panas（短気）、darah biru（貴族の血筋）、darah dingin（冷血）、naik darah（激怒する）。"
+      },
+      {
+        "p": "v",
+        "w": "banting harga",
+        "r": "banting",
+        "tier": 1,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "投げ売りする、赤字覚悟で大安売り・大幅値下げする（直訳：値段を叩きつける！年末セールや在庫処分・価格破壊競争で超頻出！）",
+        "ex": "Menjelang akhir tahun, sejumlah pusat perbelanjaan melakukan aksi banting harga hingga tujuh puluh persen untuk menghabiskan stok lama.",
+        "tr": "年末を控え、複数のショッピングセンターは旧在庫を売り切るため最大70パーセント引きの大安売り（投げ売り）を行っている。",
+        "note": "■ 【banting（叩きつける）3大慣用句】：banting tulang（身を粉にして働く）、banting setir（ハンドルを切る ➔ 職業や方針を180度転換する）、banting harga（大幅値下げ・投げ売りする）。"
+      },
+      {
+        "p": "v",
+        "w": "makan gaji buta",
+        "r": "gaji",
+        "tier": 1,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "ろくに仕事もせず給料だけもらう、給料泥棒をする（直訳：盲目の給料を食べる！若者スラング『gabut［gaji buta＝超暇］』の本来の語源！）",
+        "ex": "Sistem evaluasi kinerja berbasis target diterapkan agar tidak ada lagi pegawai yang sekadar makan gaji buta di kantor.",
+        "tr": "職場でただ給料泥棒をする職員がこれ以上出ないように、目標ベースの業績評価制度が導入された。",
+        "note": "■ 【スラングとのつながり】：若者が日常で使う『gabut（やることがなくて超暇）』はこの『gaji buta』の略語アクロニム！"
+      },
+      {
+        "p": "v",
+        "w": "gantung sepatu",
+        "r": "gantung",
+        "tier": 1,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "（サッカー・陸上などの選手が）現役を引退する（直訳：スパイク靴を壁に吊るす！＝pensiun。スポーツニュースの超定番表現！）",
+        "ex": "Setelah dua puluh tahun membela tim nasional, kapten legendaris itu resmi memutuskan gantung sepatu pada akhir musim ini.",
+        "tr": "20年間代表チームで戦った後、その伝説的キャプテンは今シーズン限りでの現役引退を正式に決断した。",
+        "note": "■ 【競技別「引退する」慣用句】：gantung sepatu（サッカー・陸上）、gantung raket（バドミントン・テニス）、gantung sarung tinju（ボクシング）、gantung mik（歌手・アナウンサー）。"
+      },
+      {
+        "p": "v",
+        "w": "pecah telur",
+        "r": "pecah",
+        "tier": 1,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①（スポーツで長年の無得点・連敗を脱して）初ゴール・初勝利・初メダルを達成する ②（商売・営業で）その日の初売上・初契約を挙げる（直訳：卵［0＝ゼロ］を割る！）",
+        "ex": "Penyerang muda itu akhirnya berhasil pecah telur dengan mencetak gol perdananya di pertandingan kelima musim ini.",
+        "tr": "その若手ストライカーは今季5試合目で初ゴールを決め、ついに無得点から脱出（初得点達成）した。",
+        "note": "■ 【語源イメージ】：スコア『0（ゼロ）』を卵（telur）に見立て、それを割って『1』以上にする＝「初得点・初勝利・初売上」！インドネシアのスポーツ実況や商売で毎日使う！"
+      },
+      {
+        "p": "v",
+        "w": "turun gunung",
+        "r": "turun",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "（大物・元トップ・熟練の達人が隠居や奥の院から）自ら現場に出陣する、満を持して乗り出す（直訳：山から下りる！選挙応援や企業危機対応ニュースで超頻出）",
+        "ex": "Mantan presiden dan para tokoh senior partai akhirnya turun gunung untuk membantu kampanye pasangan calon di daerah kunci.",
+        "tr": "元大統領と党の重鎮たちは、重要選挙区での候補者ペアの選挙運動を支援するためついに自ら現場へ出陣した。",
+        "note": "■ 【関連慣用句】：turun tangan（自ら解決に乗り出す）、turun ke jalan（街頭デモに出る）。"
+      },
+      {
+        "p": "v",
+        "w": "angkat koper",
+        "r": "angkat",
+        "tier": 1,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "（国際大会・トーナメントで敗退して）荷物をまとめて早々に帰国する、敗退して去る（直訳：スーツケースを持ち上げる！スポーツ報道の定番比喩）",
+        "ex": "Kekalahan telak pada laga terakhir fase grup memaksa tim juara bertahan harus angkat koper lebih awal dari turnamen.",
+        "tr": "グループリーグ最終戦での大敗により、ディフェンディングチャンピオンは大会から早々に荷物をまとめて帰国（敗退）せざるを得なくなった。",
+        "note": "■ 【angkat 慣用句ファミリー】：angkat koper（敗退・撤収して去る）、angkat kaki（立ち去る・逃げる）、angkat topi（脱帽・敬意）、angkat tangan（降参・お手上げ）、angkat bicara（口を開く）。"
+      },
+      {
+        "p": "v",
+        "w": "buka kartu",
+        "r": "buka",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "手の内を明かす、隠していた秘密・本音・裏事情をぶちまける（直訳：トランプのカードを開く！裁判・政治・インタビュー記事で頻出）",
+        "ex": "Dalam wawancara eksklusif tersebut, mantan pengurus klub akhirnya berani buka kartu mengenai masalah tunggakan gaji pemain.",
+        "tr": "その独占インタビューの中で、元クラブ役員は選手の給与未払い問題についてついに勇気を出して内情をぶちまけた（手の内を明かした）。",
+        "note": "■ 【buka（開く）慣用句ペア】：buka kartu（秘密・手の内をさらけ出す）、buka suara（沈黙を破って発言する＝angkat bicara）、buka pintu（対話・受け入れの門戸を開く）。"
+      },
+      {
+        "p": "v",
+        "w": "main belakang",
+        "r": "main",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①裏工作をする、コソコソ不正な談合・根回しをする ②（恋愛・結婚で）浮気する、二股をかける（直訳：裏で遊ぶ！）",
+        "ex": "Proses lelang terbuka secara elektronik diterapkan untuk mencegah oknum panitia main belakang dengan peserta tender.",
+        "tr": "委員会の悪質な関係者が入札参加者と裏工作（不正談合）をするのを防ぐため、電子公開入札プロセスが導入された。",
+        "note": "■ 【main（遊ぶ・いじる）のネガティブ慣用句セット】：main belakang（裏工作・浮気）、main mata（密約・色目）、main api（危険な火遊び）、main kayu（汚い反則）、main sabun（八百長）、main hakim sendiri（私刑）。"
+      },
+      {
+        "p": "v",
+        "w": "main mata",
+        "r": "main",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①（不正を隠すために当局や相手と）グルになる、暗黙の密約・癒着をする ②（異性同士で）色目を使う、アイコンタクトで誘う（直訳：目で遊ぶ！）",
+        "ex": "Masyarakat mendesak agar petugas pengawas yang terbukti main mata dengan pengusaha tambang ilegal segera dipecat.",
+        "tr": "違法鉱山業者とグルになっている（癒着している）ことが立証された監視官を直ちに解雇するよう、市民は強く求めている。",
+        "note": "■ 【2大文脈】：恋愛小説では「色目を使う」、社会ニュースでは「監視役と業者がグルになって不正を見逃す（癒着する）」の超定番！"
+      },
+      {
+        "p": "v",
+        "w": "main api",
+        "r": "main",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "火遊びをする、大惨事や大損を招きかねない危険なことに軽率に手を出す（直訳：火で遊ぶ！）",
+        "ex": "Menggunakan dana operasional perusahaan untuk berspekulasi aset berisiko tinggi sama saja dengan main api.",
+        "tr": "会社の運転資金をハイリスク資産の投機に使うのは、危険な火遊びをするのと同じことだ。",
+        "note": "■ 【ことわざとの関連】：『Bermain air basah, bermain api letup（水遊びをすれば濡れ、火遊びをすれば火傷する＝すべての行為には相応の報いが伴う）』。"
+      },
+      {
+        "p": "v",
+        "w": "cuci otak",
+        "r": "cuci",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "洗脳する、マインドコントロールする（直訳：脳を洗う！カルト・詐欺・過激派ニュースで頻出。他動詞形：mencuci otak）",
+        "ex": "Komplotan penipu berkedok investasi itu diduga melakukan teknik cuci otak agar para korban rela menyerahkan seluruh tabungannya.",
+        "tr": "投資を装ったその詐欺グループは、被害者が全貯金を喜んで差し出すように洗脳手口を用いていたと疑われている。",
+        "note": "■ 【cuci（洗う）慣用句4点セット】：cuci tangan（責任逃れ）、cuci otak（洗脳）、cuci mata（目の保養・ウィンドウショッピング）、cuci gudang（在庫一掃セール）。"
+      },
+      {
+        "p": "v",
+        "w": "silat lidah",
+        "r": "silat",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "口論する、言葉巧みに言い負かす、詭弁（きべん）を弄する（直訳：舌の武術シラット！『bersilat lidah＝口達者に言い争う・理屈をこね回す』）",
+        "ex": "Daripada sekadar bersilat lidah di televisi tanpa data konkret, para politisi sebaiknya fokus menyelesaikan masalah warga.",
+        "tr": "具体的なデータもなくテレビで口先の論戦（詭弁の応酬）をするよりも、政治家たちは市民の問題解決に集中すべきだ。",
+        "note": "■ 【語構成】：インドネシア伝統武術『silat』＋『lidah（舌）』＝言葉の格闘技！類義語：adu mulut（口喧嘩）。"
+      },
+      {
+        "p": "n",
+        "w": "perang dingin",
+        "r": "perang",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①（歴史・国際政治の）冷戦（Perang Dingin＝米ソ冷戦） ②（夫婦・友人・職場同士の）冷たい戦争、口もきかずに睨み合う冷戦状態",
+        "ex": "Sejak berselisih pendapat soal pembagian tugas pekan lalu, kedua rekan kerja itu masih terlibat perang dingin di kantor.",
+        "tr": "先週の業務分担をめぐって意見が対立して以来、その2人の同僚は職場で今も冷戦状態（口もきかない状態）が続いている。",
+        "note": "■ 【perang 比喩セット】：perang dingin（冷戦）、perang dagang（貿易戦争）、perang urat saraf（心理戦・神経戦）、perang harga（価格競争・ダンピング合戦）。"
+      },
+      {
+        "p": "v",
+        "w": "pasang mata",
+        "r": "pasang",
+        "tier": 1,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "目を光らせる、油断なくしっかり見張る、注意深く観察する（直訳：目をセットする！『pasang mata dan telinga＝目と耳を澄まして警戒する』）",
+        "ex": "Tim pemandu bakat dari klub-klub besar selalu pasang mata selama turnamen usia muda berlangsung.",
+        "tr": "ビッグクラブのスカウト陣は、ジュニア大会の開催中いつも鋭く目を光らせている。",
+        "note": "■ 【pasang（取り付ける・張る）慣用句セット】：pasang mata（目を光らせる）、pasang kuping / telinga（聞き耳を立てる）、pasang badan（身を挺して盾になる・責任を被る）。"
+      },
+      {
+        "p": "n",
+        "w": "urat nadi",
+        "r": "urat",
+        "tier": 1,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "①（経済・物流・国家を支える）大動脈、生命線（urat nadi perekonomian＝経済の大動脈！ニュース・論説の超頻出比喩！） ②動脈、脈拍を打つ血管",
+        "ex": "Jalur pantai utara Pulau Jawa merupakan urat nadi distribusi logistik yang menghubungkan Jakarta hingga Surabaya.",
+        "tr": "ジャワ島北海岸ルート（パントゥラ）は、ジャカルタからスラバヤまでを結ぶ物流の大動脈（生命線）である。",
+        "note": "■ 【身体パーツの国家・経済比喩ペア】：urat nadi（大動脈・生命線） ／ tulang punggung（大黒柱・屋台骨）。"
+      },
+      {
+        "p": "n",
+        "w": "hitam putih",
+        "r": "hitam",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①白黒の、モノクロの（foto hitam putih） ②（※契約・実務で超重要！）書面による明確な証拠・契約書（hitam di atas putih＝白紙の上の黒文字＝書面での合意！） ③善悪・白黒の明確な区別",
+        "ex": "Agar tidak timbul sengketa di kemudian hari, setiap kesepakatan kerja sama bisnis wajib dibuat secara hitam di atas putih.",
+        "tr": "後々紛争が生じないように、すべてのビジネス協力合意は必ず書面（白黒はっきりした契約書）で作成しなければならない。",
+        "note": "■ 【超実用フレーズ】：hitam di atas putih（口約束ではなく、法的効力のある書面・契約書に残すこと！）。"
+      },
+      {
+        "p": "n",
+        "w": "pahit getir",
+        "r": "pahit",
+        "tier": 1,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "辛酸（しんさん）、苦難、人生の苦しみと厳しさ（直訳：苦さと渋さ！『merasakan pahit getir kehidupan＝人生の辛酸をなめる』）",
+        "ex": "Pengusaha sukses itu sudah merasakan pahit getir perjuangan sejak merintis usahanya dari nol dua puluh tahun lalu.",
+        "tr": "その成功した実業家は、20年前にゼロから事業を立ち上げて以来、奮闘の辛酸（苦難）を味わい尽くしてきた。",
+        "note": "■ 【味覚による人生比喩ペア】：pahit getir（苦難・辛酸） ／ asam garam（酸いも甘いも＝豊富な人生経験）。"
+      },
+      {
+        "p": "v",
+        "w": "jatuh bangun",
+        "r": "jatuh",
+        "tier": 1,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "七転び八起きする、何度も失敗しては立ち上がる、浮き沈みを経験する（直訳：転んで起き上がる！起業家・アスリートの物語で超定番！）",
+        "ex": "Kisah jatuh bangun pendiri perusahaan teknologi lokal tersebut menginspirasi banyak mahasiswa untuk berani berwirausaha.",
+        "tr": "その地元テック企業創業者の七転び八起きの物語は、多くの学生に起業へ挑戦する勇気を与えている。",
+        "note": "■ 【人生の浮き沈みペア】：jatuh bangun（転んでは立ち上がる・七転び八起き） ／ pasang surut（満ち引き・盛衰や浮き沈み）。"
+      },
+      {
+        "p": "v",
+        "w": "jungkir balik",
+        "r": "jungkir",
+        "tier": 1,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①（生活や目標のために）必死にもがく、てんてこ舞いで奮闘する、あらゆる手を尽くす ②でんぐり返しする、真っ逆さまにひっくり返る",
+        "ex": "Orang tuanya bekerja jungkir balik siang dan malam demi membiayai kuliah kedua anak mereka hingga sarjana.",
+        "tr": "彼の両親は、2人の子どもを大学卒業まで通わせるため昼も夜も必死にもがいて（てんてこ舞いで）働いた。",
+        "note": "■ 【必死の奮闘ペア】：banting tulang（身を粉にして働く） ／ jungkir balik（てんてこ舞いで必死に奮闘する）。"
+      },
+      {
+        "p": "v",
+        "w": "tunggang langgang",
+        "r": "tunggang",
+        "tier": 1,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "蜘蛛の子を散らすように逃げ惑う、慌てふためいて一目散に逃げ出す（『lari tunggang langgang』の形で事件・災害・動物描写に超頻出！）",
+        "ex": "Kawanan pencuri itu langsung lari tunggang langgang begitu mendengar suara sirene mobil polisi mendekat.",
+        "tr": "その窃盗団は、近づいてくるパトカーのサイレンの音を聞いた途端、一目散に逃げ惑った。",
+        "note": "■ 【パニック表現ペア】：lari tunggang langgang（慌てて一目散に逃げ出す） ／ kalang kabut（大慌て・パニックになる）。"
+      },
+      {
+        "p": "a",
+        "w": "kalang kabut",
+        "r": "kalang",
+        "tier": 1,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "大慌ての、パニック状態の、テンパって収拾がつかない（＝panik sekali / kelabakan）",
+        "ex": "Panitia sempat dibuat kalang kabut ketika hujan deras turun tiba-tiba sesaat sebelum konser luar ruangan dimulai.",
+        "tr": "野外コンサート開始直前に突然豪雨が降り出し、運営スタッフは一時大慌て（パニック状態）になった。",
+        "note": "■ 【言い換え】：kalang kabut（標準・ニュース頻出） ＝ kelabakan（うろたえる） ＝ panik（パニックになる）。"
+      },
+      {
+        "p": "a",
+        "w": "kecil hati",
+        "r": "hati",
+        "tier": 1,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "気落ちする、意気消沈する、自信をなくす、いじける（直訳：心が小さい！『Jangan berkecil hati!＝気を落とさないで！／めげないで！』は励ましの定番フレーズ！）",
+        "ex": "Jangan berkecil hati apabila belum lolos pada percobaan pertama, jadikan hasil ini bahan evaluasi untuk tes berikutnya.",
+        "tr": "最初の挑戦で合格できなくても気を落とさないで、この結果を次のテストのための振り返り材料にしよう。",
+        "note": "■ 【hati（心）の超頻出4兄弟】：\n・kecil hati（気落ちする・めげる） ⇔ besar hati（誇らしい・勇気づけられる）\n・rendah hati（謙虚な） ⇔ tinggi hati（傲慢な）"
+      },
+      {
+        "p": "a",
+        "w": "berat hati",
+        "r": "hati",
+        "tier": 1,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "気が重い、心苦しい、後ろ髪を引かれる思いで、渋々（『dengan berat hati＝苦渋の決断で／不本意ながら／心苦しくも』はニュース・挨拶文の超定番！）",
+        "ex": "Dengan berat hati, panitia mengumumkan bahwa kegiatan pendakian bersama harus ditunda demi keselamatan peserta.",
+        "tr": "誠に心苦しいことながら、参加者の安全のため合同登山イベントを延期せざるを得ないことを委員会よりお知らせします。",
+        "note": "■ 【対義表現】：dengan berat hati（渋々・苦渋の思いで） ⇔ dengan senang hati / lapang dada（喜んで・快く）。"
+      },
+      {
+        "p": "n",
+        "w": "tangan besi",
+        "r": "tangan",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "鉄腕、強権支配、容赦ない独裁的統治（直訳：鉄の手！『pemerintahan tangan besi＝強権政治・独裁政権』として歴史・国際ニュースで超頻出）",
+        "ex": "Rezim yang memerintah dengan tangan besi selama puluhan tahun itu akhirnya runtuh setelah gelombang demonstrasi rakyat.",
+        "tr": "何十年もの間、鉄腕（強権独裁）で統治していたその政権は、国民のデモの波を受けてついに崩壊した。",
+        "note": "■ 【tangan（手）の対比慣用句】：tangan besi（強権・独裁） ／ tangan dingin（何をやっても成功させる魔法の手・名監督・名医！） ／ tangan terbuka（大歓迎）。"
+      },
+      {
+        "p": "other",
+        "w": "tangan terbuka",
+        "r": "tangan",
+        "tier": 1,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "両手を広げて、心から大歓迎して、快く（『menyambut dengan tangan terbuka＝両手を広げて歓迎する』は外交・ビジネス・日常すべてで超頻出！）",
+        "ex": "Masyarakat desa wisata itu selalu menyambut setiap tamu yang datang berkunjung dengan ramah dan tangan terbuka.",
+        "tr": "その観光村の住民たちは、訪れるすべてのゲストをいつも温かく両手を広げて歓迎してくれる。",
+        "note": "■ 【定番コロケーション】：menyambut dengan tangan terbuka（心から歓迎する）、menerima saran dengan tangan terbuka（提案を快く受け入れる）。"
+      },
+      {
+        "p": "v",
+        "w": "gigit jari",
+        "r": "gigit",
+        "tier": 1,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "指をくわえて悔しがる、当てが外れてがっかりする、何の利益も得られず損をする（直訳：指を噛む！日本語の「指をくわえて見る」にそっくり！）",
+        "ex": "Para calo tiket akhirnya harus gigit jari karena sistem penjualan resmi mewajibkan verifikasi identitas asli di pintu masuk.",
+        "tr": "公式販売システムが入口での本人確認を義務付けたため、チケット転売屋たちはついに当てが外れて悔しい思いをする羽目になった。",
+        "note": "■ 【gigit（噛む）ペア】：gigit jari（悔しがる・損をする・当てが外れる） ／ gigit lidah（恥ずかしくて言葉を失う・言いたくても我慢する）。"
+      },
+      {
+        "p": "a",
+        "w": "salah kaprah",
+        "r": "salah",
+        "tier": 1,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "世間に定着してしまった誤用・勘違い（本来は間違いなのに、みんなが長年使い続けて当たり前になってしまった言葉や常識！例：『mengacuhkan』を「無視する」と誤用する現象など）",
+        "ex": "Anggapan bahwa semua lemak dalam makanan berbahaya bagi kesehatan merupakan salah kaprah yang masih sering dipercaya.",
+        "tr": "食品に含まれるすべての脂質が健康に悪いという思い込みは、今もよく信じられている世間の勘違い（誤った常識）である。",
+        "note": "■ 【語構成】：salah（間違い）+ kaprah（ジャワ語：一般的・当たり前）。言語学・健康・法律コラムで超頻出の知的表現！"
+      },
+      {
+        "p": "a",
+        "w": "salah sasaran",
+        "r": "salah",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "的を外れた、見当違いの、本来届けるべき対象に届いていない（『subsidi salah sasaran＝本来貧困層向けなのに富裕層が恩恵を受ける的外れな補助金』でニュース超頻出！⇔ tepat sasaran）",
+        "ex": "Data kependudukan terus dimutakhirkan agar penyaluran bantuan sosial pemerintah tidak lagi salah sasaran.",
+        "tr": "政府の社会扶助の配布がこれ以上的外れ（対象違い）にならないよう、住民データは更新され続けている。",
+        "note": "■ 【政策報道の黄金対義ペア】：tepat sasaran（的確に対象へ届く） ⇔ salah sasaran（的を外れる・対象違い）。"
+      },
+      {
+        "p": "a",
+        "w": "mati kutu",
+        "r": "mati",
+        "tier": 1,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "手も足も出ない、完全に封じ込められて身動きが取れない、返す言葉がない（直訳：シラミが死ぬ！スポーツでエースが完璧にマークされた時や議論で論破された時の超定番！）",
+        "ex": "Penyerang bintang lawan dibuat mati kutu sepanjang pertandingan berkat pengawalan ketat dua bek tengah kami.",
+        "tr": "うちのセンターバック2人の厳しいマークのおかげで、相手のスターFWは試合を通じて完全に手も足も出なかった。",
+        "note": "■ 【mati（死ぬ）の超面白い4大慣用句】：mati kutu（手も足も出ない・完全封じ）、mati langkah（打つ手なし）、mati gaya（気まずくてどう振る舞えばいいか不明）、mati suri（仮死・休止状態）。"
+      },
+      {
+        "p": "n",
+        "w": "kupu-kupu malam",
+        "r": "kupu-kupu",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "夜の蝶、売春婦（社会報道や小説で使われる婉曲表現。行政用語は『PSK＝Pekerja Seks Komersial』）",
+        "ex": "Novel sosial itu mengisahkan kerasnya perjuangan hidup para perempuan yang terpaksa terjerumus menjadi kupu-kupu malam di kota besar.",
+        "tr": "その社会派小説は、大都市でやむを得ず夜の仕事（夜の蝶）に身を落とさざるを得なかった女性たちの厳しい人生の闘いを描いている。",
+        "note": "■ 【婉曲表現メモ】：直訳は「夜の蝶」。社会学や文学・報道で柔らかい婉曲表現として登場する。"
+      },
+      {
+        "p": "a",
+        "w": "darah panas",
+        "r": "darah",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "①短気な、カッとなりやすい、血の気が多い（berdarah panas＝すぐ怒る ⇔ kepala dingin＝冷静） ②（生物学の）温血の、恒温動物の（hewan berdarah panas）",
+        "ex": "Saat menghadapi provokasi di lapangan, pemain yang mudah terpancing karena darah panas sering merugikan timnya sendiri.",
+        "tr": "ピッチ上で挑発を受けたとき、血の気が多くてすぐ乗せられる選手はしばしば自チームに損をもたらす。",
+        "note": "■ 【対比】：berdarah panas（短気／恒温動物） ／ berdarah dingin（冷血な／変温動物）。"
+      },
+      {
+        "p": "a",
+        "w": "mata keranjang",
+        "r": "mata",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "女好きの、浮気性の、綺麗な人を見るとすぐ目移りするスケベな（直訳：かごの目＝何でもかごに入れたがる欲張りな目！）",
+        "ex": "Ia dikenal sebagai pria mata keranjang yang selalu menggoda setiap perempuan baru yang ditemuinya.",
+        "tr": "彼は出会う新しい女性にいつもちょっかいを出す女好き（浮気性）な男として知られている。",
+        "note": "■ 【類義慣用句】：buaya darat（陸のワニ＝女たらし・プレイボーイ）。"
+      },
+      {
+        "p": "a",
+        "w": "panjang lidah",
+        "r": "lidah",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "おしゃべりな、口が軽い、人の秘密や噂をすぐ言いふらす（直訳：舌が長い！＝ember［口語］）",
+        "ex": "Jangan menceritakan rahasia pribadi kepada orang yang panjang lidah jika tidak ingin kabar itu menyebar ke seluruh kantor.",
+        "tr": "会社中に広まってほしくないなら、口が軽い（おしゃべりな）人に個人的な秘密を話してはいけない。",
+        "note": "■ 【口が軽い若者スラング】：口語では『mulut ember（バケツ口＝口が軽くて秘密をすぐ漏らす人）』も超定番！"
+      },
+      {
+        "p": "a",
+        "w": "kepala angin",
+        "r": "kepala",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "お調子者、頭が空っぽで軽率な、物覚えが悪くぼんやりした（直訳：風の頭！）",
+        "ex": "Jangan bersikap seperti kepala angin yang hanya ikut-ikutan tren tanpa memikirkan akibat jangka panjangnya.",
+        "tr": "長期的な影響も考えずにただ流行に流されるだけの軽率な人間（お調子者）になってはいけない。",
+        "note": "■ 【kepala 慣用句まとめ】：besar kepala（傲慢）、keras kepala（頑固）、kepala dingin（冷静）、ringan kepala（頭が良い）、kepala angin（軽率・空っぽ）。"
+      },
+      {
+        "p": "v",
+        "w": "makan garam",
+        "r": "garam",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "人生経験が豊富である、苦労や場数をたくさん踏んでいる（『banyak makan garam』＝『banyak makan asam garam』の短縮形！）",
+        "ex": "Pelatih senior itu sudah banyak makan garam di berbagai kejuaraan dunia sehingga sangat tenang menghadapi tekanan final.",
+        "tr": "そのベテラン監督は様々な世界大会で豊富な経験（場数）を積んでいるため、決勝のプレッシャーにも非常に冷静だ。",
+        "note": "■ 【定番形】：sudah banyak makan garam / asam garam（人生の酸いも甘いも知り尽くしている）。"
+      },
+      {
+        "p": "v",
+        "w": "gantung raket",
+        "r": "gantung",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "（バドミントン・テニス・卓球などの選手が）現役を引退する（直訳：ラケットを吊るす！バドミントン大国インドネシアで超頻出！）",
+        "ex": "Peraih medali emas Olimpiade bulu tangkis itu mengumumkan keputusan gantung raket dan beralih menjadi pelatih pelatnas.",
+        "tr": "そのバドミントン五輪金メダリストは現役引退を発表し、ナショナルチーム代表コーチへ転身した。",
+        "note": "■ 【関連語】：gantung sepatu（サッカー等の引退）、pelatnas（国家代表強化合宿センター）。"
+      },
+      {
+        "p": "v",
+        "w": "turun kasta",
+        "r": "turun",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "（スポーツクラブが下位リーグへ）降格する、格落ちする（直訳：カーストが下がる！＝terdegradasi ⇔ naik kasta＝昇格する）",
+        "ex": "Klub legendaris itu terancam turun kasta ke divisi kedua apabila gagal meraih poin pada dua laga tersisa.",
+        "tr": "その名門クラブは残り2試合で勝ち点を取れなければ、2部リーグへの降格の危機に瀕している。",
+        "note": "■ 【スポーツ紙ペア】：naik kasta / promosi（上位リーグへ昇格） ⇔ turun kasta / degradasi（下位リーグへ降格）。"
+      },
+      {
+        "p": "v",
+        "w": "naik kelas",
+        "r": "naik",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "①（学校で次の学年へ）進級する ②（比喩で：中小企業・ブランド・選手などが）ワンランク上に成長する、ステップアップする（『UMKM naik kelas』は経済政策の超定番標語！）",
+        "ex": "Pelatihan ekspor dan sertifikasi halal diharapkan mampu mendorong jutaan UMKM Indonesia agar cepat naik kelas.",
+        "tr": "輸出研修とハラール認証は、何百万ものインドネシア中小零細企業を迅速にランクアップ（成長）させられると期待されている。",
+        "note": "■ 【2大用法】：① 学校『naik kelas（進級する ⇔ tinggal kelas＝留年する）』、② 経済『UMKM naik kelas（中小企業の規模拡大・成長）』。"
+      },
+      {
+        "p": "v",
+        "w": "naik haji",
+        "r": "haji",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "メッカ大巡礼（ハッジ）を行う（イスラム五行の最後を飾る一生に一度の聖地巡礼！完了すると男性は Haji [H.]、女性は Hajjah [Hj.] の尊称がつく）",
+        "ex": "Setiap tahun lebih dari dua ratus ribu jemaah asal Indonesia berangkat naik haji menuju Tanah Suci Mekah.",
+        "tr": "毎年20万人以上のインドネシア人巡礼者が、聖地メッカへ向けて大巡礼（ハッジ）へ出発する。",
+        "note": "■ 【関連語】：ibadah haji（大巡礼）、umrah（小巡礼：時期を問わず行ける巡礼）、jemaah haji（巡礼団）。"
+      },
+      {
+        "p": "v",
+        "w": "gulung layar",
+        "r": "gulung",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "（事業・イベント・活動・航海を）たたむ、撤退する、終了する（直訳：帆を巻く！『gulung tikar＝倒産する』と並ぶ撤収比喩）",
+        "ex": "Setelah beroperasi selama satu dekade, layanan pemutar musik daring lawas tersebut akhirnya memutuskan gulung layar.",
+        "tr": "10年間運営された後、その老舗オンライン音楽サービスはついに幕引き（サービス終了）を決断した。",
+        "note": "■ 【関連語】：gulung tikar（倒産・廃業する）。"
+      },
+      {
+        "p": "v",
+        "w": "buka pintu",
+        "r": "buka",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①（対話・協力・投資・和解の）門戸を開く、受け入れ姿勢を示す（membuka pintu dialog / investasi） ②ドアを開ける",
+        "ex": "Pemerintah tetap membuka pintu dialog bagi perwakilan serikat pekerja untuk mencari jalan tengah terbaik.",
+        "tr": "政府は最善の妥協案を探るため、労働組合代表に対する対話の扉を開き続けている。",
+        "note": "■ 【関連語】：membuka peluang（チャンスを切り開く）、tutup pintu（拒絶する・門を閉ざす）。"
+      },
+      {
+        "p": "v",
+        "w": "main kayu",
+        "r": "main",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "（スポーツ・選挙・競争で）汚い手を使う、危険で荒っぽい反則プレーをする、手段を選ばず卑怯に攻める（直訳：木の棒で遊ぶ！）",
+        "ex": "Wasit harus bersikap tegas sejak menit awal agar tidak ada pemain yang berani main kayu dan mencederai lawan.",
+        "tr": "危険なラフプレー（汚い手）をして相手を怪我させる選手が出ないよう、主審は開始直後から毅然とした態度をとらなければならない。",
+        "note": "■ 【スポーツ＆競争スラング】：main kayu（悪質なラフプレー・汚い手） ／ main bersih（正々堂々とフェアに戦う）。"
+      },
+      {
+        "p": "v",
+        "w": "main sabun",
+        "r": "main",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "（スポーツや選挙・審査で裏金により結果を操作する）八百長をする、出来レースを仕組む（直訳：石けんで遊ぶ＝ヌルヌルとごまかして裏で手を回す！）",
+        "ex": "Federasi menjatuhkan sanksi larangan seumur hidup bagi oknum wasit yang terbukti main sabun dalam pengaturan skor.",
+        "tr": "連盟はスコア操作の八百長が立証された悪質な審判に対し、永久追放処分を科した。",
+        "note": "■ 【関連語】：pengaturan skor（八百長・マッチフィクシング）、mafia bola（サッカー八百長組織）。"
+      },
+      {
+        "p": "v",
+        "w": "cuci mata",
+        "r": "cuci",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "目の保養をする、ウィンドウショッピングや綺麗な景色・美男美女を見て気分転換する（直訳：目を洗う！）",
+        "ex": "Walaupun sedang tanggal tua dan tidak berniat belanja, kami tetap jalan-jalan ke mal sekadar untuk cuci mata.",
+        "tr": "給料日前で買い物するつもりはないけれど、ただ目の保養（ウィンドウショッピング）のためにモールをぶらぶらした。",
+        "note": "■ 【日常会話で超使える】：モール散策・自然絶景鑑賞・きれいなカフェ巡りのすべてに気軽に使える楽しい表現！"
+      },
+      {
+        "p": "v",
+        "w": "cari angin",
+        "r": "angin",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "外の空気を吸って気分転換する、ちょっと散歩やドライブに出る（直訳：風を探す！＝ambil angin / makan angin）",
+        "ex": "Karena suntuk seharian menatap layar laptop di kamar, aku keluar sebentar ke taman untuk cari angin.",
+        "tr": "一日中部屋でノートPCの画面を見つめて煮詰まったから、気分転換（外の空気を吸い）にちょっと公園へ出たよ。",
+        "note": "■ 【言い換え】：cari angin ＝ ambil angin ＝ makan angin（いずれも「気分転換に外へ出る」）。"
+      },
+      {
+        "p": "v",
+        "w": "cari perkara",
+        "r": "perkara",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "わざわざ揉め事を起こす、喧嘩を売る、トラブルの種を自分から作る（＝cari masalah / cari gara-gara）",
+        "ex": "Jangan suka melontarkan komentar menghina di akun orang lain kalau kamu tidak ingin cari perkara.",
+        "tr": "トラブルを起こしたくないなら、他人のアカウントに侮辱コメントを投げつけるような真似はやめなよ。",
+        "note": "■ 【関連語】：cari muka（媚びを売る）、cari mati（命知らずの無茶をする）、cari perhatian [caper]（かまってちゃん行為をする）。"
+      },
+      {
+        "p": "v",
+        "w": "jual tampang",
+        "r": "jual",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💬 スラング・口語",
+        "m": "見た目・ビジュアルだけで勝負する、中身や実力より外見をアピールする（直訳：ルックスを売る！）",
+        "ex": "Aktor muda itu membuktikan dirinya tidak sekadar jual tampang, melainkan benar-benar memiliki kemampuan akting memukau.",
+        "tr": "その若手俳優は単に見た目だけ（ルックス売り）ではなく、本当に見事な演技力を持っていることを証明した。",
+        "note": "■ 【jual（売る）の慣用句ペア】：jual tampang（見た目アピール） ／ jual mahal（気取る・もったいぶって簡単にOKしない）。"
+      },
+      {
+        "p": "v",
+        "w": "pasang kuping",
+        "r": "pasang",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "聞き耳を立てる、注意深く耳を傾ける、情報を見逃さないよう耳を澄ます（＝pasang telinga）",
+        "ex": "Semua mahasiswa langsung pasang kuping begitu dosen mulai memberikan kisi-kisi materi ujian akhir semester.",
+        "tr": "先生が期末試験の出題範囲のヒントを話し始めた途端、学生全員が一斉に聞き耳を立てた。",
+        "note": "■ 【関連語】：pasang mata（目を光らせる）、pasang telinga（丁寧版：耳を傾ける）。"
+      },
+      {
+        "p": "n",
+        "w": "perang urat saraf",
+        "r": "perang",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "心理戦、神経戦（直訳：神経の戦争！英語 war of nerves。格闘技やサッカーの試合前挑発、外交交渉などで相手の精神を揺さぶる駆け引き！）",
+        "ex": "Kedua petarung sudah saling melancarkan perang urat saraf sejak sesi konferensi pers sebelum laga perebutan gelar.",
+        "tr": "両ファイターはタイトルマッチ前の記者会見の段階から、すでに互いに激しい心理戦（神経戦）を繰り広げていた。",
+        "note": "■ 【関連語】：urat saraf（神経）、tekanan mental（精神的プレッシャー）。"
+      },
+      {
+        "p": "v",
+        "w": "adu mulut",
+        "r": "adu",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "口論する、激しい口喧嘩をする（直訳：口をぶつけ合う！＝cekcok / bertengkar mulut）",
+        "ex": "Dua pengendara sempat terlibat adu mulut di pinggir jalan setelah kendaraan mereka bersenggolan ringan di kemacetan.",
+        "tr": "渋滞中に車が軽く接触した後、2人の運転手は路上で一時激しい口論になった。",
+        "note": "■ 【adu（競わせる・ぶつける）対比ペア】：adu mulut（口論・口喧嘩） ➔ エスカレートすると adu jotos（殴り合いの喧嘩！）。"
+      },
+      {
+        "p": "v",
+        "w": "adu jotos",
+        "r": "adu",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "殴り合いの喧嘩をする、拳を交える（直訳：拳をぶつけ合う！＝baku hantam / berkelahi）",
+        "ex": "Petugas keamanan segera melerai dua penonton yang hampir terlibat adu jotos di area tribun stadion.",
+        "tr": "警備員たちは、スタジアムの観客席エリアで殴り合いになりかけた2人の観客を直ちに引き離した。",
+        "note": "■ 【関連語】：adu mulut（口喧嘩）、baku hantam（殴り合い）、melerai（喧嘩を仲裁して引き離す）。"
+      },
+      {
+        "p": "other",
+        "w": "susah payah",
+        "r": "susah",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "大変な苦労をして、やっとの思いで、四苦八苦して（『dengan susah payah＝苦労の末に』は読解・日常ともに超定番！）",
+        "ex": "Setelah berlatih keras dan berjuang dengan susah payah selama tiga tahun, ia akhirnya berhasil lulus ujian tingkat lanjut.",
+        "tr": "3年間にわたり懸命に練習し大変な苦労の末、彼はついに上級試験に合格した。",
+        "note": "■ 【語構成】：susah（困難な）+ payah（くたくたに疲れた）の強調連語。類義語：bersusah payah（骨を折る）。"
+      },
+      {
+        "p": "a",
+        "w": "sakit hati",
+        "r": "hati",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "傷つく、恨みに思う、深く憤慨・失望する（直訳：心が痛い！裏切りや心ない言葉で感情を深く傷つけられた状態）",
+        "ex": "Ia merasa sangat sakit hati setelah mengetahui sahabat dekatnya sendiri yang menyebarkan rahasianya.",
+        "tr": "自分の秘密を言いふらしたのが親友本人だったと知り、彼は深く傷ついた。",
+        "note": "■ 【hati の感情ペア】：sakit hati（傷つく・恨む）、patah hati（失恋する・心が折れる）、makan hati（心労で苦しむ）。"
+      },
+      {
+        "p": "v",
+        "w": "jatuh hati",
+        "r": "hati",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "①恋に落ちる、心を奪われる（＝jatuh cinta） ②（場所・料理・作品・ペットなどに）ひと目で惚れ込む、大好きになる！",
+        "ex": "Sejak kunjungan pertamanya ke Yogyakarta, ia langsung jatuh hati pada keramahan warga dan suasana kotanya.",
+        "tr": "ジョグジャカルタを初めて訪れて以来、彼は住民の温かさと街の雰囲気にひと目で惚れ込んでしまった。",
+        "note": "■ 【使い分け】：『jatuh cinta』は主に恋愛、『jatuh hati』は恋愛だけでなく街・音楽・食べ物・趣味に「すっかり魅了される・惚れ込む」ときにも素敵に使える！"
+      },
+      {
+        "p": "v",
+        "w": "hilang muka",
+        "r": "muka",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "面目を失う、顔をつぶす、赤っ恥をかく（直訳：顔を失う！＝kehilangan muka / malu besar）",
+        "ex": "Ia takut hilang muka di depan rekan sekantor apabila ketahuan tidak menguasai materi yang ia presentasikan sendiri.",
+        "tr": "自分でプレゼンする内容を理解していないことがバレたら、職場の同僚の前で面目を失うのではないかと彼は恐れていた。",
+        "note": "■ 【関連語】：menjaga muka（メンツを保つ）、menyelamatkan muka（顔を立てる・メンツを救う）。"
+      },
+      {
+        "p": "a",
+        "w": "pendek akal",
+        "r": "akal",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "考えが浅い、浅はかな、思慮が足りない（直訳：知恵・理性が短い！⇔ panjang akal＝機転が利く・知恵が回る）",
+        "ex": "Mengambil keputusan besar secara emosional tanpa memikirkan dampaknya merupakan tindakan yang pendek akal.",
+        "tr": "影響も考えずに感情的に大きな決断を下すのは、考えの浅い（浅はかな）行動だ。",
+        "note": "■ 【対義ペア】：panjang akal（知恵が回る・機転が利く） ⇔ pendek akal（浅はか・考えが浅い）。"
+      },
+      {
+        "p": "a",
+        "w": "sempit dada",
+        "r": "dada",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "心が狭い、短気な、すぐカッとなる（直訳：胸が狭い！⇔ lapang dada＝心が広い・寛容に受け入れる）",
+        "ex": "Pemimpin tidak boleh bersikap sempit dada saat menerima masukan atau kritik membangun dari bawahannya.",
+        "tr": "指導者は、部下から建設的な意見や批判を受ける際に心の狭い（短気な）態度をとってはならない。",
+        "note": "■ 【対義ペア】：lapang dada（寛容に受け入れる・心が広い） ⇔ sempit dada（心が狭い・すぐ怒る）。"
+      },
+      {
+        "p": "a",
+        "w": "panas dingin",
+        "r": "panas",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "①（風邪や発熱で）寒気と火照りが交互に来る、悪寒がする ②（比喩で：試験前や秘密がバレそうな時など）ハラハラ冷や汗をかく、ビクビク落ち着かない！",
+        "ex": "Jantungnya berdebar dan tubuhnya terasa panas dingin saat menunggu pengumuman hasil seleksi wawancara kerja.",
+        "tr": "就職面接の選考結果発表を待っている間、彼の心臓はドキドキし、体はハラハラ冷や汗（落ち着かない気分）だった。",
+        "note": "■ 【2大用法】：体調不良の「悪寒と熱」にも、緊張や不安で「生きた心地がしない・冷や汗が出る」比喩にも超よく使う！"
+      },
+      {
+        "p": "a",
+        "w": "mati langkah",
+        "r": "mati",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "（スポーツ・チェス・交渉などで）打つ手がなくなる、相手のフェイントに引っかかって足が完全に止まる（直訳：一歩が死ぬ！）",
+        "ex": "Kiper lawan dibuat mati langkah oleh tendangan bebas melengkung yang tiba-tiba berbelok ke sudut kiri gawang.",
+        "tr": "相手キーパーは、ゴール左隅へ急に曲がり込んだフリーキックに完全に足が止まった（反応できなかった）。",
+        "note": "■ 【スポーツ実況の超定番】：kiper mati langkah（キーパーが一歩も動けず見送る）、pemain mati langkah（フェイントで完全に逆を突かれる）。"
+      },
+      {
+        "p": "a",
+        "w": "mati gaya",
+        "r": "mati",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💬 スラング・口語",
+        "m": "（気まずい空気や想定外の事態で）どうしていいか分からず固まる、カッコがつかない、気まずくて棒立ちになる（直訳：スタイルが死ぬ！若者日常会話の定番表現）",
+        "ex": "Aku langsung mati gaya waktu datang ke acara reuni ternyata hampir semua orang yang kukenal belum hadir.",
+        "tr": "同窓会に行ったのに知ってる人がほとんどまだ来てなくて、気まずくてどうしていいか分からず固まっちゃったよ。",
+        "note": "■ 【会話スラング】：『salting [salah tingkah]（照れたり焦ったりして挙動不審になる）』と並ぶ、気まずい瞬間の人気表現！"
+      },
+      {
+        "p": "a",
+        "w": "mati suri",
+        "r": "mati",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "①仮死状態 ②（比喩で：産業・観光地・団体・市場・伝統文化などが）完全に活気を失って休止・瀕死状態になっていること（ニュース超頻出！）",
+        "ex": "Setelah sempat mati suri selama dua tahun akibat pandemi, sentra kerajinan batik desa itu kini mulai bangkit kembali.",
+        "tr": "パンデミックの影響で2年間ほど休止（仮死）状態に陥っていたその村のバティック工芸拠点は、現在再び息を吹き返し始めている。",
+        "note": "■ 【経済・文化報道の定番】：mati suri（仮死・長期休眠状態） ➔ bangkit kembali / menggeliat（再び息を吹き返す）。"
+      }
+    ];
+
+    const SEC4_IDIOMS_QUIZ_36 = [
+      {
+        "q": "「事前の下馬評は低かったのに本番で強豪を破って活躍する伏兵（ダークホース）」（直訳：黒い馬）を表す慣用句は？",
+        "s": "Tim muda dari divisi bawah itu tampil mengejutkan sebagai ___ yang berhasil menembus babak final.",
+        "a": "kuda hitam",
+        "choices": ["kuda hitam", "kambing hitam", "tikus kantor", "buah bibir"],
+        "exp": "・kuda hitam：ダークホース、伏兵\n・kambing hitam：スケープゴート（身代わり）\n・tikus kantor：汚職役人、横領社員\n・buah bibir：世間の噂の種"
+      },
+      {
+        "q": "「公金や会社資金をこっそり横領・汚職する悪徳役人や社員」（直訳：オフィスのネズミ）を表す慣用句は？",
+        "s": "Audit keuangan secara terbuka sangat diperlukan untuk membersihkan instansi dari praktik para ___.",
+        "a": "tikus kantor",
+        "choices": ["tikus kantor", "kuda hitam", "kutu buku", "tangan kanan"],
+        "exp": "・tikus kantor：汚職役人、横領社員（Iwan Fals の名曲でも有名）\n・kutu buku：本の虫、読書家\n・tangan kanan：最も信頼できる右腕"
+      },
+      {
+        "q": "「何事もお金で判断する拝金主義の、お金に目がない」（直訳：お金の目）を表す慣用句は？",
+        "s": "Ia dijauhi banyak temannya karena sikapnya yang terlalu ___ dan selalu menghitung segala hal dengan uang.",
+        "a": "mata duitan",
+        "choices": ["mata duitan", "mata keranjang", "muka tembok", "tebal telinga"],
+        "exp": "・mata duitan：拝金主義、お金に目がない\n・mata keranjang：女好き、浮気性\n・muka tembok：面の皮が厚い、恥知らず\n・tebal telinga：何を言われても平気・聞く耳を持たない"
+      },
+      {
+        "q": "「批判されても恥じることなく平然としている『面の皮が厚い・恥知らず』」（直訳：壁の顔）を表す慣用句は？",
+        "s": "Meskipun kesalahannya sudah jelas terbukti di hadapan publik, ia tetap bersikap santai layaknya orang ber___.",
+        "a": "muka tembok",
+        "choices": ["muka tembok", "hilang muka", "rendah hati", "kecil hati"],
+        "exp": "・muka tembok（または tebal muka）：面の皮が厚い、厚顔無恥\n・hilang muka：面目を失う、恥をかく\n・kecil hati：気落ちする、自信をなくす"
+      },
+      {
+        "q": "「厳しい批判や悪口を言われても動じない図太さ、または忠告を全く聞き入れないこと」（直訳：厚い耳）を表す慣用句は？",
+        "s": "Menjadi pejabat publik menuntut ketenangan mental dan ___ saat menghadapi derasnya kritik masyarakat.",
+        "a": "tebal telinga",
+        "choices": ["tebal telinga", "panjang lidah", "lidah bercabang", "sempit dada"],
+        "exp": "・tebal telinga：批判に動じない図太さ／聞く耳を持たない（対義：tipis telinga＝すぐ怒る）\n・panjang lidah：おしゃべり、口が軽い\n・lidah bercabang：二枚舌"
+      },
+      {
+        "q": "「言うことがコロコロ変わって信用できない『二枚舌の嘘つき』」（直訳：二股に分かれた舌）を表す慣用句は？",
+        "s": "Rekan bisnis enggan bekerja sama lagi dengannya karena ia dikenal memiliki ___ yang sering mengingkari janji.",
+        "a": "lidah bercabang",
+        "choices": ["lidah bercabang", "silat lidah", "gigit lidah", "tangan besi"],
+        "exp": "・lidah bercabang：二枚舌（berlidah dua）\n・silat lidah：口論する、詭弁を弄する\n・gigit lidah：恥ずかしくて言葉を失う"
+      },
+      {
+        "q": "「情熱的で勢いがある反面、熱くなりやすい『血気盛んな若さ・若気の至り』」（直訳：若い血）を表す慣用句は？",
+        "s": "Semangat ___ yang meluap-luap akan menghasilkan karya hebat apabila diarahkan pada hal-hal positif.",
+        "a": "darah muda",
+        "choices": ["darah muda", "darah biru", "darah dingin", "naik darah"],
+        "exp": "・darah muda：血気盛んな若さ、若気の至り\n・darah biru：貴族の血筋\n・darah dingin：冷血\n・naik darah：激怒する"
+      },
+      {
+        "q": "「在庫処分や集客のために赤字覚悟で大幅に値下げ・投げ売りする」（直訳：値段を叩きつける）を表す慣用句は？",
+        "s": "Menjelang tutup tahun, banyak toko pakaian melakukan aksi ___ hingga separuh harga untuk menarik pembeli.",
+        "a": "banting harga",
+        "choices": ["banting harga", "banting tulang", "gulung tikar", "cuci otak"],
+        "exp": "・banting harga：大幅値下げする、投げ売りする\n・banting tulang：身を粉にして働く\n・gulung tikar：倒産する"
+      },
+      {
+        "q": "「ろくに仕事もしないで給料だけもらう『給料泥棒をする』」（若者スラング gabut の語源！）を表す慣用句は？",
+        "s": "Pengawasan kinerja diperketat agar tidak ada lagi oknum pegawai yang sekadar ___ tanpa memberikan kontribusi.",
+        "a": "makan gaji buta",
+        "choices": ["makan gaji buta", "makan garam", "banting tulang", "turun gunung"],
+        "exp": "・makan gaji buta：働かずに給料だけもらう（給料泥棒）\n・makan garam：豊富な人生経験を積む\n・turun gunung：大物が現場へ出陣する"
+      },
+      {
+        "q": "「サッカー選手や陸上選手などが『現役を引退する』」（直訳：靴を壁に吊るす）を表す慣用句は？",
+        "s": "Setelah mengabdi selama delapan belas musim bersama klubnya, sang kapten resmi memutuskan ___ tahun ini.",
+        "a": "gantung sepatu",
+        "choices": ["gantung sepatu", "angkat koper", "pecah telur", "turun gunung"],
+        "exp": "・gantung sepatu：（サッカー・陸上選手が）現役引退する（バドミントンは gantung raket）\n・angkat koper：大会で敗退して早々帰国する\n・pecah telur：初勝利・初ゴールを決める"
+      },
+      {
+        "q": "「長年の無得点・連敗を脱して『初ゴール・初勝利を達成する』、またはその日の『初売上を挙げる』」（直訳：卵［0］を割る）を表す慣用句は？",
+        "s": "Setelah empat laga tanpa gol, penyerang muda itu akhirnya berhasil ___ lewat sundulan indah di babak kedua.",
+        "a": "pecah telur",
+        "choices": ["pecah telur", "gantung sepatu", "angkat koper", "buka kartu"],
+        "exp": "・pecah telur：0（卵）を割る＝初ゴール・初勝利・初売上を達成する！\n・buka kartu：手の内・秘密を明かす"
+      },
+      {
+        "q": "「大物や元トップ・重鎮が奥の院から『自ら現場へ出陣する・満を持して乗り出す』」（直訳：山から下りる）を表す慣用句は？",
+        "s": "Menjelang hari pemungutan suara, para tokoh senior partai akhirnya ikut ___ untuk menggalang dukungan warga.",
+        "a": "turun gunung",
+        "choices": ["turun gunung", "turun kasta", "angkat kaki", "gulung tikar"],
+        "exp": "・turun gunung：大物・達人が満を持して自ら現場に出陣する\n・turun kasta：下位リーグへ降格する・格落ちする"
+      },
+      {
+        "q": "「国際大会やトーナメントで敗退し『荷物をまとめて早々に帰国する』」（直訳：スーツケースを持ち上げる）を表す慣用句は？",
+        "s": "Kekalahan dua kali beruntun di babak penyisihan membuat tim unggulan tersebut harus ___ lebih cepat.",
+        "a": "angkat koper",
+        "choices": ["angkat koper", "angkat topi", "angkat bicara", "gantung sepatu"],
+        "exp": "・angkat koper：敗退して荷物をまとめ帰国する\n・angkat topi：脱帽する、敬意を表する\n・angkat bicara：口を開く、発言し始める"
+      },
+      {
+        "q": "「隠していた秘密や本音・内情をすべてぶちまける『手の内を明かす』」（直訳：カードを開く）を表す慣用句は？",
+        "s": "Saksi kunci itu akhirnya bersedia ___ mengenai kronologi sebenarnya di hadapan majelis hakim.",
+        "a": "buka kartu",
+        "choices": ["buka kartu", "main belakang", "main mata", "cuci tangan"],
+        "exp": "・buka kartu：手の内を明かす、内情・秘密をぶちまける\n・main belakang：裏工作をする、浮気する\n・main mata：グルになる・密約を結ぶ／色目を使う"
+      },
+      {
+        "q": "「表向きは普通に振る舞いながら、陰でコソコソ『裏工作・不正談合（または浮気）をする』」（直訳：裏で遊ぶ）を表す慣用句は？",
+        "s": "Sistem pengadaan barang secara daring diterapkan untuk mencegah oknum panitia ___ dengan vendor tertentu.",
+        "a": "main belakang",
+        "choices": ["main belakang", "main api", "pasang mata", "buka kartu"],
+        "exp": "・main belakang：裏工作をする、不正談合する／浮気する\n・main api：危険な火遊びをする\n・pasang mata：目を光らせる"
+      },
+      {
+        "q": "「当局や監視役が不正業者と『グルになる・暗黙の癒着をする』、または『色目を使う』」（直訳：目で遊ぶ）を表す慣用句は？",
+        "s": "Pimpinan instansi berjanji akan memecat siapa pun petugas yang terbukti ___ dengan pelaku pelanggaran.",
+        "a": "main mata",
+        "choices": ["main mata", "cuci mata", "gelap mata", "pasang mata"],
+        "exp": "・main mata：グルになる・癒着する／色目を使う\n・cuci mata：目の保養をする\n・gelap mata：逆上して見境を失う\n・pasang mata：目を光らせる"
+      },
+      {
+        "q": "「大惨事や大損を招きかねない『危険なことに軽率に手を出す（火遊びをする）』」（直訳：火で遊ぶ）を表す慣用句は？",
+        "s": "Meminjam uang dari rentenir ilegal demi gaya hidup mewah sama saja dengan ___ yang membahayakan masa depan.",
+        "a": "main api",
+        "choices": ["main api", "main belakang", "cuci otak", "gigit jari"],
+        "exp": "・main api：危険な火遊びをする、大損・破滅を招く無謀な行動に手を出す\n・cuci otak：洗脳する\n・gigit jari：指をくわえて悔しがる"
+      },
+      {
+        "q": "「人の思想や判断力を意図的に操作して思い込ませる『洗脳する』」（直訳：脳を洗う）を表す慣用句は？",
+        "s": "Kelompok penipu itu menggunakan metode ___ agar para anggotanya patuh tanpa pernah mempertanyakan aturan.",
+        "a": "cuci otak",
+        "choices": ["cuci otak", "cuci tangan", "cuci mata", "cuci gudang"],
+        "exp": "・cuci otak：洗脳する\n・cuci tangan：責任逃れをする\n・cuci mata：目の保養をする\n・cuci gudang：在庫一掃セール"
+      },
+      {
+        "q": "「言葉巧みに理屈をこね回して言い争う『詭弁を弄する・口論する』」（直訳：舌の武術シラット）を表す慣用句は？",
+        "s": "Alih-alih terus ber___ di media massa, kedua belah pihak sebaiknya duduk bersama mencari solusi nyata.",
+        "a": "silat lidah",
+        "choices": ["silat lidah", "lidah bercabang", "panjang lidah", "gigit lidah"],
+        "exp": "・silat lidah（bersilat lidah）：口論する、詭弁を弄して言い負かそうとする\n・lidah bercabang：二枚舌\n・panjang lidah：おしゃべり・口が軽い"
+      },
+      {
+        "q": "「武力衝突や直接対決はしないものの、互いに敵対し口もきかずに睨み合う『冷戦状態』」を表す慣用句は？",
+        "s": "Sejak berselisih dalam rapat bulan lalu, kedua manajer divisi itu masih terlibat ___ dan jarang bertegur sapa.",
+        "a": "perang dingin",
+        "choices": ["perang dingin", "kepala dingin", "tangan dingin", "panas dingin"],
+        "exp": "・perang dingin：冷戦、冷戦状態\n・kepala dingin：冷静沈着\n・tangan dingin：何をやっても成功に導く手腕\n・panas dingin：悪寒と発熱／ハラハラ冷や汗"
+      },
+      {
+        "q": "「油断なく周囲をしっかり見張る『目を光らせる』」（直訳：目をセットする）を表す慣用句は？",
+        "s": "Tim pemandu bakat selalu ___ sepanjang turnamen remaja untuk menemukan bibit pemain masa depan.",
+        "a": "pasang mata",
+        "choices": ["pasang mata", "main mata", "cuci mata", "mata duitan"],
+        "exp": "・pasang mata：目を光らせる、注意深く見張る\n・main mata：グルになる／色目を使う\n・cuci mata：目の保養をする"
+      },
+      {
+        "q": "「国家の経済や物流を支える不可欠な『大動脈・生命線』」（直訳：動脈・脈管）を表す慣用句は？",
+        "s": "Pelabuhan dan jalur tol laut merupakan ___ perekonomian yang menghubungkan pulau-pulau di Indonesia.",
+        "a": "urat nadi",
+        "choices": ["urat nadi", "tangan besi", "batu loncatan", "jalan buntu"],
+        "exp": "・urat nadi：大動脈、生命線（urat nadi perekonomian＝経済の大動脈）\n・tangan besi：鉄腕、強権支配\n・batu loncatan：踏み台、足がかり"
+      },
+      {
+        "q": "「口約束ではなく法的効力のある『書面での明確な合意・契約』」（直訳：白紙の上の黒文字）を表す慣用句は？",
+        "s": "Setiap perjanjian pinjam-meminjam uang dalam jumlah besar sebaiknya dibuat secara ___ agar berkekuatan hukum.",
+        "a": "hitam putih",
+        "choices": ["hitam putih", "pahit getir", "jatuh bangun", "kuda hitam"],
+        "exp": "・hitam putih（hitam di atas putih）：書面による明確な契約・白黒の区別\n・pahit getir：辛酸、苦難\n・jatuh bangun：七転び八起き"
+      },
+      {
+        "q": "「人生や事業における厳しい苦しみ・『辛酸（しんさん）・苦難』」（直訳：苦さと渋さ）を表す慣用句は？",
+        "s": "Setelah melewati berbagai ___ perjuangan selama bertahun-tahun, akhirnya usaha keluarga mereka mulai membuahkan hasil.",
+        "a": "pahit getir",
+        "choices": ["pahit getir", "hitam putih", "salah kaprah", "kalang kabut"],
+        "exp": "・pahit getir：辛酸、苦難\n・salah kaprah：世間に定着した誤用・勘違い\n・kalang kabut：大慌て、パニック"
+      },
+      {
+        "q": "「何度も失敗や挫折を経験しながらも諦めずに立ち上がる『七転び八起き』」（直訳：転んで起き上がる）を表す慣用句は？",
+        "s": "Kisah ___ pengusaha muda itu dari kebangkrutan hingga sukses menjadi inspirasi bagi banyak mahasiswa.",
+        "a": "jatuh bangun",
+        "choices": ["jatuh bangun", "jungkir balik", "tunggang langgang", "kalang kabut"],
+        "exp": "・jatuh bangun：七転び八起き、失敗と再起を繰り返す浮き沈み\n・jungkir balik：てんてこ舞いで必死に奮闘する\n・tunggang langgang：蜘蛛の子を散らすように逃げ惑う"
+      },
+      {
+        "q": "「生活や目標のために『てんてこ舞いで必死にもがく・あらゆる手を尽くして奮闘する』」（直訳：でんぐり返し）を表す慣用句は？",
+        "s": "Ia rela bekerja ___ mengambil dua pekerjaan sekaligus demi melunasi biaya pengobatan orang tuanya.",
+        "a": "jungkir balik",
+        "choices": ["jungkir balik", "tunggang langgang", "jatuh bangun", "mati kutu"],
+        "exp": "・jungkir balik：必死にもがく、てんてこ舞いで奮闘する\n・tunggang langgang：慌てふためいて逃げ惑う\n・mati kutu：手も足も出ない"
+      },
+      {
+        "q": "「恐れたり驚いたりして『蜘蛛の子を散らすように一目散に逃げ惑う』」を表す慣用句は？",
+        "s": "Begitu petugas gabungan tiba di lokasi balap liar, para pelaku langsung lari ___ meninggalkan sepeda motornya.",
+        "a": "tunggang langgang",
+        "choices": ["tunggang langgang", "kalang kabut", "jungkir balik", "jatuh bangun"],
+        "exp": "・lari tunggang langgang：慌てふためいて一目散に逃げ惑う\n・kalang kabut：大慌て、パニック状態"
+      },
+      {
+        "q": "「予想外のトラブルに直面して『大慌てになる・パニックでテンパる』」を表す慣用句は？",
+        "s": "Tim teknis sempat dibuat ___ ketika peladen utama tiba-tiba mati lima menit sebelum pendaftaran daring dibuka.",
+        "a": "kalang kabut",
+        "choices": ["kalang kabut", "mati kutu", "kecil hati", "berat hati"],
+        "exp": "・kalang kabut：大慌て、パニック状態、うろたえる\n・mati kutu：手も足も出ない\n・kecil hati：気落ちする\n・berat hati：気が重い、渋々"
+      },
+      {
+        "q": "「失敗や劣等感から『気落ちする・意気消沈する・めげる』」（直訳：心が小さい）を表す慣用句は？",
+        "s": "Jangan ber___ hanya karena gagal sekali, sebab setiap orang sukses pasti pernah mengalami penolakan.",
+        "a": "kecil hati",
+        "choices": ["kecil hati", "berat hati", "rendah hati", "besar hati"],
+        "exp": "・kecil hati（berkecil hati）：気落ちする、自信をなくす、めげる\n・berat hati：気が重い、渋々\n・rendah hati：謙虚な\n・besar hati：誇らしい、勇気づけられる"
+      },
+      {
+        "q": "「本当は気が進まないがやむを得ず『心苦しくも・渋々・苦渋の思いで』」（直訳：重い心）を表す慣用句は？",
+        "s": "Dengan ___, pengelola terpaksa menutup sementara jalur pendakian karena aktivitas gunung berapi meningkat.",
+        "a": "berat hati",
+        "choices": ["berat hati", "kecil hati", "rendah hati", "tangan terbuka"],
+        "exp": "・dengan berat hati：心苦しくも、渋々、苦渋の思いで\n・dengan tangan terbuka：両手を広げて大歓迎して"
+      },
+      {
+        "q": "「容赦ない独裁・弾圧で押さえつける『鉄腕・強権支配』」（直訳：鉄の手）を表す慣用句は？",
+        "s": "Sejarah mencatat bahwa pemerintahan ___ yang membungkam kebebasan pers pada akhirnya selalu ditolak rakyat.",
+        "a": "tangan besi",
+        "choices": ["tangan besi", "tangan kanan", "tangan terbuka", "panjang tangan"],
+        "exp": "・tangan besi：鉄腕、強権支配・独裁政治\n・tangan kanan：信頼できる右腕\n・tangan terbuka：大歓迎\n・panjang tangan：手癖が悪い"
+      },
+      {
+        "q": "「ゲストや提案を心から快く迎え入れる『両手を広げて大歓迎して』」を表す慣用句は？",
+        "s": "Universitas kami selalu menyambut mahasiswa pertukaran dari berbagai negara dengan hangat dan ___.",
+        "a": "tangan terbuka",
+        "choices": ["tangan terbuka", "tangan besi", "cuci tangan", "lepas tangan"],
+        "exp": "・dengan tangan terbuka：両手を広げて、心から大歓迎して\n・cuci tangan：責任逃れをする\n・lepas tangan：放置して手を引く"
+      },
+      {
+        "q": "「当てが外れて何の得もできず『指をくわえて悔しがる・損をしてがっかりする』」（直訳：指を噛む）を表す慣用句は？",
+        "s": "Para penimbun sembako akhirnya terpaksa ___ setelah pemerintah membanjiri pasar dengan stok impor berharga murah.",
+        "a": "gigit jari",
+        "choices": ["gigit jari", "gigit lidah", "cuci tangan", "angkat kaki"],
+        "exp": "・gigit jari：指をくわえて悔しがる、当てが外れて損をする\n・gigit lidah：恥ずかしくて言葉を失う、言いたくても我慢する"
+      },
+      {
+        "q": "「本来は間違いなのに世間に広く定着してしまった『誤用・勘違いの常識』」を表す慣用句は？",
+        "s": "Penggunaan kata 'mengacuhkan' untuk arti 'mengabaikan' sebenarnya merupakan contoh ___ yang sangat umum di masyarakat.",
+        "a": "salah kaprah",
+        "choices": ["salah kaprah", "salah sasaran", "jalan buntu", "buah simalakama"],
+        "exp": "・salah kaprah：世間に定着した誤用・間違った常識\n・salah sasaran：的を外れた、対象違いの"
+      },
+      {
+        "q": "「本来支援すべき対象に届かず『的を外れた・見当違いの』」（対義：tepat sasaran）を表す慣用句は？",
+        "s": "Pemutakhiran data penerima manfaat dilakukan secara berkala agar penyaluran subsidi energi tidak ___.",
+        "a": "salah sasaran",
+        "choices": ["salah sasaran", "salah kaprah", "mati kutu", "kalang kabut"],
+        "exp": "・salah sasaran：的を外れる、対象違いになる（対義語：tepat sasaran＝的確に対象へ届く）\n・salah kaprah：定着した誤用"
+      },
+      {
+        "q": "「相手の完璧な対策や反論に完全に封じ込められ『手も足も出ない・返す言葉がない』」（直訳：シラミが死ぬ）を表す慣用句は？",
+        "s": "Striker andalan lawan benar-benar dibuat ___ sepanjang laga karena selalu ditempel ketat oleh bek tengah kami.",
+        "a": "mati kutu",
+        "choices": ["mati kutu", "mati suri", "mati gaya", "gigit jari"],
+        "exp": "・mati kutu：手も足も出ない、完全に封じ込められる\n・mati suri：仮死状態、長期休止状態\n・mati gaya：気まずくてどう振る舞えばいいか分からず固まる"
+      }
+    ];
+
+    // 1. d.vocab へ全68語を登録（36語＝出題対象 tier:1 ／ 32語＝辞書専用 dictOnly:true）
+    const idxByWord = new Map();
+    for (let i = 0; i < d.vocab.length; i++) {
+      const it = d.vocab[i];
+      if (it && it.w) idxByWord.set(it.w.trim().toLowerCase(), i);
+    }
+
+    const newlyDictOnlyKeys = new Set();
+
+    for (let i = 0; i < SEC4_IDIOMS_VOCAB_68.length; i++) {
+      const item = SEC4_IDIOMS_VOCAB_68[i];
+      if (!item || !item.w) continue;
+      const key = item.w.trim().toLowerCase();
+
+      if (item.dictOnly === true || item.tier === 3) {
+        item.dictOnly = true;
+        item.tier = 3;
+        dictOnlySet.add(key);
+        newlyDictOnlyKeys.add(key);
+      } else {
+        delete item.dictOnly;
+        item.tier = 1;
+        dictOnlySet.delete(key);
+      }
+      if (item.topicCat) {
+        catMap.set(key, item.topicCat);
+      }
+
+      if (idxByWord.has(key)) {
+        const pos = idxByWord.get(key);
+        Object.assign(d.vocab[pos], item);
+        if (item.tier === 1) {
+          delete d.vocab[pos].dictOnly;
+        }
+        vMap.set(key, d.vocab[pos]);
+        persistentAdded.set(key, d.vocab[pos]);
+      } else {
+        d.vocab.push(item);
+        idxByWord.set(key, d.vocab.length - 1);
+        vMap.set(key, item);
+        persistentAdded.set(key, item);
+      }
+    }
+
+    // 2. d.idiom（「慣用句 (Ungkapan)」4択モード）へコア36問を重複なしで追加
+    const existingIdiomSents = new Set();
+    for (let i = 0; i < d.idiom.length; i++) {
+      if (d.idiom[i] && d.idiom[i].s) {
+        existingIdiomSents.add(String(d.idiom[i].s).trim().toLowerCase());
+      }
+    }
+    for (let i = 0; i < SEC4_IDIOMS_QUIZ_36.length; i++) {
+      const q = SEC4_IDIOMS_QUIZ_36[i];
+      if (!q || !q.s) continue;
+      const sk = String(q.s).trim().toLowerCase();
+      if (!existingIdiomSents.has(sk)) {
+        d.idiom.push(q);
+        existingIdiomSents.add(sk);
+      }
+    }
+
+    // 辞書専用語が保存済み復習・スターに残っていれば安全除外
+    ["wi_wrongs_v2", "wi_stars_v2", "wi_master_stars_v5"].forEach(function(storageKey) {
+      try {
+        const raw = localStorage.getItem(storageKey);
+        if (!raw) return;
+        const list = JSON.parse(raw);
+        if (!Array.isArray(list)) return;
+        const cleaned = list.filter(function(it) {
+          if (!it || typeof it !== "object") return false;
+          const qid = String(it.id || "");
+          const m = qid.match(/^(?:voc|voc_ja2id|ctx::voc|abbr_ja|abbr_full)::(.+)$/i);
+          const w = (m ? m[1] : (it.w || it.ttsWord || "")).trim().toLowerCase();
+          return !newlyDictOnlyKeys.has(w);
+        });
+        if (cleaned.length !== list.length) {
+          localStorage.setItem(storageKey, JSON.stringify(cleaned));
+        }
+      } catch (err) {}
+    });
+  } catch (e) {
+    console.error("WhatsIndo Sec4 Idioms 68 pack error:", e);
+  }
+})();
+/* =====================================================================
+   WhatsIndo セクション5＆6「ことわざ9選 ＋ 文化・ローカルグルメ・公的略語」全58語パック
+   （すべて辞書専用 dictOnly: true, tier: 3・問題モードへ一切混入しません）
+   - ① 超有名なことわざ（9選）：bagai telur di ujung tanduk, bagai katak dalam tempurung,
+       bagai pungguk merindukan bulan, berakit-rakit ke hulu, berenang-renang ke tepian,
+       tak ada rotan, akar pun jadi, musang berbulu domba, ketiban durian runtuh,
+       hidup segan, mati tak mau, tong kosong nyaring bunyinya
+   - ② インドネシア固有の文化・慣習・地域社会（21語）：pamali, kualat, sungkem,
+       tumpeng, kenduri, bedug, pawang hujan, pak ogah, pramuka, paskibraka,
+       upacara bendera, apel pagi, karang taruna, pos ronda, kentongan, hansip,
+       linmas, bekam, totok, pedagang asongan, kongko
+   - ③ 人気ローカルグルメ・屋台スイーツ（9語）：seblak, cilok, batagor, pecel,
+       kerak telor, es cendol, es dawet, klepon, onde-onde
+   - ④ ニュース＆現地手続きの必須略語（19語）：BPJS Kesehatan, BPJS Ketenagakerjaan,
+       KIP, KIS, PKH, SLIK, DJP, DJBC, Ditjen Imigrasi, KNKT, BPBD, BPKP,
+       Ombudsman, BKPM, KKP, SIM A, SIM C, KIR, BRT
+   - **記号ゼロ・文字バグゼロ・try-catch完全保護
+   ===================================================================== */
+(function() {
+  try {
+    const d = window.WHATSINDO_EXTERNAL_DATA;
+    if (!d || !Array.isArray(d.vocab)) return;
+
+    const dictOnlySet     = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+    const persistentAdded = window.__wiPersistentAddedVocab || (window.__wiPersistentAddedVocab = new Map());
+    const vMap            = window.__wiMasterVocabMap || (window.__wiMasterVocabMap = new Map());
+    const catMap          = window.__WI_V5_VCAT || (window.__WI_V5_VCAT = new Map());
+
+    const SEC56_DICT_ONLY_58 = [
+      {
+        "p": "other",
+        "w": "bagai telur di ujung tanduk",
+        "r": "telur",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "角（つの）の先の卵のよう＝危機一髪、絶体絶命、いつ崩れてもおかしくない極めて危うい状態",
+        "ex": "Posisi perusahaan yang terus merugi itu kini bagai telur di ujung tanduk dan terancam bangkrut kapan saja.",
+        "tr": "赤字続きのその企業の立場はいまや角の先の卵のよう（危機一髪・絶体絶命）で、いつ倒産してもおかしくない。",
+        "note": "■ 【語義分解】：bagai（〜のよう）＋ telur（卵）＋ di ujung tanduk（牛の角の先端に）。政治・経済・スポーツの土壇場ニュースで超頻出のことわざ！"
+      },
+      {
+        "p": "other",
+        "w": "bagai katak dalam tempurung",
+        "r": "katak",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "ヤシ殻の中のカエルのよう＝井の中の蛙大海を知らず（視野が極めて狭く、世間の広さや外の世界を知らないこと）",
+        "ex": "Membaca buku lintas disiplin dan berdiskusi dengan orang dari berbagai negara membuat kita tidak menjadi bagai katak dalam tempurung.",
+        "tr": "異分野の本を読み様々な国の人々と議論することで、私たちは井の中の蛙にならずに済む。",
+        "note": "■ 【語義分解】：katak（カエル）＋ dalam tempurung（ヤシの殻の中に）。日本語の「井の中の蛙」にそのまま対応するインドネシアの国民的ことわざ！"
+      },
+      {
+        "p": "other",
+        "w": "bagai pungguk merindukan bulan",
+        "r": "pungguk",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "月を恋い焦がれるフクロウのよう＝高嶺の花、到底手の届かないもの・叶わぬ恋を切なく憧れ続けること",
+        "ex": "Harapannya mendapatkan jabatan tinggi tanpa pengalaman maupun kerja keras terasa bagai pungguk merindukan bulan.",
+        "tr": "経験も努力もなしに高い役職を得ようとする彼の望みは、まるで高嶺の花（月を恋い焦がれるフクロウ）のようだ。",
+        "note": "■ 【語義分解】：pungguk（アオバズク・フクロウの一種）＋ merindukan bulan（月を恋しがる）。文学・歌詞でも有名な美しい比喩ことわざ。"
+      },
+      {
+        "p": "other",
+        "w": "berakit-rakit ke hulu, berenang-renang ke tepian",
+        "r": "rakit",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "（まず）いかだで上流へ遡り、後で岸辺へ泳ぎ戻る＝苦あれば楽あり、若い頃に苦労して努力してこそ後で成功と安楽を味わえる",
+        "ex": "Pepatah berakit-rakit ke hulu, berenang-renang ke tepian mengingatkan kita agar bersabar menjalani proses belajar yang berat sebelum meraih hasil.",
+        "tr": "「まず苦労してこそ後で楽ができる」ということわざは、成果を手にする前の厳しい学びの過程を忍耐強く歩むよう私たちに教えてくれる。",
+        "note": "■ 【全文（パントゥン4行詩）】：『Berakit-rakit ke hulu, berenang-renang ke tepian; bersakit-sakit dahulu, bersenang-senang kemudian.（先に苦労し、後で楽しむ）』。インドネシア人なら小学生で全員暗記する超名句！"
+      },
+      {
+        "p": "other",
+        "w": "tak ada rotan, akar pun jadi",
+        "r": "rotan",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "籐（とう）がなければ木の根っこでも代用になる＝ないよりマシ、理想の道具や手段がなくても手元にあるもので工夫して代用する",
+        "ex": "Karena bahan baku utama sedang habis di pasar, kami menerapkan prinsip tak ada rotan, akar pun jadi dengan memakai bahan pengganti lokal.",
+        "tr": "主原料が市場で切れていたので、私たちは「籐がなければ根で代用」の精神で地元の代替素材を使うことにした。",
+        "note": "■ 【語義分解】：rotan（丈夫で編みに使う籐［ラタン］）、akar（木の根）。臨機応変な工夫を褒めるときに日常でもよく使う！"
+      },
+      {
+        "p": "other",
+        "w": "musang berbulu domba",
+        "r": "musang",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "羊の毛皮をまとったジャコウネコ＝羊の皮をかぶった狼（善良で味方のふりをしながら、裏で悪事を働く狡猾な悪人・裏切り者！＝musang berbulu ayam）",
+        "ex": "Hati-hati terhadap penipu daring yang bersikap sangat ramah seperti musang berbulu domba demi menguras tabungan korbannya.",
+        "tr": "被害者の貯金を根こそぎ奪うために、羊の皮をかぶった狼のようにとても親切に振る舞うネット詐欺師には気をつけよう。",
+        "note": "■ 【バリエーション】：伝統的な『musang berbulu ayam（鶏の羽をまとったジャコウネコ）』と、聖書由来の表現と混ざった『musang berbulu domba（羊の毛のジャコウネコ）』の両方が広く使われる！"
+      },
+      {
+        "p": "other",
+        "w": "ketiban durian runtuh",
+        "r": "durian",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "落ちてきたドリアンに当たる＝思いがけない棚ぼたの幸運、予想外の大きな儲けやラッキーが舞い込むこと！（※文字通りだと痛いが100%ポジティブな幸運表現！）",
+        "ex": "Warung kecilnya tiba-tiba ramai pembeli setelah diulas kreator terkenal, rasanya benar-benar seperti ketiban durian runtuh.",
+        "tr": "有名クリエイターに紹介された直後に小さな食堂が急に大繁盛し、まさに棚ぼたの幸運が舞い込んだ気分だ。",
+        "note": "■ 【関連形】：mendapat durian runtuh（標準表現：思いがけない大幸運を得る）。口語ではジャワ語由来の『ketiban（上から落ちて当たる）』を付けた『ketiban durian runtuh』が大定番！"
+      },
+      {
+        "p": "other",
+        "w": "hidup segan, mati tak mau",
+        "r": "segan",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "生きるのも億劫だが死ぬのも嫌＝虫の息、生ける屍（事業・産業・関係などが完全に活気を失い、潰れる寸前で辛うじて延命している惨めな状態！）",
+        "ex": "Tanpa inovasi produk dan pemasaran digital, banyak toko ritel konvensional kini berada dalam kondisi hidup segan, mati tak mau.",
+        "tr": "商品革新とデジタルマーケティングなしでは、多くの従来型小売店はいまや虫の息（生きるも死ぬもままならない状態）にある。",
+        "note": "■ 【経済報道での定番】：『mati suri（仮死状態）』と並び、業績不振の企業や廃れた観光地を形容する超有名なことわざ表現！"
+      },
+      {
+        "p": "other",
+        "w": "tong kosong nyaring bunyinya",
+        "r": "tong",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "空の樽ほど甲高くよく響く＝中身や実力のない人ほどよく喋り自慢する、能ある鷹は爪を隠すの逆（＝banyak bicara sedikit ilmu）",
+        "ex": "Jangan mudah terkesan oleh orang yang gemar menyombongkan diri tanpa bukti nyata, sebab pepatah mengatakan tong kosong nyaring bunyinya.",
+        "tr": "「空の樽ほどよく響く」ということわざ通り、確かな実績もなく自慢ばかりする人に簡単に感心してはいけない。",
+        "note": "■ 【語義分解】：tong（樽・ドラム缶）＋ kosong（空っぽ）＋ nyaring（甲高く響く）＋ bunyinya（その音）。対比：ilmu padi（実るほど頭を垂れる稲穂の教え）。"
+      },
+      {
+        "p": "n",
+        "w": "pamali",
+        "r": "pamali",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "禁忌（きんき）、タブー、縁起が悪いとして昔から戒められている言動（スンダ・ジャワ文化圏を中心に全国で使われる！「玄関で座り込むな」「夜に爪を切るな」等の言い伝え）",
+        "ex": "Menurut nasihat orang tua zaman dulu, duduk menghalangi pintu rumah dianggap pamali karena dipercaya menghambat rezeki.",
+        "tr": "昔の年長者の教えによれば、家の玄関を塞いで座ることは福（運気）を遮ると信じられておりタブー（パマリ）とされる。",
+        "note": "■ 【文化セット】：pamali（言い伝えのタブー・縁起の悪い行為） ／ kualat（親や目上への不敬でバチが当たること） ／ tabu（社会的なタブー）。"
+      },
+      {
+        "p": "a",
+        "w": "kualat",
+        "r": "kualat",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "バチが当たる、天罰を受ける（特に親・恩師・年長者や神聖なものに対して不敬・親不孝をした報いとして不幸が降りかかること！ジャワ文化に深く根付く語）",
+        "ex": "Jangan pernah membentak atau melawan orang tua, nanti kamu bisa kualat dan hidupmu tidak tenang.",
+        "tr": "決して親を怒鳴ったり逆らったりしてはいけない、あとでバチが当たって穏やかに暮らせなくなるよ。",
+        "note": "■ 【関連語】：durhaka（親不孝・背信）、pamali（縁起の悪い禁忌）。"
+      },
+      {
+        "p": "v",
+        "w": "sungkem",
+        "r": "sungkem",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "スンケムする（レバランや結婚式で、椅子に座る両親・祖父母の前にひざまずき、その手や膝に額を当てて深い敬意・感謝・許しを乞うジャワ伝統の最も美しい礼法！）",
+        "ex": "Usai salat Idulfitri, anak-anak secara bergantian melakukan sungkem kepada kedua orang tua untuk memohon maaf dan doa restu.",
+        "tr": "断食明け大祭の礼拝後、子どもたちは代わる代わる両親の前でスンケムを行い、許しと祝福の祈りを乞う。",
+        "note": "■ 【名詞形】：sungkeman（スンケムの儀式：結婚式やレバランのハイライトとして必ず涙を誘う伝統文化！）。"
+      },
+      {
+        "p": "n",
+        "w": "tumpeng",
+        "r": "tumpeng",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "トゥンペン（ウコンで炊いた黄色いご飯『nasi kuning』を聖なる山に見立てて円錐形に高く盛り、周りを鶏肉・テンペ・卵などのおかずで彩ったインドネシア最高のお祝い料理！）",
+        "ex": "Acara peresmian kantor cabang baru itu ditandai dengan pemotongan puncak nasi tumpeng yang diserahkan kepada staf paling senior.",
+        "tr": "新支店の開所式は、トゥンペンご飯の頂上を切り分けて最年長スタッフへ手渡すセレモニーで祝われた。",
+        "note": "■ 【文化マナー】：主賓が円錐の頂上を切り分ける『potong tumpeng』は、日本の鏡開き・ケーキ入刀にあたるインドネシアのお祝い儀式の定番！"
+      },
+      {
+        "p": "n",
+        "w": "kenduri",
+        "r": "kenduri",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "クンドゥリ、感謝・祈祷・追悼の伝統共食宴会（新築・誕生・結婚・法事などの節目に近隣住民や親戚を招き、皆で祈りを捧げて食事を分かち合う伝統行事＝selamatan）",
+        "ex": "Keluarga besar mengundang para tetangga untuk menghadiri kenduri syukuran atas kepindahan ke rumah baru.",
+        "tr": "大家族は新居への引っ越しを祝う感謝の祈祷宴会（クンドゥリ）に近所の人々を招待した。",
+        "note": "■ 【関連語】：selamatan（ジャワの祈祷・祝宴行事）、berkat（宴会の帰りに客へ持たせるお弁当・お下がり）。"
+      },
+      {
+        "p": "n",
+        "w": "bedug",
+        "r": "bedug",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "ブドゥッグ（モスクに吊るされている巨大な両面太鼓！礼拝時刻や断食明け『magrib』、レバラン前夜『malam takbiran』を告げる重低音の響きはインドネシアの原風景！KBBI標準綴りは『beduk』）",
+        "ex": "Saat bulan Ramadan, suara tabuhan bedug magrib dari masjid selalu dinantikan warga sebagai tanda waktu berbuka puasa tiba.",
+        "tr": "ラマダン月の間、モスクから響く日没（マグリブ）の大太鼓ブドゥッグの音は、断食明けの合図として常に住民に待ち望まれる。",
+        "note": "■ 【関連語】：azan（礼拝の呼びかけ）、malam takbiran（レバラン前夜に太鼓を叩いて街を練り歩く夜）。"
+      },
+      {
+        "p": "n",
+        "w": "pawang hujan",
+        "r": "pawang",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "雨止め師、雨乞い・天候呪術師（屋外の結婚式・コンサート・国際レース等で雨雲を遠ざける儀式を行うインドネシア特有の伝統職能者！MotoGPマンダリカ大会で世界的にバズって超有名に！）",
+        "ex": "Aksi seorang pawang hujan di lintasan sirkuit balap internasional tersebut sempat menarik perhatian media dari seluruh dunia.",
+        "tr": "国際レースサーキットのコース上での雨止め師（パワン・フジャン）の儀式は、世界中のメディアの注目を集めた。",
+        "note": "■ 【pawang（操り師・達人）セット】：pawang hujan（雨止め師）、pawang gajah（象使い）、pawang buaya / ular（ワニ／ヘビ使い）。"
+      },
+      {
+        "p": "n",
+        "w": "pak ogah",
+        "r": "ogah",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "パック・オガ（渋滞するUターン地点や路地の交差点に自主的に立ち、車を止めて誘導する代わりに小銭チップをもらう街角のおじさん！語源は昔の国民的人形劇『Si Unyil』の有名な怠け者キャラから）",
+        "ex": "Di persimpangan tanpa lampu lalu lintas, pengemudi sering memberi uang receh dua ribu rupiah kepada pak ogah yang membantu menyeberang.",
+        "tr": "信号のない交差点では、運転手は横断を手伝ってくれる誘導おじさん（パック・オガ）に2,000ルピアの小銭をよく渡す。",
+        "note": "■ 【インドネシア街角カルチャー】：公式には『polisi cepek（100ルピア警官）』とも呼ばれる、ジャカルタやバンドン等の道路で毎日出会う名物存在！"
+      },
+      {
+        "p": "singkatan",
+        "w": "pramuka",
+        "r": "Praja Muda Karana",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "インドネシアのボーイスカウト／ガールスカウト運動（小中学校で全員が茶色の制服を着て参加する超定番の課外活動！シンボルはココナッツの新芽『tunas kelapa』）",
+        "ex": "Setiap hari Jumat sore, seluruh siswa mengenakan seragam cokelat untuk mengikuti kegiatan kepramukaan dan pramuka di lapangan sekolah.",
+        "tr": "毎週金曜日の午後、全校生徒が茶色の制服を着て校庭でのスカウト（プラムカ）活動に参加する。",
+        "note": "■ 【正式名称】：Praja Muda Karana（サンスクリット系由来の「働くことを愛する若き民」）。8月14日は『Hari Pramuka（プラムカの日）』！"
+      },
+      {
+        "p": "singkatan",
+        "w": "paskibraka",
+        "r": "Pasukan Pengibar Bendera Pusaka",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "国旗掲揚隊（毎年8月17日の独立記念日式典で、大統領宮殿や各自治体で真っ白な制服を着て一糸乱れぬ行進で国旗を掲揚する選抜高校生エリート部隊！）",
+        "ex": "Terpilih menjadi anggota paskibraka tingkat nasional di Istana Negara merupakan kebanggaan luar biasa bagi pelajar SMA.",
+        "tr": "大統領宮殿での全国レベルの国旗掲揚隊（パスキブラカ）メンバーに選ばれることは、高校生にとってこの上ない誇りだ。",
+        "note": "■ 【関連語】：HUT RI（独立記念日）、Sang Saka Merah Putih（紅白のインドネシア国旗）。"
+      },
+      {
+        "p": "n",
+        "w": "upacara bendera",
+        "r": "upacara",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "国旗掲揚式、月曜朝の全校朝礼（インドネシアのすべての小中高校で毎週月曜日の朝7時ごろに校庭で行われ、国歌斉唱・黙祷・パンチャシラ朗読を行う国民的共通体験！）",
+        "ex": "Setiap Senin pagi, seluruh siswa berbaris rapi di halaman sekolah untuk mengikuti upacara bendera sebelum pelajaran dimulai.",
+        "tr": "毎週月曜日の朝、授業が始まる前に全校生徒が校庭に整然と並んで国旗掲揚式（朝礼）に参加する。",
+        "note": "■ 【式典の定番構成】：pengibaran bendera（国旗掲揚）、lagu Indonesia Raya（国歌斉唱）、mengheningkan cipta（黙祷）、amanat pembina upacara（校長訓辞）。"
+      },
+      {
+        "p": "n",
+        "w": "apel pagi",
+        "r": "apel",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "朝の点呼、朝礼（官公庁・警察・軍・病院・工場などで始業前に整列して人員確認と連絡事項の伝達を行う朝礼！※果物のりんご『apel』とは同綴異音語）",
+        "ex": "Seluruh aparatur sipil negara di kantor kecamatan wajib mengikuti apel pagi pukul setengah delapan sebelum membuka loket pelayanan.",
+        "tr": "郡役所のすべての公務員は、サービス窓口を開く前の7時半の朝礼（アペル・パギ）に参加する義務がある。",
+        "note": "■ 【発音区別】：朝礼・点呼は『apél［アペール］』、果物のりんごは『apel［アペル］』！"
+      },
+      {
+        "p": "n",
+        "w": "karang taruna",
+        "r": "karang",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "地域青年団（インドネシアの各村・町［desa / kelurahan］に組織される公的な若者ボランティア組織！独立記念日のお祭り運営や防災・地域清掃の中心！）",
+        "ex": "Para pemuda yang tergabung dalam karang taruna desa bahu-membahu menyiapkan berbagai lomba meriah menjelang 17 Agustus.",
+        "tr": "村の青年団（カラン・タルナ）に所属する若者たちは、8月17日（独立記念日）に向けて様々な賑やかな競技イベントを協力して準備している。",
+        "note": "■ 【地域の3大住民組織】：RT/RW（町内会）、PKK（地域婦人会）、Karang Taruna（地域青年団）。"
+      },
+      {
+        "p": "n",
+        "w": "pos ronda",
+        "r": "pos",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "夜警詰所、町内自警小屋（インドネシアの住宅街や村の入口にある小さな東屋で、夜間に住民が交代で防犯見回り『ronda malam / siskamling』を行う拠点！）",
+        "ex": "Pada malam hari, beberapa bapak-bapak berkumpul di pos ronda sambil minum kopi dan menjaga keamanan lingkungan kampung.",
+        "tr": "夜になると、数名のお父さんたちが夜警詰所（ポス・ロンダ）に集まり、コーヒーを飲みながら町の治安を守っている。",
+        "note": "■ 【関連語】：siskamling（地域住民参加型防犯システム）、ronda malam（夜回り）、kentongan（竹筒の鳴り物）。"
+      },
+      {
+        "p": "n",
+        "w": "kentongan",
+        "r": "kentong",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "クントンガン（竹や木をくり抜いて作った伝統的な打楽器型警報器！夜警詰所に吊るされ、叩くリズムの違いで時刻・泥棒・火事・洪水を住民に知らせる。KBBI標準綴りは『kentungan』）",
+        "ex": "Warga langsung memukul kentongan bertalu-talu sebagai tanda bahaya ketika air sungai mulai meluap ke permukiman.",
+        "tr": "川の水が住宅地へ溢れ出し始めたとき、住民は危険の合図として直ちにクントンガンを連打した。",
+        "note": "■ 【豆知識】：『kode bunyi kentongan（叩き方コード）』があり、連打＝災害・緊急事態、1回＝1時、2回＝2時のように今でも地方の村で活躍中！"
+      },
+      {
+        "p": "singkatan",
+        "w": "hansip",
+        "r": "Pertahanan Sipil",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "市民防衛隊、町内自警団員（緑の制服でおなじみだった地域警備員！現在は法改正で公式名称が『Linmas＝Perlindungan Masyarakat』に変わったが、日常会話では今も『pak hansip』が超定着！）",
+        "ex": "Petugas hansip yang kini resmi bernama Linmas turut membantu mengatur parkir dan keamanan saat acara hajatan warga.",
+        "tr": "現在公式にはリンマスと呼ばれる地域自警団員（ハンシップ）は、住民の祝宴の際に駐車整理や警備を手伝ってくれる。",
+        "note": "■ 【新旧呼称ペア】：旧称『Hansip（Pertahanan Sipil）』 ➔ 現行公式名称『Linmas / Satlinmas（Perlindungan Masyarakat）』。"
+      },
+      {
+        "p": "singkatan",
+        "w": "linmas",
+        "r": "Perlindungan Masyarakat",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "地域住民保護隊、自治体自警団（『Satlinmas』。選挙投票所 TPS の警備や災害支援・地域防犯を担う、旧 Hansip の現行公式名称！）",
+        "ex": "Dua personel linmas berjaga di setiap tempat pemungutan suara sejak pagi hingga proses penghitungan suara selesai.",
+        "tr": "2名の地域保護隊員（リンマス）が、朝から開票作業が終わるまですべての投票所で警備にあたった。",
+        "note": "■ 【関連語】：hansip（旧称）、Satpol PP（自治体警察隊）、TPS（選挙投票所）。"
+      },
+      {
+        "p": "n",
+        "w": "bekam",
+        "r": "bekam",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "カッピング、吸い玉療法（背中などにカップを吸着させて鬱血や疲労を抜く伝統代替医療！イスラム圏の伝統療法『hijamah』としてインドネシアで非常に人気！）",
+        "ex": "Terapi bekam modern dilakukan menggunakan peralatan steril sekali pakai untuk membantu melancarkan peredaran darah dan meredakan pegal.",
+        "tr": "現代的な吸い玉療法（ブカム）は、血行を促し体の凝りを和らげるため使い捨ての滅菌器具を使って行われる。",
+        "note": "■ 【インドネシア伝統ボディケア3点セット】：pijat / urut（マッサージ）、kerokan（コインこすり療法）、bekam（吸い玉・カッピング）。"
+      },
+      {
+        "p": "n",
+        "w": "totok",
+        "r": "totok",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "①ツボ押しマッサージ、指圧療法（『totok wajah＝顔のツボ押し美顔マッサージ』『totok punggung＝背中ツボ押し』が大人気！） ②生粋の、純血の（Cina totok＝中国本土の文化を色濃く保つ華人 ⇔ peranakan）",
+        "ex": "Layanan totok wajah di salon tradisional sangat digemari karena membantu merelaksasi otot muka dan mengurangi sakit kepala.",
+        "tr": "伝統サロンのフェイシャルツボ押し（トトッ・ワジャ）は、顔の筋肉をほぐし頭痛を和らげるためとても人気がある。",
+        "note": "■ 【2大用法】：① 美容・健康『totok wajah / aura（ツボ押し）』、② 文化人類学『totok（生粋の） ⇔ peranakan（現地混血・融合文化の）』。"
+      },
+      {
+        "p": "n",
+        "w": "pedagang asongan",
+        "r": "asong",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "行商人、立ち売り商人（渋滞中の高速料金所・信号待ちの車窓・長距離バス・駅構内で、飲み物・ティッシュ・スナックを手に持って差し出しながら売り歩く商売人！）",
+        "ex": "Ketika arus kendaraan macet total di dekat gerbang tol, para pedagang asongan menawarkan air mineral dingin dan tahu sumedang kepada penumpang.",
+        "tr": "料金所付近で車の流れが完全渋滞すると、行商人たちが乗客へ冷たい水やスメダン揚げ豆腐を売り歩く。",
+        "note": "■ 【露天商との区別】：pedagang kaki lima [PKL]（屋台やシートを広げて定位置で売る露天商） ／ pedagang asongan（歩き回りながら商品を差し出して売る行商人）。"
+      },
+      {
+        "p": "v",
+        "w": "kongko",
+        "r": "kongko",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💬 スラング・口語",
+        "m": "（友達とカフェや屋台で）ダベる、たむろする、楽しくおしゃべりして過ごす（『kongkow』のKBBI標準綴り！＝nongkrong / bercengkerama）",
+        "ex": "Akhir pekan adalah waktu terbaik untuk kongko santai bersama teman kampus di kedai kopi langganan.",
+        "tr": "週末は行きつけのコーヒーショップで大学の友達とのんびりダベる（おしゃべりする）のに最高の時間だ。",
+        "note": "■ 【綴りメモ】：KBBI標準綴りは『kongko』、チャットや会話表記では『kongkow』も超よく見かける！"
+      },
+      {
+        "p": "n",
+        "w": "seblak",
+        "r": "seblak",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "セブラック（バンドン［西ジャワ］発祥の超人気激辛ローカルフード！水で戻してモチモチにした揚げせんべい『kerupuk』を、バンウコン『kencur』と激辛唐辛子のスープで卵・肉団子・野菜と煮込んだ中毒性抜群の一皿！）",
+        "ex": "Seblak khas Bandung dengan aroma kencur yang kuat dan tingkat kepedasan beragam menjadi jajanan favorit mahasiswa.",
+        "tr": "バンウコン（クンチュール）の強い香りと選べる辛さレベルのバンドン名物セブラックは、大学生に大人気のローカルグルメだ。",
+        "note": "■ 【バンドン発・現代若者グルメ3大巨頭】：seblak（激辛モチモチ煮込み）、cilok（タピオカ団子）、batagor（揚げすり身豆腐）。"
+      },
+      {
+        "p": "n",
+        "w": "cilok",
+        "r": "cilok",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "チロッ（スンダ語『aci dicolok＝串に刺したタピオカ団子』のアクロニム！バンドン発祥のモチモチしたタピオカ粉のお団子に、甘辛ピーナッツダレやチリソースをかけて食べる超定番屋台おやつ！）",
+        "ex": "Sepulang sekolah, banyak siswa membeli cilok hangat berbumbu saus kacang dan kecap manis di depan gerbang.",
+        "tr": "放課後、多くの生徒が校門の前でピーナッツソースと甘い醤油をかけた温かいチロッを買っていく。",
+        "note": "■ 【スンダの『aci（タピオカ粉）』アクロニム3兄弟】：cilok（aci dicolok＝串刺し団子）、cireng（aci digoreng＝カリモチ揚げ）、cimol（aci digemol＝丸め揚げ）。"
+      },
+      {
+        "p": "n",
+        "w": "batagor",
+        "r": "batagor",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "バタゴール（『bakso tahu goreng＝揚げ魚すり身団子＆豆腐』のアクロニム！バンドン名物で、カリッと揚げたすり身とワンタン皮に濃厚ピーナッツソース・甘い醤油・ライムをかけて食べる絶品！）",
+        "ex": "Batagor renyah khas Bandung yang disiram bumbu kacang kental dan perasan jeruk limau selalu laris diburu wisatawan.",
+        "tr": "濃厚なピーナッツダレとライムの搾り汁をかけたバンドン名物のカリカリなバタゴールは、いつも観光客に飛ぶように売れる。",
+        "note": "■ 【兄弟グルメペア】：siomay（蒸しバージョン：しっとり系） ⇔ batagor（揚げバージョン：カリカリ系）。どちらもピーナッツソースで食べる！"
+      },
+      {
+        "p": "n",
+        "w": "pecel",
+        "r": "pecel",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "プチェル（茹でた空芯菜・もやし・ささげ等の温野菜に、こぶみかんの葉が香る甘辛ピーナッツソースをたっぷりかけた東・中部ジャワ名物の絶品ヘルシー定食！『nasi pecel Madiun』が超有名）",
+        "ex": "Nasi pecel Madiun lengkap dengan rempeyek kacang yang renyah merupakan menu sarapan tradisional paling digemari di Jawa Timur.",
+        "tr": "パリパリのピーナッツせんべい（ルンペイェッ）付きのナシ・プチェル・マディウンは、東ジャワで一番愛される伝統的朝食メニューだ。",
+        "note": "■ 【ガドガドとの違い】：gado-gado（ジャカルタ発祥：ゆで卵・じゃがいも・豆腐・テンペも入るサラダ寄り） ／ pecel（ジャワ発祥：茹で青菜メイン＋こぶみかんの葉香るピリ辛タレ＋ご飯と一緒に食べる！）。※なお『pecel lele』は揚げナマズ＋サンバル定食で別物！"
+      },
+      {
+        "p": "n",
+        "w": "kerak telor",
+        "r": "kerak",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "クラッ・テロール（ジャカルタ先住民ブタウィ族の伝統お好み焼き風スナック！もち米・アヒル卵・干しエビ・煎りココナッツ『serundeng』を炭火の小さな中華鍋で香ばしくおこげ焼きにする名物！）",
+        "ex": "Kerak telor berbahan beras ketan dan telur bebek yang dibakar di atas arang selalu menjadi ikon kuliner Pekan Raya Jakarta.",
+        "tr": "もち米とアヒル卵を炭火で焼き上げるクラッ・テロールは、ジャカルタ・フェア（PRJ）の象徴的グルメだ。",
+        "note": "■ 【語義分解】：kerak（おこげ）＋ telor（卵の口語綴り）。ジャカルタ旧市街コタトゥアやモナス周辺の屋台で職人が鍋をひっくり返して炭火で炙る姿が見られる！"
+      },
+      {
+        "p": "n",
+        "w": "es cendol",
+        "r": "cendol",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "エス・チェンドル（パンダンリーフで緑色に色付けしたプルプルの米粉ゼリーに、濃厚なココナッツミルクとアレンヤシ黒糖シロップ・氷を合わせた西ジャワ［スンダ］発祥の国民的冷製スイーツ！）",
+        "ex": "Segelas es cendol dingin dengan perpaduan santan gurih dan gula aren manis terasa sangat menyegarkan di tengah siang yang panas.",
+        "tr": "コクのあるココナッツミルクと甘いアレンヤシ黒糖が溶け合った冷たいエス・チェンドル1杯は、暑い真昼に最高に爽やかだ。",
+        "note": "■ 【es cendol と es dawet】：見た目はほぼ同じ兄弟スイーツ！西ジャワでは緑豆粉ベースで『es cendol』、中部・東ジャワ（バンジャルネガラ等）では米粉ベースで『es dawet』と呼ぶ！"
+      },
+      {
+        "p": "n",
+        "w": "es dawet",
+        "r": "dawet",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "エス・ダウェッ（中部・東ジャワ名物の冷製伝統スイーツ！つるんと滑らかな緑の米粉ゼリーにココナッツミルク・黒糖・ジャックフルーツやタピオカを加えて飲む『es dawet ayu Banjarnegara』が超有名！）",
+        "ex": "Saat berkunjung ke Jawa Tengah, jangan lupa mencicipi es dawet ayu yang manis segar dengan aroma nangka harum.",
+        "tr": "中部ジャワを訪れたら、ジャックフルーツの芳醇な香りが漂う甘く爽やかなエス・ダウェッ・アユをぜひ味わってね。",
+        "note": "■ 【関連語】：es cendol（西ジャワ版）、gula aren（ヤシ黒糖）、santan（ココナッツミルク）。"
+      },
+      {
+        "p": "n",
+        "w": "klepon",
+        "r": "klepon",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "クレポン（パンダン香る緑色のもち米団子の中に液状のヤシ黒糖を包み、外側に削りココナッツをまぶした伝統和菓子風スイーツ！噛むと口の中で黒糖がジュワッと弾ける絶品！）",
+        "ex": "Hati-hati saat menggigit kue klepon karena cairan gula merah manis di dalamnya akan langsung meletus di mulut.",
+        "tr": "クレポンを噛むときは気をつけて、中の甘い黒糖シロップが口の中で一気に弾け出すからね。",
+        "note": "■ 【伝統市菓子『jajanan pasar』の王様ペア】：klepon（黒糖が弾ける緑団子） ／ onde-onde（揚げごま団子）。"
+      },
+      {
+        "p": "n",
+        "w": "onde-onde",
+        "r": "onde-onde",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🍽️ 食・料理",
+        "m": "オンデオンデ（甘い緑豆あんをもち米粉の生地で包み、表面いっぱいに白ごまをまぶしてカリッと揚げたインドネシアの定番ごま団子！東ジャワのモジョクルト名物として超有名）",
+        "ex": "Onde-onde hangat berisi pasta kacang hijau lembut dengan lapisan biji wijen renyah sangat nikmat disantap bersama teh tawar.",
+        "tr": "なめらかな緑豆あんが入り表面のゴマが香ばしい温かいオンデオンデは、無糖のお茶と一緒に食べると最高に美味しい。",
+        "note": "■ 【関連語】：biji wijen（ごま）、kacang hijau（緑豆）、jajanan pasar（伝統市場の和菓子風おやつ全般）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "BPJS Kesehatan",
+        "r": "Badan Penyelenggara Jaminan Sosial Kesehatan",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "インドネシア公的医療保険（国民皆保険制度 JKN の運営機関および保険そのもの！日本の健康保険証にあたるカードで病院・プスケスマスを受診する。労働保険の『BPJS Ketenagakerjaan』と対！）",
+        "ex": "Peserta BPJS Kesehatan yang rutin membayar iuran bulanan berhak memperoleh layanan pengobatan di fasilitas kesehatan mitra.",
+        "tr": "毎月の保険料をきちんと納めているBPJS医療保険の加入者は、提携医療機関で治療サービスを受ける権利がある。",
+        "note": "■ 【2大BPJSの完全区別】：\n・BPJS Kesehatan：公的医療保険（病院・通院・入院・手術）\n・BPJS Ketenagakerjaan：公的労働保険（労災・退職積立 JHT・年金 JP・死亡保障）"
+      },
+      {
+        "p": "singkatan",
+        "w": "BPJS Ketenagakerjaan",
+        "r": "Badan Penyelenggara Jaminan Sosial Ketenagakerjaan",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "インドネシア公的労働保険（労災保険 JKK・退職積立金 JHT・老齢年金 JP・失業給付 JKP を管轄する社会保障機関！略称『BPJamsostek』。会社員・駐在員の給与明細で必ず見る必須語！）",
+        "ex": "Setiap perusahaan wajib mendaftarkan seluruh karyawannya ke dalam program BPJS Ketenagakerjaan untuk perlindungan kecelakaan kerja dan hari tua.",
+        "tr": "すべての企業は労災と老後の保障のため、全従業員を公的労働保険（BPJS Ketenagakerjaan）へ加入させる義務がある。",
+        "note": "■ 【関連略語】：JHT（Jaminan Hari Tua＝老齢・退職積立金：退職時に一括受給可）、JKK（労災保険）、JKP（失業保険）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "KIP",
+        "r": "Kartu Indonesia Pintar",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "スマートインドネシアカード（経済的に困難な家庭の小中高生・大学生へ学費免除と生活費を支給する国の教育支援制度！大学版は『KIP Kuliah』として受験ニュースで超頻出！）",
+        "ex": "Program beasiswa KIP Kuliah membantu ribuan mahasiswa berprestasi dari keluarga kurang mampu agar tetap bisa menempuh pendidikan tinggi.",
+        "tr": "KIP大学奨学金プログラムは、経済的に恵まれない家庭の成績優秀な何千人もの学生が大学教育を受け続けられるよう支援している。",
+        "note": "■ 【社会支援カード3点セット】：KIP（教育支援カード）、KIS（低所得者向け無料医療カード）、PKH（貧困世帯向け条件付き現金給付）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "KIS",
+        "r": "Kartu Indonesia Sehat",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏥 健康・身体・感情",
+        "m": "健康インドネシアカード（低所得者層向けに国が保険料を全額肩代わりして無料医療を受けられるようにする BPJS Kesehatan の受給カード！）",
+        "ex": "Warga pemegang KIS yang iurannya ditanggung pemerintah dapat langsung berobat gratis di puskesmas sesuai domisili.",
+        "tr": "政府が保険料を負担する健康インドネシアカード（KIS）保持者は、居住地のプスケスマスで直接無料で受診できる。",
+        "note": "■ 【関連語】：BPJS Kesehatan（公的医療保険）、PBI（Penerima Bantuan Iuran＝保険料国庫負担対象者）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "PKH",
+        "r": "Program Keluarga Harapan",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "希望の家族プログラム（妊婦・乳幼児・就学児・高齢者・重度障害者がいる貧困世帯へ社会省 Kemensos が定期支給するインドネシア最大の条件付き現金給付福祉制度！）",
+        "ex": "Penyaluran bantuan sosial PKH tahap kedua mulai dicairkan langsung ke rekening keluarga penerima manfaat bulan ini.",
+        "tr": "希望の家族プログラム（PKH）第2期の社会扶助給付金が、今月から受給世帯の口座へ直接振り込まれ始めた。",
+        "note": "■ 【福祉ニュース定番】：bansos（社会扶助）、BLT（直接現金給付）、PKH（条件付き世帯福祉給付）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "SLIK",
+        "r": "Sistem Layanan Informasi Keuangan",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "金融情報サービスシステム（金融サービス庁 OJK が管理する個人・法人の信用情報ブラックリスト照会制度！旧称『BI Checking』。住宅ローンや就職審査で『SLIK OJK bersih＝滞納歴なし』が超重要！）",
+        "ex": "Sebelum menyetujui pengajuan kredit pemilikan rumah, bank akan memeriksa riwayat pinjaman pemohon melalui sistem SLIK OJK.",
+        "tr": "住宅ローン申請を承認する前に、銀行はOJKの信用情報システム（SLIK）を通じて申込者の借入履歴を確認する。",
+        "note": "■ 【現代インドネシア金融あるある】：違法ローンや後払い PayLater を滞納すると『SLIK OJK rusak（信用情報に傷がつく）』となり、住宅ローンも一部の就職選考も通らなくなる！"
+      },
+      {
+        "p": "singkatan",
+        "w": "DJP",
+        "r": "Direktorat Jenderal Pajak",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "国税総局（財務省傘下でインドネシア全国の所得税 PPh・付加価値税 PPN・確定申告 SPT・納税番号 NPWP を管轄する日本の国税庁にあたる機関！）",
+        "ex": "DJP mengingatkan seluruh wajib pajak agar melaporkan surat pemberitahuan tahunan secara daring sebelum akhir bulan Maret.",
+        "tr": "国税総局（DJP）はすべての納税者に対し、3月末までにオンラインで年次確定申告書（SPT）を提出するよう呼びかけている。",
+        "note": "■ 【財務省の2大徴税総局】：DJP（国税総局＝国内税） ／ DJBC（関税消費税総局＝通関・関税・たばこ税）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "DJBC",
+        "r": "Direktorat Jenderal Bea dan Cukai",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "関税消費税総局（通称『Bea Cukai』！空港の税関検査・海外通販やスマホ IMEI 登録の関税・密輸取締り・たばこ物品税を管轄する財務省傘下機関！）",
+        "ex": "Petugas DJBC di bandara internasional memeriksa deklarasi barang bawaan penumpang dari luar negeri secara elektronik.",
+        "tr": "国際空港の関税消費税総局（税関）職員は、海外からの乗客の携帯品申告を電子的に確認している。",
+        "note": "■ 【インドネシア渡航の必須手続き】：入国時の電子税関申告（e-CD）や、海外購入スマホを現地SIMで使うための IMEI 登録もここ『Bea Cukai（DJBC）』の管轄！"
+      },
+      {
+        "p": "singkatan",
+        "w": "Ditjen Imigrasi",
+        "r": "Direktorat Jenderal Imigrasi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "入国管理総局（インドネシアのパスポート発行・外国人ビザ・VOA・滞在許可 KITAS / KITAP・出入国審査を統括する中央機関！）",
+        "ex": "Ditjen Imigrasi memperluas fasilitas gerbang otomatis autogate di bandara utama untuk mempercepat pemeriksaan paspor wisatawan.",
+        "tr": "入国管理総局は観光客のパスポート審査をスピードアップするため、主要空港での自動化ゲート（オートゲート）設備を拡充している。",
+        "note": "■ 【渡航・留学必須セット】：Ditjen Imigrasi（入管総局）、VOA / e-VOA（到着ビザ）、KITAS（一時滞在許可）、paspor（パスポート）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "KNKT",
+        "r": "Komite Nasional Keselamatan Transportasi",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "国家運輸安全委員会（航空機墜落・フェリー沈没・鉄道脱線・大型バス事故などの重大交通事故の原因を専門調査する独立政府委員会！）",
+        "ex": "Tim investigator KNKT turun langsung ke lokasi kecelakaan bus pariwisata untuk menyelidiki dugaan kegagalan sistem pengereman.",
+        "tr": "国家運輸安全委員会（KNKT）の調査チームは、ブレーキ系統の故障疑惑を調べるため観光バス事故現場へ直接入った。",
+        "note": "■ 【ニュース超頻出】：航空・海難・鉄道・大型バス事故が起きると必ず『KNKT』の調査報告書（laporan investigasi KNKT）が報じられる！"
+      },
+      {
+        "p": "singkatan",
+        "w": "BPBD",
+        "r": "Badan Penanggulangan Bencana Daerah",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "地方災害対策庁（国の『BNPB』に対する、各州・市・県の現場防災・避難誘導・被災地救援を直接担う自治体防災機関！）",
+        "ex": "Personel BPBD bersama warga segera mengevakuasi pohon tumbang yang menutup akses jalan utama pascahujan angin.",
+        "tr": "地方災害対策庁（BPBD）の隊員たちは住民と協力し、暴風雨後に幹線道路を塞いだ倒木を直ちに撤去した。",
+        "note": "■ 【防災機関の対比】：BNPB（国家災害対策庁＝中央） ／ BPBD（地方災害対策庁＝州・市・県） ／ Basarnas（国家捜索救助庁＝SAR）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "BPKP",
+        "r": "Badan Pengawasan Keuangan dan Pembangunan",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "金融開発監督庁（大統領直属の内部監査機関！汚職事件で国家損失額『kerugian negara』を算定するニュースで、外部監査機関の『BPK＝会計検査院』と並んで超頻出！）",
+        "ex": "Audit investigatif BPKP digunakan oleh kejaksaan untuk menghitung secara rinci total kerugian keuangan negara dalam perkara tersebut.",
+        "tr": "金融開発監督庁（BPKP）の調査監査は、同事件における国家財政損失総額を詳細に算定するため検察によって活用された。",
+        "note": "■ 【2大監査機関の区別】：BPK（会計検査院：独立の外部監査機関） ／ BPKP（金融開発監督庁：大統領直属の政府内部監査機関）。"
+      },
+      {
+        "p": "n",
+        "w": "Ombudsman",
+        "r": "Ombudsman",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "行政監察院、オンブズマン（『Ombudsman RI』：役所・警察・公営企業などの行政サービスの怠慢・遅延・不公正『maladministrasi』に対する市民の苦情を受け付け是正勧告する独立国家機関！）",
+        "ex": "Warga dapat melaporkan dugaan maladministrasi atau pungutan liar pada layanan publik langsung kepada Ombudsman RI.",
+        "tr": "市民は公共サービスにおける行政不備や違法徴収の疑いを、インドネシア行政監察院（オンブズマン）へ直接通報できる。",
+        "note": "■ 【関連語】：maladministrasi（行政の不備・怠慢・手続き違反）、pelayanan publik（公共サービス）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "BKPM",
+        "r": "Badan Koordinasi Penanaman Modal",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "投資調整庁（国内外からの直接投資 PMA / PMDN の誘致・許認可 OSS を統括する機関！現在は省格上げされ『Kementerian Investasi / BKPM』と併記される超重要経済機関！）",
+        "ex": "Kementerian Investasi atau BKPM mencatat realisasi penanaman modal asing di sektor manufaktur dan hilirisasi terus tumbuh positif.",
+        "tr": "投資省（投資調整庁 BKPM）は、製造業および産業下流化セクターへの外国直接投資実績がプラス成長を続けていると記録した。",
+        "note": "■ 【投資ニュース定番セット】：BKPM（投資調整庁）、PMA（外国直接投資）、PMDN（国内直接投資）、realisasi investasi（投資実行額）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "KKP",
+        "r": "Kementerian Kelautan dan Perikanan",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "海洋水産省（世界最大の群島国家インドネシアの海洋資源管理・漁業振興・密漁船取締りを管轄する省！）",
+        "ex": "Kapal pengawas milik KKP rutin berpatroli di perairan Natuna untuk mencegah penangkapan ikan secara ilegal.",
+        "tr": "海洋水産省（KKP）所属の監視船は、違法漁業（密漁）を防ぐためナトゥナ海域を定期的にパトロールしている。",
+        "note": "■ 【関連語】：kedaulatan laut（海洋主権）、illegal fishing（違法漁業）、ekonomi biru（ブルーエコノミー＝持続可能な海洋経済）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "SIM A",
+        "r": "Surat Izin Mengemudi A",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "普通自動車運転免許証（重量3,500kg以下の自家用乗用車・小型貨物を運転するためのインドネシアの免許区分！⇔ SIM C＝二輪バイク免許）",
+        "ex": "Untuk menyewa mobil lepas kunci di Indonesia, pengendara wajib memiliki SIM A atau surat izin mengemudi internasional yang sah.",
+        "tr": "インドネシアで運転手なしレンタカーを借りるには、運転者は有効なSIM Aまたは国際運転免許証を持っている必要がある。",
+        "note": "■ 【インドネシア運転免許の主な区分】：SIM A（普通車）、SIM B（大型バス・トラック）、SIM C（二輪バイク）。レンタカーで「運転手なし」は『lepas kunci（鍵渡し）』！"
+      },
+      {
+        "p": "singkatan",
+        "w": "SIM C",
+        "r": "Surat Izin Mengemudi C",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "二輪車・オートバイ運転免許証（バイク大国インドネシアで圧倒的多数の国民が取得する二輪免許！排気量により SIM C / C1 / C2 に区分される）",
+        "ex": "Setiap pengendara sepeda motor di jalan raya wajib membawa SIM C dan STNK yang masih berlaku serta mengenakan helm standar SNI.",
+        "tr": "公道のすべてのバイク運転者は、有効な二輪免許（SIM C）と車検証（STNK）を携帯し、SNI規格のヘルメットを着用する義務がある。",
+        "note": "■ 【バイク運転3点セット】：SIM C（二輪免許）、STNK（車検証）、helm SNI（国家規格ヘルメット）。"
+      },
+      {
+        "p": "singkatan",
+        "w": "KIR",
+        "r": "Keuring (Uji Kelayakan Kendaraan Bermotor)",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "商用車の定期車検・法定安全検査（トラック・バス・アンコット等の貨物・旅客車両に6ヶ月ごとに義務付けられる車検『uji KIR』！オランダ語 keuring［検査］由来。バス事故ニュースで必ず出る！）",
+        "ex": "Pasca kecelakaan bus pariwisata, dinas perhubungan merazia puluhan armada untuk memastikan buku uji KIR masih aktif dan rem berfungsi baik.",
+        "tr": "観光バス事故を受け、運輸局は法定車検（KIR）が有効でブレーキが正常に機能しているか確認するため数十台の車両を一斉点検した。",
+        "note": "■ 【豆知識】：インドネシアでは自家用乗用車に日本のような強制車検はないが、トラック・バス等の商用車には厳格な6ヶ月ごとの『uji KIR』がある！"
+      },
+      {
+        "p": "singkatan",
+        "w": "BRT",
+        "r": "Bus Rapid Transit",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "バス高速輸送システム（専用レーンと高床式専用停留所『halte』を持ち、渋滞を避けて定時運行する都市型バスシステム！ジャカルタの Transjakarta は世界最大級の BRT 路線網！）",
+        "ex": "Pengembangan sistem BRT dengan jalur khusus menjadi solusi cepat dan terjangkau bagi kota besar untuk mengurangi ketergantungan pada kendaraan pribadi.",
+        "tr": "専用レーンを備えたBRTシステムの開発は、大都市が自家用車への依存を減らすための迅速かつ手頃な解決策となっている。",
+        "note": "■ 【関連語】：Transjakarta [TJ]（ジャカルタのBRT）、halte（専用バス停留所）、koridor（BRT路線・コリドー）。"
+      }
+    ];
+
+    const idxByWord = new Map();
+    for (let i = 0; i < d.vocab.length; i++) {
+      const it = d.vocab[i];
+      if (it && it.w) idxByWord.set(it.w.trim().toLowerCase(), i);
+    }
+
+    const newlyDictOnlyKeys = new Set();
+
+    for (let i = 0; i < SEC56_DICT_ONLY_58.length; i++) {
+      const item = SEC56_DICT_ONLY_58[i];
+      if (!item || !item.w) continue;
+      const key = item.w.trim().toLowerCase();
+
+      item.dictOnly = true;
+      item.tier = 3;
+      dictOnlySet.add(key);
+      newlyDictOnlyKeys.add(key);
+
+      if (item.topicCat) {
+        catMap.set(key, item.topicCat);
+      }
+
+      if (idxByWord.has(key)) {
+        const pos = idxByWord.get(key);
+        Object.assign(d.vocab[pos], item);
+        vMap.set(key, d.vocab[pos]);
+        persistentAdded.set(key, d.vocab[pos]);
+      } else {
+        d.vocab.push(item);
+        idxByWord.set(key, d.vocab.length - 1);
+        vMap.set(key, item);
+        persistentAdded.set(key, item);
+      }
+    }
+
+    ["wi_wrongs_v2", "wi_stars_v2", "wi_master_stars_v5"].forEach(function(storageKey) {
+      try {
+        const raw = localStorage.getItem(storageKey);
+        if (!raw) return;
+        const list = JSON.parse(raw);
+        if (!Array.isArray(list)) return;
+        const cleaned = list.filter(function(it) {
+          if (!it || typeof it !== "object") return false;
+          const qid = String(it.id || "");
+          const m = qid.match(/^(?:voc|voc_ja2id|ctx::voc|abbr_ja|abbr_full)::(.+)$/i);
+          const w = (m ? m[1] : (it.w || it.ttsWord || "")).trim().toLowerCase();
+          return !newlyDictOnlyKeys.has(w);
+        });
+        if (cleaned.length !== list.length) {
+          localStorage.setItem(storageKey, JSON.stringify(cleaned));
+        }
+      } catch (err) {}
+    });
+  } catch (e) {
+    console.error("WhatsIndo Sec5&6 58-word dict-only pack error:", e);
+  }
+})();
+/* =====================================================================
+   WhatsIndo ご指名24語 追加・更新パック（安全直結版）
+   - 出題対象（9語・tier: 1）：angkasa, saban, sajak, susun, Yahudi, mendasar,
+       menyapu（強化更新）, pengarah, uap
+   - 辞書専用（15語・dictOnly: true, tier: 3）：menjagokan, mengiaskan, samaran,
+       penyamaran, sandungan, keberlangsungan, pekik, penggarapan, penggarap,
+       garapan, terpaan, tunduk, memperdayakan, penyusup, penyusupan
+   - **記号ゼロ・文字バグゼロ・try-catch完全保護
+   ===================================================================== */
+(function() {
+  try {
+    const d = window.WHATSINDO_EXTERNAL_DATA;
+    if (!d || !Array.isArray(d.vocab)) return;
+
+    const dictOnlySet     = window.__wiDictOnlySet || (window.__wiDictOnlySet = new Set());
+    const persistentAdded = window.__wiPersistentAddedVocab || (window.__wiPersistentAddedVocab = new Map());
+    const vMap            = window.__wiMasterVocabMap || (window.__wiMasterVocabMap = new Map());
+    const catMap          = window.__WI_V5_VCAT || (window.__WI_V5_VCAT = new Map());
+
+    const NEW_24_PACK = [
+      {
+        "p": "n",
+        "w": "angkasa",
+        "r": "angkasa",
+        "tier": 1,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "①大空、天空、上空（＝langit / udara） ②宇宙、宇宙空間（『luar angkasa / antariksa』：pesawat ruang angkasa＝宇宙船）",
+        "ex": "Satelit komunikasi terbaru itu berhasil diluncurkan ke luar angkasa untuk memperluas jaringan internet di daerah terpencil.",
+        "tr": "その最新の通信衛星は、へき地のインターネット網を拡大するため宇宙空間への打ち上げに成功した。",
+        "note": "■ 【angkasa 関連語ファミリー】：\n・luar angkasa / ruang angkasa：宇宙空間\n・mengangkasa（動詞）：空高く舞い上がる ➔ 比喩で「（価格や物価が）天井知らずに急騰する」\n・angkasawan：宇宙飛行士（＝astronaut）／放送関係者"
+      },
+      {
+        "p": "other",
+        "w": "saban",
+        "r": "saban",
+        "tier": 1,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "毎〜、〜ごとに（＝setiap / tiap。ジャカルタ口語や文芸・新聞コラムで味わい深く使われる定番語：saban hari＝毎日、saban tahun＝毎年、saban malam＝毎晩）",
+        "ex": "Saban pagi sebelum matahari terbit, pedagang sayur di pasar tradisional itu sudah sibuk menata dagangannya.",
+        "tr": "毎朝日の出前に、その伝統市場の野菜売りたちはすでに商品を並べるのに忙しくしている。",
+        "note": "■ 【重要コロケーション】：saban hari（毎日）、saban pagi / malam（毎朝／毎晩）、saban tahun（毎年）。標準語『setiap』のニュアンス豊かな言い換えとして読解で頻出！"
+      },
+      {
+        "p": "n",
+        "w": "sajak",
+        "r": "sajak",
+        "tier": 1,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "①詩、自由詩（＝puisi：sajak bebas＝自由詩、kumpulan sajak＝詩集） ②韻（いん）、押韻、語尾の響き（＝rima：persajakan＝押韻法）",
+        "ex": "Penyair legendaris itu menulis banyak sajak indah tentang perjuangan kemerdekaan dan cinta tanah air.",
+        "tr": "その伝説的詩人は、独立の闘いと祖国愛についての美しい詩を数多く書いた。",
+        "note": "■ 【sajak 関連語ファミリー】：sajak（詩・韻）、bersajak（韻を踏む・詩を詠む）、persajakan（韻律・押韻）。インドネシア文学では『puisi』と並んで定番の語！"
+      },
+      {
+        "p": "n",
+        "w": "susun",
+        "r": "susun",
+        "tier": 1,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①段、層、積み重ね（rumah susun [rusun]＝高層集合住宅・公営団地、ranjang susun＝二段ベッド、kue susun＝重ねケーキ） ②（menyusun の語幹）並べる、編成・作成する",
+        "ex": "Pemerintah kota membangun rumah susun modern yang terjangkau bagi warga berpenghasilan rendah di dekat stasiun.",
+        "tr": "市政府は駅の近くに、低所得市民向けの手頃な価格の近代的集合住宅（ルソン）を建設している。",
+        "note": "■ 【susun 関連語ファミリー】：\n・rumah susun [rusun]：集合住宅・公営団地\n・menyusun（動詞）：積み重ねる、計画・辞書・法案を編成・作成する\n・susunan（名詞）：構成、配列、編成（susunan acara＝式次第・プログラム）\n・bersusun / tersusun（動詞）：積み重なっている、整然と並んでいる"
+      },
+      {
+        "p": "n",
+        "w": "Yahudi",
+        "r": "Yahudi",
+        "tier": 1,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "ユダヤ人、ユダヤ民族、ユダヤ教（agama Yahudi＝ユダヤ教、bangsa Yahudi＝ユダヤ民族。歴史・宗教学・中東国際ニュースの必須語）",
+        "ex": "Dalam sejarah peradaban Timur Tengah, tradisi agama Yahudi, Kristen, dan Islam memiliki akar sejarah yang saling berkaitan.",
+        "tr": "中東文明の歴史において、ユダヤ教・キリスト教・イスラム教の伝統は互いに結びついた歴史的ルーツを持っている。",
+        "note": "■ 【関連語】：agama Yahudi / Yudaisme（ユダヤ教）、sinagoge（シナゴーグ＝ユダヤ教会堂）、bahasa Ibrani（ヘブライ語）。"
+      },
+      {
+        "p": "a",
+        "w": "mendasar",
+        "r": "dasar",
+        "tier": 1,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "根本的な、基本的な、本質的な（＝fundamental / pokok：perubahan mendasar＝抜本的・根本的な変化、perbedaan mendasar＝本質的な違い）",
+        "ex": "Pembenahan kurikulum pendidikan memerlukan perubahan mendasar pada metode pengajaran, bukan sekadar mengganti buku teks.",
+        "tr": "教育カリキュラムの立て直しには、単に教科書を変えるだけでなく、指導方法における根本的（抜本的）な変革が必要だ。",
+        "note": "■ 【語構成】：meN- + dasar（土台・基礎）。新聞・論文・検定B〜A級の長文で超頻出！\n■ 【重要コロケーション】：masalah / perbedaan / hak / perubahan mendasar（根本的問題／本質的差異／基本的権利／抜本的改革）。\n■ 【関連語】：mendasari（〜の基礎・根拠となる）、berdasarkan（〜に基づいて）。"
+      },
+      {
+        "p": "v",
+        "w": "menyapu",
+        "r": "sapu",
+        "tier": 1,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①（ほうきで床や庭を）掃く、掃き掃除する ②（津波・強風・炎などが）なぎ倒す、押し流す ③（『menyapu bersih』で）賞や勝利を総なめにする、違法業者を一掃する",
+        "ex": "Tim bulu tangkis Indonesia tampil dominan dan berhasil menyapu bersih seluruh gelar juara di turnamen tersebut.",
+        "tr": "インドネシアのバドミントンチームは圧倒的な強さを見せ、その大会の全優勝タイトルを総なめにする（完全制覇する）ことに成功した。",
+        "note": "■ 【語構成】：meN- + sapu（ほうき：頭文字 s が鼻音化して ny）。\n■ 【重要コロケーション】：\n・menyapu lantai / halaman：床／庭を掃く\n・menyapu bersih：総なめにする、完全制覇する、不正を一掃する\n・sapu tangan：ハンカチ ／ sapu lidi：ヤシ葉柄の竹ぼうき"
+      },
+      {
+        "p": "n",
+        "w": "pengarah",
+        "r": "arah",
+        "tier": 1,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "①ディレクター、演出家、監督（pengarah acara＝イベントディレクター、pengarah seni＝アートディレクター、pengarah gaya＝スタイリスト） ②指導役、運営評議員（dewan pengarah＝指導評議会）",
+        "ex": "Pengarah seni film tersebut merancang tata ruang dan pencahayaan klasik agar suasana era 1980-an terasa sangat nyata.",
+        "tr": "その映画のアートディレクターは、1980年代の雰囲気が非常にリアルに感じられるようクラシックな空間演出と照明を設計した。",
+        "note": "■ 【語構成】：peN- + arah（方向・指針）。\n■ 【重要コロケーション】：pengarah gaya（スタイリスト）、pengarah seni（アートディレクター）、dewan pengarah（運営・指導評議会）。\n■ 【関連語】：mengarahkan（導く・向ける）、pengarahan（ブリーフィング・指示・指導）。"
+      },
+      {
+        "p": "n",
+        "w": "uap",
+        "r": "uap",
+        "tier": 1,
+        "topicCat": "🌿 自然・天気・動植物",
+        "m": "蒸気、水蒸気、湯気（uap air＝水蒸気、mesin uap＝蒸気機関、setrika uap＝スチームアイロン、pembangkit listrik tenaga uap [PLTU]＝火力［蒸気］発電所）",
+        "ex": "Air yang dipanaskan hingga mendidih akan berubah wujud menjadi uap air yang naik ke udara.",
+        "tr": "沸騰するまで加熱された水は、空気中へ立ち上る水蒸気へと姿を変える。",
+        "note": "■ 【超重要な同音動詞の注意！】：\n・menguap①（語幹 uap）：（液体が）蒸発する ➔ 比喩で「（資金や希望が）霧散する・消えてなくなる」\n・menguap②（語幹 kuap）：（眠くて）あくびをする！\n■ 【関連語】：penguapan（蒸発）、PLTU（石炭等の蒸気火力発電所）。"
+      },
+      {
+        "p": "v",
+        "w": "menjagokan",
+        "r": "jago",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "（試合・選挙・コンテスト等で〜を）優勝候補・本命に推す、勝ち馬・エースとして応援し勝利を予想する",
+        "ex": "Banyak pengamat sepak bola menjagokan tim nasional Jepang untuk melaju jauh pada turnamen internasional tahun ini.",
+        "tr": "多くのサッカー解説者が、今年の国際大会で日本代表が上位進出する本命（有力候補）だと推している。",
+        "note": "■ 【語構成】：meN- + jago（達人・雄鶏・チャンピオン）+ -kan。\n■ 【関連語】：jago（上手い・強い）、jagoan（イチオシ・本命・ヒーロー）、dijagokan（本命視される）。"
+      },
+      {
+        "p": "v",
+        "w": "mengiaskan",
+        "r": "kias",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🎓 教育・学術・IT",
+        "m": "①〜に例える、比喩で表現する ②（遠回しに）ほのめかす、当てこする、諷刺する",
+        "ex": "Dalam sajaknya, sang penulis mengiaskan perjalanan hidup manusia sebagai perahu kecil yang mengarungi samudra luas.",
+        "tr": "その詩の中で、作者は人間の人生の旅路を広大な海を航海する小舟に例えている。",
+        "note": "■ 【語構成】：meN- + kias（たとえ・比喩：頭文字 k が鼻音化して ng）+ -kan。\n■ 【関連語】：kiasan（比喩・たとえ：makna kiasan＝比喩的意味）。"
+      },
+      {
+        "p": "n",
+        "w": "samaran",
+        "r": "samar",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①偽名、仮名、ペンネーム（nama samaran） ②変装、カモフラージュ、偽装（pakaian samaran＝変装服・迷彩服）",
+        "ex": "Demi melindungi keselamatan narasumber dalam laporan investigasi, redaksi menggunakan nama samaran untuk seluruh saksi.",
+        "tr": "調査報道記事における取材源の安全を守るため、編集部はすべての証人に仮名（偽名）を使用した。",
+        "note": "■ 【語構成】：samar（ぼんやりした・紛らわしい）+ -an。\n■ 【samar 関連語ファミリー】：samaran（仮名・変装）、menyamar（変装する・身分を偽る）、penyamaran（変装・潜入捜査）、menyamarkan（カモフラージュする・隠匿する）。"
+      },
+      {
+        "p": "n",
+        "w": "penyamaran",
+        "r": "samar",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "変装、偽装、潜入捜査・おとり捜査（警察やスパイが正体を隠して潜り込むこと：melakukan penyamaran）",
+        "ex": "Melalui operasi penyamaran selama dua bulan sebagai pembeli, polisi berhasil membongkar sindikat peredaran barang palsu tersebut.",
+        "tr": "買い手に扮した2ヶ月間の潜入捜査（変装作戦）を通じて、警察はその偽造品流通シンジケートを摘発した。",
+        "note": "■ 【語構成】：peN- + samar（頭文字 s が鼻音化して ny）+ -an。\n■ 【重要コロケーション】：operasi penyamaran（おとり・潜入捜査）、membongkar penyamaran（変装・正体を見破る）。"
+      },
+      {
+        "p": "n",
+        "w": "sandungan",
+        "r": "sandung",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "つまずき、障害、足かせ（特に慣用句『batu sandungan＝つまずきの石・最大の障害』としてニュースや論説で超頻出！）",
+        "ex": "Kurangnya koordinasi antarlembaga sering menjadi batu sandungan dalam pelaksanaan program pembangunan daerah.",
+        "tr": "機関間の連携不足は、地方開発プログラムの実施においてしばしばつまずきの石（障害）となる。",
+        "note": "■ 【語構成】：sandung（足が引っかかる）+ -an。\n■ 【関連語】：batu sandungan（つまずきの石・大きな障害）、tersandung（つまずく ➔ tersandung kasus korupsi＝汚職事件に引っかかる・失脚する！）。"
+      },
+      {
+        "p": "n",
+        "w": "keberlangsungan",
+        "r": "langsung",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "存続、持続性、継続性（keberlangsungan usaha / bisnis＝事業の存続・継続性、keberlangsungan hidup＝生存・存続）",
+        "ex": "Menjaga arus kas tetap sehat sangat menentukan keberlangsungan usaha kecil di tengah ketidakpastian ekonomi global.",
+        "tr": "世界経済の不確実性の中で、キャッシュフローを健全に保つことは小規模事業の存続を大きく左右する。",
+        "note": "■ 【語構成】：ke- + berlangsung（進行する・存続する）+ -an。\n■ 【重要コロケーション】：keberlangsungan usaha / lingkungan / ekosistem（事業／環境／生態系の存続・持続性）。類義語：keberlanjutan（サステナビリティ）。"
+      },
+      {
+        "p": "n",
+        "w": "pekik",
+        "r": "pekik",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "叫び声、雄叫び、鋭い歓声・悲鳴（独立戦争の象徴『pekik merdeka!＝「独立万歳！」の雄叫び』や、動物・群衆の鋭い叫び声）",
+        "ex": "Pekik merdeka yang menggema di seluruh penjuru kota membangkitkan semangat juang rakyat mempertahankan kemerdekaan.",
+        "tr": "街の隅々に響き渡った「独立！」の雄叫びは、独立を守り抜く民衆の闘志を奮い立たせた。",
+        "note": "■ 【pekik 関連語ファミリー】：pekik / pekikan（叫び声・雄叫び）、memekik（甲高く叫ぶ・悲鳴を上げる）、memekikkan（〜と高らかに叫ぶ）。"
+      },
+      {
+        "p": "n",
+        "w": "penggarapan",
+        "r": "garap",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "①（映画・音楽・小説・プロジェクト・市場などの）制作、着手、取り組み、開発 ②（農地・田畑の）耕作、開墾",
+        "ex": "Proses penggarapan film animasi lokal tersebut melibatkan ratusan kreator muda dan memakan waktu hampir tiga tahun.",
+        "tr": "その国産アニメ映画の制作プロセスには何百人もの若手クリエイターが参加し、約3年の歳月を要した。",
+        "note": "■ 【garap 関連語ファミリー3点セット】：\n・penggarapan（行為）：制作、着手、耕作\n・penggarap（人）：制作者、耕作者・小作農\n・garapan（結果・対象）：手掛けた作品、耕作地\n・menggarap（動詞）：制作する、取り組む、耕す"
+      },
+      {
+        "p": "n",
+        "w": "penggarap",
+        "r": "garap",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "💼 仕事・経済・買い物",
+        "m": "①（農地の）耕作者、小作農（『petani penggarap』＝他人の土地を借りて耕す農家 ⇔ petani pemilik＝自作農） ②（映画・案件などの）制作者、担当者",
+        "ex": "Sebagian besar petani penggarap di desa itu menyewa lahan sawah milik tuan tanah dengan sistem bagi hasil panen.",
+        "tr": "その村の小作農（耕作農家）の大半は、収穫の分配制度で地主の水田を借りている。",
+        "note": "■ 【農業・社会学ニュースの定番】：petani penggarap（小作農・耕作農家） ／ buruh tani（農業労働者）。"
+      },
+      {
+        "p": "n",
+        "w": "garapan",
+        "r": "garap",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "🏠 日常・生活・移動",
+        "m": "①（監督・アーティスト・企業などが）手掛けた作品、制作物、担当案件（『film garapan sutradara ~＝〜監督が手掛けた映画』でエンタメ報道超頻出！） ②耕作地（lahan garapan）",
+        "ex": "Film dokumenter garapan sutradara muda Indonesia itu berhasil meraih penghargaan bergengsi di festival film internasional.",
+        "tr": "インドネシアの若手監督が手掛けたそのドキュメンタリー映画は、国際映画祭で権威ある賞を獲得した。",
+        "note": "■ 【エンタメ報道定番】：film / serial / lagu / proyek garapan ~（〜が手掛けた映画／ドラマ／曲／プロジェクト）。"
+      },
+      {
+        "p": "n",
+        "w": "terpaan",
+        "r": "terpa",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①（強風・波・嵐・日差しなどの）吹き付け、直撃 ②（比喩で：批判・スキャンダル・逆風・試練・情報洪水などの）襲来、直撃（terpaan isu / kritik / badai）",
+        "ex": "Perusahaan tetap menjaga kualitas layanan di tengah terpaan rumor negatif dan persaingan pasar yang semakin ketat.",
+        "tr": "同社はネガティブな噂の直撃とますます激化する市場競争のさなかにあっても、サービスの質を維持し続けている。",
+        "note": "■ 【語構成】：terpa（飛びかかる・吹き付ける）+ -an。動詞形『menerpa（吹き付ける・襲いかかる）』もニュースで頻出！"
+      },
+      {
+        "p": "v",
+        "w": "tunduk",
+        "r": "tunduk",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "①（法律・規則・権力・相手に）服従する、従う、屈する（tunduk pada hukum / aturan＝法に従う） ②頭を垂れる、うつむく（＝menunduk）",
+        "ex": "Setiap perusahaan asing yang beroperasi di Indonesia wajib tunduk pada ketentuan hukum dan perpajakan nasional.",
+        "tr": "インドネシアで事業を展開するすべての外資系企業は、国内の法律および税制規定に従う義務がある。",
+        "note": "■ 【重要コロケーション】：tunduk pada / terhadap hukum（法に従う・服従する）、tidak tunduk pada tekanan（圧力に屈しない）。\n■ 【関連語】：menunduk（うつむく・お辞儀する）、menundukkan（屈服させる・打ち負かす）。"
+      },
+      {
+        "p": "v",
+        "w": "memperdayakan",
+        "r": "daya",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "（人を言葉巧みに）騙す、欺く、たぶらかす、策略にかける（＝memperdaya / menipu。※綴りがそっくりな『memberdayakan＝能力を引き出す・エンパワーする』とは正反対の意味なので超注意！）",
+        "ex": "Pelaku penipuan daring itu berhasil memperdayakan puluhan korban dengan mengaku sebagai petugas layanan pelanggan bank.",
+        "tr": "そのオンライン詐欺の犯人は、銀行のカスタマーサポート担当者を装って何十人もの被害者を巧みに騙した。",
+        "note": "■ 【検定・読解の超危険引っかけペア！】：\n・memperdayakan / memperdaya（memper-）：騙す、欺く、策略にかける（ネガティブ！）\n・memberdayakan（member-）：自立支援する、能力を高める、エンパワーする（ポジティブ！）"
+      },
+      {
+        "p": "n",
+        "w": "penyusup",
+        "r": "susup",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "潜入者、侵入者、スパイ、紛れ込んだ工作員（デモ隊に紛れ込んで暴動を煽る挑発者や、敵陣・ネットワークへの不正侵入者）",
+        "ex": "Koordinator aksi mengimbau peserta demonstrasi tetap waspada terhadap kemungkinan adanya penyusup yang memicu kerusuhan.",
+        "tr": "デモの責任者は、暴動を引き起こそうとする潜入者（工作員）が紛れ込んでいる可能性に警戒を保つよう参加者へ呼びかけた。",
+        "note": "■ 【語構成】：peN- + susup（潜り込む・忍び込む：頭文字 s が鼻音化して ny）。\n■ 【susup 関連語ファミリー】：menyusup（潜入・侵入する）、penyusup（潜入者・侵入者）、penyusupan（潜入・浸透工作）。"
+      },
+      {
+        "p": "n",
+        "w": "penyusupan",
+        "r": "susup",
+        "dictOnly": true,
+        "tier": 3,
+        "topicCat": "⚖️ 政治・法律・社会",
+        "m": "潜入、侵入、浸透工作（軍事・治安の潜入から、サイバー空間の不正侵入『penyusupan sistem』まで＝infiltrasi）",
+        "ex": "Sistem keamanan jaringan kampus langsung mendeteksi dan memblokir upaya penyusupan dari alamat IP tak dikenal.",
+        "tr": "大学のネットワークセキュリティシステムは、不明なIPアドレスからの侵入（潜入）の試みを直ちに検知して遮断した。",
+        "note": "■ 【語構成】：peN- + susup + -an。類義語：infiltrasi（浸透・潜入）。"
+      }
+    ];
+
+    const idxByWord = new Map();
+    for (let i = 0; i < d.vocab.length; i++) {
+      const it = d.vocab[i];
+      if (it && it.w) idxByWord.set(it.w.trim().toLowerCase(), i);
+    }
+
+    const newlyDictOnlyKeys = new Set();
+
+    for (let i = 0; i < NEW_24_PACK.length; i++) {
+      const item = NEW_24_PACK[i];
+      if (!item || !item.w) continue;
+      const key = item.w.trim().toLowerCase();
+
+      if (item.dictOnly === true || item.tier === 3) {
+        item.dictOnly = true;
+        item.tier = 3;
+        dictOnlySet.add(key);
+        newlyDictOnlyKeys.add(key);
+      } else {
+        delete item.dictOnly;
+        item.tier = 1;
+        dictOnlySet.delete(key);
+      }
+      if (item.topicCat) {
+        catMap.set(key, item.topicCat);
+      }
+
+      if (idxByWord.has(key)) {
+        const pos = idxByWord.get(key);
+        Object.assign(d.vocab[pos], item);
+        if (item.tier === 1) {
+          delete d.vocab[pos].dictOnly;
+        }
+        vMap.set(key, d.vocab[pos]);
+        persistentAdded.set(key, d.vocab[pos]);
+      } else {
+        d.vocab.push(item);
+        idxByWord.set(key, d.vocab.length - 1);
+        vMap.set(key, item);
+        persistentAdded.set(key, item);
+      }
+    }
+
+    ["wi_wrongs_v2", "wi_stars_v2", "wi_master_stars_v5"].forEach(function(storageKey) {
+      try {
+        const raw = localStorage.getItem(storageKey);
+        if (!raw) return;
+        const list = JSON.parse(raw);
+        if (!Array.isArray(list)) return;
+        const cleaned = list.filter(function(it) {
+          if (!it || typeof it !== "object") return false;
+          const qid = String(it.id || "");
+          const m = qid.match(/^(?:voc|voc_ja2id|ctx::voc|abbr_ja|abbr_full)::(.+)$/i);
+          const w = (m ? m[1] : (it.w || it.ttsWord || "")).trim().toLowerCase();
+          return !newlyDictOnlyKeys.has(w);
+        });
+        if (cleaned.length !== list.length) {
+          localStorage.setItem(storageKey, JSON.stringify(cleaned));
+        }
+      } catch (err) {}
+    });
+  } catch (e) {
+    console.error("WhatsIndo 24-word pack error:", e);
   }
 })();
